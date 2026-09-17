@@ -43,15 +43,15 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemo
 
   return (
     <div className={cn(
-      "relative bg-white rounded-[2.5rem] p-3 border border-gray-100 flex flex-col shadow-sm transition-all transform-gpu hover:scale-[1.02] will-change-transform", 
+      "relative bg-[#0B0B0B] rounded-[2.5rem] p-3 border border-white/5 flex flex-col shadow-2xl transition-all transform-gpu hover:scale-[1.02] will-change-transform", 
       isOffline && "opacity-75 grayscale-[0.5]"
     )}>
       <div className="relative aspect-square w-full mb-3">
         <ProductQuickView product={product} vendorScheduleOpen={!isOffline}>
-           <div className="relative w-full h-full cursor-pointer overflow-hidden rounded-[1.5rem] border border-gray-50">
+           <div className="relative w-full h-full cursor-pointer overflow-hidden rounded-[1.5rem] border border-white/10 shadow-inner">
               <Image src={product.imageUrl} alt={product.name} fill className="object-cover" unoptimized priority={false} />
               {isOffline && (
-                <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center p-2 text-center z-10">
+                <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center p-2 text-center z-10">
                   <Store className="h-6 w-6 text-white/80 mb-1" />
                   <span className="text-white font-black text-[9px] uppercase italic border-2 border-white/30 px-3 py-1 rounded-xl shadow-2xl">Closed</span>
                 </div>
@@ -72,19 +72,19 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemo
               )}
            </div>
         </ProductQuickView>
-        <button onClick={(e) => onShare(e, product)} className="absolute top-2.5 right-2.5 h-8 w-8 bg-white/80 backdrop-blur-md rounded-full flex items-center justify-center border border-black/5 shadow-lg active:scale-75 z-30 transition-transform">
+        <button onClick={(e) => onShare(e, product)} className="absolute top-2.5 right-2.5 h-8 w-8 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/10 shadow-lg active:scale-75 z-30 transition-transform">
           <Share2 className="h-4 w-4 text-primary" />
         </button>
       </div>
       <div className="flex-1 flex flex-col px-1">
         <p className="text-[9px] font-black text-primary uppercase tracking-[0.1em] italic truncate mb-1 opacity-90">{product.restaurantName || 'ShopyKart Select'}</p>
-        <h3 className="font-black text-[13px] text-gray-900 leading-[1.2] italic uppercase tracking-tighter line-clamp-2 mb-1 min-h-[2.2rem]">{product.name}</h3>
+        <h3 className="font-black text-[13px] text-white leading-[1.2] italic uppercase tracking-tighter line-clamp-2 mb-1 min-h-[2.2rem]">{product.name}</h3>
         <div className="mt-auto flex items-center justify-between pt-2">
           <div className="flex flex-col">
-            <span className="text-lg font-black text-gray-900 italic tracking-tighter leading-none">₹{displayPrice}</span>
+            <span className="text-lg font-black text-white italic tracking-tighter leading-none">₹{displayPrice}</span>
             <div className="flex items-center gap-1 mt-1">
               <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
-              <span className="text-[8px] font-bold text-gray-400">{(Number(product.rating) || 4.5).toFixed(1)}</span>
+              <span className="text-[8px] font-bold text-gray-500">{(Number(product.rating) || 4.5).toFixed(1)}</span>
             </div>
           </div>
           {!isOffline ? (
@@ -100,7 +100,7 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemo
               </div>
             )
           ) : (
-            <div className="bg-gray-100 text-gray-400 h-9 px-4 rounded-full font-black text-[8px] uppercase flex items-center border border-gray-200">OFFLINE</div>
+            <div className="bg-white/5 text-gray-500 h-9 px-4 rounded-full font-black text-[8px] uppercase flex items-center border border-white/10">OFFLINE</div>
           )}
         </div>
       </div>

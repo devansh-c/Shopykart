@@ -3,7 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 /**
  * @fileOverview High-Fidelity White Shimmer Loading UI.
- * Removed black boxes and dark themes for a clean, consistent white material feel.
+ * Removed black boxes for a clean, consistent white material feel.
  */
 export default function Loading() {
   return (

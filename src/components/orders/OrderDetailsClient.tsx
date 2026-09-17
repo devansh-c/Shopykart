@@ -27,6 +27,7 @@ import { useFirestore, useUser } from '@/firebase';
 import { collection, query, where, limit, getDocs, doc, getDoc, updateDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { useState, useEffect, Suspense, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { format, differenceInMinutes } from 'date-fns';
@@ -38,7 +39,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { OrderRatingDialog } from './OrderRatingDialog';
-import { Badge } from '@/components/ui/badge';
 
 const LiveTrackingMap = dynamic(() => import('./LiveTrackingMap'), { 
   ssr: false,
@@ -414,7 +414,6 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
         className={cn("relative z-[110] px-4 transition-all duration-700 pb-10", isMapExpanded ? "translate-y-[80vh] opacity-0 pointer-events-none" : "-mt-20 opacity-100")}
         onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
       >
-         {/* REAL RATING CARD FOR DELIVERED ORDERS */}
          {isDelivered && !order.isRated && (
            <div className="bg-gradient-to-br from-amber-400 to-orange-600 p-[2px] rounded-[2.5rem] mb-4 shadow-xl animate-in zoom-in duration-700">
              <div className="bg-white p-6 rounded-[2.4rem] space-y-4">

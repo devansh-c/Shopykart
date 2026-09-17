@@ -19,6 +19,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { requestPushToken } from '@/firebase/messaging';
 import { cn } from '@/lib/utils';
 
+/**
+ * @fileOverview Simplified LocationHeader - Hidden Food/Medical/etc. switcher.
+ */
 export function LocationHeader({
   searchValue,
   onSearchChange,
@@ -62,22 +65,6 @@ export function LocationHeader({
   const unreadCount = useMemo(() => {
     return notifications?.filter((n: any) => n.read === false).length || 0;
   }, [notifications]);
-
-  useEffect(() => {
-    if (user && isMounted && firestore) {
-      const syncToken = async () => {
-        try {
-          const token = await requestPushToken();
-          if (token) {
-            const tokenRef = doc(firestore, 'users', user.uid, 'fcm_tokens', token);
-            await setDoc(tokenRef, { token, lastUpdated: serverTimestamp(), platform: 'web' }, { merge: true });
-            await updateDoc(doc(firestore, 'users', user.uid), { isPushEnabled: true, lastPushSync: serverTimestamp() });
-          }
-        } catch (e) { }
-      };
-      setTimeout(syncToken, 4000);
-    }
-  }, [user, isMounted, firestore]);
 
   const handleOpenPicker = () => {
     window.dispatchEvent(new CustomEvent('open-location-picker'));

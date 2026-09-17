@@ -58,7 +58,6 @@ export default function CartPage() {
   const [isRedeemingCoins, setIsRedeemingCoins] = useState(false);
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
 
-  // Coupon States
   const [couponCode, setCouponCode] = useState('');
   const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
@@ -116,7 +115,6 @@ export default function CartPage() {
   const coinDiscount = isRedeemingCoins ? 5 : 0; 
   const packingFee = isPremiumPacking ? 10 : 0;
 
-  // Coupon Logic
   const handleApplyCoupon = async () => {
     if (!firestore || !couponCode.trim()) return;
     setIsValidatingCoupon(true);
@@ -125,19 +123,19 @@ export default function CartPage() {
       const snap = await getDocs(q);
       
       if (snap.empty) {
-        toast({ variant: "destructive", title: "Invalid Coupon", description: "This code does not exist." });
+        toast({ variant: "destructive", title: "Invalid Coupon" });
         setAppliedCoupon(null);
       } else {
         const data = snap.docs[0].data();
         if (totalPrice < (data.minOrderValue || 0)) {
-          toast({ variant: "destructive", title: "Minimum Order Not Met", description: `Add ₹${data.minOrderValue - totalPrice} more to use this.` });
+          toast({ variant: "destructive", title: "Min Order Not Met" });
         } else {
           setAppliedCoupon({ id: snap.docs[0].id, ...data });
-          toast({ title: "Coupon Applied! ✨" });
+          toast({ title: "Applied!" });
         }
       }
     } catch (e) {
-      toast({ variant: "destructive", title: "Error", description: "Could not validate coupon." });
+      toast({ variant: "destructive", title: "Error" });
     } finally {
       setIsValidatingCoupon(false);
     }
@@ -199,51 +197,20 @@ export default function CartPage() {
       };
 
       await addDoc(collection(firestore, 'orders'), orderData);
-      
-      if (isRedeemingCoins) {
-        await updateDoc(doc(firestore, 'users', user.uid), {
-          coins: increment(-20)
-        });
-      }
+      if (isRedeemingCoins) await updateDoc(doc(firestore, 'users', user.uid), { coins: increment(-20) });
 
       setShowSuccessOverlay(true);
       setTimeout(() => { clearCart(); router.replace('/orders'); }, 1500);
     } catch (e) { 
       setIsPlacing(false); 
       setSliderOffset(0); 
-      toast({ variant: "destructive", title: "Order Failed" });
+      toast({ variant: "destructive", title: "Failed" });
     }
   };
 
   const handleTouchStart = (e: React.TouchEvent) => { if (isPlacing || cart.length === 0 || hasClosedItems || !isMinOrderMet) return; setIsDragging(true); startXRef.current = e.touches[0].clientX; };
   const handleTouchMove = (e: React.TouchEvent) => { if (!isDragging || !sliderRef.current) return; const diff = e.touches[0].clientX - startXRef.current; if (diff > 0) setSliderOffset(Math.min(diff, sliderRef.current.offsetWidth - 80)); };
   const handleTouchEnd = () => { if (!isDragging) return; setIsDragging(false); if (sliderOffset > (sliderRef.current?.offsetWidth || 0) * 0.75) finalizeOrder(); else setSliderOffset(0); };
-
-  const handleMouseDown = (e: React.MouseEvent) => { if (isPlacing || cart.length === 0 || hasClosedItems || !isMinOrderMet) return; setIsDragging(true); startXRef.current = e.clientX; };
-  
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isDragging || !sliderRef.current) return;
-      const diff = e.clientX - startXRef.current;
-      if (diff > 0) setSliderOffset(Math.min(diff, sliderRef.current.offsetWidth - 80));
-    };
-
-    const handleMouseUp = () => {
-      if (!isDragging) return;
-      setIsDragging(false);
-      if (sliderOffset > (sliderRef.current?.offsetWidth || 0) * 0.75) finalizeOrder();
-      else setSliderOffset(0);
-    };
-
-    if (isDragging) {
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
-    }
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [isDragging, sliderOffset]);
 
   if (!isMounted) return null;
 
@@ -260,7 +227,6 @@ export default function CartPage() {
       <main className="px-4 pt-6 relative z-10 animate-in fade-in duration-700">
         <div className="bg-white/40 backdrop-blur-xl rounded-[2.5rem] overflow-hidden border border-white/40">
           
-          {/* ADDRESS SECTION - FRAMELESS */}
           <section className="p-6 flex items-center justify-between border-b border-black/[0.03]">
              <div className="flex items-center gap-4">
                 <div className="h-12 w-12 bg-[#0B0B0B] rounded-2xl flex items-center justify-center text-white">
@@ -275,7 +241,6 @@ export default function CartPage() {
              <button onClick={() => setIsAddressModalOpen(true)} className="bg-primary/10 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest text-primary active:scale-95 transition-all">EDIT</button>
           </section>
 
-          {/* ITEMS SECTION - FRAMELESS */}
           <section className="p-6 space-y-6">
              <div className="flex items-center gap-4 mb-4">
                 <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
@@ -309,7 +274,6 @@ export default function CartPage() {
              </div>
           </section>
 
-          {/* COUPON SECTION - FRAMELESS */}
           <section className="p-6 bg-white/20 border-y border-black/[0.03]">
              <div className="flex items-center gap-4 mb-4">
                 <div className="h-10 w-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
@@ -340,7 +304,7 @@ export default function CartPage() {
                  <button 
                    onClick={handleApplyCoupon}
                    disabled={isValidatingCoupon || !couponCode.trim()}
-                   className="h-12 bg-black text-white px-6 rounded-xl font-black text-[10px] uppercase active:scale-95 transition-all disabled:opacity-50"
+                   className="h-12 bg-black text-white px-6 rounded-xl font-black text-[10px] uppercase active:scale-95 transition-all"
                  >
                    {isValidatingCoupon ? <Loader2 className="h-4 w-4 animate-spin" /> : 'APPLY'}
                  </button>
@@ -348,7 +312,6 @@ export default function CartPage() {
              )}
           </section>
 
-          {/* REWARD REDEEM - FRAMELESS */}
           <section className="p-6 flex items-center justify-between border-b border-black/[0.03] bg-amber-50/10">
              <div className="flex items-center gap-4">
                 <div className="h-10 w-10 bg-amber-400 rounded-xl flex items-center justify-center text-black">
@@ -367,45 +330,35 @@ export default function CartPage() {
              />
           </section>
 
-          {/* SAFETY & INSTRUCTIONS - FRAMELESS */}
-          <section className="p-6 space-y-6">
+          <section className="p-6 space-y-6 border-b border-black/[0.03]">
              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                    <div className="h-10 w-10 bg-green-50 rounded-xl flex items-center justify-center text-green-600">
                       <PackageCheck className="h-5 w-5" />
                    </div>
                    <div>
-                      <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-900">Premium Safety Pack</h4>
+                      <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-900">Safety Pack</h4>
                       <p className="text-[8px] font-bold text-muted-foreground uppercase">+ ₹10 for safety</p>
                    </div>
                 </div>
                 <Switch checked={isPremiumPacking} onCheckedChange={setIsPremiumPacking} className="data-[state=checked]:bg-green-600" />
              </div>
-
-             <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                   <MessageSquare className="h-4 w-4 text-gray-400" />
-                   <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-900">Delivery Instructions</h4>
-                </div>
-                <textarea 
-                  value={deliveryInstructions}
-                  onChange={e => setDeliveryInstructions(e.target.value)}
-                  placeholder="e.g. Call before arrival..."
-                  className="w-full bg-white/40 border border-black/5 rounded-2xl p-4 text-[10px] font-bold uppercase italic focus:outline-none min-h-[80px] resize-none"
-                />
-             </div>
+             <textarea 
+               value={deliveryInstructions}
+               onChange={e => setDeliveryInstructions(e.target.value)}
+               placeholder="DELIVERY INSTRUCTIONS (E.G. CALL ON ARRIVAL)"
+               className="w-full bg-white/40 border border-black/5 rounded-2xl p-4 text-[10px] font-black uppercase italic focus:outline-none min-h-[80px] resize-none"
+             />
           </section>
 
-          {/* BILLING SECTION - FRAMELESS */}
           <section className="p-6 space-y-6">
-             <h3 className="text-xl font-black italic uppercase tracking-tighter text-gray-900">Billing Breakdown</h3>
+             <h3 className="text-xl font-black italic uppercase tracking-tighter text-gray-900">Billing</h3>
              <div className="space-y-3">
                 <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Item Total</span><span className="text-gray-900 font-black">₹{totalPrice.toFixed(0)}</span></div>
                 <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Delivery Fee</span><span className="text-gray-900 font-black">₹{deliveryFee.toFixed(0)}</span></div>
-                {packingFee > 0 && <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Packing Fee</span><span className="text-gray-900 font-black">₹{packingFee}</span></div>}
-                {deliveryTip > 0 && <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Rider Tip</span><span className="text-gray-900 font-black">₹{deliveryTip}</span></div>}
-                {coinDiscount > 0 && <div className="flex justify-between text-[10px] font-black text-green-600 uppercase tracking-widest"><span>Coin Discount</span><span className="font-black">- ₹{coinDiscount}</span></div>}
-                {couponDiscount > 0 && <div className="flex justify-between text-[10px] font-black text-indigo-600 uppercase tracking-widest"><span>Coupon Discount</span><span className="font-black">- ₹{couponDiscount.toFixed(0)}</span></div>}
+                {packingFee > 0 && <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Safety Pack</span><span className="text-gray-900 font-black">₹{packingFee}</span></div>}
+                {coinDiscount > 0 && <div className="flex justify-between text-[10px] font-black text-green-600 uppercase tracking-widest"><span>Coin Redeem</span><span className="font-black">- ₹{coinDiscount}</span></div>}
+                {couponDiscount > 0 && <div className="flex justify-between text-[10px] font-black text-indigo-600 uppercase tracking-widest"><span>Promo Discount</span><span className="font-black">- ₹{couponDiscount.toFixed(0)}</span></div>}
              </div>
              <div className="pt-6 border-t-2 border-dashed border-black/5 flex justify-between items-end">
                 <div className="flex flex-col"><span className="text-[8px] font-black uppercase tracking-widest text-primary mb-1">To Pay</span><div className="flex items-center gap-1 text-4xl font-black italic text-gray-900 tracking-tighter leading-none"><IndianRupee className="h-6 w-6 text-primary" /><span>{totalPayable.toFixed(0)}</span></div></div>
@@ -414,53 +367,30 @@ export default function CartPage() {
           </section>
         </div>
 
-        {/* ORDER ACTION AREA */}
         <div className="pt-8 pb-32">
            <div className="space-y-4">
-              {hasClosedItems && (
-                <div className="bg-red-50/80 backdrop-blur-md border border-red-100 p-4 rounded-3xl flex items-center gap-3">
-                  <AlertCircle className="h-5 w-5 text-red-500 shrink-0" />
-                  <p className="text-[9px] font-black text-red-800 uppercase leading-tight">STORE CLOSED: REMOVE ITEMS TO CONTINUE.</p>
-                </div>
-              )}
-              
-              {!isMinOrderMet && minOrderValue > 0 && (
-                <div className="bg-amber-50/80 backdrop-blur-md border border-amber-100 p-4 rounded-3xl flex items-center gap-3">
-                  <AlertCircle className="h-5 w-5 text-amber-500 shrink-0" />
-                  <p className="text-[9px] font-black text-amber-800 uppercase leading-tight">MIN. ORDER ₹{minOrderValue} REQUIRED.</p>
-                </div>
-              )}
+              {hasClosedItems && <div className="bg-red-50 p-4 rounded-3xl border border-red-100 text-center text-[9px] font-black text-red-800 uppercase">STORE CLOSED: REMOVE ITEMS TO CONTINUE.</div>}
+              {!isMinOrderMet && <div className="bg-amber-50 p-4 rounded-3xl border border-amber-100 text-center text-[9px] font-black text-amber-800 uppercase">MIN. ORDER ₹{minOrderValue} REQUIRED.</div>}
 
               <div 
                 ref={sliderRef} 
                 className={cn(
-                  "w-full h-24 rounded-[3rem] p-3 flex items-center relative overflow-hidden select-none border-t-2 transition-all duration-300", 
-                  (hasClosedItems || !isMinOrderMet) 
-                    ? "bg-gray-100 border-gray-200 opacity-50 grayscale cursor-not-allowed" 
-                    : "bg-[#0B0B0B] border-white/10 shadow-2xl"
+                  "w-full h-24 rounded-[3rem] p-3 flex items-center relative overflow-hidden transition-all duration-300", 
+                  (hasClosedItems || !isMinOrderMet) ? "bg-gray-100 opacity-50 grayscale" : "bg-[#0B0B0B] border-white/10 shadow-2xl"
                 )}
               >
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <span className="text-[10px] font-black uppercase italic tracking-[0.4em] text-white/20">
-                      {hasClosedItems ? 'ACTION LOCKED' : !isMinOrderMet ? 'MIN ORDER REQ' : 'SLIDE TO PLACE ORDER'}
-                    </span>
+                    <span className="text-[10px] font-black uppercase italic tracking-[0.4em] text-white/20">SLIDE TO PLACE ORDER</span>
                   </div>
-                  <div className="absolute inset-y-0 left-0 opacity-30 pointer-events-none bg-primary blur-3xl" style={{ width: `${sliderOffset + 80}px` }} />
                   <div 
-                    onMouseDown={handleMouseDown}
-                    onTouchStart={handleTouchStart} 
-                    onTouchMove={handleTouchMove} 
-                    onTouchEnd={handleTouchEnd} 
+                    onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} 
                     style={{ transform: `translateX(${sliderOffset}px)` }} 
-                    className={cn(
-                      "h-16 w-16 rounded-[1.5rem] flex items-center justify-center z-10 transition-transform bg-white text-primary cursor-grab active:cursor-grabbing", 
-                      (hasClosedItems || !isMinOrderMet) && "bg-gray-300"
-                    )}
+                    className="h-16 w-16 rounded-[1.5rem] bg-white text-primary flex items-center justify-center z-10 transition-transform cursor-grab"
                   >
                     <ArrowRight className="h-8 w-8 stroke-[3]" />
                   </div>
                   <div className="flex-1 text-right pr-8 relative z-10">
-                    <div className="text-[9px] font-black uppercase tracking-widest text-primary opacity-60 italic">Total</div>
+                    <div className="text-[9px] font-black uppercase tracking-widest text-primary italic">Total</div>
                     <div className="text-3xl font-black italic text-white tracking-tighter leading-none mt-0.5">₹{totalPayable.toFixed(0)}</div>
                   </div>
                   {isPlacing && <div className="absolute inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-20"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>}
@@ -469,43 +399,18 @@ export default function CartPage() {
         </div>
       </main>
 
-      {/* ADDRESS MODAL */}
       <Dialog open={isAddressModalOpen} onOpenChange={setIsAddressModalOpen}>
-        <DialogContent className="rounded-t-[3.5rem] p-8 border-none shadow-2xl bg-white max-w-sm bottom-0 top-auto translate-y-0 focus:outline-none flex flex-col h-[550px]">
-          <div className="h-1.5 w-16 bg-gray-100 rounded-full mx-auto mb-6 shrink-0" />
-          <DialogHeader className="pb-4 shrink-0">
-             <div className="flex flex-col items-center text-center">
-                <div className="h-16 w-16 bg-primary/10 rounded-[1.75rem] flex items-center justify-center text-primary mb-3 shadow-inner"><MapPin className="h-8 w-8" /></div>
-                <DialogTitle className="text-3xl font-black italic uppercase tracking-tighter text-gray-900">Drop Address</DialogTitle>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Identity & Location Sync</p>
-             </div>
+        <DialogContent className="rounded-t-[3.5rem] p-8 border-none shadow-2xl bg-white bottom-0 top-auto translate-y-0 h-[550px] flex flex-col focus:outline-none">
+          <DialogHeader className="pb-4 shrink-0 text-center">
+             <div className="h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-3"><MapPin className="h-8 w-8" /></div>
+             <DialogTitle className="text-3xl font-black italic uppercase tracking-tighter text-gray-900">Drop Address</DialogTitle>
           </DialogHeader>
-          <div className="flex-1 overflow-y-auto no-scrollbar space-y-4 pt-2">
-              <div className="space-y-1">
-                 <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-1">Full Name</label>
-                 <Input placeholder="RECIPIENT NAME" value={recipientForm.name} onChange={e => setRecipientForm({...recipientForm, name: e.target.value.toUpperCase()})} className="h-14 rounded-2xl bg-gray-50 border-none font-black text-xs uppercase" />
-              </div>
-              <div className="space-y-1">
-                 <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-1">Phone Number</label>
-                 <Input placeholder="10 DIGIT NUMBER" value={recipientForm.phone} onChange={e => setRecipientForm({...recipientForm, phone: e.target.value.replace(/\D/g,'').slice(0, 10)})} className="h-14 rounded-2xl bg-gray-50 border-none font-black text-xs" />
-              </div>
-              <div className="space-y-1">
-                 <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-1">House/Street Address</label>
-                 <textarea placeholder="e.g. House No. 42, Near Main Market" value={recipientForm.address} onChange={e => setRecipientForm({...recipientForm, address: e.target.value.toUpperCase()})} className="w-full h-28 p-4 rounded-2xl bg-gray-50 border-none font-bold text-xs uppercase focus:outline-none resize-none" />
-              </div>
+          <div className="flex-1 overflow-y-auto no-scrollbar space-y-4">
+              <Input placeholder="RECIPIENT NAME" value={recipientForm.name} onChange={e => setRecipientForm({...recipientForm, name: e.target.value.toUpperCase()})} className="h-14 rounded-2xl bg-gray-50 border-none font-black text-xs uppercase" />
+              <Input placeholder="10 DIGIT PHONE" value={recipientForm.phone} onChange={e => setRecipientForm({...recipientForm, phone: e.target.value.replace(/\D/g,'').slice(0, 10)})} className="h-14 rounded-2xl bg-gray-50 border-none font-black text-xs" />
+              <textarea placeholder="STREET ADDRESS / HOUSE NO" value={recipientForm.address} onChange={e => setRecipientForm({...recipientForm, address: e.target.value.toUpperCase()})} className="w-full h-28 p-4 rounded-2xl bg-gray-50 border-none font-bold text-xs uppercase focus:outline-none resize-none" />
           </div>
-          <div className="pt-4 pb-4">
-             <Button onClick={() => { 
-                if (!recipientForm.name || recipientForm.phone.length !== 10 || !recipientForm.address) {
-                  toast({ variant: "destructive", title: "Details Incomplete" });
-                  return;
-                }
-                localStorage.setItem('user_name', recipientForm.name); 
-                localStorage.setItem('user_phone', recipientForm.phone); 
-                localStorage.setItem('user_address_line', recipientForm.address); 
-                setIsAddressModalOpen(false); 
-             }} className="w-full h-18 bg-[#0B0B0B] text-white rounded-[2rem] font-black uppercase italic shadow-xl text-lg transition-all active:scale-95">SAVE & CONTINUE</Button>
-          </div>
+          <Button onClick={() => { if(recipientForm.phone.length===10) { localStorage.setItem('user_name', recipientForm.name); localStorage.setItem('user_phone', recipientForm.phone); localStorage.setItem('user_address_line', recipientForm.address); setIsAddressModalOpen(false); } }} className="w-full h-18 bg-[#0B0B0B] text-white rounded-[2rem] font-black uppercase italic shadow-xl text-lg">SAVE & CONTINUE</Button>
         </DialogContent>
       </Dialog>
     </div>

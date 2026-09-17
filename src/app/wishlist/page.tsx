@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -10,7 +11,7 @@ import { ProductQuickView } from '@/components/product/ProductQuickView';
 import { cn } from '@/lib/utils';
 
 /**
- * @fileOverview WishlistPage updated to filter out deleted products globally.
+ * @fileOverview WishlistPage with Black Product Cards.
  */
 export default function WishlistPage() {
   const { wishlist, toggleWishlist, addToCart } = useCart();
@@ -30,7 +31,6 @@ export default function WishlistPage() {
   }, [firestore]);
   const { data: vendors } = useCollection<any>(vendorsQuery);
 
-  // STRICT FILTER: Check if product ID is in wishlist AND is not marked as deleted
   const favoriteProducts = dbProducts?.filter(p => wishlist.includes(p.id) && !p.isDeleted) || [];
 
   if (loading && !dbProducts) {
@@ -50,7 +50,7 @@ export default function WishlistPage() {
         <h2 className="text-2xl font-black italic uppercase">No Favorites Yet</h2>
         <p className="text-muted-foreground mt-2 mb-8">Tap the heart on any item to save it for later.</p>
         <button 
-          onClick={() => router.push('/menu')} 
+          onClick={() => router.push('/')} 
           className="bg-primary text-white rounded-2xl h-12 px-8 font-black uppercase italic tracking-tighter"
         >
           EXPLORE MENU
@@ -77,7 +77,7 @@ export default function WishlistPage() {
 
           return (
             <div key={product.id} className={cn(
-              "bg-white rounded-2xl overflow-hidden shadow-sm border border-border/40 flex flex-col group animate-in fade-in zoom-in duration-300 transition-all",
+              "bg-[#0B0B0B] rounded-[2rem] overflow-hidden shadow-2xl border border-white/5 flex flex-col group animate-in fade-in zoom-in duration-300 transition-all",
               isOffline && "opacity-80"
             )}>
               <div className="relative aspect-square">
@@ -94,7 +94,7 @@ export default function WishlistPage() {
                 </ProductQuickView>
                 <button 
                   onClick={() => toggleWishlist(product.id)}
-                  className="absolute top-2 right-2 bg-white/80 backdrop-blur-sm p-2 rounded-full shadow-sm text-primary z-20"
+                  className="absolute top-2 right-2 bg-white/10 backdrop-blur-sm p-2 rounded-full shadow-sm text-primary z-20 border border-white/10"
                 >
                   <Heart className="h-4 w-4 fill-primary" />
                 </button>
@@ -102,19 +102,19 @@ export default function WishlistPage() {
               <div className="p-3 flex-1 flex flex-col justify-between">
                 <ProductQuickView product={product}>
                   <button className="text-left block w-full">
-                    <h3 className="font-bold text-xs line-clamp-2 min-h-[2rem] leading-tight mb-1">{product.name}</h3>
-                    <p className="text-primary font-black text-sm">₹{product.price.toFixed(2)}</p>
+                    <h3 className="font-black text-white text-[11px] uppercase italic line-clamp-2 min-h-[2rem] leading-tight mb-1">{product.name}</h3>
+                    <p className="text-primary font-black text-sm italic">₹{product.price.toFixed(0)}</p>
                   </button>
                 </ProductQuickView>
                 
                 {isOffline ? (
-                  <div className="mt-3 w-full bg-gray-100 text-gray-400 text-[8px] font-black h-8 rounded-xl flex items-center justify-center gap-1 italic border border-gray-200">
+                  <div className="mt-3 w-full bg-white/5 text-gray-500 text-[8px] font-black h-8 rounded-xl flex items-center justify-center gap-1 italic border border-white/5">
                     <AlertCircle className="h-2.5 w-2.5" /> STORE OFFLINE
                   </div>
                 ) : (
                   <button 
                     onClick={() => addToCart({ ...product, imageUrl })}
-                    className="mt-3 w-full bg-primary text-white text-[10px] font-black h-8 rounded-xl flex items-center justify-center gap-1 active:scale-95 transition-all"
+                    className="mt-3 w-full bg-primary text-white text-[10px] font-black h-8 rounded-xl flex items-center justify-center gap-1 active:scale-95 transition-all shadow-lg"
                   >
                     <Plus className="h-3 w-3" />
                     ADD TO CART

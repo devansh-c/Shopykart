@@ -17,7 +17,7 @@ import { ProductQuickView } from '@/components/product/ProductQuickView';
 import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 
 /**
- * @fileOverview MenuContent with SPA Fallback to prevent 404s.
+ * @fileOverview MenuContent with Black Product Cards.
  */
 export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
   const params = useParams();
@@ -179,22 +179,22 @@ export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
         ) : filteredProducts.length > 0 ? (
           filteredProducts.map((product: any) => (
             <div key={product.id} className={cn(
-              "premium-card p-5 flex justify-between items-center bg-white relative overflow-hidden group hover:shadow-xl transition-all",
+              "premium-card p-5 flex justify-between items-center bg-[#0B0B0B] relative overflow-hidden group hover:shadow-2xl transition-all border border-white/5",
               isOffline && "opacity-60 grayscale-[0.5]"
             )}>
               <div className="flex-1 pr-4 min-w-0">
                 <ProductQuickView product={product} vendorScheduleOpen={scheduleOpen}>
                   <button className="text-left w-full pointer-events-auto">
-                    <h3 className="font-black text-xl italic tracking-tight leading-tight mb-2 text-gray-900 group-hover:text-primary transition-colors line-clamp-2 uppercase">{product.name}</h3>
-                    <div className="text-3xl font-black text-gray-900 italic tracking-tighter">₹{(product.price || 0).toFixed(0)}</div>
+                    <h3 className="font-black text-xl italic tracking-tight leading-tight mb-2 text-white group-hover:text-primary transition-colors line-clamp-2 uppercase">{product.name}</h3>
+                    <div className="text-3xl font-black text-white italic tracking-tighter">₹{(product.price || 0).toFixed(0)}</div>
                   </button>
                 </ProductQuickView>
               </div>
               <div className="relative w-28 h-28 shrink-0">
                 <ProductQuickView product={product} vendorScheduleOpen={scheduleOpen}>
-                  <div className="relative w-full h-full cursor-pointer overflow-hidden rounded-3xl border border-gray-100 shadow-md">
+                  <div className="relative w-full h-full cursor-pointer overflow-hidden rounded-3xl border border-white/10 shadow-md">
                     <Image src={product.imageUrl} alt={product.name} fill className="object-cover group-hover:scale-110 transition-transform duration-700" unoptimized />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                   </div>
                 </ProductQuickView>
                 <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-[90%] z-20">
