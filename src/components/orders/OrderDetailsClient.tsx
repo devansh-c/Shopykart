@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -19,7 +20,8 @@ import {
   Timer,
   CheckCircle2,
   Clock,
-  MessageSquare
+  MessageSquare,
+  Star
 } from 'lucide-react';
 import { useFirestore, useUser } from '@/firebase';
 import { collection, query, where, limit, getDocs, doc, getDoc, updateDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
@@ -35,6 +37,7 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
+import { OrderRatingDialog } from './OrderRatingDialog';
 
 const LiveTrackingMap = dynamic(() => import('./LiveTrackingMap'), { 
   ssr: false,
@@ -55,6 +58,7 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
   const [isMapExpanded, setIsMapExpanded] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isRatingOpen, setIsRatingOpen] = useState(false);
   
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
@@ -149,7 +153,6 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
     return () => unsub?.();
   }, [firestore, user, authLoading, forcedId, searchParams]);
 
-  // SMART TIMER LOGIC
   useEffect(() => {
     if (!order || order.status === 'Delivered' || order.status === 'Cancelled') return;
 
@@ -269,7 +272,6 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
         taxHtml += `<div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #16a34a;"><span>COINS REDEEMED:</span><span>- ₹5.00</span></div>`;
       }
 
-      // Exact Amount QR Code
       const upiUrl = `upi://pay?pa=9450355709@axl&pn=ShopyKart&am=${order.total?.toFixed(2)}&cu=INR`;
       const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(upiUrl)}`;
 
@@ -350,6 +352,12 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
 
   return (
     <div className="min-h-screen bg-white flex flex-col transform-gpu overflow-x-hidden no-scrollbar relative">
+      <OrderRatingDialog 
+        order={order} 
+        isOpen={isRatingOpen} 
+        onClose={() => setIsRatingOpen(false)} 
+      />
+
       <div className={cn("relative w-full shrink-0 transition-all duration-700 z-0", isMapExpanded ? "h-screen" : "h-[48vh]")}>
         <header className="absolute top-0 left-0 right-0 z-[100] px-4 py-4 flex items-center justify-between pointer-events-none">
           <button onClick={() => router.push('/orders')} className="h-10 w-10 bg-white rounded-full flex items-center justify-center text-gray-900 shadow-lg border border-black/5 active:scale-90 transition-transform pointer-events-auto">
@@ -402,9 +410,52 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
       </div>
 
       <div 
-        className={cn("relative z-[110] px-4 transition-all duration-700", isMapExpanded ? "translate-y-[80vh] opacity-0 pointer-events-none" : "-mt-20 opacity-100")}
+        className={cn("relative z-[110] px-4 transition-all duration-700 pb-10", isMapExpanded ? "translate-y-[80vh] opacity-0 pointer-events-none" : "-mt-20 opacity-100")}
         onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
       >
+         {/* REAL RATING CARD FOR DELIVERED ORDERS */}
+         {isDelivered && !order.isRated && (
+           <div className="bg-gradient-to-br from-amber-400 to-orange-600 p-[2px] rounded-[2.5rem] mb-4 shadow-xl animate-in zoom-in duration-700">
+             <div className="bg-white p-6 rounded-[2.4rem] space-y-4">
+                <div className="flex items-center justify-between">
+                   <div className="flex items-center gap-3">
+                      <div className="bg-amber-100 p-2 rounded-xl"><Star className="h-5 w-5 text-amber-600 fill-amber-500" /></div>
+                      <h4 className="text-sm font-black italic uppercase tracking-tighter text-gray-900">Share Feedback</h4>
+                   </div>
+                   <Badge className="bg-amber-100 text-amber-700 border-none font-black text-[7px] uppercase tracking-widest">+5 COINS</Badge>
+                </div>
+                <p className="text-[11px] font-bold text-gray-500 uppercase tracking-tight leading-relaxed italic">
+                  How was the food and service? Rate us to help other customers.
+                </p>
+                <Button 
+                  onClick={() => setIsRatingOpen(true)}
+                  className="w-full h-12 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-black uppercase italic text-[10px] tracking-widest shadow-lg shadow-amber-100 active:scale-95 transition-all"
+                >
+                  RATE THIS ORDER NOW
+                </Button>
+             </div>
+           </div>
+         )}
+
+         {isDelivered && order.isRated && (
+           <div className="bg-green-50 border-2 border-green-100 p-5 rounded-[2.5rem] mb-4 flex items-center justify-between shadow-sm animate-in fade-in duration-500">
+              <div className="flex items-center gap-4">
+                 <div className="bg-green-500 h-10 w-10 rounded-full flex items-center justify-center text-white shadow-lg shadow-green-100">
+                    <CheckCircle2 className="h-5 w-5" />
+                 </div>
+                 <div>
+                    <h4 className="text-xs font-black uppercase italic text-gray-900 leading-none">Order Rated!</h4>
+                    <div className="flex items-center gap-0.5 mt-1.5">
+                       {[...Array(5)].map((_, i) => (
+                         <Star key={i} className={cn("h-2.5 w-2.5", i < order.customerRating ? "text-amber-500 fill-amber-500" : "text-gray-200 fill-gray-100")} />
+                       ))}
+                    </div>
+                 </div>
+              </div>
+              <span className="text-[8px] font-black text-green-600 uppercase tracking-[0.2em] italic">Rewards Applied</span>
+           </div>
+         )}
+
          {order.adminNote && (
            <div className="bg-amber-100 border-2 border-amber-400 p-5 rounded-[2rem] mb-4 shadow-xl animate-in zoom-in duration-500 flex items-start gap-4">
               <div className="bg-amber-400 p-2 rounded-xl text-white shadow-sm shrink-0">
@@ -498,7 +549,7 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
          )}
       </div>
 
-      <div className="mt-auto pb-10 text-center opacity-20"><p className="text-[8px] font-black uppercase tracking-[0.5em]">ShopyKart Secure Logistics</p></div>
+      <div className="mt-auto pb-20 text-center opacity-20"><p className="text-[8px] font-black uppercase tracking-[0.5em]">ShopyKart Secure Logistics</p></div>
     </div>
   );
 }

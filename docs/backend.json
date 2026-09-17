@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "Product": {
@@ -59,6 +60,8 @@
         "redeemCoins": { "type": "boolean" },
         "customerOrderNumber": { "type": "number" },
         "deliveryOTP": { "type": "string" },
+        "isRated": { "type": "boolean" },
+        "customerRating": { "type": "number" },
         "createdAt": { "type": "string", "format": "date-time" }
       }
     },
@@ -77,6 +80,22 @@
         "town": { "type": "string" },
         "kycCompleted": { "type": "boolean" }
       }
+    },
+    "Review": {
+      "title": "Review",
+      "description": "Customer feedback and rating",
+      "type": "object",
+      "properties": {
+        "orderId": { "type": "string" },
+        "customerOrderNumber": { "type": "number" },
+        "userId": { "type": "string" },
+        "customerName": { "type": "string" },
+        "vendorId": { "type": "string" },
+        "restaurantName": { "type": "string" },
+        "rating": { "type": "number" },
+        "comment": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
     }
   },
   "auth": {
@@ -87,6 +106,7 @@
     "/vendors/{vendorId}": { "schema": "#/entities/Vendor", "description": "Store profiles" },
     "/products/{productId}": { "schema": "#/entities/Product", "description": "Menu items" },
     "/orders/{orderId}": { "schema": "#/entities/Order", "description": "Customer orders" },
+    "/reviews/{reviewId}": { "schema": "#/entities/Review", "description": "Customer reviews" },
     "/users/{userId}": { "schema": "object", "description": "Customer profiles" },
     "/app_settings/{settingId}": { "schema": "object", "description": "Global config" }
   }
