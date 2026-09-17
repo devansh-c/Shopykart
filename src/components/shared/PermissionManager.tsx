@@ -6,15 +6,14 @@ import { requestPushToken } from '@/firebase/messaging';
 
 /**
  * @fileOverview Global Permission Manager.
- * Ensures the app asks for essential permissions (Notifications, GPS) on startup.
- * Enhanced for Android 13+ support with aggressive prompt logic.
+ * Optimized for Android 13+ support with aggressive prompt logic for Play Store.
  */
 export default function PermissionManager() {
   useEffect(() => {
     const askPermissions = async () => {
       if (typeof window === 'undefined') return;
 
-      // Small delay to let the app settle before annoying user with popups
+      // Small delay to let the app settle
       setTimeout(async () => {
         try {
           // 1. Notification Permission - Forced request for Android 13+
@@ -23,27 +22,26 @@ export default function PermissionManager() {
             if (currentPermission !== 'granted') {
               const permission = await Notification.requestPermission();
               if (permission === 'granted') {
-                console.log("Notification permission granted by user.");
+                console.log("Notification permission granted.");
                 await requestPushToken();
               }
             } else {
-              // Already granted, just ensure token is fresh
               await requestPushToken();
             }
           }
 
-          // 2. Location Permission (Trigger system prompt)
+          // 2. Location Permission (Mandatory for Delivery Accuracy)
           if ('geolocation' in navigator) {
             navigator.geolocation.getCurrentPosition(
-              () => { console.log("Location permission granted."); }, 
-              () => { console.log("Location permission denied."); }, 
-              { enableHighAccuracy: false, timeout: 5000 }
+              () => { console.log("GPS granted."); }, 
+              () => { console.log("GPS denied."); }, 
+              { enableHighAccuracy: true, timeout: 5000 }
             );
           }
         } catch (err) {
-          console.debug("Silent permission check skip", err);
+          console.debug("Permission check skip", err);
         }
-      }, 5000); // 5 seconds delay is better for UX
+      }, 3000); 
     };
 
     askPermissions();

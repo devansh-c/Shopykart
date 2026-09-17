@@ -7,15 +7,14 @@ import { collection, query, where, onSnapshot, doc, updateDoc, serverTimestamp, 
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, BellRing, MessageSquare, Bell, X } from 'lucide-react';
+import { Loader2, BellRing, MessageSquare, Bell, X, Bike, CheckCircle2 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 /**
- * @fileOverview Global Notification & Urgent Alert Handler.
- * Robust format handling to prevent crashes.
- * Added: Defensive checks for alert data to prevent errors on customer app.
+ * @fileOverview Global Notification & Persistent Audio Alert Handler.
+ * Ringing logic for Admin/Vendor (New Order) and Delivery (Ready for Pickup).
  */
 export default function NotificationHandler() {
   const { user } = useUser();
@@ -25,9 +24,12 @@ export default function NotificationHandler() {
   
   const [userRole, setUserRole] = useState<'admin' | 'vendor' | 'customer' | 'delivery' | null>(null);
   const [ringingOrders, setRingingOrders] = useState<any[]>([]);
+  const [pickupAlerts, setPickupAlerts] = useState<any[]>([]);
   const [pushAlerts, setPushAlerts] = useState<any[]>([]);
   const [isAccepting, setIsAccepting] = useState(false);
+  
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const pickupAudioRef = useRef<HTMLAudioElement | null>(null);
   const bellAudioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
@@ -39,13 +41,8 @@ export default function NotificationHandler() {
       
       const isDeliveryAuth = localStorage.getItem('delivery_session_active') === 'true';
       if (isDeliveryAuth && user && firestore) {
-        try {
-          const partnerSnap = await getDoc(doc(firestore, 'delivery_partners', user.uid));
-          if (partnerSnap.exists()) {
-            setUserRole('delivery');
-            return;
-          }
-        } catch (e) {}
+        setUserRole('delivery');
+        return;
       }
 
       if (user && firestore) {
@@ -58,11 +55,11 @@ export default function NotificationHandler() {
           setUserRole('customer');
         } catch (e) { setUserRole('customer'); }
       } else {
-        setUserRole('customer'); // Default to customer for anonymous
+        setUserRole('customer');
       }
     };
     checkRole();
-  }, [user, firestore]);
+  }, [user, firestore, pathname]);
 
   const isManagementPath = useMemo(() => {
     if (!pathname) return false;
@@ -70,7 +67,7 @@ export default function NotificationHandler() {
     return p.startsWith('/admin') || p.startsWith('/vendor') || p.startsWith('/delivery') || p.startsWith('/medical') || p.startsWith('/beauty');
   }, [pathname]);
 
-  // ORDER ALERTS (For Admin/Vendor)
+  // 1. ORDER ALERTS (For Admin/Vendor on 'Placed' status)
   useEffect(() => {
     if (!firestore || !userRole || !isManagementPath) return;
 
@@ -83,17 +80,32 @@ export default function NotificationHandler() {
         if (userRole === 'admin') targeted = allPlaced;
         else if (userRole === 'vendor' && user) {
           targeted = allPlaced.filter((o: any) => 
-            o.vendorId === user.uid || (o.items?.some((it:any) => it.vendorId === user.uid))
+            o.vendorId === user.uid || (o.items?.some((it:any) => String(it.vendorId) === user.uid))
           );
         }
         setRingingOrders(targeted);
-        handleAudio(targeted.length > 0);
+        handleAudio(targeted.length > 0, 'order');
       });
       return () => unsub();
     }
   }, [user, firestore, userRole, isManagementPath]);
 
-  // PUSH ALERTS FOR CUSTOMERS
+  // 2. PICKUP ALERTS (For Delivery Partners on 'Ready for Pickup' status)
+  useEffect(() => {
+    if (!firestore || userRole !== 'delivery' || !isManagementPath) return;
+
+    const q = query(collection(firestore, 'orders'), where('status', '==', 'Ready for Pickup'));
+    const unsub = onSnapshot(q, (snapshot) => {
+      const availableTasks = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      // Filter by zone/pincode if needed, for now ring all available tasks in dashboard
+      setPickupAlerts(availableTasks);
+      handleAudio(availableTasks.length > 0, 'pickup');
+    });
+
+    return () => unsub();
+  }, [firestore, userRole, isManagementPath]);
+
+  // 3. PUSH ALERTS FOR CUSTOMERS
   useEffect(() => {
     if (!firestore || !user || userRole !== 'customer' || isManagementPath) return;
 
@@ -107,30 +119,32 @@ export default function NotificationHandler() {
     const unsub = onSnapshot(q, (snapshot) => {
       if (snapshot.empty) return;
       const newAlerts = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-      
-      // Robust Check: Ensure data exists before setting state
       if (newAlerts[0] && (newAlerts[0].title || newAlerts[0].message)) {
         setPushAlerts(newAlerts);
         playBellSound();
       }
-    }, (err) => {
-      console.debug("Notification listener restricted (expected for some auth states)");
     });
 
     return () => unsub();
   }, [user, firestore, userRole, isManagementPath]);
 
-  const handleAudio = (shouldPlay: boolean) => {
+  const handleAudio = (shouldPlay: boolean, type: 'order' | 'pickup') => {
     if (typeof window === 'undefined') return;
+    
+    const targetRef = type === 'order' ? audioRef : pickupAudioRef;
+    const soundUrl = type === 'order' 
+      ? 'https://assets.mixkit.co/active_storage/sfx/1356/1356-preview.mp3' // Siren for Admin/Vendor
+      : 'https://assets.mixkit.co/active_storage/sfx/1353/1353-preview.mp3'; // Bell for Delivery
+
     if (shouldPlay) {
-      if (!audioRef.current) {
-        audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/1356/1356-preview.mp3'); 
-        audioRef.current.loop = true;
+      if (!targetRef.current) {
+        targetRef.current = new Audio(soundUrl); 
+        targetRef.current.loop = true;
       }
-      audioRef.current.play().catch(() => {});
-    } else if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
+      targetRef.current.play().catch(() => {});
+    } else if (targetRef.current) {
+      targetRef.current.pause();
+      targetRef.current.currentTime = 0;
     }
   };
 
@@ -150,45 +164,56 @@ export default function NotificationHandler() {
     try {
       await updateDoc(doc(firestore, 'orders', orderId), { status: 'Accepted', updatedAt: serverTimestamp() });
       setRingingOrders([]);
-      handleAudio(false);
+      handleAudio(false, 'order');
     } catch (err) { toast({ variant: "destructive", title: "Failed" }); }
     finally { setIsAccepting(false); }
   };
 
-  const markAlertAsRead = async (alert: any) => {
-    setPushAlerts([]);
-    if (user && firestore && alert?.id) {
-      try {
-        await updateDoc(doc(firestore, 'users', user.uid, 'notifications', alert.id), { read: true });
-      } catch (e) {}
-    }
-  };
-
-  const currentPush = pushAlerts[0];
-
   return (
     <>
+      {/* PERSISTENT MODAL FOR NEW ORDER */}
       {ringingOrders.length > 0 && (
         <Dialog open={true} onOpenChange={() => {}}>
           <DialogContent className="rounded-[3.5rem] max-w-sm p-10 flex flex-col items-center text-center border-none shadow-2xl bg-white z-[60000]">
-            <DialogHeader><DialogTitle className="text-red-600 font-black italic uppercase text-2xl">URGENT ORDER!</DialogTitle></DialogHeader>
-            <div className="bg-red-50 h-24 w-24 rounded-[2rem] flex items-center justify-center text-red-600 mb-6 border-4 border-red-100"><BellRing className="h-10 w-10 animate-bounce" /></div>
-            <h2 className="text-xl font-black mb-6 italic uppercase">New Order Received</h2>
-            <Button onClick={() => handleAction(ringingOrders[0].id)} className="w-full h-16 bg-green-600 hover:bg-green-700 text-white rounded-2xl font-black uppercase text-xl shadow-xl">ACCEPT NOW</Button>
+            <div className="bg-red-50 h-24 w-24 rounded-[2.5rem] flex items-center justify-center text-red-600 mb-6 border-4 border-red-100 animate-pulse">
+               <BellRing className="h-10 w-10 animate-bounce" />
+            </div>
+            <DialogHeader>
+               <DialogTitle className="text-red-600 font-black italic uppercase text-2xl tracking-tighter">NEW ORDER ALERT!</DialogTitle>
+            </DialogHeader>
+            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-2 mb-8 italic">Customer is waiting. Accept to start preparation.</p>
+            <Button onClick={() => handleAction(ringingOrders[0].id)} className="w-full h-18 bg-green-600 hover:bg-green-700 text-white rounded-2xl font-black uppercase text-xl shadow-xl shadow-green-100 active:scale-95 transition-all">ACCEPT NOW</Button>
           </DialogContent>
         </Dialog>
       )}
 
-      {currentPush && (
-        <Dialog open={true} onOpenChange={() => markAlertAsRead(currentPush)}>
-          <DialogContent className="rounded-[3rem] max-w-sm p-8 flex flex-col items-center text-center border-none shadow-2xl bg-white z-[70000] focus:outline-none">
-            <button onClick={() => markAlertAsRead(currentPush)} className="absolute top-6 right-6 h-8 w-8 bg-gray-50 rounded-full flex items-center justify-center text-gray-400 active:scale-90"><X className="h-4 w-4" /></button>
-            <div className="h-20 w-20 bg-primary/5 rounded-[2rem] flex items-center justify-center text-primary mb-6 shadow-inner"><Bell className="h-10 w-10 animate-ring" /></div>
-            <div className="space-y-2 mb-8">
-              <h3 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900">{currentPush.title || 'Broadcast Alert'}</h3>
-              <p className="text-xs font-bold text-gray-600 uppercase italic">"{currentPush.message}"</p>
+      {/* PERSISTENT MODAL FOR DELIVERY PICKUP */}
+      {pickupAlerts.length > 0 && userRole === 'delivery' && (
+        <Dialog open={true} onOpenChange={() => setPickupAlerts([])}>
+          <DialogContent className="rounded-[3.5rem] max-w-sm p-10 flex flex-col items-center text-center border-none shadow-2xl bg-white z-[60000]">
+            <div className="bg-primary/5 h-24 w-24 rounded-[2.5rem] flex items-center justify-center text-primary mb-6 border-4 border-primary/10">
+               <Bike className="h-12 w-12 animate-bounce" />
             </div>
-            <Button onClick={() => markAlertAsRead(currentPush)} className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic">GOT IT!</Button>
+            <DialogHeader>
+               <DialogTitle className="text-gray-900 font-black italic uppercase text-2xl tracking-tighter">PICKUP TASK!</DialogTitle>
+            </DialogHeader>
+            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-2 mb-8 italic">Order is ready at store. Check your task dashboard.</p>
+            <Button onClick={() => { setPickupAlerts([]); handleAudio(false, 'pickup'); }} className="w-full h-16 bg-black text-white rounded-2xl font-black uppercase italic shadow-xl">VIEW TASKS</Button>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* CUSTOMER PUSH ALERTS */}
+      {pushAlerts.length > 0 && (
+        <Dialog open={true} onOpenChange={() => setPushAlerts([])}>
+          <DialogContent className="rounded-[3rem] max-w-sm p-8 flex flex-col items-center text-center border-none shadow-2xl bg-white z-[70000] focus:outline-none">
+            <button onClick={() => setPushAlerts([])} className="absolute top-6 right-6 h-8 w-8 bg-gray-50 rounded-full flex items-center justify-center text-gray-400 active:scale-90"><X className="h-4 w-4" /></button>
+            <div className="h-20 w-20 bg-primary/5 rounded-[2rem] flex items-center justify-center text-primary mb-6 shadow-inner border border-primary/10"><CheckCircle2 className="h-10 w-10 animate-ring" /></div>
+            <div className="space-y-2 mb-8">
+              <h3 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900 leading-none">{pushAlerts[0].title}</h3>
+              <p className="text-[11px] font-bold text-gray-500 uppercase italic">"{pushAlerts[0].message}"</p>
+            </div>
+            <Button onClick={() => setPushAlerts([])} className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic shadow-lg">DISMISS</Button>
           </DialogContent>
         </Dialog>
       )}

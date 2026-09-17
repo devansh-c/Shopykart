@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -98,23 +99,34 @@ export default function VendorDashboard() {
   }, [firestore, user]);
   const { data: vendorProfile, loading: profileLoading } = useDoc<any>(vendorRef);
 
+  // CATEGORY ISOLATION: Only show relevant categories
   const categoriesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'categories'), where('serviceType', '==', 'Food'));
   }, [firestore]);
   const { data: foodCategories } = useCollection<any>(categoriesQuery);
 
+  // PRODUCT ISOLATION: Only show my products
   const productsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(collection(firestore, 'products'), where('vendorId', '==', user.uid));
   }, [firestore, user]);
   const { data: myProducts } = useCollection<any>(productsQuery);
 
-  const payoutHistoryQuery = useMemoFirebase(() => {
+  // ORDER ISOLATION: Only show my orders (including multi-vendor orders where I have items)
+  const ordersQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return query(collection(firestore, 'vendors', user.uid, 'payout_history'), orderBy('date', 'desc'));
+    return query(collection(firestore, 'orders'), orderBy('createdAt', 'desc'), limit(100));
   }, [firestore, user]);
-  const { data: payoutHistory } = useCollection<any>(payoutHistoryQuery);
+  const { data: rawOrders } = useCollection<any>(ordersQuery);
+
+  const filteredOrders = useMemo(() => {
+    if (!rawOrders || !user) return [];
+    return rawOrders.filter((o: any) => {
+      const vId = String(user.uid);
+      return o.vendorId === vId || (Array.isArray(o.vendorIds) && o.vendorIds.includes(vId)) || o.items?.some((it:any) => String(it.vendorId) === vId);
+    });
+  }, [rawOrders, user]);
 
   const handleToggleStore = async (online: boolean) => {
     if (!firestore || !user) return;
@@ -283,10 +295,35 @@ export default function VendorDashboard() {
       <main className={cn("flex-1 overflow-y-auto no-scrollbar pb-32 transition-opacity", isPending ? "opacity-50" : "opacity-100")}>
         {activeMainTab === 'orders' && (
            <div className="p-4 space-y-4">
-              <h2 className="text-xl font-black italic uppercase ml-2 mt-2">Active Orders</h2>
-              <div className="text-center py-20 opacity-30 flex flex-col items-center">
-                 <ShoppingBag className="h-12 w-12 mb-4" />
-                 <p className="font-black uppercase text-xs">Waiting for new orders...</p>
+              <h2 className="text-xl font-black italic uppercase ml-2 mt-2">Store Orders</h2>
+              <div className="space-y-4">
+                 {filteredOrders.length > 0 ? filteredOrders.map((o: any) => (
+                   <div key={o.id} className="bg-white p-5 rounded-[2rem] border border-border/50 shadow-sm mb-4">
+                      <div className="flex justify-between items-center mb-4">
+                          <div>
+                            <span className="text-lg font-black italic">#{o.customerOrderNumber || o.id.slice(-4)}</span>
+                            <div className="flex items-center gap-1 text-[8px] font-black text-gray-400 uppercase mt-0.5"><Clock className="h-2.5 w-2.5" />{format(new Date(o.createdAt?.seconds * 1000 || Date.now()), 'MMM d, h:mm a')}</div>
+                          </div>
+                          <Badge className={cn("border-none text-[8px] font-black rounded-full px-2.5 py-1 uppercase", o.status === 'Cancelled' ? "bg-red-50 text-red-600" : "bg-primary/5 text-primary")}>{o.status}</Badge>
+                      </div>
+                      <div className="bg-muted/30 rounded-2xl p-4 mb-4 space-y-2">
+                          <div className="flex items-center gap-2 border-b border-white pb-2 mb-1"><User className="h-3.5 w-3.5 text-primary" /><span className="text-xs font-black uppercase italic">{o.customerName}</span></div>
+                          {/* ORDER ISOLATION IN MULTI-VENDOR: Only show items belonging to this vendor */}
+                          {o.items?.filter((it:any) => String(it.vendorId) === String(user?.uid)).map((item:any, i:number) => (
+                            <div key={i} className="flex justify-between items-center text-xs font-bold">
+                               <span className="text-gray-700">{item.quantity}x {item.name}</span>
+                               <span className="text-primary">₹{(item.price * item.quantity).toFixed(2)}</span>
+                            </div>
+                          ))}
+                      </div>
+                      <button onClick={() => router.push(`/order/track/?id=${o.id}`)} className="w-full bg-white border-2 border-primary/20 text-primary h-11 rounded-xl font-black text-[9px] uppercase active:scale-95 transition-all flex items-center justify-center gap-1.5"><Eye className="h-3.5 w-3.5" /> View Logistics</button>
+                   </div>
+                 )) : (
+                   <div className="text-center py-20 opacity-30 flex flex-col items-center">
+                      <ShoppingBag className="h-12 w-12 mb-4" />
+                      <p className="font-black uppercase text-xs">No orders for your store yet.</p>
+                   </div>
+                 )}
               </div>
            </div>
         )}
@@ -429,31 +466,6 @@ export default function VendorDashboard() {
                     </div>
                  </div>
                )}
-
-               <div className="space-y-3 pt-4">
-                  <h3 className="text-[10px] font-black uppercase text-gray-400 ml-2 tracking-widest flex items-center gap-2">
-                    <History className="h-3 w-3" /> Payout History
-                  </h3>
-                  {payoutHistory && payoutHistory.length > 0 ? payoutHistory.map((h: any) => (
-                    <div key={h.id} className="bg-white p-5 rounded-[2rem] border border-border/50 flex items-center justify-between shadow-sm">
-                       <div className="flex items-center gap-4">
-                          <div className="h-10 w-10 rounded-xl bg-green-50 flex items-center justify-center text-green-600 shadow-inner">
-                            <ArrowUpRight className="h-5 w-5" />
-                          </div>
-                          <div>
-                            <p className="text-xs font-black uppercase italic leading-none mb-1">Weekly Settlement</p>
-                            <span className="text-[8px] font-bold text-gray-400 uppercase">{h.date ? format(new Date(h.date.seconds * 1000 || Date.now()), 'MMM d, yyyy') : 'Recently'}</span>
-                          </div>
-                       </div>
-                       <div className="text-right">
-                          <span className="text-base font-black italic text-green-600">+ ₹{h.amount}</span>
-                          <p className="text-[7px] font-black uppercase text-gray-400">Success</p>
-                       </div>
-                    </div>
-                  )) : (
-                    <div className="text-center py-10 opacity-20 uppercase font-black text-[10px] tracking-widest italic border-2 border-dashed rounded-[2.5rem]">No payouts yet</div>
-                  )}
-               </div>
             </div>
           </div>
         )}
@@ -488,7 +500,7 @@ export default function VendorDashboard() {
         ))}
       </nav>
 
-      {/* FULL SCREEN KYC POPUP */}
+      {/* KYC POPUP - MOBILE OPTIMIZED FULL SCREEN */}
       <Dialog open={isKYCOpen} onOpenChange={setIsKYCOpen}>
          <DialogContent className="inset-0 w-full h-full max-w-none rounded-none p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none flex flex-col z-[60000]">
             <div className="bg-primary h-1.5 w-full shrink-0" />
@@ -496,8 +508,8 @@ export default function VendorDashboard() {
                <button onClick={() => setIsKYCOpen(false)} className="absolute top-8 right-8 h-10 w-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 active:scale-90"><X className="h-5 w-5" /></button>
                <div className="flex flex-col items-center text-center space-y-2">
                   <div className="h-16 w-16 bg-primary/10 rounded-3xl flex items-center justify-center text-primary mb-2 shadow-inner"><ShieldCheck className="h-8 w-8" /></div>
-                  <DialogTitle className="text-3xl font-black italic uppercase tracking-tighter text-gray-900 leading-none">Bank Account</DialogTitle>
-                  <DialogDescription className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Complete your bank identity for weekly payouts.</DialogDescription>
+                  <DialogTitle className="text-3xl font-black italic uppercase tracking-tighter text-gray-900 leading-none">KYC HUB</DialogTitle>
+                  <DialogDescription className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Complete bank identity for payouts.</DialogDescription>
                </div>
             </DialogHeader>
             <div className="flex-1 overflow-y-auto no-scrollbar p-8 pt-2 space-y-8">
@@ -554,9 +566,9 @@ export default function VendorDashboard() {
                </div>
 
                <div className="bg-amber-50 p-6 rounded-[2rem] border border-amber-100 flex items-start gap-4">
-                  <ShieldCheck className="h-6 w-6 text-amber-600 shrink-0 mt-1" />
+                  <AlertCircle className="h-6 w-6 text-amber-600 shrink-0 mt-1" />
                   <p className="text-[10px] font-bold text-amber-800 uppercase leading-relaxed">
-                    Ensure bank details are 100% correct. All payouts will be released to this account automatically.
+                    Ensure bank details are 100% correct. We are not responsible for wrong transfers due to incorrect KYC info.
                   </p>
                </div>
             </div>
@@ -567,7 +579,7 @@ export default function VendorDashboard() {
                 disabled={isSavingKYC}
                 className="w-full h-20 bg-[#0B0B0B] hover:bg-primary text-white rounded-[2.5rem] font-black uppercase italic shadow-2xl text-xl transition-all active:scale-95"
                >
-                 {isSavingKYC ? <Loader2 className="h-8 w-8 animate-spin" /> : "SAVE BANK DETAILS"}
+                 {isSavingKYC ? <Loader2 className="h-8 w-8 animate-spin" /> : "AUTHENTICATE & SAVE"}
                </Button>
             </div>
          </DialogContent>

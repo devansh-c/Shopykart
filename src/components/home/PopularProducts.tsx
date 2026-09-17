@@ -2,7 +2,7 @@
 "use client"
 
 import React, { useMemo, useState, useEffect, memo, useCallback } from "react"
-import { Plus, Minus, Share2, Loader2, Store, Star, AlertCircle, Clock, Timer } from "lucide-react"
+import { Plus, Minus, Share2, Loader2, Store, Star, AlertCircle, Clock, Timer, Award } from "lucide-react"
 import { useCart } from "@/components/cart/CartProvider"
 import { cn, slugify } from "@/lib/utils"
 import Image from "next/image"
@@ -40,12 +40,21 @@ export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
 
 const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemove }: any) => {
   const displayPrice = Number(product.price) || 0;
+  const isBestRated = (Number(product.rating) || 0) >= 4.7;
 
   return (
     <div className={cn(
       "relative bg-[#0B0B0B] rounded-[2.5rem] p-3 border border-white/5 flex flex-col shadow-2xl transition-all transform-gpu hover:scale-[1.02] will-change-transform", 
       isOffline && "opacity-75 grayscale-[0.5]"
     )}>
+      {isBestRated && !isOffline && (
+        <div className="absolute -top-1 -left-1 z-30 animate-in zoom-in duration-500">
+           <Badge className="bg-amber-400 text-black border-none font-black text-[7px] uppercase tracking-widest px-2 py-0.5 rounded-full shadow-lg flex items-center gap-1">
+              <Award className="h-2 w-2 fill-black" /> BEST RATED
+           </Badge>
+        </div>
+      )}
+
       <div className="relative aspect-square w-full mb-3">
         <ProductQuickView product={product} vendorScheduleOpen={!isOffline}>
            <div className="relative w-full h-full cursor-pointer overflow-hidden rounded-[1.5rem] border border-white/10 shadow-inner">
@@ -173,10 +182,16 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     }).sort((a, b) => {
       const vA = vendorMap.get(String(a.vendorId)); 
       const vB = vendorMap.get(String(b.vendorId));
+      
+      // 1. OPEN STORES FIRST
       const openA = vA ? (vA.isOnline !== false && isStoreScheduleOpen(vA, currentTimeMinutes)) : true;
       const openB = vB ? (vB.isOnline !== false && isStoreScheduleOpen(vB, currentTimeMinutes)) : true;
       if (openA !== openB) return openA ? -1 : 1;
-      return (Number(b.rating) || 0) - (Number(a.rating) || 0);
+      
+      // 2. HIGHER RATING NEXT (STORE RATING + PRODUCT RATING)
+      const rankA = (Number(vA?.rating) || 0) + (Number(a.rating) || 0);
+      const rankB = (Number(vB?.rating) || 0) + (Number(b.rating) || 0);
+      return rankB - rankA;
     });
   }, [dbProducts, initialData, vendors, initialStores, searchQuery, category, activeMode, activeZoneId, currentTimeMinutes]);
 
