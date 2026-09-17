@@ -13,8 +13,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
 
 /**
- * @fileOverview PopularProducts - Optimized for Ultra-Smooth Experience.
- * Fixed: Removed ₹10 Guest Discount system.
+ * @fileOverview PopularProducts - Optimized with Memoization to prevent glitches.
  */
 
 export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
@@ -43,6 +42,7 @@ export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
   return start < end ? (currentMins >= start && currentMins <= end) : (currentMins >= start || currentMins <= end);
 }
 
+// MEMOIZED ITEM TO PREVENT GLITCHY RE-RENDERS
 const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemove }: any) => {
   const displayPrice = Number(product.price) || 0;
 
@@ -116,7 +116,6 @@ ProductItem.displayName = "ProductItem";
 
 export function PopularProducts({ searchQuery = '', category = 'all', activeMode = 'Food', initialData = [], initialStores = [] }: { searchQuery?: string, category?: string, activeMode?: string, initialData?: any[], initialStores?: any[] }) {
   const { cart, addToCart, removeFromCart } = useCart();
-  const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
@@ -205,7 +204,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
           {productsToDisplay.length} ITEMS
         </Badge>
       </div>
-      <div className="grid grid-cols-2 gap-4 transform-gpu">
+      <div className="grid grid-cols-2 gap-4">
         {productsToDisplay.slice(0, visibleCount).map((product) => {
           const quantity = cart.find(c => c.id === product.id && !c.selectedOption)?.quantity || 0;
           const v = (vendors && vendors.length > 0 ? vendors : initialStores)?.find(s => s.id === product.vendorId);

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -39,8 +40,8 @@ import { Switch } from '@/components/ui/switch';
 import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 
 /**
- * @fileOverview CartPage - Premium Zero-Shadow Glassmorphism UI.
- * Addresses and Items sections now share identical styling with no shadows.
+ * @fileOverview CartPage - Ultra-Premium Frameless Glassy UI.
+ * Individual boxes removed. Material is unified on a single glassy surface.
  */
 export default function CartPage() {
   const { cart, addToCart, removeFromCart, totalPrice, clearCart } = useCart();
@@ -220,157 +221,158 @@ export default function CartPage() {
         <Badge variant="outline" className="rounded-xl border-amber-200 bg-amber-50 text-amber-600 font-black text-[9px] uppercase"><Coins className="h-2.5 w-2.5 mr-1" /> {userCoins} COINS</Badge>
       </header>
 
-      <main className="px-4 pt-6 space-y-6 relative z-10">
+      {/* UNIFIED GLASS MAIN CONTAINER - NO BOXES */}
+      <main className="px-4 pt-6 space-y-2 relative z-10 animate-in fade-in duration-700">
         
-        {/* UNIFIED ADDRESS & ITEMS CONTAINERS - ZERO SHADOW GLASSMORPISM */}
-        
-        {/* ADDRESS SECTION */}
-        <section className="bg-white/40 backdrop-blur-xl rounded-[2.5rem] p-7 border border-white/60 flex items-center justify-between">
-           <div className="flex items-center gap-4">
-              <div className="h-12 w-12 bg-[#0B0B0B] rounded-2xl flex items-center justify-center text-white">
-                 <Navigation className="h-6 w-6" />
-              </div>
-              <div className="min-w-0">
-                 <h4 className="text-[10px] font-black uppercase tracking-widest text-primary mb-0.5 italic">Drop At</h4>
-                 <h4 className="text-xs font-black uppercase truncate text-gray-900">{recipientForm.name || 'Set Recipient'}</h4>
-                 <p className="text-[9px] font-bold text-gray-400 uppercase truncate leading-tight mt-0.5">{recipientForm.address || 'Select Address'}</p>
-              </div>
-           </div>
-           <button onClick={() => setIsAddressModalOpen(true)} className="bg-primary/5 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest text-primary border border-primary/10 active:scale-95 transition-all">EDIT</button>
-        </section>
-
-        {/* ITEMS SECTION */}
-        <section className="bg-white/40 backdrop-blur-xl rounded-[2.5rem] p-7 border border-white/60 space-y-6">
-           <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-4">
-                 <div className="h-12 w-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary border border-primary/5">
-                    <ShoppingBag className="h-6 w-6" />
-                 </div>
-                 <div>
-                    <h3 className="text-[10px] font-black uppercase tracking-widest text-primary mb-0.5 italic">Bag Summary</h3>
-                    <h4 className="text-xs font-black uppercase text-gray-900">{cart.length} GOURMET ITEMS</h4>
-                 </div>
-              </div>
-           </div>
-           
-           <div className="space-y-6">
-              {cartItemsWithStatus.map((item, idx) => (
-                <div key={idx} className={cn("flex gap-4 items-center relative", item.isClosed && "opacity-40 grayscale")}>
-                   <div className="h-16 w-16 rounded-2xl overflow-hidden bg-white border border-black/5 relative shrink-0">
-                      <Image src={item.imageUrl} alt={item.name} fill className="object-cover" unoptimized />
-                      {item.isClosed && <div className="absolute inset-0 bg-red-600/60 flex items-center justify-center text-[7px] font-black text-white px-1 text-center">CLOSED</div>}
-                   </div>
-                   <div className="flex-1 min-w-0">
-                      <h4 className="text-[11px] font-black uppercase truncate text-gray-900">{item.name}</h4>
-                      {item.selectedOption && <p className="text-[7px] font-black uppercase text-primary tracking-widest mt-0.5 italic">VARIETY: {item.selectedOption.name}</p>}
-                      <div className="flex items-center mt-2 bg-black/5 w-fit rounded-xl p-0.5">
-                         <button onClick={() => removeFromCart(item.id)} className="h-7 w-7 flex items-center justify-center text-gray-500"><Minus className="h-3.5 w-3.5" /></button>
-                         <span className="mx-2 text-[10px] font-black">{item.quantity}</span>
-                         <button onClick={() => addToCart({...item, quantity: 1})} className="h-7 w-7 flex items-center justify-center text-primary"><Plus className="h-3.5 w-3.5" /></button>
-                      </div>
-                   </div>
-                   <div className="text-sm font-black italic text-gray-900">₹{(item.price * item.quantity).toFixed(0)}</div>
+        {/* MATERIAL AREA - TRANS-VISIBLE WITHOUT BORDERS */}
+        <div className="bg-white/20 backdrop-blur-xl rounded-[3rem] p-2 space-y-8 overflow-hidden">
+          
+          {/* ADDRESS MATERIAL */}
+          <section className="p-6 flex items-center justify-between border-b border-black/[0.03]">
+             <div className="flex items-center gap-4">
+                <div className="h-12 w-12 bg-[#0B0B0B] rounded-2xl flex items-center justify-center text-white">
+                   <Navigation className="h-6 w-6" />
                 </div>
-              ))}
-           </div>
-        </section>
+                <div className="min-w-0">
+                   <h4 className="text-[10px] font-black uppercase tracking-widest text-primary mb-0.5 italic">Drop At</h4>
+                   <h4 className="text-xs font-black uppercase truncate text-gray-900">{recipientForm.name || 'Set Recipient'}</h4>
+                   <p className="text-[9px] font-bold text-gray-400 uppercase truncate leading-tight mt-0.5">{recipientForm.address || 'Select Address'}</p>
+                </div>
+             </div>
+             <button onClick={() => setIsAddressModalOpen(true)} className="bg-primary/10 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest text-primary active:scale-95 transition-all">EDIT</button>
+          </section>
 
-        {/* REWARD REDEMPTION */}
-        <section className="bg-amber-50/40 backdrop-blur-xl rounded-[2.5rem] p-7 border border-amber-100 flex items-center justify-between">
-           <div className="flex items-center gap-4">
-              <div className="h-12 w-12 bg-amber-400 rounded-2xl flex items-center justify-center text-black">
-                 <Coins className="h-6 w-6" />
-              </div>
-              <div>
-                 <h3 className="text-xs font-black uppercase italic text-amber-900">Redeem Reward</h3>
-                 <p className="text-[8px] font-bold text-amber-600 uppercase tracking-widest mt-1">Use 20 Coins for ₹5 Discount</p>
-              </div>
-           </div>
-           <Switch 
-            disabled={userCoins < 20}
-            checked={isRedeemingCoins} 
-            onCheckedChange={setIsRedeemingCoins}
-            className="data-[state=checked]:bg-amber-500"
-           />
-        </section>
+          {/* ITEMS MATERIAL */}
+          <section className="p-6 space-y-6">
+             <div className="flex items-center gap-4 mb-4">
+                <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
+                   <ShoppingBag className="h-5 w-5" />
+                </div>
+                <div>
+                   <h3 className="text-[10px] font-black uppercase tracking-widest text-primary italic">Bag Summary</h3>
+                   <h4 className="text-xs font-black uppercase text-gray-900">{cart.length} GOURMET ITEMS</h4>
+                </div>
+             </div>
+             
+             <div className="space-y-6">
+                {cartItemsWithStatus.map((item, idx) => (
+                  <div key={idx} className={cn("flex gap-4 items-center relative", item.isClosed && "opacity-40 grayscale")}>
+                     <div className="h-16 w-16 rounded-2xl overflow-hidden bg-white border border-black/5 relative shrink-0">
+                        <Image src={item.imageUrl} alt={item.name} fill className="object-cover" unoptimized />
+                        {item.isClosed && <div className="absolute inset-0 bg-red-600/60 flex items-center justify-center text-[7px] font-black text-white px-1 text-center">CLOSED</div>}
+                     </div>
+                     <div className="flex-1 min-w-0">
+                        <h4 className="text-[11px] font-black uppercase truncate text-gray-900">{item.name}</h4>
+                        {item.selectedOption && <p className="text-[7px] font-black uppercase text-primary tracking-widest mt-0.5 italic">VARIETY: {item.selectedOption.name}</p>}
+                        <div className="flex items-center mt-2 bg-black/5 w-fit rounded-xl p-0.5">
+                           <button onClick={() => removeFromCart(item.id)} className="h-7 w-7 flex items-center justify-center text-gray-500"><Minus className="h-3.5 w-3.5" /></button>
+                           <span className="mx-2 text-[10px] font-black">{item.quantity}</span>
+                           <button onClick={() => addToCart({...item, quantity: 1})} className="h-7 w-7 flex items-center justify-center text-primary"><Plus className="h-3.5 w-3.5" /></button>
+                        </div>
+                     </div>
+                     <div className="text-sm font-black italic text-gray-900">₹{(item.price * item.quantity).toFixed(0)}</div>
+                  </div>
+                ))}
+             </div>
+          </section>
 
-        {/* EXTRA OPTIONS */}
-        <section className="space-y-4">
-           <div className="bg-white/40 backdrop-blur-xl rounded-[2rem] p-6 border border-white/60 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                 <div className="h-10 w-10 bg-green-50 rounded-xl flex items-center justify-center text-green-600">
-                    <PackageCheck className="h-6 w-6" />
-                 </div>
-                 <div>
-                    <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-900">Premium Safety Pack</h4>
-                    <p className="text-[8px] font-bold text-muted-foreground uppercase">+ ₹10 for high-grade packaging</p>
-                 </div>
-              </div>
-              <Switch checked={isPremiumPacking} onCheckedChange={setIsPremiumPacking} className="data-[state=checked]:bg-green-600" />
-           </div>
+          {/* REWARD MATERIAL */}
+          <section className="p-6 flex items-center justify-between border-y border-black/[0.03] bg-amber-50/20">
+             <div className="flex items-center gap-4">
+                <div className="h-10 w-10 bg-amber-400 rounded-xl flex items-center justify-center text-black">
+                   <Coins className="h-5 w-5" />
+                </div>
+                <div>
+                   <h3 className="text-xs font-black uppercase italic text-amber-900">Redeem Reward</h3>
+                   <p className="text-[8px] font-bold text-amber-600 uppercase tracking-widest mt-1">Use 20 Coins for ₹5 Discount</p>
+                </div>
+             </div>
+             <Switch 
+              disabled={userCoins < 20}
+              checked={isRedeemingCoins} 
+              onCheckedChange={setIsRedeemingCoins}
+              className="data-[state=checked]:bg-amber-500"
+             />
+          </section>
 
-           <div className="bg-white/40 backdrop-blur-xl rounded-[2.5rem] p-7 border border-white/60">
-              <div className="flex items-center gap-3 mb-4">
-                 <MessageSquare className="h-4 w-4 text-gray-400" />
-                 <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-900">Delivery Instructions</h4>
-              </div>
-              <textarea 
-                value={deliveryInstructions}
-                onChange={e => setDeliveryInstructions(e.target.value)}
-                placeholder="e.g. Call before arrival, leave at gate..."
-                className="w-full bg-white/50 border border-gray-100 rounded-2xl p-4 text-[10px] font-bold uppercase italic focus:outline-none min-h-[80px] resize-none"
-              />
-           </div>
-        </section>
+          {/* EXTRA OPTIONS MATERIAL */}
+          <section className="p-6 space-y-6">
+             <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                   <div className="h-10 w-10 bg-green-50 rounded-xl flex items-center justify-center text-green-600">
+                      <PackageCheck className="h-5 w-5" />
+                   </div>
+                   <div>
+                      <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-900">Premium Safety Pack</h4>
+                      <p className="text-[8px] font-bold text-muted-foreground uppercase">+ ₹10 for safety</p>
+                   </div>
+                </div>
+                <Switch checked={isPremiumPacking} onCheckedChange={setIsPremiumPacking} className="data-[state=checked]:bg-green-600" />
+             </div>
 
-        {/* RIDER TIP */}
-        <section className="bg-blue-50/40 backdrop-blur-xl rounded-[2.5rem] p-8 border border-blue-100 space-y-6">
-           <div className="flex items-center gap-4">
-              <div className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center text-blue-600 border border-blue-50">
-                 <Bike className="h-6 w-6" />
-              </div>
-              <div>
-                 <h3 className="text-base font-black italic uppercase text-gray-900">Rider Appreciation</h3>
-                 <p className="text-[9px] font-bold text-blue-600 uppercase tracking-widest">100% of tip goes to the hero</p>
-              </div>
-           </div>
-           
-           <div className="grid grid-cols-4 gap-3">
-              {[10, 20, 30, 50].map(val => (
-                <button 
-                  key={val}
-                  onClick={() => setDeliveryTip(deliveryTip === val ? 0 : val)}
-                  className={cn(
-                    "h-12 rounded-xl border-2 flex items-center justify-center font-black text-xs transition-all active:scale-90",
-                    deliveryTip === val ? "bg-blue-600 border-blue-600 text-white" : "bg-white border-blue-100 text-gray-400"
-                  )}
-                >
-                  ₹{val}
-                </button>
-              ))}
-           </div>
-        </section>
+             <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                   <MessageSquare className="h-4 w-4 text-gray-400" />
+                   <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-900">Delivery Instructions</h4>
+                </div>
+                <textarea 
+                  value={deliveryInstructions}
+                  onChange={e => setDeliveryInstructions(e.target.value)}
+                  placeholder="e.g. Call before arrival..."
+                  className="w-full bg-white/40 border border-black/5 rounded-2xl p-4 text-[10px] font-bold uppercase italic focus:outline-none min-h-[80px] resize-none"
+                />
+             </div>
+          </section>
 
-        {/* BILLING SUMMARY */}
-        <section className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] p-8 space-y-6 border border-white/60">
-           <h3 className="text-xl font-black italic uppercase tracking-tighter text-gray-900">Billing Breakdown</h3>
-           <div className="space-y-3 pt-2">
-              <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Item Total</span><span className="text-gray-900 font-black">₹{totalPrice.toFixed(0)}</span></div>
-              <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Delivery Fee</span><span className="text-gray-900 font-black">₹{deliveryFee.toFixed(0)}</span></div>
-              {packingFee > 0 && <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Packing Fee</span><span className="text-gray-900 font-black">₹{packingFee}</span></div>}
-              {deliveryTip > 0 && <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Rider Tip</span><span className="text-gray-900 font-black">₹{deliveryTip}</span></div>}
-              {coinDiscount > 0 && <div className="flex justify-between text-[10px] font-black text-green-600 uppercase tracking-widest"><span>Coin Discount</span><span className="font-black">- ₹{coinDiscount}</span></div>}
-           </div>
-           <div className="pt-6 border-t-2 border-dashed border-gray-100 flex justify-between items-end">
-              <div className="flex flex-col"><span className="text-[8px] font-black uppercase tracking-widest text-primary mb-1">To Pay</span><div className="flex items-center gap-1 text-4xl font-black italic text-gray-900 tracking-tighter leading-none"><IndianRupee className="h-6 w-6 text-primary" /><span>{totalPayable.toFixed(0)}</span></div></div>
-              <span className="text-[10px] font-bold text-gray-400 uppercase italic">INC. ALL TAXES</span>
-           </div>
-        </section>
+          {/* RIDER TIP MATERIAL */}
+          <section className="p-6 space-y-6 bg-blue-50/20 border-y border-black/[0.03]">
+             <div className="flex items-center gap-4">
+                <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center text-blue-600 border border-blue-50">
+                   <Bike className="h-5 w-5" />
+                </div>
+                <div>
+                   <h3 className="text-sm font-black italic uppercase text-gray-900">Rider Appreciation</h3>
+                   <p className="text-[8px] font-bold text-blue-600 uppercase tracking-widest">100% goes to the hero</p>
+                </div>
+             </div>
+             
+             <div className="grid grid-cols-4 gap-3">
+                {[10, 20, 30, 50].map(val => (
+                  <button 
+                    key={val}
+                    onClick={() => setDeliveryTip(deliveryTip === val ? 0 : val)}
+                    className={cn(
+                      "h-10 rounded-xl border-2 flex items-center justify-center font-black text-[10px] transition-all active:scale-90",
+                      deliveryTip === val ? "bg-blue-600 border-blue-600 text-white" : "bg-white border-blue-100 text-gray-400"
+                    )}
+                  >
+                    ₹{val}
+                  </button>
+                ))}
+             </div>
+          </section>
+
+          {/* BILLING MATERIAL */}
+          <section className="p-6 space-y-6">
+             <h3 className="text-xl font-black italic uppercase tracking-tighter text-gray-900">Billing Breakdown</h3>
+             <div className="space-y-3">
+                <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Item Total</span><span className="text-gray-900 font-black">₹{totalPrice.toFixed(0)}</span></div>
+                <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Delivery Fee</span><span className="text-gray-900 font-black">₹{deliveryFee.toFixed(0)}</span></div>
+                {packingFee > 0 && <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Packing Fee</span><span className="text-gray-900 font-black">₹{packingFee}</span></div>}
+                {deliveryTip > 0 && <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Rider Tip</span><span className="text-gray-900 font-black">₹{deliveryTip}</span></div>}
+                {coinDiscount > 0 && <div className="flex justify-between text-[10px] font-black text-green-600 uppercase tracking-widest"><span>Coin Discount</span><span className="font-black">- ₹{coinDiscount}</span></div>}
+             </div>
+             <div className="pt-6 border-t-2 border-dashed border-black/5 flex justify-between items-end">
+                <div className="flex flex-col"><span className="text-[8px] font-black uppercase tracking-widest text-primary mb-1">To Pay</span><div className="flex items-center gap-1 text-4xl font-black italic text-gray-900 tracking-tighter leading-none"><IndianRupee className="h-6 w-6 text-primary" /><span>{totalPayable.toFixed(0)}</span></div></div>
+                <span className="text-[10px] font-bold text-gray-400 uppercase italic">INC. ALL TAXES</span>
+             </div>
+          </section>
+        </div>
 
         <div className="pt-8 pb-32">
            <div className="space-y-4">
               {hasClosedItems && (
-                <div className="bg-red-50/80 backdrop-blur-md border border-red-100 p-4 rounded-3xl flex items-center gap-3 animate-in shake duration-500">
+                <div className="bg-red-50/80 backdrop-blur-md border border-red-100 p-4 rounded-3xl flex items-center gap-3">
                   <AlertCircle className="h-5 w-5 text-red-500 shrink-0" />
                   <p className="text-[9px] font-black text-red-800 uppercase leading-tight">STORE CLOSED: REMOVE ITEMS TO CONTINUE.</p>
                 </div>
@@ -379,7 +381,7 @@ export default function CartPage() {
               {!isMinOrderMet && minOrderValue > 0 && (
                 <div className="bg-amber-50/80 backdrop-blur-md border border-amber-100 p-4 rounded-3xl flex items-center gap-3">
                   <AlertCircle className="h-5 w-5 text-amber-500 shrink-0" />
-                  <p className="text-[9px] font-black text-amber-800 uppercase leading-tight">MIN. ORDER ₹{minOrderValue} REQUIRED. ADD ₹{minOrderValue - totalPrice} MORE.</p>
+                  <p className="text-[9px] font-black text-amber-800 uppercase leading-tight">MIN. ORDER ₹{minOrderValue} REQUIRED.</p>
                 </div>
               )}
 
@@ -424,7 +426,7 @@ export default function CartPage() {
 
       {/* Address Dialog */}
       <Dialog open={isAddressModalOpen} onOpenChange={setIsAddressModalOpen}>
-        <DialogContent className="rounded-t-[3.5rem] p-8 border-none shadow-2xl bg-white max-w-sm bottom-0 top-auto translate-y-0 focus:outline-none flex flex-col h-[550px] animate-in slide-in-from-bottom-full duration-500">
+        <DialogContent className="rounded-t-[3.5rem] p-8 border-none shadow-2xl bg-white max-w-sm bottom-0 top-auto translate-y-0 focus:outline-none flex flex-col h-[550px]">
           <div className="h-1.5 w-16 bg-gray-100 rounded-full mx-auto mb-6 shrink-0" />
           <DialogHeader className="pb-4 shrink-0">
              <div className="flex flex-col items-center text-center">

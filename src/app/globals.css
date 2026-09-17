@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -62,13 +63,13 @@
     -webkit-overflow-scrolling: touch !important; 
   }
 
-  /* HARDWARE ACCELERATION - Optimized for smooth scrolling */
+  /* HARDWARE ACCELERATION - RESTRICTED TO AVOID OVERHEATING */
   .transform-gpu {
-    transform: translate3d(0, 0, 0);
     backface-visibility: hidden;
     perspective: 1000;
   }
 
+  /* MAKKHAN SCROLL PERFORMANCE */
   .content-visibility-auto {
     content-visibility: auto;
     contain-intrinsic-size: 1px 180px;
@@ -86,7 +87,7 @@
   .premium-card {
     @apply bg-white rounded-[2rem] border border-border/60 relative overflow-hidden;
     contain: content;
-    box-shadow: none; /* Removed for Glassmorphism feel */
+    box-shadow: none; 
   }
 
   nav.fixed {

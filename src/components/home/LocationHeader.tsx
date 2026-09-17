@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -31,7 +32,8 @@ import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 
 /**
- * @fileOverview LocationHeader with Mode Switching hidden to focus on Food only.
+ * @fileOverview LocationHeader with Mode Switching HIDDEN as requested.
+ * Focuses exclusively on Food Delivery for a clean interface.
  */
 export function LocationHeader({
   searchValue,
@@ -132,6 +134,30 @@ export function LocationHeader({
           />
         </div>
       </div>
+
+      {/* MODE SWITCHER HIDDEN FOR CLEAN FOCUS ON FOOD */}
+      {/* 
+      <div className="flex items-center gap-3 overflow-x-auto no-scrollbar py-1">
+        {[
+          { id: 'Food', label: 'Food', icon: Utensils, activeColor: 'bg-primary text-white', inactiveColor: 'bg-gray-50 text-gray-400' },
+          { id: 'Grocery', label: 'Grocery', icon: ShoppingBag, activeColor: 'bg-green-600 text-white', inactiveColor: 'bg-gray-50 text-gray-400' },
+          { id: 'Medical', label: 'Medical', icon: HeartPulse, activeColor: 'bg-teal-600 text-white', inactiveColor: 'bg-gray-50 text-gray-400' },
+          { id: 'Beauty', label: 'Beauty', icon: Sparkles, activeColor: 'bg-rose-500 text-white', inactiveColor: 'bg-gray-50 text-gray-400' },
+        ].map((mode) => (
+          <button
+            key={mode.id}
+            onClick={() => onModeChange(mode.id)}
+            className={cn(
+              "flex items-center gap-2 px-5 py-2.5 rounded-full transition-all duration-300 font-black text-[10px] uppercase tracking-widest shrink-0",
+              activeMode === mode.id ? mode.activeColor : mode.inactiveColor
+            )}
+          >
+            <mode.icon className="h-3.5 w-3.5" />
+            {mode.label}
+          </button>
+        ))}
+      </div>
+      */}
 
       <Dialog open={isNotifyOpen} onOpenChange={setIsNotifyOpen}>
         <DialogContent className="rounded-t-[3rem] p-0 overflow-hidden border-none shadow-2xl bg-white max-h-[85vh] flex flex-col focus:outline-none bottom-0 top-auto translate-y-0">
