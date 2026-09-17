@@ -40,8 +40,8 @@ import { Switch } from '@/components/ui/switch';
 import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 
 /**
- * @fileOverview CartPage - Ultra Premium Glassmorphism.
- * Added: Rider Tipping, Coin Redemption, Premium Packing, Delivery Instructions.
+ * @fileOverview CartPage - Consistent Glassmorphism UI.
+ * Removed all shadows and unified container styles for Address, Items, and Rewards.
  */
 export default function CartPage() {
   const { cart, addToCart, removeFromCart, totalPrice, clearCart } = useCart();
@@ -59,13 +59,13 @@ export default function CartPage() {
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [recipientForm, setRecipientForm] = useState({ name: '', phone: '', address: '' });
   
-  // New Delivery Features States
+  // Delivery Features States
   const [deliveryTip, setDeliveryTip] = useState(0);
   const [isPremiumPacking, setIsPremiumPacking] = useState(false);
   const [isRedeemingCoins, setIsRedeemingCoins] = useState(false);
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
 
-  // Interaction States for Slider
+  // Slider State
   const [sliderOffset, setSliderOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const sliderRef = useRef<HTMLDivElement>(null);
@@ -91,7 +91,6 @@ export default function CartPage() {
     }
   }, []);
 
-  // Fetch User Profile for Coin Balance
   const userRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
   const { data: profile } = useDoc<any>(userRef);
   const userCoins = profile?.coins || 0;
@@ -118,7 +117,7 @@ export default function CartPage() {
   const minOrderValue = zoneData?.minOrder || 0;
   const isMinOrderMet = totalPrice >= minOrderValue;
 
-  const coinDiscount = isRedeemingCoins ? 5 : 0; // Flat ₹5 discount on redemption
+  const coinDiscount = isRedeemingCoins ? 5 : 0; 
   const packingFee = isPremiumPacking ? 10 : 0;
 
   const totalPayable = useMemo(() => {
@@ -163,7 +162,6 @@ export default function CartPage() {
 
       await addDoc(collection(firestore, 'orders'), orderData);
       
-      // Update User Coins if redeemed (Deduct 20 coins for ₹5 off)
       if (isRedeemingCoins) {
         await updateDoc(doc(firestore, 'users', user.uid), {
           coins: increment(-20)
@@ -179,6 +177,7 @@ export default function CartPage() {
     }
   };
 
+  // Slider interaction handlers
   const handleTouchStart = (e: React.TouchEvent) => { if (isPlacing || cart.length === 0 || hasClosedItems || !isMinOrderMet) return; setIsDragging(true); startXRef.current = e.touches[0].clientX; };
   const handleTouchMove = (e: React.TouchEvent) => { if (!isDragging || !sliderRef.current) return; const diff = e.touches[0].clientX - startXRef.current; if (diff > 0) setSliderOffset(Math.min(diff, sliderRef.current.offsetWidth - 80)); };
   const handleTouchEnd = () => { if (!isDragging) return; setIsDragging(false); if (sliderOffset > (sliderRef.current?.offsetWidth || 0) * 0.75) finalizeOrder(); else setSliderOffset(0); };
@@ -212,20 +211,22 @@ export default function CartPage() {
   if (!isMounted) return <div className="h-screen bg-white flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#FDFCFB] to-[#F5F7FA] pb-40 max-w-lg mx-auto border-x border-gray-100 shadow-sm relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-[#FDFCFB] to-[#F5F7FA] pb-40 max-w-lg mx-auto border-x border-gray-100 relative overflow-hidden">
       <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-primary/5 blur-[120px] rounded-full pointer-events-none" />
       
       <OrderSuccessOverlay isVisible={showSuccessOverlay} />
       
-      <header className="bg-white/40 backdrop-blur-md border-b border-white/20 py-4 px-6 sticky top-0 z-[100] flex items-center gap-4 shadow-sm">
-        <button onClick={() => router.back()} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/60 shadow-sm active:scale-90 transition-transform"><ChevronLeft className="h-6 w-6" /></button>
+      <header className="bg-white/40 backdrop-blur-md border-b border-white/20 py-4 px-6 sticky top-0 z-[100] flex items-center gap-4">
+        <button onClick={() => router.back()} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/60 border border-white/40 active:scale-90 transition-transform"><ChevronLeft className="h-6 w-6" /></button>
         <h1 className="text-sm font-black uppercase italic tracking-widest text-gray-800 flex-1">CHECKOUT</h1>
         <Badge variant="outline" className="rounded-xl border-amber-200 bg-amber-50 text-amber-600 font-black text-[9px] uppercase"><Coins className="h-2.5 w-2.5 mr-1" /> {userCoins} COINS</Badge>
       </header>
 
       <main className="px-4 pt-6 space-y-6 relative z-10">
-        {/* Address & Items cards same as before but inside main scroll */}
-        <section className="bg-black/80 backdrop-blur-xl rounded-[2.5rem] p-6 text-white shadow-2xl border border-white/10 transform-gpu">
+        {/* UNIFIED GLASS CONTAINER STYLE - NO SHADOWS */}
+        
+        {/* ADDRESS SECTION */}
+        <section className="bg-[#0B0B0B]/80 backdrop-blur-xl rounded-[2.5rem] p-6 text-white border border-white/10 transform-gpu">
            <div className="flex justify-between items-center">
               <div className="flex items-center gap-4">
                  <div className="h-12 w-12 bg-amber-400 rounded-2xl flex items-center justify-center text-black shadow-inner"><Navigation className="h-6 w-6" /></div>
@@ -239,16 +240,22 @@ export default function CartPage() {
            </div>
         </section>
 
-        {/* Items Section */}
-        <section className="bg-white/40 backdrop-blur-xl rounded-[2.5rem] p-7 shadow-xl border border-white/40 space-y-6">
-           <div className="flex items-center justify-between">
-              <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">BAG ITEMS</h3>
+        {/* ITEMS SECTION - NOW UNIFIED UI */}
+        <section className="bg-white/40 backdrop-blur-xl rounded-[2.5rem] p-7 border border-white/60 space-y-6">
+           <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-3">
+                 <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary border border-primary/5">
+                    <ShoppingBag className="h-5 w-5" />
+                 </div>
+                 <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-gray-400">BAG ITEMS</h3>
+              </div>
               <Badge className="bg-primary/5 text-primary border-none font-black text-[8px] uppercase">{cart.length} TOTAL</Badge>
            </div>
+           
            <div className="space-y-6">
               {cartItemsWithStatus.map((item, idx) => (
                 <div key={idx} className={cn("flex gap-4 items-center relative", item.isClosed && "opacity-40 grayscale")}>
-                   <div className="h-16 w-16 rounded-2xl overflow-hidden bg-white shadow-sm border border-black/5 relative shrink-0">
+                   <div className="h-16 w-16 rounded-2xl overflow-hidden bg-white border border-black/5 relative shrink-0">
                       <Image src={item.imageUrl} alt={item.name} fill className="object-cover" unoptimized />
                       {item.isClosed && <div className="absolute inset-0 bg-red-600/60 flex items-center justify-center text-[7px] font-black text-white px-1 text-center">CLOSED</div>}
                    </div>
@@ -267,11 +274,11 @@ export default function CartPage() {
            </div>
         </section>
 
-        {/* COIN REDEMPTION - AS PER REQUEST */}
-        <section className="bg-amber-50/60 backdrop-blur-md rounded-[2rem] p-6 border border-amber-100 shadow-sm">
+        {/* REWARD SECTION - UNIFIED UI */}
+        <section className="bg-amber-50/60 backdrop-blur-md rounded-[2.5rem] p-7 border border-amber-100">
            <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                 <div className="h-11 w-11 bg-amber-400 rounded-2xl flex items-center justify-center text-black shadow-lg">
+                 <div className="h-11 w-11 bg-amber-400 rounded-2xl flex items-center justify-center text-black shadow-inner">
                     <Coins className="h-6 w-6" />
                  </div>
                  <div>
@@ -287,15 +294,15 @@ export default function CartPage() {
               />
            </div>
            {userCoins < 20 && !isRedeemingCoins && (
-             <p className="text-[7px] font-black text-amber-700/60 uppercase mt-3 italic tracking-widest text-center">NOT ENOUGH COINS FOR REDEMPTION</p>
+             <p className="text-[7px] font-black text-amber-700/60 uppercase mt-4 italic tracking-widest text-center">NOT ENOUGH COINS FOR REDEMPTION</p>
            )}
         </section>
 
-        {/* PREMIUM PACKING & INSTRUCTIONS */}
+        {/* OPTIONS & INSTRUCTIONS */}
         <section className="space-y-4">
            <div className="bg-white/40 backdrop-blur-md rounded-[2rem] p-6 border border-white/60 flex items-center justify-between">
               <div className="flex items-center gap-4">
-                 <div className="h-10 w-10 bg-green-50 rounded-xl flex items-center justify-center text-green-600">
+                 <div className="h-10 w-10 bg-green-50 rounded-xl flex items-center justify-center text-green-600 border border-green-100">
                     <PackageCheck className="h-6 w-6" />
                  </div>
                  <div>
@@ -315,15 +322,15 @@ export default function CartPage() {
                 value={deliveryInstructions}
                 onChange={e => setDeliveryInstructions(e.target.value)}
                 placeholder="e.g. Call before arrival, leave at gate..."
-                className="w-full bg-white/50 border-none rounded-2xl p-4 text-[10px] font-bold uppercase italic focus:outline-none min-h-[80px]"
+                className="w-full bg-white/50 border border-white/20 rounded-2xl p-4 text-[10px] font-bold uppercase italic focus:outline-none min-h-[80px] resize-none"
               />
            </div>
         </section>
 
-        {/* RIDER TIP SECTION */}
-        <section className="bg-blue-50/50 backdrop-blur-md rounded-[2.5rem] p-8 border border-blue-100/50 space-y-6 shadow-sm">
+        {/* RIDER TIP */}
+        <section className="bg-blue-50/50 backdrop-blur-md rounded-[2.5rem] p-8 border border-blue-100/50 space-y-6">
            <div className="flex items-center gap-4">
-              <div className="h-14 w-14 bg-white rounded-[1.25rem] flex items-center justify-center text-blue-600 shadow-xl shadow-blue-900/10">
+              <div className="h-14 w-14 bg-white rounded-[1.25rem] flex items-center justify-center text-blue-600 border border-blue-50">
                  <Bike className="h-7 w-7" />
               </div>
               <div>
@@ -339,7 +346,7 @@ export default function CartPage() {
                   onClick={() => setDeliveryTip(deliveryTip === val ? 0 : val)}
                   className={cn(
                     "h-12 rounded-xl border-2 flex items-center justify-center font-black text-xs transition-all active:scale-90",
-                    deliveryTip === val ? "bg-blue-600 border-blue-600 text-white shadow-lg" : "bg-white border-transparent text-gray-400 shadow-sm"
+                    deliveryTip === val ? "bg-blue-600 border-blue-600 text-white" : "bg-white border-white/10 text-gray-400"
                   )}
                 >
                   ₹{val}
@@ -350,7 +357,7 @@ export default function CartPage() {
         </section>
 
         {/* BILLING SUMMARY */}
-        <section className="bg-white/80 backdrop-blur-md rounded-[2.5rem] p-8 shadow-2xl space-y-6 border border-white/60">
+        <section className="bg-white/80 backdrop-blur-md rounded-[2.5rem] p-8 space-y-6 border border-white/60">
            <h3 className="text-xl font-black italic uppercase tracking-tighter text-gray-900">Bill Details</h3>
            <div className="space-y-3 pt-2">
               <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Item Total</span><span className="text-gray-900 font-black">₹{totalPrice.toFixed(0)}</span></div>
@@ -384,11 +391,11 @@ export default function CartPage() {
                 </div>
               )}
 
-              {/* Glass Slide Button */}
+              {/* SLIDE BUTTON - NO SHADOW */}
               <div 
                 ref={sliderRef} 
                 className={cn(
-                  "w-full h-24 rounded-[3rem] p-3 flex items-center relative shadow-2xl overflow-hidden select-none border-t-2 transition-all duration-300", 
+                  "w-full h-24 rounded-[3rem] p-3 flex items-center relative overflow-hidden select-none border-t-2 transition-all duration-300", 
                   (hasClosedItems || !isMinOrderMet) 
                     ? "bg-gray-200 border-gray-300 opacity-50 grayscale cursor-not-allowed" 
                     : "bg-[#0B0B0B] border-white/10"
@@ -407,7 +414,7 @@ export default function CartPage() {
                     onTouchEnd={handleTouchEnd} 
                     style={{ transform: `translateX(${sliderOffset}px)` }} 
                     className={cn(
-                      "h-16 w-16 rounded-[1.5rem] flex items-center justify-center shadow-[0_10px_30px_rgba(255,255,255,0.2)] z-10 transition-transform bg-white text-primary cursor-grab active:cursor-grabbing", 
+                      "h-16 w-16 rounded-[1.5rem] flex items-center justify-center z-10 transition-transform bg-white text-primary cursor-grab active:cursor-grabbing", 
                       (hasClosedItems || !isMinOrderMet) && "bg-gray-300"
                     )}
                   >
