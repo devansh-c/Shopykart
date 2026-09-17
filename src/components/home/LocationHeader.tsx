@@ -31,8 +31,7 @@ import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 
 /**
- * @fileOverview LocationHeader with Mode Switching and Notification Logic.
- * Fixed: Explicitly imported Sparkles icon to resolve ReferenceError.
+ * @fileOverview LocationHeader with Mode Switching hidden to focus on Food only.
  */
 export function LocationHeader({
   searchValue,
@@ -100,15 +99,8 @@ export function LocationHeader({
     window.dispatchEvent(new CustomEvent('open-location-picker'));
   };
 
-  const modes = [
-    { id: 'Food', label: 'Food', icon: Utensils, activeColor: 'bg-primary text-white', inactiveColor: 'bg-gray-50 text-gray-400' },
-    { id: 'Grocery', label: 'Grocery', icon: ShoppingBag, activeColor: 'bg-green-600 text-white', inactiveColor: 'bg-gray-50 text-gray-400' },
-    { id: 'Medical', label: 'Medical', icon: Zap, activeColor: 'bg-teal-600 text-white', inactiveColor: 'bg-gray-50 text-gray-400' },
-    { id: 'Beauty', label: 'Beauty', icon: Sparkles, activeColor: 'bg-rose-500 text-white', inactiveColor: 'bg-gray-50 text-gray-400' },
-  ];
-
   return (
-    <div className="w-full bg-white pb-4 pt-3 px-4 space-y-3 rounded-b-[2.5rem] shadow-sm relative z-50 overflow-hidden transform-gpu">
+    <div className="w-full bg-white pb-6 pt-3 px-4 space-y-4 rounded-b-[2.5rem] shadow-sm relative z-50 overflow-hidden transform-gpu">
       <div className="flex items-center justify-between relative z-10">
         <button onClick={handleOpenPicker} className="flex items-center gap-1.5 active:scale-95 transition-all text-left w-full">
           <div className="h-8 w-8 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">
@@ -129,34 +121,14 @@ export function LocationHeader({
         </button>
       </div>
 
-      <div className="flex overflow-x-auto space-x-3 no-scrollbar py-2 relative z-10">
-        {modes.map((m) => {
-          const Icon = m.icon;
-          const isActive = activeMode === m.id;
-          return (
-            <button 
-              key={m.id} 
-              onClick={() => onModeChange(m.id)}
-              className={cn(
-                "flex items-center gap-2 px-5 py-2.5 rounded-full transition-all active:scale-95 shrink-0 border border-transparent shadow-sm",
-                isActive ? m.activeColor : m.inactiveColor
-              )}
-            >
-              <Icon className="h-4 w-4" />
-              <span className="text-[11px] font-black uppercase tracking-tighter italic">{m.label}</span>
-            </button>
-          );
-        })}
-      </div>
-
       <div className="relative group z-10">
-        <div className="relative h-12 w-full bg-gray-50 rounded-2xl overflow-hidden shadow-inner border border-gray-100 flex items-center px-4">
-          <Search className="h-5 w-5 text-gray-400 shrink-0" />
+        <div className="relative h-14 w-full bg-gray-50 rounded-2xl overflow-hidden shadow-inner border border-gray-100 flex items-center px-4">
+          <Search className="h-6 w-6 text-gray-400 shrink-0" />
           <Input
             value={searchValue}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search Gourmet Food & Items"
-            className="h-full w-full bg-transparent border-none pl-2 pr-16 text-black font-bold placeholder:text-gray-400 focus-visible:ring-0 text-xs tracking-tight"
+            placeholder="Search Gourmet Food & Cuisines"
+            className="h-full w-full bg-transparent border-none pl-2 pr-16 text-black font-bold placeholder:text-gray-400 focus-visible:ring-0 text-sm tracking-tight"
           />
         </div>
       </div>
