@@ -251,13 +251,13 @@ export default function CartPage() {
     <div className="min-h-screen bg-[#F9FAFB] pb-40 max-w-lg mx-auto relative overflow-hidden">
       <OrderSuccessOverlay isVisible={showSuccessOverlay} />
       
-      <header className="bg-white/60 backdrop-blur-xl py-4 px-6 sticky top-0 z-[100] flex items-center gap-4">
+      <header className="bg-white/60 backdrop-blur-xl py-4 px-6 sticky top-0 z-[100] flex items-center gap-4 border-b border-black/5">
         <button onClick={() => router.back()} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/40 backdrop-blur-md border border-white/20 active:scale-90 transition-all"><ChevronLeft className="h-6 w-6" /></button>
-        <h1 className="text-sm font-black uppercase italic tracking-widest text-gray-800 flex-1">CHECKOUT</h1>
+        <h1 className="text-sm font-black uppercase italic tracking-widest text-gray-800 flex-1 text-center">CHECKOUT</h1>
         <Badge variant="outline" className="rounded-xl border-amber-200 bg-amber-50 text-amber-600 font-black text-[9px] uppercase"><Coins className="h-2.5 w-2.5 mr-1" /> {userCoins} COINS</Badge>
       </header>
 
-      <main className="px-4 pt-4 relative z-10 animate-in fade-in duration-700">
+      <main className="px-4 pt-6 relative z-10 animate-in fade-in duration-700">
         <div className="bg-white/40 backdrop-blur-xl rounded-[2.5rem] overflow-hidden border border-white/40">
           
           {/* ADDRESS SECTION - FRAMELESS */}
@@ -309,7 +309,7 @@ export default function CartPage() {
              </div>
           </section>
 
-          {/* COUPON SECTION - NEW */}
+          {/* COUPON SECTION - FRAMELESS */}
           <section className="p-6 bg-white/20 border-y border-black/[0.03]">
              <div className="flex items-center gap-4 mb-4">
                 <div className="h-10 w-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
@@ -337,13 +337,13 @@ export default function CartPage() {
                    placeholder="ENTER CODE"
                    className="h-12 rounded-xl bg-white/40 border-none font-black text-xs placeholder:text-gray-300"
                  />
-                 <Button 
+                 <button 
                    onClick={handleApplyCoupon}
                    disabled={isValidatingCoupon || !couponCode.trim()}
-                   className="h-12 bg-black text-white px-6 rounded-xl font-black text-[10px] uppercase"
+                   className="h-12 bg-black text-white px-6 rounded-xl font-black text-[10px] uppercase active:scale-95 transition-all disabled:opacity-50"
                  >
                    {isValidatingCoupon ? <Loader2 className="h-4 w-4 animate-spin" /> : 'APPLY'}
-                 </Button>
+                 </button>
                </div>
              )}
           </section>
@@ -396,34 +396,6 @@ export default function CartPage() {
              </div>
           </section>
 
-          {/* RIDER TIP - FRAMELESS */}
-          <section className="p-6 space-y-6 bg-blue-50/10 border-y border-black/[0.03]">
-             <div className="flex items-center gap-4">
-                <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center text-blue-600 border border-blue-50">
-                   <Bike className="h-5 w-5" />
-                </div>
-                <div>
-                   <h3 className="text-sm font-black italic uppercase text-gray-900">Rider Appreciation</h3>
-                   <p className="text-[8px] font-bold text-blue-600 uppercase tracking-widest">100% goes to the hero</p>
-                </div>
-             </div>
-             
-             <div className="grid grid-cols-4 gap-3">
-                {[10, 20, 30, 50].map(val => (
-                  <button 
-                    key={val}
-                    onClick={() => setDeliveryTip(deliveryTip === val ? 0 : val)}
-                    className={cn(
-                      "h-10 rounded-xl border-2 flex items-center justify-center font-black text-[10px] transition-all active:scale-90",
-                      deliveryTip === val ? "bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-100" : "bg-white/40 border-blue-100 text-gray-400"
-                    )}
-                  >
-                    ₹{val}
-                  </button>
-                ))}
-             </div>
-          </section>
-
           {/* BILLING SECTION - FRAMELESS */}
           <section className="p-6 space-y-6">
              <h3 className="text-xl font-black italic uppercase tracking-tighter text-gray-900">Billing Breakdown</h3>
@@ -465,7 +437,7 @@ export default function CartPage() {
                   "w-full h-24 rounded-[3rem] p-3 flex items-center relative overflow-hidden select-none border-t-2 transition-all duration-300", 
                   (hasClosedItems || !isMinOrderMet) 
                     ? "bg-gray-100 border-gray-200 opacity-50 grayscale cursor-not-allowed" 
-                    : "bg-[#0B0B0B] border-white/10"
+                    : "bg-[#0B0B0B] border-white/10 shadow-2xl"
                 )}
               >
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">

@@ -38,6 +38,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { OrderRatingDialog } from './OrderRatingDialog';
+import { Badge } from '@/components/ui/badge';
 
 const LiveTrackingMap = dynamic(() => import('./LiveTrackingMap'), { 
   ssr: false,

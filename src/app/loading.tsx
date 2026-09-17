@@ -1,8 +1,9 @@
+
 import { Skeleton } from "@/components/ui/skeleton";
 
 /**
- * @fileOverview High-Fidelity Loading UI.
- * Skeletons now match the actual component shapes and theme for seamless transition.
+ * @fileOverview High-Fidelity White Shimmer Loading UI.
+ * Removed black boxes and dark themes for a clean, consistent white material feel.
  */
 export default function Loading() {
   return (
@@ -44,7 +45,7 @@ export default function Loading() {
           ))}
         </div>
 
-        {/* Product Grid Skeleton */}
+        {/* Product Grid Skeleton - CLEAN WHITE STYLE */}
         <div className="px-4 space-y-6">
           <div className="flex justify-between px-2">
             <Skeleton className="h-8 w-40 rounded-full" />
@@ -52,14 +53,14 @@ export default function Loading() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             {[1, 2, 3, 4].map(i => (
-              <div key={i} className="space-y-3 bg-[#0B0B0B] p-3 rounded-[2.5rem] border-2 border-amber-900/20">
-                <Skeleton className="aspect-square w-full rounded-[1.5rem] bg-gray-900" />
+              <div key={i} className="space-y-3 bg-white p-3 rounded-[2.5rem] border border-gray-100 shadow-sm">
+                <Skeleton className="aspect-square w-full rounded-[1.5rem] bg-gray-50" />
                 <div className="space-y-2 px-1">
-                  <Skeleton className="h-2 w-2/3 rounded-full bg-gray-800" />
-                  <Skeleton className="h-3 w-full rounded-full bg-gray-800" />
+                  <Skeleton className="h-2 w-2/3 rounded-full bg-gray-50" />
+                  <Skeleton className="h-3 w-full rounded-full bg-gray-50" />
                   <div className="flex justify-between pt-2">
-                    <Skeleton className="h-6 w-12 rounded-full bg-gray-800" />
-                    <Skeleton className="h-8 w-16 rounded-full bg-gray-700" />
+                    <Skeleton className="h-6 w-12 rounded-full bg-gray-100" />
+                    <Skeleton className="h-8 w-16 rounded-full bg-gray-100" />
                   </div>
                 </div>
               </div>

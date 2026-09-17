@@ -62,6 +62,7 @@
     -webkit-overflow-scrolling: touch !important; 
   }
 
+  /* Performance Optimizations */
   .content-visibility-auto {
     content-visibility: auto;
     contain-intrinsic-size: 1px 180px;
@@ -112,4 +113,8 @@
 
 .animate-pulse {
   animation: pulse-fast 0.6s cubic-bezier(0.4, 0, 0.6, 1) infinite !important;
+}
+
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
 }
