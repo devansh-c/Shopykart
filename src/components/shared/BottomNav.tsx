@@ -1,4 +1,3 @@
-
 "use client"
 
 import { usePathname } from 'next/navigation';
@@ -10,7 +9,7 @@ import Link from 'next/link';
 
 /**
  * @fileOverview Ultra-Glassy Fixed Bottom Navigation.
- * Uses advanced glassmorphism with light transparency and high blur.
+ * Uses advanced glassmorphism with high transparency and blur.
  */
 const BottomNav = memo(() => {
   const pathname = usePathname();

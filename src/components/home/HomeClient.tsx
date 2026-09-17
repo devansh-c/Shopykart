@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useCallback, Suspense } from 'react';
@@ -24,7 +23,7 @@ interface HomeClientProps {
 
 /**
  * @fileOverview HomeClient - Optimized with Search Params for Navigation History.
- * Ensures the back button navigates through sections instead of exiting the app.
+ * Exported as default to resolve build errors.
  */
 function HomeClientContent({ 
   initialBanners, 
@@ -159,7 +158,7 @@ function HomeClientContent({
   );
 }
 
-export function HomeClient(props: HomeClientProps) {
+export default function HomeClient(props: HomeClientProps) {
   return (
     <Suspense fallback={<div className="h-screen bg-white" />}>
       <HomeClientContent {...props} />

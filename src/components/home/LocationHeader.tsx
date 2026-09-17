@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -33,7 +32,7 @@ import { Badge } from '@/components/ui/badge';
 
 /**
  * @fileOverview LocationHeader with Mode Switching and Notification Logic.
- * Fixed: Explicitly imported Sparkles icon from lucide-react.
+ * Properly imports all icons from lucide-react.
  */
 export function LocationHeader({
   searchValue,
