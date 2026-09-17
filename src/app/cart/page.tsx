@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -14,16 +15,18 @@ import {
   IndianRupee,
   AlertCircle,
   Clock,
-  ArrowLeft,
   Coins,
   PackageCheck,
   MessageSquare,
-  Bike
+  Bike,
+  Tag,
+  Ticket,
+  X
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useFirestore, useUser, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, addDoc, collection, serverTimestamp, query, updateDoc, increment } from 'firebase/firestore';
+import { doc, addDoc, collection, serverTimestamp, query, updateDoc, increment, getDocs, where } from 'firebase/firestore';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -54,6 +57,11 @@ export default function CartPage() {
   const [isPremiumPacking, setIsPremiumPacking] = useState(false);
   const [isRedeemingCoins, setIsRedeemingCoins] = useState(false);
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
+
+  // Coupon States
+  const [couponCode, setCouponCode] = useState('');
+  const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
 
   const [sliderOffset, setSliderOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -108,9 +116,44 @@ export default function CartPage() {
   const coinDiscount = isRedeemingCoins ? 5 : 0; 
   const packingFee = isPremiumPacking ? 10 : 0;
 
+  // Coupon Logic
+  const handleApplyCoupon = async () => {
+    if (!firestore || !couponCode.trim()) return;
+    setIsValidatingCoupon(true);
+    try {
+      const q = query(collection(firestore, 'coupons'), where('code', '==', couponCode.trim().toUpperCase()));
+      const snap = await getDocs(q);
+      
+      if (snap.empty) {
+        toast({ variant: "destructive", title: "Invalid Coupon", description: "This code does not exist." });
+        setAppliedCoupon(null);
+      } else {
+        const data = snap.docs[0].data();
+        if (totalPrice < (data.minOrderValue || 0)) {
+          toast({ variant: "destructive", title: "Minimum Order Not Met", description: `Add ₹${data.minOrderValue - totalPrice} more to use this.` });
+        } else {
+          setAppliedCoupon({ id: snap.docs[0].id, ...data });
+          toast({ title: "Coupon Applied! ✨" });
+        }
+      }
+    } catch (e) {
+      toast({ variant: "destructive", title: "Error", description: "Could not validate coupon." });
+    } finally {
+      setIsValidatingCoupon(false);
+    }
+  };
+
+  const couponDiscount = useMemo(() => {
+    if (!appliedCoupon) return 0;
+    if (appliedCoupon.discountType === 'percentage') {
+      return (totalPrice * appliedCoupon.discountValue) / 100;
+    }
+    return appliedCoupon.discountValue;
+  }, [appliedCoupon, totalPrice]);
+
   const totalPayable = useMemo(() => {
-    return Math.max(0, totalPrice + deliveryFee + deliveryTip + packingFee - coinDiscount);
-  }, [totalPrice, deliveryFee, deliveryTip, packingFee, coinDiscount]);
+    return Math.max(0, totalPrice + deliveryFee + deliveryTip + packingFee - coinDiscount - couponDiscount);
+  }, [totalPrice, deliveryFee, deliveryTip, packingFee, coinDiscount, couponDiscount]);
 
   const finalizeOrder = async () => {
     if (!user) {
@@ -146,6 +189,8 @@ export default function CartPage() {
         deliveryTip,
         packingFee,
         coinDiscount,
+        couponDiscount,
+        couponCode: appliedCoupon?.code || null,
         redeemCoins: isRedeemingCoins,
         isPremiumPacking,
         deliveryInstructions,
@@ -206,15 +251,16 @@ export default function CartPage() {
     <div className="min-h-screen bg-[#F9FAFB] pb-40 max-w-lg mx-auto relative overflow-hidden">
       <OrderSuccessOverlay isVisible={showSuccessOverlay} />
       
-      <header className="bg-white/60 backdrop-blur-xl border-b border-gray-100 py-4 px-6 sticky top-0 z-[100] flex items-center gap-4">
-        <button onClick={() => router.back()} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white border border-gray-100 active:scale-90 transition-all"><ChevronLeft className="h-6 w-6" /></button>
+      <header className="bg-white/60 backdrop-blur-xl py-4 px-6 sticky top-0 z-[100] flex items-center gap-4">
+        <button onClick={() => router.back()} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/40 backdrop-blur-md border border-white/20 active:scale-90 transition-all"><ChevronLeft className="h-6 w-6" /></button>
         <h1 className="text-sm font-black uppercase italic tracking-widest text-gray-800 flex-1">CHECKOUT</h1>
         <Badge variant="outline" className="rounded-xl border-amber-200 bg-amber-50 text-amber-600 font-black text-[9px] uppercase"><Coins className="h-2.5 w-2.5 mr-1" /> {userCoins} COINS</Badge>
       </header>
 
-      <main className="px-4 pt-6 relative z-10 animate-in fade-in duration-700">
-        <div className="bg-white/20 backdrop-blur-xl rounded-[3rem] p-2 space-y-2 overflow-hidden border border-white/40">
+      <main className="px-4 pt-4 relative z-10 animate-in fade-in duration-700">
+        <div className="bg-white/40 backdrop-blur-xl rounded-[2.5rem] overflow-hidden border border-white/40">
           
+          {/* ADDRESS SECTION - FRAMELESS */}
           <section className="p-6 flex items-center justify-between border-b border-black/[0.03]">
              <div className="flex items-center gap-4">
                 <div className="h-12 w-12 bg-[#0B0B0B] rounded-2xl flex items-center justify-center text-white">
@@ -229,6 +275,7 @@ export default function CartPage() {
              <button onClick={() => setIsAddressModalOpen(true)} className="bg-primary/10 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest text-primary active:scale-95 transition-all">EDIT</button>
           </section>
 
+          {/* ITEMS SECTION - FRAMELESS */}
           <section className="p-6 space-y-6">
              <div className="flex items-center gap-4 mb-4">
                 <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
@@ -262,7 +309,47 @@ export default function CartPage() {
              </div>
           </section>
 
-          <section className="p-6 flex items-center justify-between border-y border-black/[0.03] bg-amber-50/20">
+          {/* COUPON SECTION - NEW */}
+          <section className="p-6 bg-white/20 border-y border-black/[0.03]">
+             <div className="flex items-center gap-4 mb-4">
+                <div className="h-10 w-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
+                   <Ticket className="h-5 w-5" />
+                </div>
+                <div>
+                   <h3 className="text-[10px] font-black uppercase tracking-widest text-indigo-600 italic">Apply Offer</h3>
+                   <h4 className="text-xs font-black uppercase text-gray-900">PROMO CODES</h4>
+                </div>
+             </div>
+             
+             {appliedCoupon ? (
+               <div className="bg-green-50/50 p-4 rounded-2xl flex items-center justify-between border border-green-100 animate-in zoom-in duration-300">
+                  <div className="flex items-center gap-3">
+                     <div className="bg-green-500 text-white p-1.5 rounded-lg"><Tag className="h-3 w-3" /></div>
+                     <span className="text-xs font-black text-green-700 uppercase">'{appliedCoupon.code}' APPLIED!</span>
+                  </div>
+                  <button onClick={() => setAppliedCoupon(null)} className="text-gray-400 p-1"><X className="h-4 w-4" /></button>
+               </div>
+             ) : (
+               <div className="flex gap-2">
+                 <Input 
+                   value={couponCode}
+                   onChange={e => setCouponCode(e.target.value.toUpperCase())}
+                   placeholder="ENTER CODE"
+                   className="h-12 rounded-xl bg-white/40 border-none font-black text-xs placeholder:text-gray-300"
+                 />
+                 <Button 
+                   onClick={handleApplyCoupon}
+                   disabled={isValidatingCoupon || !couponCode.trim()}
+                   className="h-12 bg-black text-white px-6 rounded-xl font-black text-[10px] uppercase"
+                 >
+                   {isValidatingCoupon ? <Loader2 className="h-4 w-4 animate-spin" /> : 'APPLY'}
+                 </Button>
+               </div>
+             )}
+          </section>
+
+          {/* REWARD REDEEM - FRAMELESS */}
+          <section className="p-6 flex items-center justify-between border-b border-black/[0.03] bg-amber-50/10">
              <div className="flex items-center gap-4">
                 <div className="h-10 w-10 bg-amber-400 rounded-xl flex items-center justify-center text-black">
                    <Coins className="h-5 w-5" />
@@ -280,6 +367,7 @@ export default function CartPage() {
              />
           </section>
 
+          {/* SAFETY & INSTRUCTIONS - FRAMELESS */}
           <section className="p-6 space-y-6">
              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -308,7 +396,8 @@ export default function CartPage() {
              </div>
           </section>
 
-          <section className="p-6 space-y-6 bg-blue-50/20 border-y border-black/[0.03]">
+          {/* RIDER TIP - FRAMELESS */}
+          <section className="p-6 space-y-6 bg-blue-50/10 border-y border-black/[0.03]">
              <div className="flex items-center gap-4">
                 <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center text-blue-600 border border-blue-50">
                    <Bike className="h-5 w-5" />
@@ -326,7 +415,7 @@ export default function CartPage() {
                     onClick={() => setDeliveryTip(deliveryTip === val ? 0 : val)}
                     className={cn(
                       "h-10 rounded-xl border-2 flex items-center justify-center font-black text-[10px] transition-all active:scale-90",
-                      deliveryTip === val ? "bg-blue-600 border-blue-600 text-white" : "bg-white border-blue-100 text-gray-400"
+                      deliveryTip === val ? "bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-100" : "bg-white/40 border-blue-100 text-gray-400"
                     )}
                   >
                     ₹{val}
@@ -335,6 +424,7 @@ export default function CartPage() {
              </div>
           </section>
 
+          {/* BILLING SECTION - FRAMELESS */}
           <section className="p-6 space-y-6">
              <h3 className="text-xl font-black italic uppercase tracking-tighter text-gray-900">Billing Breakdown</h3>
              <div className="space-y-3">
@@ -343,6 +433,7 @@ export default function CartPage() {
                 {packingFee > 0 && <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Packing Fee</span><span className="text-gray-900 font-black">₹{packingFee}</span></div>}
                 {deliveryTip > 0 && <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Rider Tip</span><span className="text-gray-900 font-black">₹{deliveryTip}</span></div>}
                 {coinDiscount > 0 && <div className="flex justify-between text-[10px] font-black text-green-600 uppercase tracking-widest"><span>Coin Discount</span><span className="font-black">- ₹{coinDiscount}</span></div>}
+                {couponDiscount > 0 && <div className="flex justify-between text-[10px] font-black text-indigo-600 uppercase tracking-widest"><span>Coupon Discount</span><span className="font-black">- ₹{couponDiscount.toFixed(0)}</span></div>}
              </div>
              <div className="pt-6 border-t-2 border-dashed border-black/5 flex justify-between items-end">
                 <div className="flex flex-col"><span className="text-[8px] font-black uppercase tracking-widest text-primary mb-1">To Pay</span><div className="flex items-center gap-1 text-4xl font-black italic text-gray-900 tracking-tighter leading-none"><IndianRupee className="h-6 w-6 text-primary" /><span>{totalPayable.toFixed(0)}</span></div></div>
@@ -351,6 +442,7 @@ export default function CartPage() {
           </section>
         </div>
 
+        {/* ORDER ACTION AREA */}
         <div className="pt-8 pb-32">
            <div className="space-y-4">
               {hasClosedItems && (
@@ -405,6 +497,7 @@ export default function CartPage() {
         </div>
       </main>
 
+      {/* ADDRESS MODAL */}
       <Dialog open={isAddressModalOpen} onOpenChange={setIsAddressModalOpen}>
         <DialogContent className="rounded-t-[3.5rem] p-8 border-none shadow-2xl bg-white max-w-sm bottom-0 top-auto translate-y-0 focus:outline-none flex flex-col h-[550px]">
           <div className="h-1.5 w-16 bg-gray-100 rounded-full mx-auto mb-6 shrink-0" />

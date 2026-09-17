@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -61,11 +62,6 @@
     -webkit-overflow-scrolling: touch !important; 
   }
 
-  .transform-gpu {
-    backface-visibility: hidden;
-    perspective: 1000;
-  }
-
   .content-visibility-auto {
     content-visibility: auto;
     contain-intrinsic-size: 1px 180px;
@@ -116,20 +112,4 @@
 
 .animate-pulse {
   animation: pulse-fast 0.6s cubic-bezier(0.4, 0, 0.6, 1) infinite !important;
-}
-
-@keyframes shine {
-  0% { transform: translateX(-100%) translateY(-100%) rotate(-45deg); }
-  100% { transform: translateX(100%) translateY(100%) rotate(-45deg); }
-}
-
-@keyframes shimmer-gold {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-
-.shimmer-gold {
-  background: linear-gradient(90deg, #f3f4f6 25%, #fde68a 50%, #f3f4f6 75%);
-  background-size: 200% 100%;
-  animation: shimmer-gold 2s infinite linear;
 }
