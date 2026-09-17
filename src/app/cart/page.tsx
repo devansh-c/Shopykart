@@ -227,18 +227,23 @@ export default function CartPage() {
       <main className="px-4 pt-6 relative z-10 animate-in fade-in duration-700">
         <div className="bg-white/40 backdrop-blur-xl rounded-[2.5rem] overflow-hidden border border-white/40">
           
-          <section className="p-6 flex items-center justify-between border-b border-black/[0.03]">
-             <div className="flex items-center gap-4">
-                <div className="h-12 w-12 bg-[#0B0B0B] rounded-2xl flex items-center justify-center text-white">
+          <section className="px-5 py-6 flex items-center justify-between border-b border-black/[0.03]">
+             <div className="flex items-center gap-4 flex-1 min-w-0">
+                <div className="h-12 w-12 bg-[#0B0B0B] rounded-2xl flex items-center justify-center text-white shrink-0">
                    <Navigation className="h-6 w-6" />
                 </div>
-                <div className="min-w-0">
+                <div className="flex-1 min-w-0 pr-2">
                    <h4 className="text-[10px] font-black uppercase tracking-widest text-primary mb-0.5 italic">Drop At</h4>
                    <h4 className="text-xs font-black uppercase truncate text-gray-900">{recipientForm.name || 'Set Recipient'}</h4>
                    <p className="text-[9px] font-bold text-gray-400 uppercase truncate leading-tight mt-0.5">{recipientForm.address || 'Select Address'}</p>
                 </div>
              </div>
-             <button onClick={() => setIsAddressModalOpen(true)} className="bg-primary/10 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest text-primary active:scale-95 transition-all">EDIT</button>
+             <button 
+              onClick={() => setIsAddressModalOpen(true)} 
+              className="bg-primary/10 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest text-primary active:scale-95 transition-all shrink-0"
+             >
+               EDIT
+             </button>
           </section>
 
           <section className="p-6 space-y-6">

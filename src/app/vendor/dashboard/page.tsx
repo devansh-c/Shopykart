@@ -36,7 +36,8 @@ import {
   CreditCard,
   Banknote,
   Timer,
-  ListTree
+  ListTree,
+  AlertCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -308,7 +309,6 @@ export default function VendorDashboard() {
                       </div>
                       <div className="bg-muted/30 rounded-2xl p-4 mb-4 space-y-2">
                           <div className="flex items-center gap-2 border-b border-white pb-2 mb-1"><User className="h-3.5 w-3.5 text-primary" /><span className="text-xs font-black uppercase italic">{o.customerName}</span></div>
-                          {/* ORDER ISOLATION IN MULTI-VENDOR: Only show items belonging to this vendor */}
                           {o.items?.filter((it:any) => String(it.vendorId) === String(user?.uid)).map((item:any, i:number) => (
                             <div key={i} className="flex justify-between items-center text-xs font-bold">
                                <span className="text-gray-700">{item.quantity}x {item.name}</span>
@@ -370,7 +370,7 @@ export default function VendorDashboard() {
                               <div className="space-y-2">
                                  {options.map((opt, idx) => (
                                    <div key={idx} className="flex gap-2">
-                                      <Input placeholder="Name" value={opt.name} onChange={e => updateOption(idx, 'name', e.target.value)} className="h-10 rounded-xl bg-white border-none font-bold text-xs flex-[2]" />
+                                      <Input placeholder="Name" value={opt.name} onChange={e => updateOption(idx, 'name', e.target.value)} className="h-10 rounded-xl bg-white border-none font-bold text-xs uppercase flex-[2]" />
                                       <Input type="number" placeholder="+₹" value={opt.price} onChange={e => updateOption(idx, 'price', e.target.value)} className="h-10 rounded-xl bg-white border-none font-black text-xs text-primary flex-1" />
                                       <button onClick={() => handleRemoveOption(idx)} className="text-red-500 h-10 w-10"><Trash2 className="h-4 w-4" /></button>
                                    </div>
