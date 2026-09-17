@@ -1,4 +1,4 @@
-name: Build Android APK & AAB
+name: Build All ShopyKart Apps (APK & AAB)
 
 on:
   push:
@@ -21,45 +21,66 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      - name: Create Web Build
-        run: npm run build:static
-
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Initialize Capacitor Android
+      # 1. BUILD CUSTOMER APP
+      - name: Build Web (Customer)
+        run: npm run build:static
+      - name: Capacitor Sync & Build APK (Customer)
         run: |
           rm -rf android
           npx cap add android
-          
-          # FORCE ASSET GENERATION FROM ASSETS FOLDER
-          echo "Generating Branded Assets..."
-          npx @capacitor/assets generate --android --assetPath assets || echo "Assets folder issue"
-          
           npx cap sync android
-          chmod +x android/gradlew
+          cd android && ./gradlew assembleDebug && ./gradlew bundleDebug
+          mv app/build/outputs/apk/debug/app-debug.apk ../ShopyKart-Customer.apk
+          mv app/build/outputs/bundle/debug/app-debug.aab ../ShopyKart-Customer.aab
+          cd ..
 
-      - name: Build APK & AAB (Debug)
+      # 2. BUILD ADMIN APP
+      - name: Build Web (Admin)
+        run: npm run build:admin
+      - name: Capacitor Sync & Build APK (Admin)
         run: |
-          cd android
-          ./gradlew assembleDebug
-          ./gradlew bundleDebug
+          npx cap sync android
+          cd android && ./gradlew assembleDebug && ./gradlew bundleDebug
+          mv app/build/outputs/apk/debug/app-debug.apk ../ShopyKart-Admin.apk
+          mv app/build/outputs/bundle/debug/app-debug.aab ../ShopyKart-Admin.aab
+          cd ..
 
-      - name: Get Current Time
-        id: time
-        run: echo "BUILD_TIME=$(date +'%Y-%m-%d_%H-%M-%S')" >> $GITHUB_ENV
+      # 3. BUILD VENDOR APP (BIZ)
+      - name: Build Web (Biz)
+        run: npm run build:biz
+      - name: Capacitor Sync & Build APK (Vendor)
+        run: |
+          npx cap sync android
+          cd android && ./gradlew assembleDebug && ./gradlew bundleDebug
+          mv app/build/outputs/apk/debug/app-debug.apk ../ShopyKart-Vendor.apk
+          mv app/build/outputs/bundle/debug/app-debug.aab ../ShopyKart-Vendor.aab
+          cd ..
 
-      - name: Upload APK
+      # 4. BUILD DELIVERY APP (TOW)
+      - name: Build Web (Tow)
+        run: npm run build:tow
+      - name: Capacitor Sync & Build APK (Delivery)
+        run: |
+          npx cap sync android
+          cd android && ./gradlew assembleDebug && ./gradlew bundleDebug
+          mv app/build/outputs/apk/debug/app-debug.apk ../ShopyKart-Delivery.apk
+          mv app/build/outputs/bundle/debug/app-debug.aab ../ShopyKart-Delivery.aab
+          cd ..
+
+      - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
-          name: ShopyKart-APK-${{ env.BUILD_TIME }}
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: ShopyKart-All-APKs
+          path: ShopyKart-*.apk
 
-      - name: Upload AAB
+      - name: Upload AABs
         uses: actions/upload-artifact@v4
         with:
-          name: ShopyKart-AAB-${{ env.BUILD_TIME }}
-          path: android/app/build/outputs/bundle/debug/app-debug.aab
+          name: ShopyKart-All-AABs
+          path: ShopyKart-*.aab

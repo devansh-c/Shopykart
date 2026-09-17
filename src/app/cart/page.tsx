@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -415,7 +414,7 @@ export default function CartPage() {
               <Input placeholder="10 DIGIT PHONE" value={recipientForm.phone} onChange={e => setRecipientForm({...recipientForm, phone: e.target.value.replace(/\D/g,'').slice(0, 10)})} className="h-14 rounded-2xl bg-gray-50 border-none font-black text-xs" />
               <textarea placeholder="STREET ADDRESS / HOUSE NO" value={recipientForm.address} onChange={e => setRecipientForm({...recipientForm, address: e.target.value.toUpperCase()})} className="w-full h-28 p-4 rounded-2xl bg-gray-50 border-none font-bold text-xs uppercase focus:outline-none resize-none" />
           </div>
-          <Button onClick={() => { if(recipientForm.phone.length===10) { localStorage.setItem('user_name', recipientForm.name); localStorage.setItem('user_phone', recipientForm.phone); localStorage.setItem('user_address_line', recipientForm.address); setIsAddressModalOpen(false); } }} className="w-full h-18 bg-[#0B0B0B] text-white rounded-[2rem] font-black uppercase italic shadow-xl text-lg">SAVE & CONTINUE</Button>
+          <button onClick={() => { if(recipientForm.phone.length===10) { localStorage.setItem('user_name', recipientForm.name); localStorage.setItem('user_phone', recipientForm.phone); localStorage.setItem('user_address_line', recipientForm.address); setIsAddressModalOpen(false); } }} className="w-full h-18 bg-[#0B0B0B] text-white rounded-[2rem] font-black uppercase italic shadow-xl text-lg">SAVE & CONTINUE</button>
         </DialogContent>
       </Dialog>
     </div>

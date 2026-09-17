@@ -1,9 +1,7 @@
-
 import { Skeleton } from "@/components/ui/skeleton";
 
 /**
- * @fileOverview High-Fidelity White Shimmer Loading UI.
- * Removed black boxes for a clean, consistent white material feel.
+ * @fileOverview Pure White Shimmer Loading UI - No black boxes.
  */
 export default function Loading() {
   return (
@@ -45,7 +43,7 @@ export default function Loading() {
           ))}
         </div>
 
-        {/* Product Grid Skeleton - CLEAN WHITE STYLE */}
+        {/* Product Grid Skeleton */}
         <div className="px-4 space-y-6">
           <div className="flex justify-between px-2">
             <Skeleton className="h-8 w-40 rounded-full" />
