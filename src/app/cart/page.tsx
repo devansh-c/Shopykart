@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -40,8 +39,8 @@ import { Switch } from '@/components/ui/switch';
 import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 
 /**
- * @fileOverview CartPage - Consistent Glassmorphism UI.
- * Removed all shadows and unified container styles for Address, Items, and Rewards.
+ * @fileOverview CartPage - Premium Zero-Shadow Glassmorphism UI.
+ * Addresses and Items sections now share identical styling with no shadows.
  */
 export default function CartPage() {
   const { cart, addToCart, removeFromCart, totalPrice, clearCart } = useCart();
@@ -177,7 +176,6 @@ export default function CartPage() {
     }
   };
 
-  // Slider interaction handlers
   const handleTouchStart = (e: React.TouchEvent) => { if (isPlacing || cart.length === 0 || hasClosedItems || !isMinOrderMet) return; setIsDragging(true); startXRef.current = e.touches[0].clientX; };
   const handleTouchMove = (e: React.TouchEvent) => { if (!isDragging || !sliderRef.current) return; const diff = e.touches[0].clientX - startXRef.current; if (diff > 0) setSliderOffset(Math.min(diff, sliderRef.current.offsetWidth - 80)); };
   const handleTouchEnd = () => { if (!isDragging) return; setIsDragging(false); if (sliderOffset > (sliderRef.current?.offsetWidth || 0) * 0.75) finalizeOrder(); else setSliderOffset(0); };
@@ -211,45 +209,48 @@ export default function CartPage() {
   if (!isMounted) return <div className="h-screen bg-white flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#FDFCFB] to-[#F5F7FA] pb-40 max-w-lg mx-auto border-x border-gray-100 relative overflow-hidden">
-      <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-primary/5 blur-[120px] rounded-full pointer-events-none" />
+    <div className="min-h-screen bg-[#F9FAFB] pb-40 max-w-lg mx-auto border-x border-gray-100 relative overflow-hidden">
+      <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 blur-[120px] rounded-full pointer-events-none" />
       
       <OrderSuccessOverlay isVisible={showSuccessOverlay} />
       
-      <header className="bg-white/40 backdrop-blur-md border-b border-white/20 py-4 px-6 sticky top-0 z-[100] flex items-center gap-4">
-        <button onClick={() => router.back()} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/60 border border-white/40 active:scale-90 transition-transform"><ChevronLeft className="h-6 w-6" /></button>
+      <header className="bg-white/60 backdrop-blur-xl border-b border-gray-100 py-4 px-6 sticky top-0 z-[100] flex items-center gap-4">
+        <button onClick={() => router.back()} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white border border-gray-100 active:scale-90 transition-all"><ChevronLeft className="h-6 w-6" /></button>
         <h1 className="text-sm font-black uppercase italic tracking-widest text-gray-800 flex-1">CHECKOUT</h1>
         <Badge variant="outline" className="rounded-xl border-amber-200 bg-amber-50 text-amber-600 font-black text-[9px] uppercase"><Coins className="h-2.5 w-2.5 mr-1" /> {userCoins} COINS</Badge>
       </header>
 
       <main className="px-4 pt-6 space-y-6 relative z-10">
-        {/* UNIFIED GLASS CONTAINER STYLE - NO SHADOWS */}
+        
+        {/* UNIFIED ADDRESS & ITEMS CONTAINERS - ZERO SHADOW GLASSMORPISM */}
         
         {/* ADDRESS SECTION */}
-        <section className="bg-[#0B0B0B]/80 backdrop-blur-xl rounded-[2.5rem] p-6 text-white border border-white/10 transform-gpu">
-           <div className="flex justify-between items-center">
-              <div className="flex items-center gap-4">
-                 <div className="h-12 w-12 bg-amber-400 rounded-2xl flex items-center justify-center text-black shadow-inner"><Navigation className="h-6 w-6" /></div>
-                 <div className="min-w-0">
-                   <h4 className="text-[10px] font-black uppercase tracking-widest text-amber-400 mb-0.5">Drop At</h4>
-                   <h4 className="text-xs font-black uppercase truncate">{recipientForm.name || 'Set Name'}</h4>
-                   <p className="text-[9px] font-bold text-gray-400 uppercase truncate leading-tight mt-0.5">{recipientForm.address || 'Select Address'}</p>
-                 </div>
+        <section className="bg-white/40 backdrop-blur-xl rounded-[2.5rem] p-7 border border-white/60 flex items-center justify-between">
+           <div className="flex items-center gap-4">
+              <div className="h-12 w-12 bg-[#0B0B0B] rounded-2xl flex items-center justify-center text-white">
+                 <Navigation className="h-6 w-6" />
               </div>
-              <button onClick={() => setIsAddressModalOpen(true)} className="bg-white/10 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest shrink-0 border border-white/5 active:scale-95 transition-all">EDIT</button>
+              <div className="min-w-0">
+                 <h4 className="text-[10px] font-black uppercase tracking-widest text-primary mb-0.5 italic">Drop At</h4>
+                 <h4 className="text-xs font-black uppercase truncate text-gray-900">{recipientForm.name || 'Set Recipient'}</h4>
+                 <p className="text-[9px] font-bold text-gray-400 uppercase truncate leading-tight mt-0.5">{recipientForm.address || 'Select Address'}</p>
+              </div>
            </div>
+           <button onClick={() => setIsAddressModalOpen(true)} className="bg-primary/5 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest text-primary border border-primary/10 active:scale-95 transition-all">EDIT</button>
         </section>
 
-        {/* ITEMS SECTION - NOW UNIFIED UI */}
+        {/* ITEMS SECTION */}
         <section className="bg-white/40 backdrop-blur-xl rounded-[2.5rem] p-7 border border-white/60 space-y-6">
            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-3">
-                 <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary border border-primary/5">
-                    <ShoppingBag className="h-5 w-5" />
+              <div className="flex items-center gap-4">
+                 <div className="h-12 w-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary border border-primary/5">
+                    <ShoppingBag className="h-6 w-6" />
                  </div>
-                 <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-gray-400">BAG ITEMS</h3>
+                 <div>
+                    <h3 className="text-[10px] font-black uppercase tracking-widest text-primary mb-0.5 italic">Bag Summary</h3>
+                    <h4 className="text-xs font-black uppercase text-gray-900">{cart.length} GOURMET ITEMS</h4>
+                 </div>
               </div>
-              <Badge className="bg-primary/5 text-primary border-none font-black text-[8px] uppercase">{cart.length} TOTAL</Badge>
            </div>
            
            <div className="space-y-6">
@@ -261,7 +262,7 @@ export default function CartPage() {
                    </div>
                    <div className="flex-1 min-w-0">
                       <h4 className="text-[11px] font-black uppercase truncate text-gray-900">{item.name}</h4>
-                      {item.selectedOption && <p className="text-[7px] font-black uppercase text-primary tracking-widest mt-0.5">VARIETY: {item.selectedOption.name}</p>}
+                      {item.selectedOption && <p className="text-[7px] font-black uppercase text-primary tracking-widest mt-0.5 italic">VARIETY: {item.selectedOption.name}</p>}
                       <div className="flex items-center mt-2 bg-black/5 w-fit rounded-xl p-0.5">
                          <button onClick={() => removeFromCart(item.id)} className="h-7 w-7 flex items-center justify-center text-gray-500"><Minus className="h-3.5 w-3.5" /></button>
                          <span className="mx-2 text-[10px] font-black">{item.quantity}</span>
@@ -274,35 +275,30 @@ export default function CartPage() {
            </div>
         </section>
 
-        {/* REWARD SECTION - UNIFIED UI */}
-        <section className="bg-amber-50/60 backdrop-blur-md rounded-[2.5rem] p-7 border border-amber-100">
-           <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                 <div className="h-11 w-11 bg-amber-400 rounded-2xl flex items-center justify-center text-black shadow-inner">
-                    <Coins className="h-6 w-6" />
-                 </div>
-                 <div>
-                    <h3 className="text-xs font-black uppercase italic tracking-tighter text-amber-900 leading-none">Redeem Reward</h3>
-                    <p className="text-[8px] font-bold text-amber-600 uppercase tracking-widest mt-1">Use 20 Coins for ₹5 Discount</p>
-                 </div>
+        {/* REWARD REDEMPTION */}
+        <section className="bg-amber-50/40 backdrop-blur-xl rounded-[2.5rem] p-7 border border-amber-100 flex items-center justify-between">
+           <div className="flex items-center gap-4">
+              <div className="h-12 w-12 bg-amber-400 rounded-2xl flex items-center justify-center text-black">
+                 <Coins className="h-6 w-6" />
               </div>
-              <Switch 
-                disabled={userCoins < 20}
-                checked={isRedeemingCoins} 
-                onCheckedChange={setIsRedeemingCoins}
-                className="data-[state=checked]:bg-amber-500"
-              />
+              <div>
+                 <h3 className="text-xs font-black uppercase italic text-amber-900">Redeem Reward</h3>
+                 <p className="text-[8px] font-bold text-amber-600 uppercase tracking-widest mt-1">Use 20 Coins for ₹5 Discount</p>
+              </div>
            </div>
-           {userCoins < 20 && !isRedeemingCoins && (
-             <p className="text-[7px] font-black text-amber-700/60 uppercase mt-4 italic tracking-widest text-center">NOT ENOUGH COINS FOR REDEMPTION</p>
-           )}
+           <Switch 
+            disabled={userCoins < 20}
+            checked={isRedeemingCoins} 
+            onCheckedChange={setIsRedeemingCoins}
+            className="data-[state=checked]:bg-amber-500"
+           />
         </section>
 
-        {/* OPTIONS & INSTRUCTIONS */}
+        {/* EXTRA OPTIONS */}
         <section className="space-y-4">
-           <div className="bg-white/40 backdrop-blur-md rounded-[2rem] p-6 border border-white/60 flex items-center justify-between">
+           <div className="bg-white/40 backdrop-blur-xl rounded-[2rem] p-6 border border-white/60 flex items-center justify-between">
               <div className="flex items-center gap-4">
-                 <div className="h-10 w-10 bg-green-50 rounded-xl flex items-center justify-center text-green-600 border border-green-100">
+                 <div className="h-10 w-10 bg-green-50 rounded-xl flex items-center justify-center text-green-600">
                     <PackageCheck className="h-6 w-6" />
                  </div>
                  <div>
@@ -313,7 +309,7 @@ export default function CartPage() {
               <Switch checked={isPremiumPacking} onCheckedChange={setIsPremiumPacking} className="data-[state=checked]:bg-green-600" />
            </div>
 
-           <div className="bg-white/40 backdrop-blur-md rounded-[2.5rem] p-6 border border-white/60">
+           <div className="bg-white/40 backdrop-blur-xl rounded-[2.5rem] p-7 border border-white/60">
               <div className="flex items-center gap-3 mb-4">
                  <MessageSquare className="h-4 w-4 text-gray-400" />
                  <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-900">Delivery Instructions</h4>
@@ -322,20 +318,20 @@ export default function CartPage() {
                 value={deliveryInstructions}
                 onChange={e => setDeliveryInstructions(e.target.value)}
                 placeholder="e.g. Call before arrival, leave at gate..."
-                className="w-full bg-white/50 border border-white/20 rounded-2xl p-4 text-[10px] font-bold uppercase italic focus:outline-none min-h-[80px] resize-none"
+                className="w-full bg-white/50 border border-gray-100 rounded-2xl p-4 text-[10px] font-bold uppercase italic focus:outline-none min-h-[80px] resize-none"
               />
            </div>
         </section>
 
         {/* RIDER TIP */}
-        <section className="bg-blue-50/50 backdrop-blur-md rounded-[2.5rem] p-8 border border-blue-100/50 space-y-6">
+        <section className="bg-blue-50/40 backdrop-blur-xl rounded-[2.5rem] p-8 border border-blue-100 space-y-6">
            <div className="flex items-center gap-4">
-              <div className="h-14 w-14 bg-white rounded-[1.25rem] flex items-center justify-center text-blue-600 border border-blue-50">
-                 <Bike className="h-7 w-7" />
+              <div className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center text-blue-600 border border-blue-50">
+                 <Bike className="h-6 w-6" />
               </div>
               <div>
-                 <h3 className="text-base font-black italic uppercase tracking-tighter text-gray-900">Rider Appreciation</h3>
-                 <p className="text-[9px] font-bold text-blue-600 uppercase tracking-widest mt-1">100% of the tip goes to the rider</p>
+                 <h3 className="text-base font-black italic uppercase text-gray-900">Rider Appreciation</h3>
+                 <p className="text-[9px] font-bold text-blue-600 uppercase tracking-widest">100% of tip goes to the hero</p>
               </div>
            </div>
            
@@ -346,19 +342,18 @@ export default function CartPage() {
                   onClick={() => setDeliveryTip(deliveryTip === val ? 0 : val)}
                   className={cn(
                     "h-12 rounded-xl border-2 flex items-center justify-center font-black text-xs transition-all active:scale-90",
-                    deliveryTip === val ? "bg-blue-600 border-blue-600 text-white" : "bg-white border-white/10 text-gray-400"
+                    deliveryTip === val ? "bg-blue-600 border-blue-600 text-white" : "bg-white border-blue-100 text-gray-400"
                   )}
                 >
                   ₹{val}
                 </button>
               ))}
            </div>
-           {deliveryTip > 0 && <p className="text-[8px] font-black text-blue-600 uppercase text-center animate-bounce">THANK YOU FOR YOUR KINDNESS! ✨</p>}
         </section>
 
         {/* BILLING SUMMARY */}
-        <section className="bg-white/80 backdrop-blur-md rounded-[2.5rem] p-8 space-y-6 border border-white/60">
-           <h3 className="text-xl font-black italic uppercase tracking-tighter text-gray-900">Bill Details</h3>
+        <section className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] p-8 space-y-6 border border-white/60">
+           <h3 className="text-xl font-black italic uppercase tracking-tighter text-gray-900">Billing Breakdown</h3>
            <div className="space-y-3 pt-2">
               <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Item Total</span><span className="text-gray-900 font-black">₹{totalPrice.toFixed(0)}</span></div>
               <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Delivery Fee</span><span className="text-gray-900 font-black">₹{deliveryFee.toFixed(0)}</span></div>
@@ -366,8 +361,8 @@ export default function CartPage() {
               {deliveryTip > 0 && <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Rider Tip</span><span className="text-gray-900 font-black">₹{deliveryTip}</span></div>}
               {coinDiscount > 0 && <div className="flex justify-between text-[10px] font-black text-green-600 uppercase tracking-widest"><span>Coin Discount</span><span className="font-black">- ₹{coinDiscount}</span></div>}
            </div>
-           <div className="pt-6 border-t-2 border-dashed border-gray-200 flex justify-between items-end">
-              <div className="flex flex-col"><span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary mb-1">To Pay</span><div className="flex items-center gap-1 text-4xl font-black italic text-gray-900 tracking-tighter leading-none"><IndianRupee className="h-6 w-6 text-primary" /><span>{totalPayable.toFixed(0)}</span></div></div>
+           <div className="pt-6 border-t-2 border-dashed border-gray-100 flex justify-between items-end">
+              <div className="flex flex-col"><span className="text-[8px] font-black uppercase tracking-widest text-primary mb-1">To Pay</span><div className="flex items-center gap-1 text-4xl font-black italic text-gray-900 tracking-tighter leading-none"><IndianRupee className="h-6 w-6 text-primary" /><span>{totalPayable.toFixed(0)}</span></div></div>
               <span className="text-[10px] font-bold text-gray-400 uppercase italic">INC. ALL TAXES</span>
            </div>
         </section>
@@ -375,29 +370,26 @@ export default function CartPage() {
         <div className="pt-8 pb-32">
            <div className="space-y-4">
               {hasClosedItems && (
-                <div className="bg-red-50/80 backdrop-blur-md border-2 border-red-100 p-4 rounded-3xl flex items-center gap-3 animate-in shake duration-500">
+                <div className="bg-red-50/80 backdrop-blur-md border border-red-100 p-4 rounded-3xl flex items-center gap-3 animate-in shake duration-500">
                   <AlertCircle className="h-5 w-5 text-red-500 shrink-0" />
-                  <p className="text-[9px] font-black text-red-800 uppercase leading-tight">MOMENTARY LUCK: SOME STORES IN BAG ARE CLOSED. REMOVE ITEMS TO ORDER.</p>
+                  <p className="text-[9px] font-black text-red-800 uppercase leading-tight">STORE CLOSED: REMOVE ITEMS TO CONTINUE.</p>
                 </div>
               )}
               
               {!isMinOrderMet && minOrderValue > 0 && (
-                <div className="bg-amber-50/80 backdrop-blur-md border-2 border-amber-100 p-4 rounded-3xl flex items-center gap-3 animate-in slide-in-from-top-2">
+                <div className="bg-amber-50/80 backdrop-blur-md border border-amber-100 p-4 rounded-3xl flex items-center gap-3">
                   <AlertCircle className="h-5 w-5 text-amber-500 shrink-0" />
-                  <div className="flex flex-col">
-                     <p className="text-[9px] font-black text-amber-800 uppercase leading-tight">MIN. ORDER REQ: ₹{minOrderValue}</p>
-                     <p className="text-[8px] font-bold text-amber-600 uppercase">ADD ₹{minOrderValue - totalPrice} MORE FOR SUCCESSFUL CHECKOUT.</p>
-                  </div>
+                  <p className="text-[9px] font-black text-amber-800 uppercase leading-tight">MIN. ORDER ₹{minOrderValue} REQUIRED. ADD ₹{minOrderValue - totalPrice} MORE.</p>
                 </div>
               )}
 
-              {/* SLIDE BUTTON - NO SHADOW */}
+              {/* SLIDE BUTTON */}
               <div 
                 ref={sliderRef} 
                 className={cn(
                   "w-full h-24 rounded-[3rem] p-3 flex items-center relative overflow-hidden select-none border-t-2 transition-all duration-300", 
                   (hasClosedItems || !isMinOrderMet) 
-                    ? "bg-gray-200 border-gray-300 opacity-50 grayscale cursor-not-allowed" 
+                    ? "bg-gray-100 border-gray-200 opacity-50 grayscale cursor-not-allowed" 
                     : "bg-[#0B0B0B] border-white/10"
                 )}
               >

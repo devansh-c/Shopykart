@@ -22,8 +22,8 @@ interface HomeClientProps {
 }
 
 /**
- * @fileOverview HomeClient - Optimized with Search Params for Navigation History.
- * Exported as default to resolve build errors.
+ * @fileOverview HomeClient - Uses Search Params for standard History-based Navigation.
+ * This ensures the Back button returns to the previous section instead of exiting the app.
  */
 function HomeClientContent({ 
   initialBanners, 
@@ -38,7 +38,7 @@ function HomeClientContent({
   
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Sync state with URL to create history entries for Back button
+  // Sync state with URL to create history entries for Back button support
   const activeMode = searchParams.get('mode') || 'Food';
   const activeCategory = searchParams.get('cat') || 'all';
 
@@ -72,7 +72,7 @@ function HomeClientContent({
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white transform-gpu">
       {activeMode !== 'Medical' && activeMode !== 'Beauty' && (
         <LocationHeader 
           searchValue={searchQuery} 
@@ -94,10 +94,10 @@ function HomeClientContent({
              <h2 className="text-3xl font-black italic uppercase tracking-tighter text-gray-800 leading-none">GROCERY HUB<br /><span className="text-green-600">LAUNCHING SOON</span></h2>
           </div>
         ) : (activeMode === 'Medical' || activeMode === 'Beauty') ? (
-          <div>
+          <div className="animate-in slide-in-from-right-4 duration-500">
             <div className="sticky top-0 z-[100] bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
                <div className="flex items-center gap-3">
-                  <button onClick={handleBackToFood} className="h-9 w-9 bg-gray-50 rounded-full flex items-center justify-center text-gray-800 border border-gray-100"><ArrowLeft className="h-4 w-4" /></button>
+                  <button onClick={handleBackToFood} className="h-9 w-9 bg-gray-50 rounded-full flex items-center justify-center text-gray-800 border border-gray-100 active:scale-90 transition-transform"><ArrowLeft className="h-4 w-4" /></button>
                   <div className="flex flex-col">
                     <span className="text-[12px] font-black uppercase italic tracking-tighter text-gray-900 leading-none">{activeMode === 'Medical' ? 'Medical Hub' : 'Beauty & Cosmetics'}</span>
                     <span className="text-[8px] font-bold text-green-600 uppercase tracking-widest mt-0.5">10 Mins Delivery</span>

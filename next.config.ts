@@ -12,7 +12,18 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   trailingSlash: false,
-  staticPageGenerationTimeout: 600,
+  staticPageGenerationTimeout: 1200,
+  // Optimized for faster builds and stable preview
+  experimental: {
+    turbo: {
+      rules: {
+        '*.svg': {
+          loaders: ['@svgr/webpack'],
+          as: '*.js',
+        },
+      },
+    },
+  },
 };
 
 export default nextConfig;

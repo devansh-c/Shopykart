@@ -62,10 +62,11 @@
     -webkit-overflow-scrolling: touch !important; 
   }
 
-  /* HARDWARE ACCELERATION - Optimized */
+  /* HARDWARE ACCELERATION - Optimized for smooth scrolling */
   .transform-gpu {
     transform: translate3d(0, 0, 0);
     backface-visibility: hidden;
+    perspective: 1000;
   }
 
   .content-visibility-auto {
@@ -85,7 +86,7 @@
   .premium-card {
     @apply bg-white rounded-[2rem] border border-border/60 relative overflow-hidden;
     contain: content;
-    box-shadow: 0 2px 8px -2px rgba(0,0,0,0.02);
+    box-shadow: none; /* Removed for Glassmorphism feel */
   }
 
   nav.fixed {
