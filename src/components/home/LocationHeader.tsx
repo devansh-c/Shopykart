@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -32,7 +33,7 @@ import { Badge } from '@/components/ui/badge';
 
 /**
  * @fileOverview LocationHeader with Mode Switching and Notification Logic.
- * Fixed: Added missing Sparkles icon import.
+ * Fixed: Explicitly imported Sparkles icon to resolve ReferenceError.
  */
 export function LocationHeader({
   searchValue,

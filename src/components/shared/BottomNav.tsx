@@ -9,8 +9,8 @@ import React, { useMemo, useState, useEffect, memo } from 'react';
 import Link from 'next/link';
 
 /**
- * @fileOverview Optimized Fixed Bottom Navigation.
- * Uses memoization and direct fixed positioning to prevent glitches and jumps.
+ * @fileOverview Optimized Fixed Bottom Navigation with Glassmorphism Theme.
+ * Semi-transparent background with backdrop blur for a premium UI feel.
  */
 const BottomNav = memo(() => {
   const pathname = usePathname();
@@ -43,7 +43,7 @@ const BottomNav = memo(() => {
   if (!isMounted || isExcludedPath) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-[999999] bg-white border-t border-black/[0.05] shadow-[0_-10px_40px_rgba(0,0,0,0.1)] pb-safe transform-gpu">
+    <div className="fixed bottom-0 left-0 right-0 z-[999999] bg-white/70 backdrop-blur-xl border-t border-white/20 shadow-[0_-10px_40px_rgba(0,0,0,0.08)] pb-safe transform-gpu">
       <nav className="max-w-lg mx-auto h-[68px] flex items-center justify-around px-2">
         {navItems.map((item) => {
           const isActive = pathname === item.href || (pathname === '/' && item.href === '/') || (pathname?.startsWith(item.href) && item.href !== '/');
