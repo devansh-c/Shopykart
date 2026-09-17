@@ -1,24 +1,16 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
 import { 
   X, 
-  Star, 
-  Heart, 
   Plus, 
   Minus, 
-  CheckCircle2, 
-  ShoppingBag,
-  Sparkles,
+  Loader2, 
+  Clock, 
+  Timer, 
+  ListTree,
   ShieldCheck,
-  Calendar,
-  AlertCircle,
-  Zap,
-  Loader2,
-  Clock,
-  Timer,
-  ListTree
+  Zap
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -28,27 +20,20 @@ import { useCart } from '@/components/cart/CartProvider';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
-import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
 import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 
 interface ProductQuickViewProps {
   product: any;
   children: React.ReactNode;
   isMedical?: boolean;
-  globalOffer?: any;
   vendorScheduleOpen?: boolean;
 }
 
-/**
- * @fileOverview Enhanced ProductQuickView with Persistent Footer and Overflow handling.
- * Optimized for mobile bottom-sheet feel with guaranteed button visibility.
- * Fixed: Removed ₹10 guest discount logic.
- */
-export function ProductQuickView({ product, children, isMedical, globalOffer, vendorScheduleOpen }: ProductQuickViewProps) {
-  const { cart, addToCart } = useCart();
+export function ProductQuickView({ product, children, isMedical, vendorScheduleOpen }: ProductQuickViewProps) {
+  const { addToCart } = useCart();
   const { toast } = useToast();
-  const { user } = useUser();
   const firestore = useFirestore();
   const [isOpen, setIsOpen] = useState(false);
   const [localQuantity, setLocalQuantity] = useState(1);
@@ -61,25 +46,22 @@ export function ProductQuickView({ product, children, isMedical, globalOffer, ve
   const scheduleOpen = vendorScheduleOpen !== undefined ? vendorScheduleOpen : isStoreScheduleOpen(vendor);
   const isOffline = (vendor?.isOnline === false) || !scheduleOpen;
 
-  const displayBasePrice = (product.price || 0);
+  const offerRef = useMemoFirebase(() => firestore ? doc(firestore, 'app_settings', 'global_offer') : null, [firestore]);
+  const { data: globalOffer } = useDoc<any>(offerRef);
 
   const currentPrice = useMemo(() => {
-    const base = displayBasePrice;
+    const base = product.price || 0;
     const optPrice = selectedOption ? selectedOption.price : 0;
     const totalBase = base + optPrice;
+    
     if (globalOffer?.isActive && globalOffer?.isClosedAfterMilestone !== true) {
       if (globalOffer.type === 'percentage') return totalBase * (1 - (Number(globalOffer.value) || 0) / 100);
       return Math.max(0, totalBase - (Number(globalOffer.value) || 0));
     }
     return totalBase;
-  }, [displayBasePrice, selectedOption, globalOffer]);
+  }, [product.price, selectedOption, globalOffer]);
 
   const handleAddToCart = () => {
-    if (!user) { 
-      setIsOpen(false); 
-      window.dispatchEvent(new CustomEvent('open-auth-overlay')); 
-      return; 
-    }
     if (isOffline) return;
 
     if (product.isVarietyRequired && !selectedOption) {
@@ -88,7 +70,9 @@ export function ProductQuickView({ product, children, isMedical, globalOffer, ve
     }
 
     addToCart({ ...product, imageUrl: product.imageUrl, quantity: localQuantity, selectedOption, instructions, price: currentPrice });
-    setIsOpen(false); setLocalQuantity(1); setSelectedOption(null);
+    setIsOpen(false); 
+    setLocalQuantity(1); 
+    setSelectedOption(null);
     toast({ title: "Added to Bag" });
   };
 

@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect, memo, useCallback } from "react"
@@ -6,15 +5,11 @@ import { Plus, Minus, Share2, Loader2, Store, Star, AlertCircle, Clock, Timer } 
 import { useCart } from "@/components/cart/CartProvider"
 import { cn, slugify } from "@/lib/utils"
 import Image from "next/image"
-import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection, query, limit } from "firebase/firestore"
 import { ProductQuickView } from "@/components/product/ProductQuickView"
 import { useToast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
-
-/**
- * @fileOverview PopularProducts - Optimized with Memoization to prevent glitches.
- */
 
 export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
   if (!vendor) return true;
@@ -42,7 +37,6 @@ export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
   return start < end ? (currentMins >= start && currentMins <= end) : (currentMins >= start || currentMins <= end);
 }
 
-// MEMOIZED ITEM TO PREVENT GLITCHY RE-RENDERS
 const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemove }: any) => {
   const displayPrice = Number(product.price) || 0;
 
@@ -99,9 +93,9 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemo
               </ProductQuickView>
             ) : (
               <div className="flex items-center bg-primary text-white rounded-full h-9 px-1.5 shadow-xl border border-white/20">
-                <button onClick={() => removeFromCart(product.id)} className="w-7 h-full flex items-center justify-center active:scale-90 transition-transform"><Minus className="h-4 w-4 stroke-[3]" /></button>
+                <button onClick={() => onRemove(product.id)} className="w-7 h-full flex items-center justify-center active:scale-90 transition-transform"><Minus className="h-4 w-4 stroke-[3]" /></button>
                 <span className="text-[11px] font-black w-5 text-center">{quantity}</span>
-                <button onClick={() => addToCart({...product, quantity: 1})} className="w-7 h-full flex items-center justify-center active:scale-90 transition-transform"><Plus className="h-4 w-4 stroke-[3]" /></button>
+                <button onClick={() => onAdd({...product, quantity: 1})} className="w-7 h-full flex items-center justify-center active:scale-90 transition-transform"><Plus className="h-4 w-4 stroke-[3]" /></button>
               </div>
             )
           ) : (
@@ -157,12 +151,12 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     const list = (dbProducts && dbProducts.length > 0) ? dbProducts : initialData;
     if (!list) return [];
     const storeList = (vendors && vendors.length > 0) ? vendors : initialStores;
-    const vendorMap = new Map(storeList.map(v => [v.id, v]));
+    const vendorMap = new Map(storeList.map(v => [String(v.id), v]));
     const q = searchQuery.toLowerCase().trim();
     const c = category.toLowerCase();
     
     return list.filter(p => {
-      const v = vendorMap.get(p.vendorId);
+      const v = vendorMap.get(String(p.vendorId));
       
       if (activeZoneId) {
         const itemZoneId = p.zoneId || v?.zoneId;
@@ -176,8 +170,8 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       if (c !== 'all' && p.category?.toLowerCase() !== c) return false;
       return !p.isDeleted;
     }).sort((a, b) => {
-      const vA = vendorMap.get(a.vendorId); 
-      const vB = vendorMap.get(b.vendorId);
+      const vA = vendorMap.get(String(a.vendorId)); 
+      const vB = vendorMap.get(String(b.vendorId));
       const openA = vA ? (vA.isOnline !== false && isStoreScheduleOpen(vA, currentTimeMinutes)) : true;
       const openB = vB ? (vB.isOnline !== false && isStoreScheduleOpen(vB, currentTimeMinutes)) : true;
       if (openA !== openB) return openA ? -1 : 1;
@@ -206,8 +200,8 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       </div>
       <div className="grid grid-cols-2 gap-4">
         {productsToDisplay.slice(0, visibleCount).map((product) => {
-          const quantity = cart.find(c => c.id === product.id && !c.selectedOption)?.quantity || 0;
-          const v = (vendors && vendors.length > 0 ? vendors : initialStores)?.find(s => s.id === product.vendorId);
+          const quantity = cart.find(c => String(c.id) === String(product.id) && !c.selectedOption)?.quantity || 0;
+          const v = (vendors && vendors.length > 0 ? vendors : initialStores)?.find(s => String(s.id) === String(product.vendorId));
           const isOffline = v ? (v.isOnline === false || !isStoreScheduleOpen(v, currentTimeMinutes)) : false;
           
           return <ProductItem key={product.id} product={{...product, restaurantName: v?.storeName}} quantity={quantity} isOffline={isOffline} onShare={handleShare} onAdd={addToCart} onRemove={removeFromCart} />;

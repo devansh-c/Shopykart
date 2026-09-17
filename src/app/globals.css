@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -35,7 +34,6 @@
     outline: none !important;
   }
   
-  /* GLOBAL SCROLLBAR HIDER */
   ::-webkit-scrollbar {
     display: none !important;
     width: 0 !important;
@@ -63,13 +61,11 @@
     -webkit-overflow-scrolling: touch !important; 
   }
 
-  /* HARDWARE ACCELERATION - RESTRICTED TO AVOID OVERHEATING */
   .transform-gpu {
     backface-visibility: hidden;
     perspective: 1000;
   }
 
-  /* MAKKHAN SCROLL PERFORMANCE */
   .content-visibility-auto {
     content-visibility: auto;
     contain-intrinsic-size: 1px 180px;
@@ -104,7 +100,6 @@
   }
 }
 
-/* FAST ANIMATIONS */
 @keyframes running-line {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(100%); }

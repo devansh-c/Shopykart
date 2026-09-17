@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -13,14 +12,10 @@ import {
   ArrowRight, 
   Navigation, 
   IndianRupee,
-  Heart,
   AlertCircle,
   Clock,
-  ListTree,
   ArrowLeft,
   Coins,
-  Gift,
-  Zap,
   PackageCheck,
   MessageSquare,
   Bike
@@ -39,10 +34,6 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 
-/**
- * @fileOverview CartPage - Ultra-Premium Frameless Glassy UI.
- * Individual boxes removed. Material is unified on a single glassy surface.
- */
 export default function CartPage() {
   const { cart, addToCart, removeFromCart, totalPrice, clearCart } = useCart();
   const router = useRouter();
@@ -59,13 +50,11 @@ export default function CartPage() {
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [recipientForm, setRecipientForm] = useState({ name: '', phone: '', address: '' });
   
-  // Delivery Features States
   const [deliveryTip, setDeliveryTip] = useState(0);
   const [isPremiumPacking, setIsPremiumPacking] = useState(false);
   const [isRedeemingCoins, setIsRedeemingCoins] = useState(false);
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
 
-  // Slider State
   const [sliderOffset, setSliderOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const sliderRef = useRef<HTMLDivElement>(null);
@@ -86,8 +75,7 @@ export default function CartPage() {
         setCurrentMinutes(now.getHours() * 60 + now.getMinutes()); 
       };
       syncTime(); 
-      const interval = setInterval(syncTime, 60000);
-      return () => clearInterval(interval);
+      setInterval(syncTime, 60000);
     }
   }, []);
 
@@ -125,7 +113,12 @@ export default function CartPage() {
   }, [totalPrice, deliveryFee, deliveryTip, packingFee, coinDiscount]);
 
   const finalizeOrder = async () => {
-    if (!user || !firestore || cart.length === 0 || hasClosedItems || !isMinOrderMet) {
+    if (!user) {
+      window.dispatchEvent(new CustomEvent('open-auth-overlay'));
+      setSliderOffset(0);
+      return;
+    }
+    if (!firestore || cart.length === 0 || hasClosedItems || !isMinOrderMet) {
       setSliderOffset(0); 
       return;
     }
@@ -173,7 +166,7 @@ export default function CartPage() {
     } catch (e) { 
       setIsPlacing(false); 
       setSliderOffset(0); 
-      toast({ variant: "destructive", title: "Order Failed", description: "Identity sync error. Try again." });
+      toast({ variant: "destructive", title: "Order Failed" });
     }
   };
 
@@ -207,12 +200,10 @@ export default function CartPage() {
     };
   }, [isDragging, sliderOffset]);
 
-  if (!isMounted) return <div className="h-screen bg-white flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
+  if (!isMounted) return null;
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] pb-40 max-w-lg mx-auto border-x border-gray-100 relative overflow-hidden">
-      <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 blur-[120px] rounded-full pointer-events-none" />
-      
+    <div className="min-h-screen bg-[#F9FAFB] pb-40 max-w-lg mx-auto relative overflow-hidden">
       <OrderSuccessOverlay isVisible={showSuccessOverlay} />
       
       <header className="bg-white/60 backdrop-blur-xl border-b border-gray-100 py-4 px-6 sticky top-0 z-[100] flex items-center gap-4">
@@ -221,13 +212,9 @@ export default function CartPage() {
         <Badge variant="outline" className="rounded-xl border-amber-200 bg-amber-50 text-amber-600 font-black text-[9px] uppercase"><Coins className="h-2.5 w-2.5 mr-1" /> {userCoins} COINS</Badge>
       </header>
 
-      {/* UNIFIED GLASS MAIN CONTAINER - NO BOXES */}
-      <main className="px-4 pt-6 space-y-2 relative z-10 animate-in fade-in duration-700">
-        
-        {/* MATERIAL AREA - TRANS-VISIBLE WITHOUT BORDERS */}
-        <div className="bg-white/20 backdrop-blur-xl rounded-[3rem] p-2 space-y-8 overflow-hidden">
+      <main className="px-4 pt-6 relative z-10 animate-in fade-in duration-700">
+        <div className="bg-white/20 backdrop-blur-xl rounded-[3rem] p-2 space-y-2 overflow-hidden border border-white/40">
           
-          {/* ADDRESS MATERIAL */}
           <section className="p-6 flex items-center justify-between border-b border-black/[0.03]">
              <div className="flex items-center gap-4">
                 <div className="h-12 w-12 bg-[#0B0B0B] rounded-2xl flex items-center justify-center text-white">
@@ -242,7 +229,6 @@ export default function CartPage() {
              <button onClick={() => setIsAddressModalOpen(true)} className="bg-primary/10 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest text-primary active:scale-95 transition-all">EDIT</button>
           </section>
 
-          {/* ITEMS MATERIAL */}
           <section className="p-6 space-y-6">
              <div className="flex items-center gap-4 mb-4">
                 <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
@@ -276,7 +262,6 @@ export default function CartPage() {
              </div>
           </section>
 
-          {/* REWARD MATERIAL */}
           <section className="p-6 flex items-center justify-between border-y border-black/[0.03] bg-amber-50/20">
              <div className="flex items-center gap-4">
                 <div className="h-10 w-10 bg-amber-400 rounded-xl flex items-center justify-center text-black">
@@ -295,7 +280,6 @@ export default function CartPage() {
              />
           </section>
 
-          {/* EXTRA OPTIONS MATERIAL */}
           <section className="p-6 space-y-6">
              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -324,7 +308,6 @@ export default function CartPage() {
              </div>
           </section>
 
-          {/* RIDER TIP MATERIAL */}
           <section className="p-6 space-y-6 bg-blue-50/20 border-y border-black/[0.03]">
              <div className="flex items-center gap-4">
                 <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center text-blue-600 border border-blue-50">
@@ -352,7 +335,6 @@ export default function CartPage() {
              </div>
           </section>
 
-          {/* BILLING MATERIAL */}
           <section className="p-6 space-y-6">
              <h3 className="text-xl font-black italic uppercase tracking-tighter text-gray-900">Billing Breakdown</h3>
              <div className="space-y-3">
@@ -385,7 +367,6 @@ export default function CartPage() {
                 </div>
               )}
 
-              {/* SLIDE BUTTON */}
               <div 
                 ref={sliderRef} 
                 className={cn(
@@ -424,7 +405,6 @@ export default function CartPage() {
         </div>
       </main>
 
-      {/* Address Dialog */}
       <Dialog open={isAddressModalOpen} onOpenChange={setIsAddressModalOpen}>
         <DialogContent className="rounded-t-[3.5rem] p-8 border-none shadow-2xl bg-white max-w-sm bottom-0 top-auto translate-y-0 focus:outline-none flex flex-col h-[550px]">
           <div className="h-1.5 w-16 bg-gray-100 rounded-full mx-auto mb-6 shrink-0" />

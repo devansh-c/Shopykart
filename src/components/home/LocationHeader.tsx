@@ -1,45 +1,26 @@
-
 'use client';
 
 import {
   Search,
-  Camera,
-  Mic,
   MapPin,
   Bell,
   ChevronDown,
   X,
-  MessageSquare,
-  Clock,
   Loader2,
-  Trash2,
-  ShieldCheck,
-  Utensils,
-  ShoppingBag,
-  Zap,
-  Sparkles
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect, useMemo } from 'react';
-import { useFirestore, useUser, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, collection, query, orderBy, limit, updateDoc, deleteDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { useFirestore, useUser, useMemoFirebase, useCollection } from '@/firebase';
+import { doc, collection, query, orderBy, limit, updateDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { requestPushToken } from '@/firebase/messaging';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
-import { Badge } from '@/components/ui/badge';
 
-/**
- * @fileOverview LocationHeader with Mode Switching HIDDEN as requested.
- * Focuses exclusively on Food Delivery for a clean interface.
- */
 export function LocationHeader({
   searchValue,
   onSearchChange,
-  activeMode,
-  onModeChange
 }: {
   searchValue: string;
   onSearchChange: (val: string) => void;
@@ -75,7 +56,7 @@ export function LocationHeader({
     );
   }, [firestore, user]);
 
-  const { data: notifications, loading: notifyLoading } = useCollection<any>(notifyQuery);
+  const { data: notifications } = useCollection<any>(notifyQuery);
 
   const unreadCount = useMemo(() => {
     return notifications?.filter((n: any) => n.read === false).length || 0;
@@ -91,7 +72,7 @@ export function LocationHeader({
             await setDoc(tokenRef, { token, lastUpdated: serverTimestamp(), platform: 'web' }, { merge: true });
             await updateDoc(doc(firestore, 'users', user.uid), { isPushEnabled: true, lastPushSync: serverTimestamp() });
           }
-        } catch (e) { console.debug("FCM Sync skipped."); }
+        } catch (e) { }
       };
       setTimeout(syncToken, 4000);
     }
@@ -134,30 +115,6 @@ export function LocationHeader({
           />
         </div>
       </div>
-
-      {/* MODE SWITCHER HIDDEN FOR CLEAN FOCUS ON FOOD */}
-      {/* 
-      <div className="flex items-center gap-3 overflow-x-auto no-scrollbar py-1">
-        {[
-          { id: 'Food', label: 'Food', icon: Utensils, activeColor: 'bg-primary text-white', inactiveColor: 'bg-gray-50 text-gray-400' },
-          { id: 'Grocery', label: 'Grocery', icon: ShoppingBag, activeColor: 'bg-green-600 text-white', inactiveColor: 'bg-gray-50 text-gray-400' },
-          { id: 'Medical', label: 'Medical', icon: HeartPulse, activeColor: 'bg-teal-600 text-white', inactiveColor: 'bg-gray-50 text-gray-400' },
-          { id: 'Beauty', label: 'Beauty', icon: Sparkles, activeColor: 'bg-rose-500 text-white', inactiveColor: 'bg-gray-50 text-gray-400' },
-        ].map((mode) => (
-          <button
-            key={mode.id}
-            onClick={() => onModeChange(mode.id)}
-            className={cn(
-              "flex items-center gap-2 px-5 py-2.5 rounded-full transition-all duration-300 font-black text-[10px] uppercase tracking-widest shrink-0",
-              activeMode === mode.id ? mode.activeColor : mode.inactiveColor
-            )}
-          >
-            <mode.icon className="h-3.5 w-3.5" />
-            {mode.label}
-          </button>
-        ))}
-      </div>
-      */}
 
       <Dialog open={isNotifyOpen} onOpenChange={setIsNotifyOpen}>
         <DialogContent className="rounded-t-[3rem] p-0 overflow-hidden border-none shadow-2xl bg-white max-h-[85vh] flex flex-col focus:outline-none bottom-0 top-auto translate-y-0">

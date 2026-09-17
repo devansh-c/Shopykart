@@ -35,7 +35,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [wishlist, setWishlist] = useState<string[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // 1. Defensively load cart from localStorage
   useEffect(() => {
     try {
       const savedCart = localStorage.getItem('shopykart_cart');
@@ -50,7 +49,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
         if (Array.isArray(parsed)) setWishlist(parsed);
       }
     } catch (e) {
-      console.warn("Cart restoration failed: Malformed data in localStorage.");
       localStorage.removeItem('shopykart_cart');
       localStorage.removeItem('shopykart_wishlist');
     } finally {
@@ -58,54 +56,48 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // 2. Persist cart with Quota-Aware handling
   useEffect(() => {
     if (isInitialized) {
       try {
         localStorage.setItem('shopykart_cart', JSON.stringify(cart));
         localStorage.setItem('shopykart_wishlist', JSON.stringify(wishlist));
       } catch (e: any) {
-        // If storage is full (QuotaExceededError), clear non-essential firestore caches
         if (e.name === 'QuotaExceededError' || e.code === 22) {
-          console.warn("Storage Full: Purging temporary caches to save cart.");
           Object.keys(localStorage).forEach(key => {
             if (key.startsWith('fire_cache_') || key.startsWith('fire_doc_cache_')) {
               localStorage.removeItem(key);
             }
           });
-          // Retry once
-          try {
-            localStorage.setItem('shopykart_cart', JSON.stringify(cart));
-            localStorage.setItem('shopykart_wishlist', JSON.stringify(wishlist));
-          } catch (retryErr) {
-            console.error("Critical: Storage remains full after cleanup.");
-          }
         }
       }
     }
   }, [cart, wishlist, isInitialized]);
 
   const addToCart = useCallback((product: any) => {
+    if (!product || !product.id) return;
+    
     setCart((prev) => {
+      const productIdStr = String(product.id);
       const existing = prev.find((item) => 
-        item.id === product.id && 
+        String(item.id) === productIdStr && 
         item.selectedOption?.name === product.selectedOption?.name
       );
       
       if (existing) {
         return prev.map((item) =>
-          (item.id === product.id && item.selectedOption?.name === product.selectedOption?.name)
+          (String(item.id) === productIdStr && item.selectedOption?.name === product.selectedOption?.name)
             ? { ...item, quantity: item.quantity + (product.quantity || 1) } 
             : item
         );
       }
-      return [...prev, { ...product, quantity: product.quantity || 1 }];
+      return [...prev, { ...product, id: productIdStr, quantity: product.quantity || 1 }];
     });
   }, []);
 
   const removeFromCart = useCallback((productId: string) => {
+    const idStr = String(productId);
     setCart((prev) => {
-      const index = prev.findIndex(item => item.id === productId);
+      const index = prev.findIndex(item => String(item.id) === idStr);
       if (index === -1) return prev;
       
       const item = prev[index];
@@ -120,18 +112,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const clearCart = useCallback(() => {
     setCart([]);
-    localStorage.removeItem('shopykart_cart');
   }, []);
 
   const toggleWishlist = useCallback((productId: string) => {
+    const idStr = String(productId);
     setWishlist(prev => 
-      prev.includes(productId) 
-        ? prev.filter(id => id !== productId)
-        : [...prev, productId]
+      prev.includes(idStr) 
+        ? prev.filter(id => id !== idStr)
+        : [...prev, idStr]
     );
   }, []);
 
-  const isInWishlist = useCallback((productId: string) => wishlist.includes(productId), [wishlist]);
+  const isInWishlist = useCallback((productId: string) => wishlist.includes(String(productId)), [wishlist]);
 
   const totalItems = useMemo(() => cart.reduce((sum, item) => sum + item.quantity, 0), [cart]);
   
