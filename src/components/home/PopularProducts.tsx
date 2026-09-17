@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge"
 
 /**
  * @fileOverview PopularProducts - Optimized for Ultra-Smooth Experience.
- * Added hardware acceleration and lowered initial render count to fix hang/glitch issues.
+ * Fixed: Removed ₹10 Guest Discount system.
  */
 
 export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
@@ -43,9 +43,8 @@ export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
   return start < end ? (currentMins >= start && currentMins <= end) : (currentMins >= start || currentMins <= end);
 }
 
-const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemove, isGuest }: any) => {
-  const basePrice = Number(product.price) || 0;
-  const displayPrice = isGuest ? Math.max(0, basePrice - 10) : basePrice;
+const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemove }: any) => {
+  const displayPrice = Number(product.price) || 0;
 
   return (
     <div className={cn(
@@ -53,18 +52,13 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemo
       isOffline && "opacity-75 grayscale-[0.5]"
     )}>
       <div className="relative aspect-square w-full mb-3">
-        <ProductQuickView product={{...product, price: displayPrice}} vendorScheduleOpen={!isOffline}>
+        <ProductQuickView product={product} vendorScheduleOpen={!isOffline}>
            <div className="relative w-full h-full cursor-pointer overflow-hidden rounded-[1.5rem] border-2 border-white/5">
               <Image src={product.imageUrl} alt={product.name} fill className="object-cover" unoptimized priority={false} />
               {isOffline && (
                 <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center p-2 text-center z-10">
                   <Store className="h-6 w-6 text-white/80 mb-1" />
                   <span className="text-white font-black text-[9px] uppercase italic border-2 border-white/30 px-3 py-1 rounded-xl shadow-2xl">Closed</span>
-                </div>
-              )}
-              {isGuest && !isOffline && (
-                <div className="absolute top-2 left-2 bg-primary text-white text-[8px] font-black px-2 py-0.5 rounded-full animate-pulse shadow-lg border border-white/20">
-                  ₹10 OFF
                 </div>
               )}
               {!isOffline && (
@@ -100,14 +94,14 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemo
           </div>
           {!isOffline ? (
             quantity === 0 ? (
-              <ProductQuickView product={{...product, price: displayPrice}} vendorScheduleOpen={true}>
+              <ProductQuickView product={product} vendorScheduleOpen={true}>
                 <button className="bg-primary text-white h-9 px-6 rounded-full font-black text-[10px] uppercase shadow-lg active:scale-90 transition-transform">ADD</button>
               </ProductQuickView>
             ) : (
               <div className="flex items-center bg-primary text-white rounded-full h-9 px-1.5 shadow-xl border border-white/20">
-                <button onClick={() => onRemove(product.id)} className="w-7 h-full flex items-center justify-center active:scale-90 transition-transform"><Minus className="h-4 w-4 stroke-[3]" /></button>
+                <button onClick={() => removeFromCart(product.id)} className="w-7 h-full flex items-center justify-center active:scale-90 transition-transform"><Minus className="h-4 w-4 stroke-[3]" /></button>
                 <span className="text-[11px] font-black w-5 text-center">{quantity}</span>
-                <button onClick={() => onAdd({...product, price: displayPrice, quantity: 1})} className="w-7 h-full flex items-center justify-center active:scale-90 transition-transform"><Plus className="h-4 w-4 stroke-[3]" /></button>
+                <button onClick={() => addToCart({...product, quantity: 1})} className="w-7 h-full flex items-center justify-center active:scale-90 transition-transform"><Plus className="h-4 w-4 stroke-[3]" /></button>
               </div>
             )
           ) : (
@@ -127,7 +121,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   const { toast } = useToast();
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
   const [currentTimeMinutes, setCurrentTimeMinutes] = useState<number | null>(null);
-  const [visibleCount, setVisibleCount] = useState(30); // Lowered initial visible items for faster paint
+  const [visibleCount, setVisibleCount] = useState(30);
 
   useEffect(() => {
     const updateZone = () => setActiveZoneId(localStorage.getItem('active_zone_id'));
@@ -217,7 +211,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
           const v = (vendors && vendors.length > 0 ? vendors : initialStores)?.find(s => s.id === product.vendorId);
           const isOffline = v ? (v.isOnline === false || !isStoreScheduleOpen(v, currentTimeMinutes)) : false;
           
-          return <ProductItem key={product.id} product={{...product, restaurantName: v?.storeName}} quantity={quantity} isOffline={isOffline} onShare={handleShare} onAdd={addToCart} onRemove={removeFromCart} isGuest={!user} />;
+          return <ProductItem key={product.id} product={{...product, restaurantName: v?.storeName}} quantity={quantity} isOffline={isOffline} onShare={handleShare} onAdd={addToCart} onRemove={removeFromCart} />;
         })}
       </div>
       {productsToDisplay.length === 0 && (

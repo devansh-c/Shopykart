@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -42,6 +43,7 @@ interface ProductQuickViewProps {
 /**
  * @fileOverview Enhanced ProductQuickView with Persistent Footer and Overflow handling.
  * Optimized for mobile bottom-sheet feel with guaranteed button visibility.
+ * Fixed: Removed ₹10 guest discount logic.
  */
 export function ProductQuickView({ product, children, isMedical, globalOffer, vendorScheduleOpen }: ProductQuickViewProps) {
   const { cart, addToCart } = useCart();
@@ -59,7 +61,7 @@ export function ProductQuickView({ product, children, isMedical, globalOffer, ve
   const scheduleOpen = vendorScheduleOpen !== undefined ? vendorScheduleOpen : isStoreScheduleOpen(vendor);
   const isOffline = (vendor?.isOnline === false) || !scheduleOpen;
 
-  const displayBasePrice = !user ? Math.max(0, (product.price || 0) - 10) : (product.price || 0);
+  const displayBasePrice = (product.price || 0);
 
   const currentPrice = useMemo(() => {
     const base = displayBasePrice;
@@ -70,7 +72,7 @@ export function ProductQuickView({ product, children, isMedical, globalOffer, ve
       return Math.max(0, totalBase - (Number(globalOffer.value) || 0));
     }
     return totalBase;
-  }, [displayBasePrice, selectedOption, globalOffer, user]);
+  }, [displayBasePrice, selectedOption, globalOffer]);
 
   const handleAddToCart = () => {
     if (!user) { 
@@ -106,7 +108,6 @@ export function ProductQuickView({ product, children, isMedical, globalOffer, ve
             <div className="p-6 pt-4 flex gap-4 border-b border-dashed border-gray-100">
                <div className="relative h-24 w-24 rounded-2xl overflow-hidden bg-muted border shadow-sm shrink-0">
                   <Image src={product.imageUrl} alt={product.name} fill className="object-cover" unoptimized />
-                  {!user && !isOffline && <div className="absolute top-1 left-1 bg-primary text-white text-[7px] font-black px-1.5 py-0.5 rounded-full shadow-lg">₹10 OFF</div>}
                </div>
                <div className="flex-1 min-w-0">
                   <h3 className="font-black text-lg text-gray-900 italic uppercase tracking-tighter leading-tight line-clamp-2">{product.name}</h3>
@@ -170,7 +171,7 @@ export function ProductQuickView({ product, children, isMedical, globalOffer, ve
           </div>
 
           <div className="absolute bottom-0 left-0 right-0 p-6 bg-white border-t pb-10 z-[1000010] shadow-[0_-20px_50px_rgba(0,0,0,0.1)]">
-             <div className="flex items-center gap-3 max-w-md mx-auto">
+             <div className="flex items-center gap-3 max-md mx-auto">
                 <div className="flex items-center bg-muted/30 rounded-xl h-14 px-2">
                    <button disabled={isOffline} onClick={() => setLocalQuantity(Math.max(1, localQuantity - 1))} className="h-10 w-10 flex items-center justify-center bg-white rounded-lg shadow-sm active:scale-90 transition-transform"><Minus className="h-4 w-4" /></button>
                    <span className="w-10 text-center text-lg font-black italic">{localQuantity}</span>
