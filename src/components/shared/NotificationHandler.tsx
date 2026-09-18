@@ -2,19 +2,17 @@
 
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, query, where, onSnapshot, doc, updateDoc, serverTimestamp, getDoc, orderBy, limit } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogPortal, DialogOverlay } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, BellRing, MessageSquare, Bell, X, Bike, CheckCircle2 } from 'lucide-react';
+import { Loader2, BellRing, Bell, X, Bike, CheckCircle2 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
-import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 /**
  * @fileOverview Global Notification & Persistent Audio Alert Handler.
- * Ringing logic for Admin/Vendor (New Order) and Delivery (Ready for Pickup).
- * Fixed: handleAction is now robust and reliable for both Admin and Vendor.
+ * Fixed: Interaction blocked by overlay solved. handleAction is now robust.
  */
 export default function NotificationHandler() {
   const { user } = useUser();
@@ -30,7 +28,6 @@ export default function NotificationHandler() {
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const pickupAudioRef = useRef<HTMLAudioElement | null>(null);
-  const bellAudioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     const checkRole = async () => {
@@ -112,8 +109,8 @@ export default function NotificationHandler() {
     
     const targetRef = type === 'order' ? audioRef : pickupAudioRef;
     const soundUrl = type === 'order' 
-      ? 'https://assets.mixkit.co/active_storage/sfx/1356/1356-preview.mp3' // Siren for Admin/Vendor
-      : 'https://assets.mixkit.co/active_storage/sfx/1353/1353-preview.mp3'; // Bell for Delivery
+      ? 'https://assets.mixkit.co/active_storage/sfx/1356/1356-preview.mp3' 
+      : 'https://assets.mixkit.co/active_storage/sfx/1353/1353-preview.mp3';
 
     if (shouldPlay) {
       if (!targetRef.current) {
@@ -137,13 +134,11 @@ export default function NotificationHandler() {
         updatedAt: serverTimestamp() 
       });
       
-      // Stop audio immediately on local success
       handleAudio(false, 'order');
       setRingingOrders([]);
-      
-      toast({ title: "Order Accepted! ✅", description: "Kitchen can start now." });
+      toast({ title: "Order Accepted! ✅" });
     } catch (err) { 
-      toast({ variant: "destructive", title: "Accept Failed", description: "Database busy, try again." }); 
+      toast({ variant: "destructive", title: "Failed to Accept" }); 
     } finally { 
       setIsAccepting(false); 
     }
@@ -151,56 +146,49 @@ export default function NotificationHandler() {
 
   return (
     <>
-      {/* PERSISTENT MODAL FOR NEW ORDER */}
       {ringingOrders.length > 0 && (
-        <Dialog open={true} onOpenChange={() => {}}>
-          <DialogContent className="rounded-[3.5rem] max-w-sm p-10 flex flex-col items-center text-center border-none shadow-2xl bg-white z-[60000] focus:outline-none">
-            <div className="bg-red-50 h-24 w-24 rounded-[2.5rem] flex items-center justify-center text-red-600 mb-6 border-4 border-red-100 animate-pulse">
-               <BellRing className="h-10 w-10 animate-bounce" />
-            </div>
-            <DialogHeader>
-               <DialogTitle className="text-red-600 font-black italic uppercase text-2xl tracking-tighter">NEW ORDER ALERT!</DialogTitle>
-            </DialogHeader>
-            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-2 mb-8 italic">Customer is waiting. Accept to start preparation.</p>
-            <Button 
-              onClick={() => handleAction(ringingOrders[0].id)} 
-              disabled={isAccepting}
-              className="w-full h-18 bg-green-600 hover:bg-green-700 text-white rounded-2xl font-black uppercase text-xl shadow-xl shadow-green-100 active:scale-95 transition-all"
+        <Dialog open={true}>
+          <DialogPortal>
+            <DialogOverlay className="z-[999998] bg-black/60 backdrop-blur-sm" />
+            <DialogContent 
+              className="z-[999999] rounded-[3.5rem] max-w-sm p-10 flex flex-col items-center text-center border-none shadow-2xl bg-white focus:outline-none fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+              onPointerDownOutside={(e) => e.preventDefault()}
+              onEscapeKeyDown={(e) => e.preventDefault()}
             >
-              {isAccepting ? <Loader2 className="h-6 w-6 animate-spin" /> : "ACCEPT NOW"}
-            </Button>
-          </DialogContent>
+              <div className="bg-red-50 h-24 w-24 rounded-[2.5rem] flex items-center justify-center text-red-600 mb-6 border-4 border-red-100 animate-pulse">
+                <BellRing className="h-10 w-10 animate-bounce" />
+              </div>
+              <DialogHeader>
+                <DialogTitle className="text-red-600 font-black italic uppercase text-2xl tracking-tighter">NEW ORDER ALERT!</DialogTitle>
+              </DialogHeader>
+              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-2 mb-8 italic">Customer is waiting. Accept to start preparation.</p>
+              <Button 
+                onClick={() => handleAction(ringingOrders[0].id)} 
+                disabled={isAccepting}
+                className="w-full h-18 bg-green-600 hover:bg-green-700 text-white rounded-2xl font-black uppercase text-xl shadow-xl shadow-green-100 active:scale-95 transition-all pointer-events-auto"
+              >
+                {isAccepting ? <Loader2 className="h-6 w-6 animate-spin" /> : "ACCEPT NOW"}
+              </Button>
+            </DialogContent>
+          </DialogPortal>
         </Dialog>
       )}
 
-      {/* PERSISTENT MODAL FOR DELIVERY PICKUP */}
       {pickupAlerts.length > 0 && userRole === 'delivery' && (
         <Dialog open={true} onOpenChange={() => setPickupAlerts([])}>
-          <DialogContent className="rounded-[3.5rem] max-w-sm p-10 flex flex-col items-center text-center border-none shadow-2xl bg-white z-[60000] focus:outline-none">
-            <div className="bg-primary/5 h-24 w-24 rounded-[2.5rem] flex items-center justify-center text-primary mb-6 border-4 border-primary/10">
-               <Bike className="h-12 w-12 animate-bounce" />
-            </div>
-            <DialogHeader>
-               <DialogTitle className="text-gray-900 font-black italic uppercase text-2xl tracking-tighter">PICKUP TASK!</DialogTitle>
-            </DialogHeader>
-            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-2 mb-8 italic">Order is ready at store. Check your task dashboard.</p>
-            <Button onClick={() => { setPickupAlerts([]); handleAudio(false, 'pickup'); }} className="w-full h-16 bg-black text-white rounded-2xl font-black uppercase italic shadow-xl">VIEW TASKS</Button>
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {/* CUSTOMER PUSH ALERTS */}
-      {pushAlerts.length > 0 && (
-        <Dialog open={true} onOpenChange={() => setPushAlerts([])}>
-          <DialogContent className="rounded-[3rem] max-w-sm p-8 flex flex-col items-center text-center border-none shadow-2xl bg-white z-[70000] focus:outline-none">
-            <button onClick={() => setPushAlerts([])} className="absolute top-6 right-6 h-8 w-8 bg-gray-50 rounded-full flex items-center justify-center text-gray-400 active:scale-90"><X className="h-4 w-4" /></button>
-            <div className="h-20 w-20 bg-primary/5 rounded-[2rem] flex items-center justify-center text-primary mb-6 shadow-inner border border-primary/10"><CheckCircle2 className="h-10 w-10 animate-ring" /></div>
-            <div className="space-y-2 mb-8">
-              <h3 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900 leading-none">{pushAlerts[0].title}</h3>
-              <p className="text-[11px] font-bold text-gray-500 uppercase italic">"{pushAlerts[0].message}"</p>
-            </div>
-            <Button onClick={() => setPushAlerts([])} className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic shadow-lg">DISMISS</Button>
-          </DialogContent>
+          <DialogPortal>
+            <DialogOverlay className="z-[999998] bg-black/60 backdrop-blur-sm" />
+            <DialogContent className="z-[999999] rounded-[3.5rem] max-w-sm p-10 flex flex-col items-center text-center border-none shadow-2xl bg-white focus:outline-none fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+              <div className="bg-primary/5 h-24 w-24 rounded-[2.5rem] flex items-center justify-center text-primary mb-6 border-4 border-primary/10">
+                <Bike className="h-12 w-12 animate-bounce" />
+              </div>
+              <DialogHeader>
+                <DialogTitle className="text-gray-900 font-black italic uppercase text-2xl tracking-tighter">PICKUP TASK!</DialogTitle>
+              </DialogHeader>
+              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-2 mb-8 italic">Order is ready at store. Check your task dashboard.</p>
+              <Button onClick={() => { setPickupAlerts([]); handleAudio(false, 'pickup'); }} className="w-full h-16 bg-black text-white rounded-2xl font-black uppercase italic shadow-xl pointer-events-auto">VIEW TASKS</Button>
+            </DialogContent>
+          </DialogPortal>
         </Dialog>
       )}
     </>
