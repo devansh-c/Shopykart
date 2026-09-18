@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 
 /**
  * @fileOverview Global Notification Handler.
- * FIXED: Replaced Dialog with Direct Premium Modal to prevent "Dark Screen" block.
+ * Fixed: Explicitly unblocked interaction and set highest z-index.
  */
 export default function NotificationHandler() {
   const { user } = useUser();
@@ -59,10 +59,10 @@ export default function NotificationHandler() {
   const isManagementPath = useMemo(() => {
     if (!pathname) return false;
     const p = pathname.toLowerCase();
-    return p.startsWith('/admin') || p.startsWith('/vendor') || p.startsWith('/delivery') || p.startsWith('/medical') || p.startsWith('/beauty');
+    return p.startsWith('/admin') || p.startsWith('/vendor') || p.startsWith('/delivery');
   }, [pathname]);
 
-  // 1. ORDER ALERTS
+  // ORDER ALERTS
   useEffect(() => {
     if (!firestore || !userRole || !isManagementPath) return;
 
@@ -86,20 +86,6 @@ export default function NotificationHandler() {
       return () => unsub();
     }
   }, [user, firestore, userRole, isManagementPath]);
-
-  // 2. PICKUP ALERTS
-  useEffect(() => {
-    if (!firestore || userRole !== 'delivery' || !isManagementPath) return;
-
-    const q = query(collection(firestore, 'orders'), where('status', '==', 'Ready for Pickup'));
-    const unsub = onSnapshot(q, (snapshot) => {
-      const availableTasks = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-      setPickupAlerts(availableTasks);
-      handleAudio(availableTasks.length > 0, 'pickup');
-    });
-
-    return () => unsub();
-  }, [firestore, userRole, isManagementPath]);
 
   const handleAudio = (shouldPlay: boolean, type: 'order' | 'pickup') => {
     if (typeof window === 'undefined') return;
@@ -144,7 +130,7 @@ export default function NotificationHandler() {
   if (ringingOrders.length === 0 && (pickupAlerts.length === 0 || userRole !== 'delivery')) return null;
 
   return (
-    <div className="fixed inset-0 z-[2000000] flex items-center justify-center p-6 pointer-events-auto">
+    <div className="fixed inset-0 z-[2000000] flex items-center justify-center p-6 pointer-events-none">
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300" />
       
       {ringingOrders.length > 0 ? (
@@ -153,12 +139,12 @@ export default function NotificationHandler() {
             <BellRing className="h-10 w-10 animate-bounce" />
           </div>
           <h2 className="text-red-600 font-black italic uppercase text-2xl tracking-tighter leading-none mb-2">NEW ORDER ALERT!</h2>
-          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-10 italic">CUSTOMER IS WAITING. ACCEPT TO START PREPARATION.</p>
+          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-10 italic text-center">CUSTOMER IS WAITING. ACCEPT TO START PREPARATION.</p>
           
           <button 
             onClick={() => handleAction(ringingOrders[0].id)} 
             disabled={isAccepting}
-            className="w-full h-18 bg-green-600 hover:bg-green-700 text-white rounded-[1.5rem] font-black uppercase text-xl shadow-xl shadow-green-100 active:scale-95 transition-all flex items-center justify-center z-[2000010] relative cursor-pointer"
+            className="w-full h-18 bg-green-600 hover:bg-green-700 text-white rounded-[1.5rem] font-black uppercase text-xl shadow-xl shadow-green-100 active:scale-95 transition-all flex items-center justify-center pointer-events-auto relative cursor-pointer"
           >
             {isAccepting ? <Loader2 className="h-6 w-6 animate-spin" /> : "ACCEPT NOW"}
           </button>
@@ -169,11 +155,11 @@ export default function NotificationHandler() {
             <Bike className="h-12 w-12 animate-bounce" />
           </div>
           <h2 className="text-gray-900 font-black italic uppercase text-2xl tracking-tighter leading-none mb-2">PICKUP TASK!</h2>
-          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-10 italic">ORDER IS READY AT STORE. CHECK YOUR TASK DASHBOARD.</p>
+          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-10 italic text-center">ORDER IS READY AT STORE. CHECK YOUR TASK DASHBOARD.</p>
           
           <button 
             onClick={() => { setPickupAlerts([]); handleAudio(false, 'pickup'); }} 
-            className="w-full h-18 bg-[#0B0B0B] text-white rounded-[1.5rem] font-black uppercase text-lg shadow-xl active:scale-95 transition-all z-[2000010] relative cursor-pointer"
+            className="w-full h-18 bg-[#0B0B0B] text-white rounded-[1.5rem] font-black uppercase text-lg shadow-xl active:scale-95 transition-all pointer-events-auto relative cursor-pointer"
           >
             VIEW TASKS
           </button>
