@@ -27,32 +27,35 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
+      - name: Build Web (Base for Sync)
+        run: npm run build:static
+
       - name: Initialize Android Project Files
         run: |
           mkdir -p android/app
-          # Create bulletproof gradle files using proper redirection to maintain YAML indentation
+          
+          # Create Root build.gradle if missing
           echo "buildscript {
-              repositories {
-                  google()
-                  mavenCentral()
-              }
+              repositories { google(); mavenCentral() }
               dependencies {
                   classpath 'com.android.tools.build:gradle:8.2.1'
                   classpath 'com.google.gms:google-services:4.4.0'
               }
           }
-          allprojects {
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-          }" > android/build.gradle
+          allprojects { repositories { google(); mavenCentral() } }" > android/build.gradle
           
-          echo "include ':app'" > android/settings.gradle
+          # Create Root settings.gradle with Capacitor links (CRITICAL FIX)
+          echo "include ':app'
+          apply from: 'capacitor.settings.gradle'" > android/settings.gradle
           
-          # Generate gradlew using system gradle
+          # Run Capacitor Sync to generate capacitor.settings.gradle and other links
+          npx cap sync android
+          
+          # Generate gradlew if it doesn't exist
           cd android
-          gradle wrapper
+          if [ ! -f "gradlew" ]; then
+            gradle wrapper
+          fi
           chmod +x gradlew
           cd ..
 
