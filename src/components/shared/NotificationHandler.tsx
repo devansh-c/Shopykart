@@ -4,15 +4,14 @@ import { useEffect, useRef, useState, useMemo } from 'react';
 import { useUser, useFirestore } from '@/firebase';
 import { collection, query, where, onSnapshot, doc, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogPortal, DialogOverlay } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, BellRing, Bell, X, Bike, CheckCircle2 } from 'lucide-react';
+import { Loader2, BellRing, X, Bike } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
 /**
- * @fileOverview Global Notification & Persistent Audio Alert Handler.
- * Fixed: Interaction blocked by overlay solved. handleAction is now robust.
+ * @fileOverview Global Notification Handler.
+ * FIXED: Replaced shadcn Dialog with a Direct High-Priority Modal to prevent "Dark Screen" interaction blocking.
  */
 export default function NotificationHandler() {
   const { user } = useUser();
@@ -23,7 +22,6 @@ export default function NotificationHandler() {
   const [userRole, setUserRole] = useState<'admin' | 'vendor' | 'customer' | 'delivery' | null>(null);
   const [ringingOrders, setRingingOrders] = useState<any[]>([]);
   const [pickupAlerts, setPickupAlerts] = useState<any[]>([]);
-  const [pushAlerts, setPushAlerts] = useState<any[]>([]);
   const [isAccepting, setIsAccepting] = useState(false);
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -65,7 +63,7 @@ export default function NotificationHandler() {
     return p.startsWith('/admin') || p.startsWith('/vendor') || p.startsWith('/delivery') || p.startsWith('/medical') || p.startsWith('/beauty');
   }, [pathname]);
 
-  // 1. ORDER ALERTS (For Admin/Vendor on 'Placed' status)
+  // 1. ORDER ALERTS (For Admin/Vendor)
   useEffect(() => {
     if (!firestore || !userRole || !isManagementPath) return;
 
@@ -90,7 +88,7 @@ export default function NotificationHandler() {
     }
   }, [user, firestore, userRole, isManagementPath]);
 
-  // 2. PICKUP ALERTS (For Delivery Partners on 'Ready for Pickup' status)
+  // 2. PICKUP ALERTS (For Delivery)
   useEffect(() => {
     if (!firestore || userRole !== 'delivery' || !isManagementPath) return;
 
@@ -144,53 +142,44 @@ export default function NotificationHandler() {
     }
   };
 
-  return (
-    <>
-      {ringingOrders.length > 0 && (
-        <Dialog open={true}>
-          <DialogPortal>
-            <DialogOverlay className="z-[999998] bg-black/60 backdrop-blur-sm" />
-            <DialogContent 
-              className="z-[999999] rounded-[3.5rem] max-w-sm p-10 flex flex-col items-center text-center border-none shadow-2xl bg-white focus:outline-none fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-              onPointerDownOutside={(e) => e.preventDefault()}
-              onEscapeKeyDown={(e) => e.preventDefault()}
-            >
-              <div className="bg-red-50 h-24 w-24 rounded-[2.5rem] flex items-center justify-center text-red-600 mb-6 border-4 border-red-100 animate-pulse">
-                <BellRing className="h-10 w-10 animate-bounce" />
-              </div>
-              <DialogHeader>
-                <DialogTitle className="text-red-600 font-black italic uppercase text-2xl tracking-tighter">NEW ORDER ALERT!</DialogTitle>
-              </DialogHeader>
-              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-2 mb-8 italic">Customer is waiting. Accept to start preparation.</p>
-              <Button 
-                onClick={() => handleAction(ringingOrders[0].id)} 
-                disabled={isAccepting}
-                className="w-full h-18 bg-green-600 hover:bg-green-700 text-white rounded-2xl font-black uppercase text-xl shadow-xl shadow-green-100 active:scale-95 transition-all pointer-events-auto"
-              >
-                {isAccepting ? <Loader2 className="h-6 w-6 animate-spin" /> : "ACCEPT NOW"}
-              </Button>
-            </DialogContent>
-          </DialogPortal>
-        </Dialog>
-      )}
+  if (ringingOrders.length === 0 && (pickupAlerts.length === 0 || userRole !== 'delivery')) return null;
 
-      {pickupAlerts.length > 0 && userRole === 'delivery' && (
-        <Dialog open={true} onOpenChange={() => setPickupAlerts([])}>
-          <DialogPortal>
-            <DialogOverlay className="z-[999998] bg-black/60 backdrop-blur-sm" />
-            <DialogContent className="z-[999999] rounded-[3.5rem] max-w-sm p-10 flex flex-col items-center text-center border-none shadow-2xl bg-white focus:outline-none fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-              <div className="bg-primary/5 h-24 w-24 rounded-[2.5rem] flex items-center justify-center text-primary mb-6 border-4 border-primary/10">
-                <Bike className="h-12 w-12 animate-bounce" />
-              </div>
-              <DialogHeader>
-                <DialogTitle className="text-gray-900 font-black italic uppercase text-2xl tracking-tighter">PICKUP TASK!</DialogTitle>
-              </DialogHeader>
-              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-2 mb-8 italic">Order is ready at store. Check your task dashboard.</p>
-              <Button onClick={() => { setPickupAlerts([]); handleAudio(false, 'pickup'); }} className="w-full h-16 bg-black text-white rounded-2xl font-black uppercase italic shadow-xl pointer-events-auto">VIEW TASKS</Button>
-            </DialogContent>
-          </DialogPortal>
-        </Dialog>
+  return (
+    <div className="fixed inset-0 z-[1000000] flex items-center justify-center p-6 pointer-events-auto">
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300" />
+      
+      {ringingOrders.length > 0 ? (
+        <div className="relative z-[1000001] bg-white rounded-[3.5rem] p-10 w-full max-w-sm flex flex-col items-center text-center shadow-2xl animate-in zoom-in duration-500 transform-gpu">
+          <div className="bg-red-50 h-24 w-24 rounded-[2.5rem] flex items-center justify-center text-red-600 mb-6 border-4 border-red-100 animate-pulse">
+            <BellRing className="h-10 w-10 animate-bounce" />
+          </div>
+          <h2 className="text-red-600 font-black italic uppercase text-2xl tracking-tighter leading-none mb-2">NEW ORDER ALERT!</h2>
+          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-10 italic">CUSTOMER IS WAITING. ACCEPT TO START PREPARATION.</p>
+          
+          <button 
+            onClick={() => handleAction(ringingOrders[0].id)} 
+            disabled={isAccepting}
+            className="w-full h-18 bg-green-600 hover:bg-green-700 text-white rounded-[1.5rem] font-black uppercase text-xl shadow-xl shadow-green-100 active:scale-95 transition-all flex items-center justify-center"
+          >
+            {isAccepting ? <Loader2 className="h-6 w-6 animate-spin" /> : "ACCEPT NOW"}
+          </button>
+        </div>
+      ) : pickupAlerts.length > 0 && userRole === 'delivery' && (
+        <div className="relative z-[1000001] bg-white rounded-[3.5rem] p-10 w-full max-w-sm flex flex-col items-center text-center shadow-2xl animate-in zoom-in duration-500 transform-gpu">
+          <div className="bg-primary/5 h-24 w-24 rounded-[2.5rem] flex items-center justify-center text-primary mb-6 border-4 border-primary/10 animate-pulse">
+            <Bike className="h-12 w-12 animate-bounce" />
+          </div>
+          <h2 className="text-gray-900 font-black italic uppercase text-2xl tracking-tighter leading-none mb-2">PICKUP TASK!</h2>
+          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-10 italic">ORDER IS READY AT STORE. CHECK YOUR TASK DASHBOARD.</p>
+          
+          <button 
+            onClick={() => { setPickupAlerts([]); handleAudio(false, 'pickup'); }} 
+            className="w-full h-18 bg-[#0B0B0B] text-white rounded-[1.5rem] font-black uppercase text-lg shadow-xl active:scale-95 transition-all"
+          >
+            VIEW TASKS
+          </button>
+        </div>
       )}
-    </>
+    </div>
   );
 }

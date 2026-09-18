@@ -30,7 +30,7 @@ jobs:
       - name: Initialize Android Project Files
         run: |
           mkdir -p android/app
-          # Ensure essential gradle files exist with valid content
+          # Create bulletproof gradle files
           cat <<EOF > android/build.gradle
 buildscript {
     repositories {
@@ -50,7 +50,7 @@ allprojects {
 }
 EOF
           echo "include ':app'" > android/settings.gradle
-          # Generate gradlew using wrapper if missing
+          # Ensure gradlew exists or generate it
           cd android
           if [ ! -f "gradlew" ]; then
             npm install -g gradle
