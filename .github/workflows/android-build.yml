@@ -27,15 +27,27 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
+      - name: Build Web
+        run: npm run build:static
+
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      - name: Fix Capacitor Missing Plugins (Critical)
+        run: |
+          mkdir -p android/capacitor-cordova-android-plugins/src/main
+          if [ ! -f android/capacitor-cordova-android-plugins/src/main/AndroidManifest.xml ]; then
+            echo '<?xml version="1.0" encoding="utf-8"?><manifest xmlns:android="http://schemas.android.com/apk/res/android" package="capacitor.cordova.android.plugins"></manifest>' > android/capacitor-cordova-android-plugins/src/main/AndroidManifest.xml
+          fi
+          if [ ! -f android/capacitor-cordova-android-plugins/build.gradle ]; then
+            echo 'apply plugin: "com.android.library"' > android/capacitor-cordova-android-plugins/build.gradle
+            echo 'android { compileSdkVersion 34; default { minSdkVersion 22; targetSdkVersion 34 } }' >> android/capacitor-cordova-android-plugins/build.gradle
+          fi
+
       - name: Setup Gradle
-        uses: gradle/gradle-build-action@v3
+        uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: 8.2.1
-
-      - name: Build Web & Sync Capacitor
-        run: |
-          npm run build:static
-          npx cap sync android
 
       - name: Initialize Gradle Wrapper & Build APK
         run: |

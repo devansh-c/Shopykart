@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 
 /**
  * @fileOverview Global Notification Handler - Unblocked Interaction.
- * Uses high z-index fixed modal with correct pointer events to prevent blocking.
+ * Fixed: Added pointer-events-none to overlay to prevent blocking Admin Panel.
  */
 export default function NotificationHandler() {
   const { user } = useUser();
@@ -123,7 +123,7 @@ export default function NotificationHandler() {
 
   return (
     <div className="fixed inset-0 z-[2000000] flex items-center justify-center p-6 pointer-events-none">
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300" />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300 pointer-events-none" />
       
       <div className="relative z-[2000001] bg-white rounded-[3.5rem] p-10 w-full max-w-sm flex flex-col items-center text-center shadow-2xl animate-in zoom-in duration-500 transform-gpu pointer-events-auto">
         <div className="bg-red-50 h-24 w-24 rounded-[2.5rem] flex items-center justify-center text-red-600 mb-6 border-4 border-red-100 animate-pulse">
