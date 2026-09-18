@@ -34,24 +34,45 @@ jobs:
         run: |
           mkdir -p android/app
           
-          # Create Root build.gradle if missing
-          echo "buildscript {
+          # 1. Create Root build.gradle
+          cat <<EOF > android/build.gradle
+          buildscript {
               repositories { google(); mavenCentral() }
               dependencies {
                   classpath 'com.android.tools.build:gradle:8.2.1'
                   classpath 'com.google.gms:google-services:4.4.0'
               }
           }
-          allprojects { repositories { google(); mavenCentral() } }" > android/build.gradle
+          allprojects { repositories { google(); mavenCentral() } }
+          EOF
           
-          # Create Root settings.gradle with Capacitor links (CRITICAL FIX)
-          echo "include ':app'
-          apply from: 'capacitor.settings.gradle'" > android/settings.gradle
+          # 2. Create Root settings.gradle
+          cat <<EOF > android/settings.gradle
+          include ':app'
+          apply from: 'capacitor.settings.gradle'
+          EOF
           
-          # Run Capacitor Sync to generate capacitor.settings.gradle and other links
+          # 3. Sync Capacitor
           npx cap sync android
           
-          # Generate gradlew if it doesn't exist
+          # 4. CRITICAL FIX: Stub missing capacitor-cordova-android-plugins project
+          # This prevents "Project with path ':capacitor-cordova-android-plugins' could not be found"
+          mkdir -p android/capacitor-cordova-android-plugins
+          cat <<EOF > android/capacitor-cordova-android-plugins/build.gradle
+          apply plugin: 'com.android.library'
+          android {
+              namespace 'co.in.shopykart.app.plugins'
+              compileSdk 34
+          }
+          EOF
+          
+          # 5. Force include in settings.gradle if sync missed it
+          if ! grep -q "capacitor-cordova-android-plugins" android/settings.gradle; then
+            echo "include ':capacitor-cordova-android-plugins'" >> android/settings.gradle
+            echo "project(':capacitor-cordova-android-plugins').projectDir = new File('capacitor-cordova-android-plugins')" >> android/settings.gradle
+          fi
+
+          # 6. Ensure gradlew is executable
           cd android
           if [ ! -f "gradlew" ]; then
             gradle wrapper
