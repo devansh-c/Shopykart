@@ -39,7 +39,7 @@ export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
 
 const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemove }: any) => {
   const displayPrice = Number(product.price) || 0;
-  const isBestRated = (Number(product.rating) || 0) >= 4.7;
+  const isBestRated = (Number(product.rating) || 0) >= 4.5;
 
   return (
     <div className={cn(

@@ -1,7 +1,7 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
 /**
- * @fileOverview Pure White Shimmer Loading UI - No black boxes.
+ * @fileOverview Pure Dark Shimmer Loading UI - Matches Black Product Cards.
  */
 export default function Loading() {
   return (
@@ -18,7 +18,7 @@ export default function Loading() {
       <main className="space-y-8 pb-32">
         {/* Banner Skeleton */}
         <div className="px-4">
-          <Skeleton className="aspect-[18/9] w-full rounded-[2.5rem] shadow-sm" />
+          <Skeleton className="aspect-[18/9] w-full rounded-[2.5rem] shadow-sm bg-neutral-900" />
         </div>
 
         {/* Explore Hub Skeleton */}
@@ -28,8 +28,8 @@ export default function Loading() {
             <Skeleton className="h-3 w-16 rounded-full" />
           </div>
           <div className="flex gap-4 px-6 overflow-hidden">
-            <Skeleton className="h-44 w-56 shrink-0 rounded-[2.5rem]" />
-            <Skeleton className="h-44 w-56 shrink-0 rounded-[2.5rem]" />
+            <Skeleton className="h-44 w-56 shrink-0 rounded-[2.5rem] bg-neutral-900" />
+            <Skeleton className="h-44 w-56 shrink-0 rounded-[2.5rem] bg-neutral-900" />
           </div>
         </div>
 
@@ -51,14 +51,14 @@ export default function Loading() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             {[1, 2, 3, 4].map(i => (
-              <div key={i} className="space-y-3 bg-white p-3 rounded-[2.5rem] border border-gray-100 shadow-sm">
-                <Skeleton className="aspect-square w-full rounded-[1.5rem] bg-gray-50" />
+              <div key={i} className="space-y-3 bg-[#0B0B0B] p-3 rounded-[2.5rem] border border-white/5 shadow-sm">
+                <Skeleton className="aspect-square w-full rounded-[1.5rem] bg-neutral-800" />
                 <div className="space-y-2 px-1">
-                  <Skeleton className="h-2 w-2/3 rounded-full bg-gray-50" />
-                  <Skeleton className="h-3 w-full rounded-full bg-gray-50" />
+                  <Skeleton className="h-2 w-2/3 rounded-full bg-neutral-800" />
+                  <Skeleton className="h-3 w-full rounded-full bg-neutral-800" />
                   <div className="flex justify-between pt-2">
-                    <Skeleton className="h-6 w-12 rounded-full bg-gray-100" />
-                    <Skeleton className="h-8 w-16 rounded-full bg-gray-100" />
+                    <Skeleton className="h-6 w-12 rounded-full bg-neutral-700" />
+                    <Skeleton className="h-8 w-16 rounded-full bg-neutral-700" />
                   </div>
                 </div>
               </div>
