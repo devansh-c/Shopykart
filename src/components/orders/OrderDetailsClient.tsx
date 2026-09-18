@@ -224,135 +224,18 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
     window.open(`https://wa.me/917992090977?text=${encodeURIComponent(message)}`, '_blank');
   };
 
-  const generateReceipt = async () => {
-    if (!order) return;
-    setIsDownloading(true);
-    try {
-      const { toBlob } = await import('html-to-image');
-      const FileSaver = await import('file-saver');
-      const saveAs = FileSaver.saveAs || (FileSaver as any).default;
-
-      const receipt = document.createElement('div');
-      receipt.style.padding = '40px 30px';
-      receipt.style.width = '420px';
-      receipt.style.backgroundColor = '#ffffff';
-      receipt.style.color = '#000000';
-      receipt.style.fontFamily = 'monospace';
-      receipt.style.textTransform = 'uppercase';
-      
-      const orderDate = format(new Date(order.createdAt?.seconds * 1000 || Date.now()), 'dd MMM yyyy, hh:mm a');
-      
-      const itemsHtml = order.items?.map((item: any) => `
-        <div style="margin-bottom: 12px; border-bottom: 1px dashed #eee; padding-bottom: 5px;">
-          <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: 900;">
-            <span style="flex: 2; padding-right: 10px;">${item.name}</span>
-            <span style="flex: 0.5; text-align: center;">X${item.quantity}</span>
-            <span style="flex: 1; text-align: right;">${(item.price * item.quantity).toFixed(2)}</span>
-          </div>
-          ${item.selectedOption ? `<div style="font-size: 9px; color: #EF4444; font-weight: 900; margin-top: 2px;">• VARIETY: ${item.selectedOption.name}</div>` : ''}
-          ${item.restaurantName ? `<div style="font-size: 8px; color: #555; font-weight: 700; margin-top: 2px;">FROM: ${item.restaurantName}</div>` : ''}
-        </div>
-      `).join('');
-
-      let taxHtml = '';
-      if (order.deliveryFee > 0) {
-        taxHtml += `<div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span>DELIVERY FEE:</span><span>₹${order.deliveryFee.toFixed(2)}</span></div>`;
-      }
-      if (order.packingFee > 0) {
-        taxHtml += `<div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span>SAFETY PACK:</span><span>₹${order.packingFee.toFixed(2)}</span></div>`;
-      }
-      if (order.coinDiscount > 0) {
-        taxHtml += `<div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #16a34a;"><span>COIN REWARD:</span><span>- ₹${order.coinDiscount.toFixed(2)}</span></div>`;
-      }
-      if (order.couponDiscount > 0) {
-        taxHtml += `<div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #4f46e5;"><span>PROMO DISCOUNT:</span><span>- ₹${order.couponDiscount.toFixed(2)}</span></div>`;
-      }
-
-      const upiUrl = `upi://pay?pa=9450355709@axl&pn=ShopyKart&am=${order.total?.toFixed(2)}&cu=INR`;
-      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(upiUrl)}`;
-
-      receipt.innerHTML = `
-        <div style="text-align: center; margin-bottom: 25px;">
-          <h1 style="margin: 0; font-size: 38px; font-weight: 900; letter-spacing: -2px; font-style: italic;">SHOPYKART</h1>
-          <p style="margin: 2px 0; font-size: 10px; font-weight: 900; letter-spacing: 2px;">PREMIUM DELIVERY NETWORK</p>
-          <div style="border-top: 2px dashed #000; margin: 15px auto 0; width: 100%;"></div>
-        </div>
-        <div style="margin-bottom: 25px; line-height: 1.8; font-size: 11px; font-weight: 800;">
-          <div style="display: flex; justify-content: space-between;"><span>ORDER NO:</span><span>#${order.customerOrderNumber || '1'}</span></div>
-          <div style="display: flex; justify-content: space-between;"><span>TIME:</span><span>${orderDate}</span></div>
-          <div style="display: flex; justify-content: space-between;"><span>CUSTOMER:</span><span>${order.customerName}</span></div>
-          <div style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;">
-            <div style="font-weight: 900; margin-bottom: 4px;">DELIVERY ADDRESS:</div>
-            <div style="font-size: 10px; color: #333; line-height: 1.4; text-transform: uppercase;">${order.address}</div>
-          </div>
-        </div>
-        <div style="border-top: 1.5px dashed #000; margin-bottom: 15px;"></div>
-        <div>${itemsHtml}</div>
-        
-        ${order.deliveryInstructions ? `
-        <div style="margin-top: 15px; background: #fffbeb; padding: 10px; border: 1px solid #fef3c7; border-radius: 8px;">
-          <div style="font-size: 9px; font-weight: 900; margin-bottom: 4px; color: #92400e;">SPECIAL NOTES:</div>
-          <div style="font-size: 10px; font-weight: 700; color: #000;">"${order.deliveryInstructions}"</div>
-        </div>
-        ` : ''}
-
-        <div style="border-top: 1.5px dashed #000; margin: 15px 0; padding-top: 10px; font-size: 10px; font-weight: 700;">
-          ${taxHtml || '<div>NO EXTRA CHARGES</div>'}
-        </div>
-        <div style="border-top: 2.5px solid #000; margin: 15px 0;"></div>
-        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 26px; font-weight: 900; font-style: italic;">
-          <span>GRAND TOTAL</span><span>₹${order.total?.toFixed(2)}</span>
-        </div>
-        
-        <div style="text-align: center; margin-top: 25px; padding: 15px; border: 2px dashed #000; border-radius: 25px; background: #fafafa; display: inline-block;">
-           <p style="font-size: 9px; font-weight: 900; margin-bottom: 12px;">SCAN TO PAY EXACT AMOUNT</p>
-           <img src="${qrUrl}" style="width: 160px; height: 160px; display: block; margin: 0 auto;" />
-           <p style="font-size: 8px; font-weight: 900; margin-top: 10px;">PAY ID: 9450355709@axl</p>
-        </div>
-
-        <div style="text-align: center; margin-top: 40px; border: 2px solid #000; padding: 10px;">
-          <div style="font-size: 10px; font-weight: 900; letter-spacing: 2px;">POWERED BY SHOPYKART POS</div>
-        </div>
-      `;
-      
-      document.body.appendChild(receipt);
-      const blob = await toBlob(receipt, { pixelRatio: 2 }); 
-      document.body.removeChild(receipt);
-      
-      if (blob && typeof saveAs === 'function') {
-        saveAs(blob, `Receipt_${order.customerOrderNumber}.png`);
-        toast({ title: "Receipt Saved! ✅" });
-      }
-    } catch (err) {
-      toast({ variant: "destructive", title: "Download Failed" });
-    } finally {
-      setIsDownloading(null);
-    }
-  };
-
   if (authLoading || (loading && !order)) return (
     <div className="h-screen bg-white flex flex-col items-center justify-center gap-4">
-      <div className="relative">
-         <div className="h-20 w-20 bg-primary/5 rounded-[2rem] border border-primary/10 flex items-center justify-center">
-            <Loader2 className="h-10 w-10 animate-spin text-primary" />
-         </div>
-         <div className="absolute -top-1 -right-1 h-4 w-4 bg-green-500 rounded-full border-2 border-white animate-pulse" />
-      </div>
-      <div className="flex flex-col items-center text-center">
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-900 italic">Connecting to Delivery Hub...</p>
-        <p className="text-[8px] font-bold uppercase text-muted-foreground mt-1 tracking-widest">Validating Order Identity</p>
-      </div>
+      <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Connecting to Delivery Hub...</p>
     </div>
   );
   
   if (!order && !loading) return (
-    <div className="h-screen bg-white flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-500">
-      <div className="bg-muted/30 h-24 w-24 rounded-full flex items-center justify-center mb-6">
-         <ShoppingBag className="h-12 w-12 text-muted-foreground/30" />
-      </div>
-      <h2 className="text-4xl font-black italic uppercase text-gray-900 tracking-tighter leading-none">ORDER<br /><span className="text-primary">NOT FOUND</span></h2>
-      <p className="text-[10px] font-bold text-muted-foreground uppercase mt-4 tracking-widest leading-relaxed">The link you followed might be broken or the order doesn't exist.</p>
-      <Button onClick={() => router.push('/')} className="mt-10 bg-black text-white rounded-2xl h-16 px-10 font-black uppercase italic shadow-xl active:scale-95 transition-all">BACK TO EXPLORE</Button>
+    <div className="h-screen bg-white flex flex-col items-center justify-center p-8 text-center">
+      <ShoppingBag className="h-12 w-12 text-muted-foreground/30 mb-4" />
+      <h2 className="text-xl font-black italic uppercase text-gray-800">Order Not Found</h2>
+      <Button onClick={() => router.push('/')} className="mt-8 bg-black text-white rounded-xl">BACK TO EXPLORE</Button>
     </div>
   );
 
@@ -372,7 +255,7 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
           <div className="flex flex-col items-center">
              <h4 className="text-[11px] font-black uppercase italic tracking-tighter text-gray-900 leading-none drop-shadow-md">{order.restaurantName}</h4>
              <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest mt-1">
-               {format(new Date(order.createdAt?.seconds * 1000 || Date.now()), 'hh:mm a')} • {order.items?.length || 1} items
+               {format(new Date(order.createdAt?.seconds * 1000 || Date.now()), 'hh:mm a')}
              </p>
           </div>
           <DropdownMenu>
@@ -419,7 +302,6 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
         className={cn("relative z-[110] px-4 transition-all duration-700 pb-10", isMapExpanded ? "translate-y-[80vh] opacity-0 pointer-events-none" : "-mt-20 opacity-100")}
         onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
       >
-         {/* ADMIN BROADCAST NOTE (LIVE UPDATE FROM ADMIN) */}
          {order.adminNote && (
            <div className="bg-amber-100 border-2 border-amber-400 p-5 rounded-[2.5rem] mb-4 shadow-xl animate-in zoom-in duration-700 flex items-start gap-4">
               <div className="bg-amber-400 p-2 rounded-xl text-white shadow-sm shrink-0">
@@ -428,11 +310,6 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
               <div className="min-w-0">
                  <h4 className="text-[10px] font-black text-amber-700 uppercase tracking-widest mb-1">Live Update from Admin</h4>
                  <p className="text-sm font-black italic text-amber-900 leading-tight uppercase">"{order.adminNote}"</p>
-                 {order.noteUpdatedAt && (
-                   <span className="text-[7px] font-bold text-amber-600 block mt-1 uppercase">
-                     UPDATED {format(new Date(order.noteUpdatedAt.seconds * 1000 || order.noteUpdatedAt), 'hh:mm a')}
-                   </span>
-                 )}
               </div>
            </div>
          )}
@@ -447,35 +324,13 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
                    </div>
                    <Badge className="bg-amber-100 text-amber-700 border-none font-black text-[7px] uppercase tracking-widest">+5 COINS</Badge>
                 </div>
-                <p className="text-[11px] font-bold text-gray-500 uppercase tracking-tight leading-relaxed italic">
-                  How was the food and service? Rate us to help other customers.
-                </p>
                 <Button 
                   onClick={() => setIsRatingOpen(true)}
-                  className="w-full h-12 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-black uppercase italic text-[10px] tracking-widest shadow-lg shadow-amber-100 active:scale-95 transition-all"
+                  className="w-full h-12 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-black uppercase italic text-[10px] tracking-widest shadow-lg active:scale-95 transition-all"
                 >
-                  RATE THIS ORDER NOW
+                  RATE THIS ORDER
                 </Button>
              </div>
-           </div>
-         )}
-
-         {isDelivered && order.isRated && (
-           <div className="bg-green-50 border-2 border-green-100 p-5 rounded-[2.5rem] mb-4 flex items-center justify-between shadow-sm animate-in fade-in duration-500">
-              <div className="flex items-center gap-4">
-                 <div className="bg-green-500 h-10 w-10 rounded-full flex items-center justify-center text-white shadow-lg shadow-green-100">
-                    <CheckCircle2 className="h-5 w-5" />
-                 </div>
-                 <div>
-                    <h4 className="text-xs font-black uppercase italic text-gray-900 leading-none">Order Rated!</h4>
-                    <div className="flex items-center gap-0.5 mt-1.5">
-                       {[...Array(5)].map((_, i) => (
-                         <Star key={i} className={cn("h-2.5 w-2.5", i < order.customerRating ? "text-amber-500 fill-amber-500" : "text-gray-200 fill-gray-100")} />
-                       ))}
-                    </div>
-                 </div>
-              </div>
-              <span className="text-[8px] font-black text-green-600 uppercase tracking-[0.2em] italic">Rewards Applied</span>
            </div>
          )}
 
@@ -485,7 +340,7 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
               <div className="flex justify-between items-start mb-6">
                  <div>
                     <h2 className="text-3xl font-black italic uppercase tracking-tighter text-gray-900 leading-none">{getHeadline()}</h2>
-                    <p className="text-[10px] font-black text-primary uppercase tracking-widest mt-2">{isDelivered ? 'ENJOY YOUR MEAL' : 'ARRIVING SOON'}</p>
+                    <p className="text-[10px] font-black text-primary uppercase tracking-widest mt-2">{isDelivered ? 'THANK YOU' : 'ARRIVING SOON'}</p>
                  </div>
                  {!isDelivered && !isCancelled && (
                    <div className="bg-[#16a34a] text-white w-16 h-16 rounded-[1.5rem] flex flex-col items-center justify-center shadow-lg">
@@ -513,7 +368,7 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
                     <div className="flex-1 min-w-0">
                        <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Delivering to</span>
                        <p className="text-sm font-black text-gray-800 uppercase leading-none truncate mt-0.5">{order.customerName}</p>
-                       <p className="text-[10px] font-bold text-gray-400 uppercase mt-1.5 leading-relaxed line-clamp-1 italic tracking-tight uppercase">{order.address}</p>
+                       <p className="text-[10px] font-bold text-gray-400 uppercase mt-1.5 leading-relaxed line-clamp-1 italic tracking-tight">{order.address}</p>
                     </div>
                  </div>
               </div>
@@ -523,10 +378,6 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
                     <span className="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">Total Paid</span>
                     <div className="flex items-center gap-1.5 text-2xl font-black italic text-gray-900 tracking-tighter"><IndianRupee className="h-5 w-5 text-primary" /><span>{order.total?.toFixed(0)}</span></div>
                  </div>
-                 <button onClick={generateReceipt} disabled={isDownloading} className="flex items-center gap-2 text-[9px] font-black uppercase text-blue-600 py-2 px-4 bg-blue-50 rounded-xl">
-                    {isDownloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
-                    <span>RECEIPT</span>
-                 </button>
               </div>
             </div>
          </div>

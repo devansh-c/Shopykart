@@ -72,10 +72,11 @@ jobs:
             echo "project(':capacitor-cordova-android-plugins').projectDir = new File('capacitor-cordova-android-plugins')" >> android/settings.gradle
           fi
 
-          # 6. Ensure gradlew is executable
+          # 6. Ensure gradlew is executable with STABLE Gradle version (8.2.1)
           cd android
           if [ ! -f "gradlew" ]; then
-            gradle wrapper
+            # We use a specific version to avoid Gradle 9+ deprecation errors
+            gradle wrapper --gradle-version 8.2.1
           fi
           chmod +x gradlew
           cd ..

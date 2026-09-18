@@ -221,7 +221,6 @@ export default function OrderManagement() {
                   </div>
                </div>
                <div className="flex gap-2">
-                  {/* ADD NOTE BUTTON */}
                   <button 
                     onClick={() => { setNoteOrderId(order.id); setNoteText(order.adminNote || ''); setIsNoteOpen(true); }} 
                     className="h-11 w-11 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center active:scale-90 transition-all border border-amber-100"
@@ -235,7 +234,6 @@ export default function OrderManagement() {
                   </button>
                   <button onClick={() => window.open(`tel:${order.customerPhone}`)} className="h-11 w-11 bg-green-500 text-white rounded-xl flex items-center justify-center active:scale-90 transition-all shadow-lg shadow-green-100"><PhoneCall className="h-5 w-5" /></button>
                   
-                  {/* ALWAYS VISIBLE CANCEL BUTTON FOR ADMIN */}
                   <button 
                     onClick={() => handleCancelOrder(order.id)} 
                     className="h-11 w-11 bg-red-50 text-red-500 rounded-xl flex items-center justify-center active:scale-90 transition-all border border-red-100"
@@ -258,7 +256,6 @@ export default function OrderManagement() {
                   </div>
                </div>
 
-               {/* ADMIN NOTE DISPLAY (If exists) */}
                {order.adminNote && (
                  <div className="bg-amber-100 border-2 border-amber-400 p-4 rounded-2xl animate-in zoom-in duration-300">
                     <div className="flex items-center gap-2 text-amber-700 mb-1">
@@ -277,16 +274,6 @@ export default function OrderManagement() {
                   </div>
                </div>
 
-               {order.deliveryInstructions && (
-                 <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100 space-y-1">
-                    <div className="flex items-center gap-2 text-amber-700">
-                       <StickyNote className="h-3.5 w-3.5" />
-                       <span className="text-[8px] font-black uppercase tracking-widest">Customer Note</span>
-                    </div>
-                    <p className="text-xs font-black italic text-amber-900 leading-tight uppercase">"{order.deliveryInstructions}"</p>
-                 </div>
-               )}
-
                <div className="space-y-3 pt-2">
                   <span className="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Items Summary</span>
                   {order.items?.map((item: any, i: number) => (
@@ -299,12 +286,6 @@ export default function OrderManagement() {
                          <div className="flex items-center gap-1.5 text-primary">
                             <ListTree className="h-3 w-3" />
                             <span className="text-[9px] font-black uppercase tracking-widest bg-white px-2 py-0.5 rounded shadow-inner">VARIETY: {item.selectedOption.name}</span>
-                         </div>
-                       )}
-                       {item.instructions && (
-                         <div className="flex items-center gap-1.5 text-gray-500">
-                            <MessageSquare className="h-3 w-3" />
-                            <span className="text-[9px] font-bold italic uppercase">Note: {item.instructions}</span>
                          </div>
                        )}
                     </div>
@@ -326,7 +307,6 @@ export default function OrderManagement() {
         ))}
       </div>
 
-      {/* ADD NOTE DIALOG */}
       <Dialog open={isNoteOpen} onOpenChange={setIsNoteOpen}>
          <DialogContent className="rounded-[2.5rem] max-w-sm p-8 border-none shadow-2xl bg-white focus:outline-none">
             <div className="flex flex-col items-center text-center space-y-4">
