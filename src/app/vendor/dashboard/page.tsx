@@ -7,7 +7,6 @@ import {
   ShoppingBag, 
   Plus, 
   LogOut,
-  Utensils,
   LayoutDashboard,
   Layers,
   CircleDollarSign,
@@ -38,7 +37,8 @@ import {
   ListTree,
   AlertCircle,
   StickyNote,
-  MessageSquare
+  MessageSquare,
+  CalendarDays
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -276,7 +276,6 @@ export default function VendorDashboard() {
         </div>
       </header>
 
-      {/* KYC PENDING BANNER - MOBILE FULL SCREEN TRIGGER */}
       {isKycMissing && (
         <div 
           onClick={() => setIsKYCOpen(true)}
@@ -297,25 +296,35 @@ export default function VendorDashboard() {
       <main className={cn("flex-1 overflow-y-auto no-scrollbar pb-32 transition-opacity", isPending ? "opacity-50" : "opacity-100")}>
         {activeMainTab === 'orders' && (
            <div className="p-4 space-y-4">
-              <h2 className="text-xl font-black italic uppercase ml-2 mt-2">Store Orders</h2>
+              <h2 className="text-xl font-black italic uppercase ml-2 mt-2">Active Orders</h2>
               <div className="space-y-4">
                  {filteredOrders.length > 0 ? filteredOrders.map((o: any) => (
                    <div key={o.id} className="bg-white p-5 rounded-[2rem] border border-border/50 shadow-sm mb-4">
                       <div className="flex justify-between items-center mb-4">
                           <div>
                             <span className="text-lg font-black italic">#{o.customerOrderNumber || o.id.slice(-4)}</span>
-                            <div className="flex items-center gap-1 text-[8px] font-black text-gray-400 uppercase mt-0.5"><Clock className="h-2.5 w-2.5" />{format(new Date(o.createdAt?.seconds * 1000 || Date.now()), 'MMM d, h:mm a')}</div>
+                            <div className="flex items-center gap-1 text-[8px] font-black text-gray-400 uppercase mt-0.5">
+                               <Clock className="h-2.5 w-2.5 text-primary" />
+                               {isMounted && o.createdAt ? format(new Date(o.createdAt.seconds * 1000 || o.createdAt), 'hh:mm a') : '--:--'}
+                            </div>
                           </div>
                           <Badge className={cn("border-none text-[8px] font-black rounded-full px-2.5 py-1 uppercase", o.status === 'Cancelled' ? "bg-red-50 text-red-600" : "bg-primary/5 text-primary")}>{o.status}</Badge>
                       </div>
                       <div className="bg-muted/30 rounded-2xl p-4 mb-4 space-y-3">
-                          <div className="flex items-center gap-2 border-b border-white pb-2 mb-1"><User className="h-3.5 w-3.5 text-primary" /><span className="text-xs font-black uppercase italic">{o.customerName}</span></div>
+                          <div className="flex items-center justify-between border-b border-white pb-2 mb-1">
+                             <div className="flex items-center gap-2">
+                                <User className="h-3.5 w-3.5 text-primary" />
+                                <span className="text-xs font-black uppercase italic">{o.customerName}</span>
+                             </div>
+                             <div className="flex items-center gap-1 text-[8px] font-bold text-gray-400 uppercase tracking-widest italic">
+                                <CalendarDays className="h-2.5 w-2.5" /> {isMounted && o.createdAt ? format(new Date(o.createdAt.seconds * 1000 || o.createdAt), 'dd MMM') : ''}
+                             </div>
+                          </div>
                           
-                          {/* ORDER LEVEL NOTE FOR VENDOR */}
                           {o.deliveryInstructions && (
                             <div className="bg-amber-50 p-3 rounded-xl border border-amber-100 flex items-start gap-2 mb-2">
                                <StickyNote className="h-3 w-3 text-amber-600 shrink-0 mt-0.5" />
-                               <p className="text-[10px] font-black italic text-amber-900 leading-tight">"{o.deliveryInstructions}"</p>
+                               <p className="text-[10px] font-black italic text-amber-900 leading-tight uppercase">"{o.deliveryInstructions}"</p>
                             </div>
                           )}
 
@@ -328,7 +337,7 @@ export default function VendorDashboard() {
                                {item.instructions && (
                                  <div className="flex items-center gap-1.5 text-gray-500 pl-2">
                                     <MessageSquare className="h-2.5 w-2.5" />
-                                    <span className="text-[9px] font-bold italic">Note: {item.instructions}</span>
+                                    <span className="text-[9px] font-bold italic uppercase">Note: {item.instructions}</span>
                                  </div>
                                )}
                             </div>
@@ -367,7 +376,7 @@ export default function VendorDashboard() {
                            
                            <div className="grid grid-cols-2 gap-4">
                               <Input type="number" placeholder="Price ₹" value={productForm.price} onChange={e => setProductForm({...productForm, price: e.target.value})} className="h-12 rounded-xl border-none bg-gray-50 font-black italic text-primary" />
-                              <Input type="number" placeholder="Prep Time (Min)" value={productForm.preparingTime} onChange={e => setProductForm({...productForm, preparingTime: e.target.value})} className="h-12 rounded-xl border-none bg-primary/5 font-black text-center" />
+                              <Input type="number" placeholder="Prep Time (Min)" value={productForm.preparingTime} onChange={e => setPreparingTime(e.target.value)} className="h-12 rounded-xl border-none bg-primary/5 font-black text-center" />
                            </div>
 
                            <Select value={productForm.category} onValueChange={v => setProductForm({...productForm, category: v})}>
@@ -421,7 +430,7 @@ export default function VendorDashboard() {
                           <h4 className="font-black text-sm uppercase italic leading-none mb-1">{p.name}</h4>
                           <div className="flex items-center gap-2">
                              <span className="text-xs font-black text-primary italic">₹{p.price}</span>
-                             {p.preparingTime && <Badge className="bg-green-50 text-green-600 border-none font-black text-[7px] px-1.5 py-0">{p.preparingTime}M</Badge>}
+                             {p.preparingTime && <Badge className="bg-green-50 text-green-600 border-none font-black text-[7px] px-1.5 py-0"><Timer className="h-2 w-2 mr-1" />{p.preparingTime}M</Badge>}
                           </div>
                        </div>
                     </div>

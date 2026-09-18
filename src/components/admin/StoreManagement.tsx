@@ -7,9 +7,6 @@ import {
   Trash2, 
   Search, 
   Loader2, 
-  Globe, 
-  Plus, 
-  Clock, 
   Star, 
   Phone, 
   KeyRound, 
@@ -18,11 +15,10 @@ import {
   ShieldCheck,
   MapPin,
   Save,
-  X,
-  Navigation,
-  CheckCircle2,
-  TrendingUp,
-  Award
+  Timer,
+  Clock,
+  Award,
+  ChevronRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -148,7 +144,7 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
       <div className="bg-[#0B0B0B] p-8 rounded-[3rem] text-white relative overflow-hidden shadow-2xl">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
-             <h2 className="text-3xl font-black italic uppercase tracking-tighter">Logistics Center</h2>
+             <h2 className="text-3xl font-black italic uppercase tracking-tighter">Hub Control</h2>
              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Configure Partner Stores & Manual Ratings</p>
           </div>
           <div className="relative w-full md:w-80">
@@ -165,7 +161,6 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
         ) : filteredVendors.map((store: any) => {
           const isOpenByTime = isStoreScheduleOpen(store, currentTimeMins);
           const isEffectivelyOpen = store.isOnline !== false && isOpenByTime;
-          const hasLocation = store.lat && store.lng;
           const isBestRated = (Number(store.rating) || 0) >= 4.5;
 
           return (
@@ -243,7 +238,7 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
                                     onChange={e => setEditingStore({...editingStore, rating: e.target.value})} 
                                     className="h-12 rounded-xl border-none bg-white font-black text-2xl italic text-amber-600 text-center" 
                                  />
-                                 <p className="text-[7px] font-bold text-amber-700 uppercase text-center">Stores with higher rating will appear first on home.</p>
+                                 <p className="text-[7px] font-bold text-amber-700 uppercase text-center">High rating stores appear first on ShopyKart Home.</p>
                               </div>
 
                               <div className="grid grid-cols-2 gap-4">

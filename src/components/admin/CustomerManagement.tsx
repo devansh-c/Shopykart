@@ -24,7 +24,8 @@ import {
   Crown,
   ShieldCheck,
   AlertCircle,
-  Clock
+  Clock,
+  ChevronRight
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useState, useMemo, useEffect } from 'react';
@@ -146,7 +147,7 @@ export default function CustomerManagement() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in duration-500">
       <div className="bg-[#0B0B0B] p-8 rounded-[2.5rem] border border-white/10 shadow-2xl relative overflow-hidden">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
           <div>
@@ -245,15 +246,15 @@ export default function CustomerManagement() {
           </div>
         ) : filteredUsers.length > 0 ? (
           filteredUsers.map((user: any) => {
-            const fullDate = isMounted && user.createdAt?.seconds 
-              ? format(new Date(user.createdAt.seconds * 1000), 'MMM d, yyyy') 
+            const dateStr = isMounted && user.createdAt?.seconds 
+              ? format(new Date(user.createdAt.seconds * 1000), 'dd MMM yyyy') 
               : 'Recently';
             
-            const fullTime = isMounted && user.createdAt?.seconds 
+            const timeStr = isMounted && user.createdAt?.seconds 
               ? format(new Date(user.createdAt.seconds * 1000), 'hh:mm a') 
               : '';
 
-            const isPremium = user.isPremium && new Date(user.premiumExpiry).getTime() > Date.now();
+            const isPremium = user.isPremium && user.premiumExpiry && new Date(user.premiumExpiry).getTime() > Date.now();
 
             return (
               <div key={user.id} className="bg-white rounded-[2.5rem] p-6 border border-border/50 shadow-sm hover:shadow-xl transition-all group relative flex flex-col transform-gpu">
@@ -291,12 +292,12 @@ export default function CustomerManagement() {
                     <h3 className="font-black text-lg italic uppercase tracking-tighter leading-tight truncate pr-20">
                       {user.fullName || 'New User'}
                     </h3>
-                    <div className="flex flex-col mt-1">
-                       <div className="flex items-center gap-1 text-[9px] font-black text-primary uppercase tracking-widest italic">
-                          <Calendar className="h-2.5 w-2.5" /> Registered: {fullDate}
+                    <div className="mt-1 flex flex-col gap-0.5">
+                       <div className="flex items-center gap-1.5 text-[8px] font-black text-primary uppercase tracking-widest italic">
+                          <Calendar className="h-2.5 w-2.5" /> {dateStr}
                        </div>
-                       <div className="flex items-center gap-1 text-[9px] font-black text-muted-foreground uppercase tracking-widest italic mt-0.5">
-                          <Clock className="h-2.5 w-2.5" /> Time: {fullTime}
+                       <div className="flex items-center gap-1.5 text-[8px] font-black text-muted-foreground uppercase tracking-widest italic">
+                          <Clock className="h-2.5 w-2.5" /> {timeStr}
                        </div>
                     </div>
                   </div>
@@ -366,27 +367,10 @@ export default function CustomerManagement() {
                     <div className="flex items-start gap-2">
                       <div className="bg-white p-1 rounded-md shrink-0"><MapPin className="h-3 w-3 text-primary" /></div>
                       <div className="flex flex-col min-w-0">
-                         <span className="text-[7px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Delivery Point</span>
-                         <p className="text-[10px] font-bold text-gray-700 leading-tight">
+                         <span className="text-[7px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Drop At</span>
+                         <p className="text-[10px] font-bold text-gray-700 leading-tight uppercase italic">
                            {user.address || 'No address provided'}
                          </p>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="flex items-center gap-2 bg-white/50 p-2 rounded-xl border border-white">
-                        <Building2 className="h-3 w-3 text-gray-400" />
-                        <div className="flex flex-col">
-                           <span className="text-[6px] font-black text-gray-400 uppercase">City</span>
-                           <span className="text-[9px] font-black uppercase text-gray-800 truncate">{user.city || 'Ranipur'}</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 bg-white/50 p-2 rounded-xl border border-white">
-                        <Navigation className="h-3 w-3 text-gray-400" />
-                        <div className="flex flex-col">
-                           <span className="text-[6px] font-black text-gray-400 uppercase">Pincode</span>
-                           <span className="text-[9px] font-black text-gray-800">{user.pincode || '284205'}</span>
-                        </div>
                       </div>
                     </div>
                   </div>

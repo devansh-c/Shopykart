@@ -34,6 +34,7 @@ jobs:
         run: |
           npx cap sync android
           cd android
+          if [ ! -f gradlew ]; then gradle wrapper; fi
           chmod +x gradlew
           ./gradlew assembleDebug
           ./gradlew bundleDebug
@@ -48,6 +49,7 @@ jobs:
         run: |
           npx cap sync android
           cd android
+          if [ ! -f gradlew ]; then gradle wrapper; fi
           chmod +x gradlew
           ./gradlew assembleDebug
           ./gradlew bundleDebug
@@ -62,6 +64,7 @@ jobs:
         run: |
           npx cap sync android
           cd android
+          if [ ! -f gradlew ]; then gradle wrapper; fi
           chmod +x gradlew
           ./gradlew assembleDebug
           ./gradlew bundleDebug
@@ -76,6 +79,7 @@ jobs:
         run: |
           npx cap sync android
           cd android
+          if [ ! -f gradlew ]; then gradle wrapper; fi
           chmod +x gradlew
           ./gradlew assembleDebug
           ./gradlew bundleDebug

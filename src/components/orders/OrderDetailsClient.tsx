@@ -243,13 +243,13 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
       const orderDate = format(new Date(order.createdAt?.seconds * 1000 || Date.now()), 'dd MMM yyyy, hh:mm a');
       
       const itemsHtml = order.items?.map((item: any) => `
-        <div style="margin-bottom: 12px;">
-          <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: 800;">
-            <span style="flex: 2; pr: 10px;">${item.name}</span>
+        <div style="margin-bottom: 12px; border-bottom: 1px dashed #eee; padding-bottom: 5px;">
+          <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: 900;">
+            <span style="flex: 2; padding-right: 10px;">${item.name}</span>
             <span style="flex: 0.5; text-align: center;">X${item.quantity}</span>
             <span style="flex: 1; text-align: right;">${(item.price * item.quantity).toFixed(2)}</span>
           </div>
-          ${item.selectedOption ? `<div style="font-size: 9px; color: #000; font-weight: 900; margin-top: 1px;">• VARIETY: ${item.selectedOption.name}</div>` : ''}
+          ${item.selectedOption ? `<div style="font-size: 9px; color: #EF4444; font-weight: 900; margin-top: 2px;">• VARIETY: ${item.selectedOption.name}</div>` : ''}
           ${item.restaurantName ? `<div style="font-size: 8px; color: #555; font-weight: 700; margin-top: 2px;">FROM: ${item.restaurantName}</div>` : ''}
         </div>
       `).join('');
@@ -275,13 +275,16 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
         <div style="text-align: center; margin-bottom: 25px;">
           <h1 style="margin: 0; font-size: 38px; font-weight: 900; letter-spacing: -2px; font-style: italic;">SHOPYKART</h1>
           <p style="margin: 2px 0; font-size: 10px; font-weight: 900; letter-spacing: 2px;">PREMIUM DELIVERY NETWORK</p>
-          <div style="border-top: 1.5px dashed #000; margin: 15px auto 0; width: 100%;"></div>
+          <div style="border-top: 2px dashed #000; margin: 15px auto 0; width: 100%;"></div>
         </div>
         <div style="margin-bottom: 25px; line-height: 1.8; font-size: 11px; font-weight: 800;">
           <div style="display: flex; justify-content: space-between;"><span>ORDER NO:</span><span>#${order.customerOrderNumber || '1'}</span></div>
           <div style="display: flex; justify-content: space-between;"><span>TIME:</span><span>${orderDate}</span></div>
           <div style="display: flex; justify-content: space-between;"><span>CUSTOMER:</span><span>${order.customerName}</span></div>
-          <div style="display: flex; justify-content: space-between;"><span>ADDRESS:</span><span style="text-align: right; max-width: 200px;">${order.address}</span></div>
+          <div style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;">
+            <div style="font-weight: 900; margin-bottom: 4px;">DELIVERY ADDRESS:</div>
+            <div style="font-size: 10px; color: #333; line-height: 1.4; text-transform: uppercase;">${order.address}</div>
+          </div>
         </div>
         <div style="border-top: 1.5px dashed #000; margin-bottom: 15px;"></div>
         <div>${itemsHtml}</div>
@@ -293,23 +296,22 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
         </div>
         ` : ''}
 
-        <div style="border-top: 1.5px dashed #000; margin: 15px 0; padding-top: 10px; font-size: 9px;">
-          <div style="font-weight: 900; margin-bottom: 5px;">TAX & EXTRA CHARGES:</div>
+        <div style="border-top: 1.5px dashed #000; margin: 15px 0; padding-top: 10px; font-size: 10px; font-weight: 700;">
           ${taxHtml || '<div>NO EXTRA CHARGES</div>'}
         </div>
-        <div style="border-top: 2px solid #000; margin: 15px 0;"></div>
-        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 24px; font-weight: 900; font-style: italic;">
+        <div style="border-top: 2.5px solid #000; margin: 15px 0;"></div>
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 26px; font-weight: 900; font-style: italic;">
           <span>GRAND TOTAL</span><span>₹${order.total?.toFixed(2)}</span>
         </div>
         
-        <div style="text-align: center; margin-top: 25px; padding: 15px; border: 2px dashed #000; border-radius: 20px; background: #fafafa;">
-           <p style="font-size: 8px; font-weight: 900; margin-bottom: 12px;">SCAN TO PAY VIA UPI</p>
-           <img src="${qrUrl}" style="width: 140px; height: 140px; margin: 0 auto; display: block;" />
-           <p style="font-size: 7px; font-weight: 800; margin-top: 10px;">ID: 9450355709@axl</p>
+        <div style="text-align: center; margin-top: 25px; padding: 15px; border: 2px dashed #000; border-radius: 25px; background: #fafafa; display: inline-block;">
+           <p style="font-size: 9px; font-weight: 900; margin-bottom: 12px;">SCAN TO PAY VIA UPI</p>
+           <img src="${qrUrl}" style="width: 160px; height: 160px; display: block; margin: 0 auto;" />
+           <p style="font-size: 8px; font-weight: 900; margin-top: 10px;">PAY ID: 9450355709@axl</p>
         </div>
 
-        <div style="text-align: center; margin-top: 30px;">
-          <div style="border: 1.5px solid #000; display: inline-block; padding: 4px 15px; font-size: 10px; font-weight: 900; letter-spacing: 2px;">POWERED BY SHOPYKART</div>
+        <div style="text-align: center; margin-top: 40px; border: 2px solid #000; padding: 10px;">
+          <div style="font-size: 10px; font-weight: 900; letter-spacing: 2px;">POWERED BY SHOPYKART POS</div>
         </div>
       `;
       
@@ -505,7 +507,7 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
                     <div className="flex-1 min-w-0">
                        <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Delivering to</span>
                        <p className="text-sm font-black text-gray-800 uppercase leading-none truncate mt-0.5">{order.customerName}</p>
-                       <p className="text-[10px] font-bold text-gray-400 uppercase mt-1.5 leading-relaxed line-clamp-1 italic tracking-tight">{order.address}</p>
+                       <p className="text-[10px] font-bold text-gray-400 uppercase mt-1.5 leading-relaxed line-clamp-1 italic tracking-tight uppercase">{order.address}</p>
                     </div>
                  </div>
               </div>

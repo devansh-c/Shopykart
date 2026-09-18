@@ -89,13 +89,13 @@ export default function OrderManagement() {
       
       const itemsHtml = order.items?.map((item: any) => `
         <div style="margin-bottom: 12px; border-bottom: 1px dashed #eee; padding-bottom: 5px;">
-          <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 900;">
+          <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: 900;">
             <span style="flex: 2;">${item.name}</span>
             <span style="flex: 0.5; text-align: center;">X${item.quantity}</span>
             <span style="flex: 1; text-align: right;">${(item.price * item.quantity).toFixed(2)}</span>
           </div>
           ${item.selectedOption ? `<div style="font-size: 9px; color: #EF4444; font-weight: 900; margin-top: 2px;">VARIETY: ${item.selectedOption.name}</div>` : ''}
-          ${item.instructions ? `<div style="font-size: 9px; color: #555; font-weight: 700; margin-top: 2px; font-style: italic;">NOTE: ${item.instructions}</div>` : ''}
+          ${item.instructions ? `<div style="font-size: 8px; color: #555; font-weight: 700; margin-top: 2px; font-style: italic;">NOTE: ${item.instructions}</div>` : ''}
         </div>
       `).join('');
 
@@ -128,7 +128,7 @@ export default function OrderManagement() {
           <div style="display: flex; justify-content: space-between;"><span>CUSTOMER:</span><span>${order.customerName}</span></div>
           <div style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;">
             <div style="font-weight: 900; margin-bottom: 4px;">DELIVERY ADDRESS:</div>
-            <div style="font-size: 10px; color: #333; line-height: 1.4;">${order.address}</div>
+            <div style="font-size: 10px; color: #333; line-height: 1.4; text-transform: uppercase;">${order.address}</div>
           </div>
         </div>
         <div>${itemsHtml}</div>
@@ -218,14 +218,13 @@ export default function OrderManagement() {
                   </div>
                </div>
 
-               {/* CUSTOMER INSTRUCTIONS HIGHLIGHT */}
                {order.deliveryInstructions && (
                  <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100 space-y-1">
                     <div className="flex items-center gap-2 text-amber-700">
                        <StickyNote className="h-3.5 w-3.5" />
-                       <span className="text-[8px] font-black uppercase tracking-widest">Delivery Instruction</span>
+                       <span className="text-[8px] font-black uppercase tracking-widest">Customer Note</span>
                     </div>
-                    <p className="text-xs font-black italic text-amber-900 leading-tight">"{order.deliveryInstructions}"</p>
+                    <p className="text-xs font-black italic text-amber-900 leading-tight uppercase">"{order.deliveryInstructions}"</p>
                  </div>
                )}
 
@@ -246,7 +245,7 @@ export default function OrderManagement() {
                        {item.instructions && (
                          <div className="flex items-center gap-1.5 text-gray-500">
                             <MessageSquare className="h-3 w-3" />
-                            <span className="text-[9px] font-bold italic">Note: {item.instructions}</span>
+                            <span className="text-[9px] font-bold italic uppercase">Note: {item.instructions}</span>
                          </div>
                        )}
                     </div>
@@ -254,7 +253,7 @@ export default function OrderManagement() {
                </div>
                
                <div className="flex justify-between items-center pt-2 border-t border-white font-black italic text-lg text-gray-900">
-                  <span className="text-sm uppercase tracking-tighter text-gray-500">Collection</span>
+                  <span className="text-sm uppercase tracking-tighter text-gray-500">Total Collection</span>
                   <span>₹{order.total?.toFixed(0)}</span>
                </div>
             </div>

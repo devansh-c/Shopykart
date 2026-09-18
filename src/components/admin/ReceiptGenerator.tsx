@@ -106,7 +106,7 @@ export default function ReceiptGenerator() {
       <div className="text-center mb-6">
         <h2 className="text-4xl font-black italic tracking-tighter leading-none mb-1">SHOPYKART</h2>
         <p className="text-[8px] font-black opacity-60 tracking-[0.2em]">PREMIUM DELIVERY</p>
-        <p className="text-[9px] mt-4 font-bold">{settings?.receiptHeader || 'MAURANIPUR, UP'}</p>
+        <p className="text-[9px] mt-4 font-bold whitespace-pre-line">${settings?.receiptHeader || 'MAURANIPUR, UP'}</p>
       </div>
 
       <div className="border-t border-dashed border-black my-4"></div>
@@ -115,7 +115,10 @@ export default function ReceiptGenerator() {
         <div className="flex justify-between"><span>BILL NO:</span><span>#${orderId}</span></div>
         <div className="flex justify-between"><span>DATE:</span><span>${format(new Date(), 'dd/MM/yy HH:mm')}</span></div>
         <div className="flex justify-between"><span>NAME:</span><span className="truncate max-w-[150px]">${customerName || 'GUEST'}</span></div>
-        <div className="flex justify-between"><span className="shrink-0 mr-4">ADDRESS:</span><span className="text-right leading-tight">${customerAddress || 'N/A'}</span></div>
+        <div style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;">
+          <div style="font-weight: 900; margin-bottom: 4px;">ADDRESS:</div>
+          <div style="font-size: 10px; color: #333; line-height: 1.4; text-align: right;">${customerAddress || 'N/A'}</div>
+        </div>
       </div>
 
       <div className="border-t border-dashed border-black my-4"></div>
@@ -132,7 +135,7 @@ export default function ReceiptGenerator() {
               <tr key={item.id} className="border-b border-dashed border-black/10">
                 <td className="py-2.5">
                    <div className="font-black">${item.name}</div>
-                   ${item.variety ? `<div style="font-size: 8px; color: #EF4444; font-weight: 900; margin-top: 1px;">VARIETY: ${item.variety}</div>` : ''}
+                   ${item.variety ? `<div style="font-size: 8px; color: #EF4444; font-weight: 900; margin-top: 1px;">• VARIETY: ${item.variety}</div>` : ''}
                 </td>
                 <td className="text-center font-black">${item.quantity}</td>
                 <td className="text-right font-black">${(item.price * item.quantity).toFixed(2)}</td>
@@ -162,7 +165,7 @@ export default function ReceiptGenerator() {
 
       <div className="text-center mt-8 space-y-6 flex flex-col items-center">
         <div style="padding: 15px; border: 2px dashed #000; border-radius: 25px; background: #fafafa; display: inline-block;">
-           <p style="font-size: 9px; font-weight: 900; margin-bottom: 12px;">SCAN TO PAY EXACT AMOUNT</p>
+           <p style="font-size: 9px; font-weight: 900; margin-bottom: 12px;">SCAN TO PAY VIA UPI</p>
            <img src="${qrUrl}" style="width: 160px; height: 160px; display: block; margin: 0 auto;" />
            <p style="font-size: 8px; font-weight: 900; margin-top: 10px;">9450355709@axl</p>
         </div>
