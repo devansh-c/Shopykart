@@ -31,11 +31,30 @@ jobs:
         run: |
           mkdir -p android
           cd android
-          # Generate Gradle Wrapper using globally installed gradle
-          gradle wrapper
-          # Ensure essential gradle files exist
+          # Ensure gradlew can be generated if missing
+          if [ ! -f "gradlew" ]; then
+            gradle wrapper
+          fi
+          # Ensure essential gradle files exist with valid content
           if [ ! -f "build.gradle" ]; then
-            echo "// Top-level build file" > build.gradle
+            cat <<EOF > build.gradle
+            buildscript {
+                repositories {
+                    google()
+                    mavenCentral()
+                }
+                dependencies {
+                    classpath 'com.android.tools.build:gradle:8.2.1'
+                    classpath 'com.google.gms:google-services:4.4.0'
+                }
+            }
+            allprojects {
+                repositories {
+                    google()
+                    mavenCentral()
+                }
+            }
+EOF
           fi
           if [ ! -f "settings.gradle" ]; then
             echo "include ':app'" > settings.gradle
