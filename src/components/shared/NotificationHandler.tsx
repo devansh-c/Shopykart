@@ -9,8 +9,8 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
 /**
- * @fileOverview Global Notification Handler - Fixed Dark Screen Interaction.
- * Removed shadcn Dialog to prevent background blocking. Uses high z-index fixed modal.
+ * @fileOverview Global Notification Handler - Unblocked Interaction.
+ * Uses high z-index fixed modal with correct pointer events to prevent blocking.
  */
 export default function NotificationHandler() {
   const { user } = useUser();
@@ -122,8 +122,7 @@ export default function NotificationHandler() {
   if (ringingOrders.length === 0) return null;
 
   return (
-    <div className="fixed inset-0 z-[2000000] flex items-center justify-center p-6">
-      {/* Semi-transparent dark background that allows clicks on the inner card */}
+    <div className="fixed inset-0 z-[2000000] flex items-center justify-center p-6 pointer-events-none">
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300" />
       
       <div className="relative z-[2000001] bg-white rounded-[3.5rem] p-10 w-full max-w-sm flex flex-col items-center text-center shadow-2xl animate-in zoom-in duration-500 transform-gpu pointer-events-auto">
@@ -147,7 +146,7 @@ export default function NotificationHandler() {
           
           <button 
             onClick={() => setRingingOrders([])}
-            className="text-[9px] font-black text-gray-400 uppercase tracking-widest hover:text-red-500 transition-colors"
+            className="text-[9px] font-black text-gray-400 uppercase tracking-widest hover:text-red-500 transition-colors pointer-events-auto cursor-pointer"
           >
             Ignore Alert
           </button>
