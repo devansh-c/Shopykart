@@ -30,32 +30,29 @@ jobs:
       - name: Initialize Android Project Files
         run: |
           mkdir -p android/app
-          # Create bulletproof gradle files
-          cat <<EOF > android/build.gradle
-buildscript {
-    repositories {
-        google()
-        mavenCentral()
-    }
-    dependencies {
-        classpath 'com.android.tools.build:gradle:8.2.1'
-        classpath 'com.google.gms:google-services:4.4.0'
-    }
-}
-allprojects {
-    repositories {
-        google()
-        mavenCentral()
-    }
-}
-EOF
+          # Create bulletproof gradle files using proper redirection to maintain YAML indentation
+          echo "buildscript {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+              dependencies {
+                  classpath 'com.android.tools.build:gradle:8.2.1'
+                  classpath 'com.google.gms:google-services:4.4.0'
+              }
+          }
+          allprojects {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }" > android/build.gradle
+          
           echo "include ':app'" > android/settings.gradle
-          # Ensure gradlew exists or generate it
+          
+          # Generate gradlew using system gradle
           cd android
-          if [ ! -f "gradlew" ]; then
-            npm install -g gradle
-            gradle wrapper
-          fi
+          gradle wrapper
           chmod +x gradlew
           cd ..
 
