@@ -15,7 +15,8 @@ import {
   IndianRupee,
   RefreshCw,
   Eye,
-  ListTree
+  ListTree,
+  StickyNote
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -41,7 +42,9 @@ export default function ReceiptGenerator() {
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'online' | 'cod'>('online');
+  const [specialNote, setSpecialNote] = useState('');
+  const [deliveryFee, setDeliveryFee] = useState('0');
+  const [taxAmount, setTaxAmount] = useState('0');
   const [orderId, setOrderId] = useState('');
   const [items, setItems] = useState<Item[]>([
     { id: '1', name: '', quantity: 1, price: 0, variety: '' }
@@ -58,8 +61,9 @@ export default function ReceiptGenerator() {
   const { data: settings } = useDoc<any>(brandingRef);
 
   const total = useMemo(() => {
-    return items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-  }, [items]);
+    const itemsTotal = items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+    return itemsTotal + parseFloat(deliveryFee || '0') + parseFloat(taxAmount || '0');
+  }, [items, deliveryFee, taxAmount]);
 
   const handleAddItem = () => {
     setItems([...items, { id: Date.now().toString(), name: '', quantity: 1, price: 0, variety: '' }]);
@@ -111,6 +115,7 @@ export default function ReceiptGenerator() {
         <div className="flex justify-between"><span>BILL NO:</span><span>#${orderId}</span></div>
         <div className="flex justify-between"><span>DATE:</span><span>${format(new Date(), 'dd/MM/yy HH:mm')}</span></div>
         <div className="flex justify-between"><span>NAME:</span><span className="truncate max-w-[150px]">${customerName || 'GUEST'}</span></div>
+        <div className="flex justify-between"><span className="shrink-0 mr-4">ADDRESS:</span><span className="text-right leading-tight">${customerAddress || 'N/A'}</span></div>
       </div>
 
       <div className="border-t border-dashed border-black my-4"></div>
@@ -136,10 +141,24 @@ export default function ReceiptGenerator() {
           ))}
         </tbody>
       </table>
+
+      {(parseFloat(deliveryFee) > 0 || parseFloat(taxAmount) > 0) && (
+        <div className="mt-4 pt-4 border-t border-dashed border-black/20 space-y-1 font-bold text-[9px]">
+           ${parseFloat(deliveryFee) > 0 ? `<div style="display: flex; justify-content: space-between;"><span>DELIVERY FEE:</span><span>₹${parseFloat(deliveryFee).toFixed(2)}</span></div>` : ''}
+           ${parseFloat(taxAmount) > 0 ? `<div style="display: flex; justify-content: space-between;"><span>TAX & CHARGES:</span><span>₹${parseFloat(taxAmount).toFixed(2)}</span></div>` : ''}
+        </div>
+      )}
       
       <div className="border-t-2 border-black mt-5 pt-4 flex justify-between items-center text-2xl font-black italic">
         <span>TOTAL</span><span>₹${total.toFixed(2)}</span>
       </div>
+
+      {specialNote && (
+        <div className="mt-4 p-3 border-2 border-dashed border-black/20 rounded-lg">
+           <div className="text-[8px] font-black mb-1">SPECIAL NOTES:</div>
+           <div className="text-[10px] font-bold italic leading-tight">"${specialNote}"</div>
+        </div>
+      )}
 
       <div className="text-center mt-8 space-y-6 flex flex-col items-center">
         <div style="padding: 15px; border: 2px dashed #000; border-radius: 25px; background: #fafafa; display: inline-block;">
@@ -158,13 +177,22 @@ export default function ReceiptGenerator() {
       <div className="space-y-8 bg-white p-8 rounded-[3rem] border border-border/50 shadow-sm">
         <div className="flex items-center justify-between">
            <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900">Manual POS</h2>
-           <button onClick={resetForm} className="h-10 w-10 bg-gray-50 rounded-full flex items-center justify-center text-gray-400 active:scale-90"><RefreshCw className="h-4 w-4" /></button>
+           <button onClick={() => { setCustomerName(''); setCustomerPhone(''); setCustomerAddress(''); setSpecialNote(''); setItems([{ id: '1', name: '', quantity: 1, price: 0, variety: '' }]); }} className="h-10 w-10 bg-gray-50 rounded-full flex items-center justify-center text-gray-400 active:scale-90"><RefreshCw className="h-4 w-4" /></button>
         </div>
 
         <div className="space-y-4">
            <Input placeholder="CUSTOMER NAME" value={customerName} onChange={e => setCustomerName(e.target.value.toUpperCase())} className="h-14 rounded-2xl bg-muted/20 border-none font-bold" />
-           <Input placeholder="PHONE NUMBER" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} className="h-14 rounded-2xl bg-muted/20 border-none font-bold" />
+           <div className="grid grid-cols-2 gap-4">
+              <Input placeholder="PHONE NUMBER" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} className="h-14 rounded-2xl bg-muted/20 border-none font-bold" />
+              <Input placeholder="DELIVERY FEE ₹" type="number" value={deliveryFee} onChange={e => setDeliveryFee(e.target.value)} className="h-14 rounded-2xl bg-muted/20 border-none font-bold" />
+           </div>
+           <Input placeholder="COMPLETE ADDRESS" value={customerAddress} onChange={e => setCustomerAddress(e.target.value.toUpperCase())} className="h-14 rounded-2xl bg-muted/20 border-none font-bold" />
            
+           <div className="relative">
+              <StickyNote className="absolute left-4 top-4 h-4 w-4 text-gray-400" />
+              <Textarea placeholder="SPECIAL INSTRUCTIONS (E.G. NO ONION)" value={specialNote} onChange={e => setSpecialNote(e.target.value.toUpperCase())} className="h-20 pl-12 rounded-2xl bg-muted/20 border-none font-bold text-xs uppercase" />
+           </div>
+
            <div className="space-y-3 pt-4">
               <div className="flex justify-between items-center"><h3 className="text-sm font-black uppercase text-gray-800">Add Items</h3><button onClick={handleAddItem} className="bg-primary/10 text-primary px-4 py-2 rounded-xl text-[10px] font-black uppercase">+ ROW</button></div>
               {items.map((item) => (

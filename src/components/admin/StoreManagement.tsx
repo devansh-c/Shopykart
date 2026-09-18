@@ -83,7 +83,7 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
                            v.storeId?.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory = !categoryFilter || v.category === categoryFilter;
       return matchesSearch && matchesCategory;
-    }).sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    }).sort((a, b) => (Number(b.rating) || 0) - (Number(a.rating) || 0));
   }, [vendors, searchQuery, categoryFilter]);
 
   const handleUpdateStore = async () => {
@@ -137,9 +137,9 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
 
   const handleDeleteStore = async (id: string) => {
     if (!firestore) return;
-    if (confirm("🚨 KHATARNAK ALERT: Kya aap is store ko hamesha ke liye delete karna chahte hain? Iska saara data gayab ho jayega.")) {
+    if (confirm("🚨 DELETE ALERT: Permanently remove this store hub?")) {
       await deleteDoc(doc(firestore, 'vendors', id));
-      toast({ title: "Store Deleted Permanently" });
+      toast({ title: "Store Deleted" });
     }
   };
 
@@ -149,7 +149,7 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
              <h2 className="text-3xl font-black italic uppercase tracking-tighter">Logistics Center</h2>
-             <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Configure Partner Stores & Quality Ratings</p>
+             <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Configure Partner Stores & Manual Ratings</p>
           </div>
           <div className="relative w-full md:w-80">
              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -170,17 +170,6 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
 
           return (
             <div key={store.id} className="bg-white rounded-[2.5rem] overflow-hidden border border-border/50 shadow-sm hover:shadow-xl transition-all group flex flex-col relative transform-gpu">
-              {/* PIN LOCATION OVERLAY FOR MISSING DATA */}
-              {!hasLocation && (
-                <button 
-                  onClick={() => { setStoreToPin(store); setIsMapOpen(true); }}
-                  className="bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 flex items-center justify-center gap-2 transition-all active:scale-95 z-20"
-                >
-                  <MapPin className="h-4 w-4 animate-bounce" />
-                  <span className="text-[10px] font-black uppercase tracking-widest italic">Pick Hub Location Spot</span>
-                </button>
-              )}
-
               <div className="p-6 flex flex-col flex-1">
                 <div className="flex items-start justify-between mb-6">
                   <div className="flex items-center gap-4">
@@ -226,19 +215,13 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
                          <div className="flex items-center gap-2"><Phone className="h-3.5 w-3.5 text-green-500" /><span className="text-xs font-bold text-gray-700">{store.phone || 'N/A'}</span></div>
                          <div className="flex items-center gap-2"><Clock className="h-3.5 w-3.5 text-amber-500" /><span className="text-[9px] font-black text-gray-600 uppercase tracking-tighter">{store.openingTime} - {store.closingTime}</span></div>
                       </div>
-                      {hasLocation && (
-                        <div className="flex items-center gap-2 pt-2 border-t border-white/50">
-                           <CheckCircle2 className="h-3 w-3 text-green-500" />
-                           <span className="text-[8px] font-black text-green-600 uppercase tracking-widest">Store Hub Pinned</span>
-                        </div>
-                      )}
                   </div>
                 </div>
 
                 <div className="flex gap-2">
                   <Dialog open={isEditOpen && editingStore?.id === store.id} onOpenChange={(val) => { setIsEditOpen(val); if(val) setEditingStore({...store}); }}>
                       <DialogTrigger asChild>
-                        <Button className="flex-1 h-12 bg-black hover:bg-primary text-white rounded-2xl font-black uppercase italic text-[10px] tracking-widest shadow-xl transition-all"><Edit className="h-3.5 w-3.5 mr-2" /> STORE SETTINGS</Button>
+                        <button className="flex-1 h-12 bg-black hover:bg-primary text-white rounded-2xl font-black uppercase italic text-[10px] tracking-widest shadow-xl transition-all flex items-center justify-center gap-2"><Edit className="h-3.5 w-3.5" /> SET RATING & TIMING</button>
                       </DialogTrigger>
                       <DialogContent className="rounded-[2.5rem] max-w-md p-0 overflow-hidden border-none shadow-2xl flex flex-col max-h-[90vh]">
                         <DialogHeader className="p-8 pb-4">
@@ -246,15 +229,10 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
                         </DialogHeader>
                         <div className="flex-1 overflow-y-auto no-scrollbar p-8 pt-0 space-y-6">
                             <div className="space-y-4">
-                              <div className="space-y-1">
-                                  <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Store Display Name</label>
-                                  <Input value={editingStore?.storeName} onChange={e => setEditingStore({...editingStore, storeName: e.target.value})} className="h-14 rounded-2xl bg-muted/20 border-none font-bold text-lg" />
-                              </div>
-
                               <div className="p-5 bg-amber-50 rounded-[2rem] border border-amber-100 space-y-3">
                                  <div className="flex items-center gap-2">
                                     <Star className="h-4 w-4 text-amber-600 fill-amber-500" />
-                                    <span className="text-[10px] font-black uppercase">Set Visibility Rating</span>
+                                    <span className="text-[10px] font-black uppercase">Store Visibility Rating</span>
                                  </div>
                                  <Input 
                                     type="number" 
@@ -265,7 +243,7 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
                                     onChange={e => setEditingStore({...editingStore, rating: e.target.value})} 
                                     className="h-12 rounded-xl border-none bg-white font-black text-2xl italic text-amber-600 text-center" 
                                  />
-                                 <p className="text-[7px] font-bold text-amber-700 uppercase text-center">Stores with higher rating will appear first in search.</p>
+                                 <p className="text-[7px] font-bold text-amber-700 uppercase text-center">Stores with higher rating will appear first on home.</p>
                               </div>
 
                               <div className="grid grid-cols-2 gap-4">
@@ -293,7 +271,8 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
                         </div>
                       </DialogContent>
                   </Dialog>
-                  <Button onClick={() => handleDeleteStore(store.id)} variant="ghost" size="icon" className="h-12 w-12 rounded-2xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm"><Trash2 className="h-4.5 w-4.5" /></Button>
+                  <button onClick={() => { setStoreToPin(store); setIsMapOpen(true); }} className="h-12 w-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100"><MapPin className="h-5 w-5" /></button>
+                  <button onClick={() => handleDeleteStore(store.id)} className="h-12 w-12 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center border border-red-100"><Trash2 className="h-5 w-5" /></button>
                 </div>
               </div>
             </div>
@@ -301,7 +280,6 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
         })}
       </div>
 
-      {/* GLOBAL MAP DIALOG FOR HUB PINNING */}
       <Dialog open={isMapOpen} onOpenChange={(val) => { setIsMapOpen(val); if(!val) setStoreToPin(null); }}>
          <DialogContent className="rounded-none sm:rounded-[3rem] max-w-2xl h-full sm:h-[85vh] p-0 overflow-hidden border-none shadow-2xl focus:outline-none flex flex-col">
             <div className="flex-1 min-h-0 relative">

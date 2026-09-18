@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -20,7 +19,7 @@ import { requestPushToken } from '@/firebase/messaging';
 import { cn } from '@/lib/utils';
 
 /**
- * @fileOverview Simplified LocationHeader - Hidden Food/Medical/etc. switcher.
+ * @fileOverview Simplified LocationHeader - All modes hidden for clean Food-only UI.
  */
 export function LocationHeader({
   searchValue,

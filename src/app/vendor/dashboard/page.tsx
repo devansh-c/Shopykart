@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -277,10 +276,10 @@ export default function VendorDashboard() {
         </div>
       </header>
 
-      {/* KYC PENDING BANNER */}
+      {/* KYC PENDING BANNER - MOBILE FULL SCREEN TRIGGER */}
       {isKycMissing && (
         <div 
-          onClick={() => { setIsKYCOpen(true); setActiveMainTab('payouts'); }}
+          onClick={() => setIsKYCOpen(true)}
           className="bg-[#3b82f6] px-5 py-4 flex items-center justify-between cursor-pointer active:brightness-90 transition-all border-b-2 border-blue-600/20"
         >
           <div className="text-white space-y-0.5">
@@ -519,7 +518,7 @@ export default function VendorDashboard() {
         ))}
       </nav>
 
-      {/* KYC POPUP - MOBILE OPTIMIZED FULL SCREEN */}
+      {/* KYC HUB - MOBILE OPTIMIZED FULL SCREEN */}
       <Dialog open={isKYCOpen} onOpenChange={setIsKYCOpen}>
          <DialogContent className="inset-0 w-full h-full max-w-none rounded-none p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none flex flex-col z-[60000]">
             <div className="bg-primary h-1.5 w-full shrink-0" />

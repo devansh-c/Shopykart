@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -219,7 +218,7 @@ export default function OrderManagement() {
                   </div>
                </div>
 
-               {/* CUSTOMER INSTRUCTIONS - ADDED FOR ADMIN PANEL */}
+               {/* CUSTOMER INSTRUCTIONS HIGHLIGHT */}
                {order.deliveryInstructions && (
                  <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100 space-y-1">
                     <div className="flex items-center gap-2 text-amber-700">

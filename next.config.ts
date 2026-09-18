@@ -13,14 +13,12 @@ const nextConfig: NextConfig = {
   },
   trailingSlash: false,
   staticPageGenerationTimeout: 1200,
-  // Optimized for faster builds and stable preview
-  experimental: {
-    turbo: {
-      rules: {
-        '*.svg': {
-          loaders: ['@svgr/webpack'],
-          as: '*.js',
-        },
+  // Optimized for faster builds and stable preview in Next.js 15
+  turbopack: {
+    rules: {
+      '*.svg': {
+        loaders: ['@svgr/webpack'],
+        as: '*.js',
       },
     },
   },
