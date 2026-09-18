@@ -27,11 +27,15 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Prepare Gradle Wrapper
+      - name: Prepare Android Project
         run: |
+          mkdir -p android
+          # Ensure gradlew exists or generate it
           cd android
-          if [ ! -f gradlew ]; then gradle wrapper; fi
-          chmod +x gradlew
+          if [ ! -f build.gradle ]; then
+            echo "Initializing Gradle Build..."
+            gradle init --type basic --quiet
+          fi
           cd ..
 
       # 1. BUILD CUSTOMER APP
@@ -41,6 +45,7 @@ jobs:
         run: |
           npx cap sync android
           cd android
+          chmod +x gradlew
           ./gradlew assembleDebug
           ./gradlew bundleDebug
           mv app/build/outputs/apk/debug/app-debug.apk ../ShopyKart-Customer.apk
@@ -54,6 +59,7 @@ jobs:
         run: |
           npx cap sync android
           cd android
+          chmod +x gradlew
           ./gradlew assembleDebug
           ./gradlew bundleDebug
           mv app/build/outputs/apk/debug/app-debug.apk ../ShopyKart-Admin.apk
@@ -67,6 +73,7 @@ jobs:
         run: |
           npx cap sync android
           cd android
+          chmod +x gradlew
           ./gradlew assembleDebug
           ./gradlew bundleDebug
           mv app/build/outputs/apk/debug/app-debug.apk ../ShopyKart-Vendor.apk
@@ -80,6 +87,7 @@ jobs:
         run: |
           npx cap sync android
           cd android
+          chmod +x gradlew
           ./gradlew assembleDebug
           ./gradlew bundleDebug
           mv app/build/outputs/apk/debug/app-debug.apk ../ShopyKart-Delivery.apk
