@@ -36,29 +36,25 @@ jobs:
             gradle wrapper
           fi
           # Ensure essential gradle files exist with valid content
-          if [ ! -f "build.gradle" ]; then
-            cat <<EOF > build.gradle
-            buildscript {
-                repositories {
-                    google()
-                    mavenCentral()
-                }
-                dependencies {
-                    classpath 'com.android.tools.build:gradle:8.2.1'
-                    classpath 'com.google.gms:google-services:4.4.0'
-                }
-            }
-            allprojects {
-                repositories {
-                    google()
-                    mavenCentral()
-                }
-            }
+          cat <<EOF > build.gradle
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.2.1'
+        classpath 'com.google.gms:google-services:4.4.0'
+    }
+}
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
 EOF
-          fi
-          if [ ! -f "settings.gradle" ]; then
-            echo "include ':app'" > settings.gradle
-          fi
+          echo "include ':app'" > settings.gradle
           chmod +x gradlew
           cd ..
 

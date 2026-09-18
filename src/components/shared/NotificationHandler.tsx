@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useRef, useState, useMemo } from 'react';
@@ -15,6 +14,7 @@ import { cn } from '@/lib/utils';
 /**
  * @fileOverview Global Notification & Persistent Audio Alert Handler.
  * Ringing logic for Admin/Vendor (New Order) and Delivery (Ready for Pickup).
+ * Fixed: handleAction is now robust and reliable for both Admin and Vendor.
  */
 export default function NotificationHandler() {
   const { user } = useUser();
@@ -37,10 +37,13 @@ export default function NotificationHandler() {
       if (typeof window === 'undefined') return;
 
       const isAdminAuth = localStorage.getItem('admin_auth') === 'true';
-      if (isAdminAuth) { setUserRole('admin'); return; }
+      if (isAdminAuth) { 
+        setUserRole('admin'); 
+        return; 
+      }
       
       const isDeliveryAuth = localStorage.getItem('delivery_session_active') === 'true';
-      if (isDeliveryAuth && user && firestore) {
+      if (isDeliveryAuth) {
         setUserRole('delivery');
         return;
       }
@@ -52,11 +55,9 @@ export default function NotificationHandler() {
             setUserRole('vendor'); 
             return; 
           }
-          setUserRole('customer');
-        } catch (e) { setUserRole('customer'); }
-      } else {
-        setUserRole('customer');
+        } catch (e) { console.debug("Role check skip"); }
       }
+      setUserRole('customer');
     };
     checkRole();
   }, [user, firestore, pathname]);
@@ -77,10 +78,12 @@ export default function NotificationHandler() {
         const allPlaced = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
         let targeted: any[] = [];
         
-        if (userRole === 'admin') targeted = allPlaced;
-        else if (userRole === 'vendor' && user) {
+        if (userRole === 'admin') {
+          targeted = allPlaced;
+        } else if (userRole === 'vendor' && user) {
+          const vId = String(user.uid);
           targeted = allPlaced.filter((o: any) => 
-            o.vendorId === user.uid || (o.items?.some((it:any) => String(it.vendorId) === user.uid))
+            o.vendorId === vId || (Array.isArray(o.vendorIds) && o.vendorIds.includes(vId)) || (o.items?.some((it:any) => String(it.vendorId) === vId))
           );
         }
         setRingingOrders(targeted);
@@ -97,7 +100,6 @@ export default function NotificationHandler() {
     const q = query(collection(firestore, 'orders'), where('status', '==', 'Ready for Pickup'));
     const unsub = onSnapshot(q, (snapshot) => {
       const availableTasks = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-      // Filter by zone/pincode if needed, for now ring all available tasks in dashboard
       setPickupAlerts(availableTasks);
       handleAudio(availableTasks.length > 0, 'pickup');
     });
@@ -159,14 +161,21 @@ export default function NotificationHandler() {
   };
 
   const handleAction = async (orderId: string) => {
-    if (!firestore || isAccepting || !user) return;
+    if (!firestore || isAccepting) return;
     setIsAccepting(true);
     try {
-      await updateDoc(doc(firestore, 'orders', orderId), { status: 'Accepted', updatedAt: serverTimestamp() });
+      await updateDoc(doc(firestore, 'orders', orderId), { 
+        status: 'Accepted', 
+        updatedAt: serverTimestamp() 
+      });
       setRingingOrders([]);
       handleAudio(false, 'order');
-    } catch (err) { toast({ variant: "destructive", title: "Failed" }); }
-    finally { setIsAccepting(false); }
+      toast({ title: "Order Accepted! ✅", description: "Logistics updated." });
+    } catch (err) { 
+      toast({ variant: "destructive", title: "Accept Failed" }); 
+    } finally { 
+      setIsAccepting(false); 
+    }
   };
 
   return (
@@ -174,7 +183,7 @@ export default function NotificationHandler() {
       {/* PERSISTENT MODAL FOR NEW ORDER */}
       {ringingOrders.length > 0 && (
         <Dialog open={true} onOpenChange={() => {}}>
-          <DialogContent className="rounded-[3.5rem] max-w-sm p-10 flex flex-col items-center text-center border-none shadow-2xl bg-white z-[60000]">
+          <DialogContent className="rounded-[3.5rem] max-w-sm p-10 flex flex-col items-center text-center border-none shadow-2xl bg-white z-[60000] focus:outline-none">
             <div className="bg-red-50 h-24 w-24 rounded-[2.5rem] flex items-center justify-center text-red-600 mb-6 border-4 border-red-100 animate-pulse">
                <BellRing className="h-10 w-10 animate-bounce" />
             </div>
@@ -182,7 +191,13 @@ export default function NotificationHandler() {
                <DialogTitle className="text-red-600 font-black italic uppercase text-2xl tracking-tighter">NEW ORDER ALERT!</DialogTitle>
             </DialogHeader>
             <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-2 mb-8 italic">Customer is waiting. Accept to start preparation.</p>
-            <Button onClick={() => handleAction(ringingOrders[0].id)} className="w-full h-18 bg-green-600 hover:bg-green-700 text-white rounded-2xl font-black uppercase text-xl shadow-xl shadow-green-100 active:scale-95 transition-all">ACCEPT NOW</Button>
+            <Button 
+              onClick={() => handleAction(ringingOrders[0].id)} 
+              disabled={isAccepting}
+              className="w-full h-18 bg-green-600 hover:bg-green-700 text-white rounded-2xl font-black uppercase text-xl shadow-xl shadow-green-100 active:scale-95 transition-all"
+            >
+              {isAccepting ? <Loader2 className="h-6 w-6 animate-spin" /> : "ACCEPT NOW"}
+            </Button>
           </DialogContent>
         </Dialog>
       )}
@@ -190,7 +205,7 @@ export default function NotificationHandler() {
       {/* PERSISTENT MODAL FOR DELIVERY PICKUP */}
       {pickupAlerts.length > 0 && userRole === 'delivery' && (
         <Dialog open={true} onOpenChange={() => setPickupAlerts([])}>
-          <DialogContent className="rounded-[3.5rem] max-w-sm p-10 flex flex-col items-center text-center border-none shadow-2xl bg-white z-[60000]">
+          <DialogContent className="rounded-[3.5rem] max-w-sm p-10 flex flex-col items-center text-center border-none shadow-2xl bg-white z-[60000] focus:outline-none">
             <div className="bg-primary/5 h-24 w-24 rounded-[2.5rem] flex items-center justify-center text-primary mb-6 border-4 border-primary/10">
                <Bike className="h-12 w-12 animate-bounce" />
             </div>
