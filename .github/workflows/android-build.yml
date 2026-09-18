@@ -27,10 +27,15 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Setup Gradle 8.2.1
+      - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: '8.2.1'
+
+      - name: Build Web & Sync Capacitor
+        run: |
+          npm run build:static
+          npx cap sync android
 
       - name: Initialize Android Project
         run: |
@@ -56,11 +61,7 @@ jobs:
           apply from: 'capacitor.settings.gradle'
           EOF
           
-          # Generate Web Build and Sync Capacitor
-          npm run build:static
-          npx cap sync android
-          
-          # Stub missing plugins project to satisfy Gradle evaluation
+          # Fix missing capacitor-cordova-android-plugins dependency
           mkdir -p android/capacitor-cordova-android-plugins
           cat <<EOF > android/capacitor-cordova-android-plugins/build.gradle
           apply plugin: 'com.android.library'
@@ -70,26 +71,26 @@ jobs:
           }
           EOF
           
-          # Force include plugins in settings.gradle if missing
           if ! grep -q "capacitor-cordova-android-plugins" android/settings.gradle; then
             echo "include ':capacitor-cordova-android-plugins'" >> android/settings.gradle
             echo "project(':capacitor-cordova-android-plugins').projectDir = new File('capacitor-cordova-android-plugins')" >> android/settings.gradle
           fi
 
-          # Ensure gradlew is present and executable
           cd android
-          gradle wrapper --gradle-version 8.2.1
           chmod +x gradlew
           cd ..
 
-      - name: Build Customer APK & AAB
+      - name: Build Customer APK
         run: |
           cd android
           ./gradlew assembleDebug
+          cp app/build/outputs/apk/debug/app-debug.apk ../ShopyKart-Customer.apk
+
+      - name: Build Customer AAB
+        run: |
+          cd android
           ./gradlew bundleDebug
-          mv app/build/outputs/apk/debug/app-debug.apk ../ShopyKart-Customer.apk
-          mv app/build/outputs/bundle/debug/app-debug.aab ../ShopyKart-Customer.aab
-          cd ..
+          cp app/build/outputs/bundle/debug/app-debug.aab ../ShopyKart-Customer.aab
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
