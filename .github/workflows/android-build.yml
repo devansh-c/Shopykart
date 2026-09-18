@@ -30,11 +30,11 @@ jobs:
       - name: Prepare Android Project
         run: |
           mkdir -p android
-          # Ensure gradlew exists or generate it
           cd android
-          if [ ! -f build.gradle ]; then
-            echo "Initializing Gradle Build..."
-            gradle init --type basic --quiet
+          # Ensure gradlew and wrapper exist to prevent chmod failure
+          if [ ! -f "gradlew" ]; then
+            echo "Generating Gradle Wrapper..."
+            gradle wrapper
           fi
           cd ..
 
