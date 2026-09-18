@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 
 /**
  * @fileOverview Global Notification Handler.
- * FIXED: Unblocked interaction logic and prioritized the "ACCEPT NOW" button.
+ * FIXED: Replaced Dialog with Direct Premium Modal to prevent "Dark Screen" block.
  */
 export default function NotificationHandler() {
   const { user } = useUser();
@@ -157,7 +157,7 @@ export default function NotificationHandler() {
           <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-10 italic">CUSTOMER IS WAITING. ACCEPT TO START PREPARATION.</p>
           
           <button 
-            onClick={(e) => { e.stopPropagation(); handleAction(ringingOrders[0].id); }} 
+            onClick={() => handleAction(ringingOrders[0].id)} 
             disabled={isAccepting}
             className="w-full h-18 bg-green-600 hover:bg-green-700 text-white rounded-[1.5rem] font-black uppercase text-xl shadow-xl shadow-green-100 active:scale-95 transition-all flex items-center justify-center z-[2000010] relative cursor-pointer"
           >

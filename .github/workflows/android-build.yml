@@ -1,4 +1,4 @@
-name: Build All ShopyKart Apps (APK & AAB)
+name: Build ShopyKart Customer App (APK & AAB)
 
 on:
   push:
@@ -32,11 +32,11 @@ jobs:
         with:
           gradle-version: '8.2.1'
 
-      - name: Initialize Android Project Files
+      - name: Initialize Android Project
         run: |
           mkdir -p android/app
           
-          # 1. Create Root build.gradle
+          # Create Root build.gradle
           cat <<EOF > android/build.gradle
           buildscript {
               repositories { google(); mavenCentral() }
@@ -50,17 +50,17 @@ jobs:
           }
           EOF
           
-          # 2. Create Root settings.gradle
+          # Create Root settings.gradle
           cat <<EOF > android/settings.gradle
           include ':app'
           apply from: 'capacitor.settings.gradle'
           EOF
           
-          # 3. Sync Capacitor (Generate capacitor.settings.gradle)
+          # Generate Web Build and Sync Capacitor
           npm run build:static
           npx cap sync android
           
-          # 4. CRITICAL FIX: Stub missing capacitor-cordova-android-plugins project
+          # Stub missing plugins project to satisfy Gradle evaluation
           mkdir -p android/capacitor-cordova-android-plugins
           cat <<EOF > android/capacitor-cordova-android-plugins/build.gradle
           apply plugin: 'com.android.library'
@@ -70,24 +70,20 @@ jobs:
           }
           EOF
           
-          # 5. Force include in settings.gradle
+          # Force include plugins in settings.gradle if missing
           if ! grep -q "capacitor-cordova-android-plugins" android/settings.gradle; then
             echo "include ':capacitor-cordova-android-plugins'" >> android/settings.gradle
             echo "project(':capacitor-cordova-android-plugins').projectDir = new File('capacitor-cordova-android-plugins')" >> android/settings.gradle
           fi
 
-          # 6. Ensure gradlew is present and executable with version 8.2.1
+          # Ensure gradlew is present and executable
           cd android
           gradle wrapper --gradle-version 8.2.1
           chmod +x gradlew
           cd ..
 
-      # 1. BUILD CUSTOMER APP
-      - name: Build Web (Customer)
-        run: npm run build:static
-      - name: Capacitor Sync & Build (Customer)
+      - name: Build Customer APK & AAB
         run: |
-          npx cap sync android
           cd android
           ./gradlew assembleDebug
           ./gradlew bundleDebug
@@ -95,53 +91,10 @@ jobs:
           mv app/build/outputs/bundle/debug/app-debug.aab ../ShopyKart-Customer.aab
           cd ..
 
-      # 2. BUILD ADMIN APP
-      - name: Build Web (Admin)
-        run: npm run build:admin
-      - name: Capacitor Sync & Build (Admin)
-        run: |
-          npx cap sync android
-          cd android
-          ./gradlew assembleDebug
-          ./gradlew bundleDebug
-          mv app/build/outputs/apk/debug/app-debug.apk ../ShopyKart-Admin.apk
-          mv app/build/outputs/bundle/debug/app-debug.aab ../ShopyKart-Admin.aab
-          cd ..
-
-      # 3. BUILD VENDOR APP (BIZ)
-      - name: Build Web (Biz)
-        run: npm run build:biz
-      - name: Capacitor Sync & Build (Vendor)
-        run: |
-          npx cap sync android
-          cd android
-          ./gradlew assembleDebug
-          ./gradlew bundleDebug
-          mv app/build/outputs/apk/debug/app-debug.apk ../ShopyKart-Vendor.apk
-          mv app/build/outputs/bundle/debug/app-debug.aab ../ShopyKart-Vendor.aab
-          cd ..
-
-      # 4. BUILD DELIVERY APP (TOW)
-      - name: Build Web (Tow)
-        run: npm run build:tow
-      - name: Capacitor Sync & Build (Delivery)
-        run: |
-          npx cap sync android
-          cd android
-          ./gradlew assembleDebug
-          ./gradlew bundleDebug
-          mv app/build/outputs/apk/debug/app-debug.apk ../ShopyKart-Delivery.apk
-          mv app/build/outputs/bundle/debug/app-debug.aab ../ShopyKart-Delivery.aab
-          cd ..
-
-      - name: Upload APKs
+      - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ShopyKart-All-APKs
-          path: ShopyKart-*.apk
-
-      - name: Upload AABs
-        uses: actions/upload-artifact@v4
-        with:
-          name: ShopyKart-All-AABs
-          path: ShopyKart-*.aab
+          name: ShopyKart-Customer-Build
+          path: |
+            ShopyKart-Customer.apk
+            ShopyKart-Customer.aab
