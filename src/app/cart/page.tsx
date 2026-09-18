@@ -38,7 +38,7 @@ import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 
 /**
  * @fileOverview Rebuilt Premium Checkout Page.
- * Ensures all sections (Address, Items, Offers, Billing) are 100% visible.
+ * Added: Delivery Tip section and detailed bill breakdown.
  */
 export default function CartPage() {
   const { cart, addToCart, removeFromCart, totalPrice, clearCart } = useCart();
@@ -339,6 +339,36 @@ export default function CartPage() {
              />
           </section>
 
+          <section className="p-6 space-y-4 border-b border-gray-50">
+             <div className="flex items-center gap-4 mb-2">
+                <div className="h-10 w-10 bg-orange-50 rounded-xl flex items-center justify-center text-orange-600">
+                   <Bike className="h-5 w-5" />
+                </div>
+                <div>
+                   <h3 className="text-[10px] font-black uppercase tracking-widest text-orange-600 italic leading-none">Support Rider</h3>
+                   <h4 className="text-xs font-black uppercase text-gray-900 mt-1">DELIVERY TIP</h4>
+                </div>
+             </div>
+             
+             <div className="flex gap-3">
+                {[10, 20, 30, 50].map((amount) => (
+                  <button
+                    key={amount}
+                    onClick={() => setDeliveryTip(deliveryTip === amount ? 0 : amount)}
+                    className={cn(
+                      "flex-1 py-3 rounded-xl border-2 font-black text-xs transition-all active:scale-95",
+                      deliveryTip === amount 
+                        ? "border-orange-500 bg-orange-50 text-orange-600 shadow-inner" 
+                        : "border-gray-100 bg-white text-gray-400"
+                    )}
+                  >
+                    ₹{amount}
+                  </button>
+                ))}
+             </div>
+             <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest text-center mt-2 italic">100% of the tip goes to your delivery partner.</p>
+          </section>
+
           <section className="p-6 space-y-6">
              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -368,6 +398,7 @@ export default function CartPage() {
              <div className="space-y-3">
                 <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Item Subtotal</span><span className="text-gray-900 font-black">₹{totalPrice.toFixed(0)}</span></div>
                 <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Delivery & Handling</span><span className="text-gray-900 font-black">₹{deliveryFee.toFixed(0)}</span></div>
+                {deliveryTip > 0 && <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Delivery Tip</span><span className="text-gray-900 font-black">₹{deliveryTip}</span></div>}
                 {packingFee > 0 && <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Safety Pack</span><span className="text-gray-900 font-black">₹{packingFee}</span></div>}
                 {coinDiscount > 0 && <div className="flex justify-between text-[10px] font-black text-green-600 uppercase tracking-widest"><span>Loyalty Discount</span><span className="font-black">- ₹{coinDiscount}</span></div>}
                 {couponDiscount > 0 && <div className="flex justify-between text-[10px] font-black text-indigo-600 uppercase tracking-widest"><span>Promo Discount</span><span className="font-black">- ₹{couponDiscount.toFixed(0)}</span></div>}
@@ -428,7 +459,7 @@ export default function CartPage() {
               </div>
               <div className="space-y-1">
                  <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">House No / Street / Area</label>
-                 <textarea placeholder="COMPLETE ADDRESS" value={recipientForm.address} onChange={e => setRecipientForm({...recipientForm, address: e.target.value.toUpperCase()})} className="w-full h-28 p-4 rounded-2xl bg-gray-50 border-none font-bold text-xs uppercase focus:outline-none resize-none" />
+                 <textarea placeholder="COMPLETE ADDRESS" value={recipientForm.address} onChange={e => setRecipientForm({...recipientForm, address: e.target.value.toUpperCase()})} className="w-full h-28 p-4 rounded-2xl bg-gray-50 border-none font-bold text-xs uppercase focus-outline-none resize-none" />
               </div>
           </div>
           <button 
