@@ -31,10 +31,6 @@ jobs:
         run: |
           mkdir -p android
           cd android
-          # Ensure gradlew can be generated if missing
-          if [ ! -f "gradlew" ]; then
-            gradle wrapper
-          fi
           # Ensure essential gradle files exist with valid content
           cat <<EOF > build.gradle
 buildscript {
@@ -55,6 +51,10 @@ allprojects {
 }
 EOF
           echo "include ':app'" > settings.gradle
+          # Generate gradlew if missing
+          if [ ! -f "gradlew" ]; then
+            gradle wrapper
+          fi
           chmod +x gradlew
           cd ..
 

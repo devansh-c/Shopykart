@@ -107,29 +107,6 @@ export default function NotificationHandler() {
     return () => unsub();
   }, [firestore, userRole, isManagementPath]);
 
-  // 3. PUSH ALERTS FOR CUSTOMERS
-  useEffect(() => {
-    if (!firestore || !user || userRole !== 'customer' || isManagementPath) return;
-
-    const q = query(
-      collection(firestore, 'users', user.uid, 'notifications'), 
-      where('read', '==', false),
-      orderBy('timestamp', 'desc'),
-      limit(1)
-    );
-
-    const unsub = onSnapshot(q, (snapshot) => {
-      if (snapshot.empty) return;
-      const newAlerts = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-      if (newAlerts[0] && (newAlerts[0].title || newAlerts[0].message)) {
-        setPushAlerts(newAlerts);
-        playBellSound();
-      }
-    });
-
-    return () => unsub();
-  }, [user, firestore, userRole, isManagementPath]);
-
   const handleAudio = (shouldPlay: boolean, type: 'order' | 'pickup') => {
     if (typeof window === 'undefined') return;
     
@@ -150,29 +127,23 @@ export default function NotificationHandler() {
     }
   };
 
-  const playBellSound = () => {
-    if (typeof window === 'undefined') return;
-    try {
-      if (!bellAudioRef.current) {
-        bellAudioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/1350/1350-preview.mp3');
-      }
-      bellAudioRef.current.play().catch(() => {});
-    } catch (e) {}
-  };
-
   const handleAction = async (orderId: string) => {
-    if (!firestore || isAccepting) return;
+    if (!firestore || isAccepting || !orderId) return;
     setIsAccepting(true);
     try {
-      await updateDoc(doc(firestore, 'orders', orderId), { 
+      const orderRef = doc(firestore, 'orders', orderId);
+      await updateDoc(orderRef, { 
         status: 'Accepted', 
         updatedAt: serverTimestamp() 
       });
-      setRingingOrders([]);
+      
+      // Stop audio immediately on local success
       handleAudio(false, 'order');
-      toast({ title: "Order Accepted! ✅", description: "Logistics updated." });
+      setRingingOrders([]);
+      
+      toast({ title: "Order Accepted! ✅", description: "Kitchen can start now." });
     } catch (err) { 
-      toast({ variant: "destructive", title: "Accept Failed" }); 
+      toast({ variant: "destructive", title: "Accept Failed", description: "Database busy, try again." }); 
     } finally { 
       setIsAccepting(false); 
     }
