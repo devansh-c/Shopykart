@@ -20,7 +20,8 @@ import {
   CheckCircle2,
   Clock,
   MessageSquare,
-  Star
+  Star,
+  StickyNote
 } from 'lucide-react';
 import { useFirestore, useUser } from '@/firebase';
 import { collection, query, where, limit, getDocs, doc, getDoc, updateDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
@@ -257,19 +258,14 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
       if (order.deliveryFee > 0) {
         taxHtml += `<div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span>DELIVERY FEE:</span><span>₹${order.deliveryFee.toFixed(2)}</span></div>`;
       }
-      if (order.chargesBreakdown && Array.isArray(order.chargesBreakdown)) {
-        order.chargesBreakdown.forEach((charge: any) => {
-          taxHtml += `<div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span>${charge.name}:</span><span>₹${charge.value.toFixed(2)}</span></div>`;
-        });
+      if (order.packingFee > 0) {
+        taxHtml += `<div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span>SAFETY PACK:</span><span>₹${order.packingFee.toFixed(2)}</span></div>`;
       }
-      if (order.isPremiumPacking) {
-        taxHtml += `<div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span>PREMIUM PACKING:</span><span>₹10.00</span></div>`;
+      if (order.coinDiscount > 0) {
+        taxHtml += `<div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #16a34a;"><span>COIN REWARD:</span><span>- ₹${order.coinDiscount.toFixed(2)}</span></div>`;
       }
-      if (order.deliveryTip > 0) {
-        taxHtml += `<div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span>DELIVERY TIP:</span><span>₹${order.deliveryTip.toFixed(2)}</span></div>`;
-      }
-      if (order.redeemCoins) {
-        taxHtml += `<div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #16a34a;"><span>COINS REDEEMED:</span><span>- ₹5.00</span></div>`;
+      if (order.couponDiscount > 0) {
+        taxHtml += `<div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #4f46e5;"><span>PROMO DISCOUNT:</span><span>- ₹${order.couponDiscount.toFixed(2)}</span></div>`;
       }
 
       const upiUrl = `upi://pay?pa=9450355709@axl&pn=ShopyKart&am=${order.total?.toFixed(2)}&cu=INR`;
@@ -289,6 +285,14 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
         </div>
         <div style="border-top: 1.5px dashed #000; margin-bottom: 15px;"></div>
         <div>${itemsHtml}</div>
+        
+        ${order.deliveryInstructions ? `
+        <div style="margin-top: 15px; background: #fffbeb; padding: 10px; border: 1px solid #fef3c7; border-radius: 8px;">
+          <div style="font-size: 9px; font-weight: 900; margin-bottom: 4px; color: #92400e;">SPECIAL NOTES:</div>
+          <div style="font-size: 10px; font-weight: 700; color: #000;">"${order.deliveryInstructions}"</div>
+        </div>
+        ` : ''}
+
         <div style="border-top: 1.5px dashed #000; margin: 15px 0; padding-top: 10px; font-size: 9px;">
           <div style="font-weight: 900; margin-bottom: 5px;">TAX & EXTRA CHARGES:</div>
           ${taxHtml || '<div>NO EXTRA CHARGES</div>'}

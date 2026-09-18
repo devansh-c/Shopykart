@@ -33,7 +33,10 @@ jobs:
       - name: Capacitor Sync & Build (Customer)
         run: |
           npx cap sync android
-          cd android && ./gradlew assembleDebug && ./gradlew bundleDebug
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+          ./gradlew bundleDebug
           mv app/build/outputs/apk/debug/app-debug.apk ../ShopyKart-Customer.apk
           mv app/build/outputs/bundle/debug/app-debug.aab ../ShopyKart-Customer.aab
           cd ..
@@ -44,7 +47,10 @@ jobs:
       - name: Capacitor Sync & Build (Admin)
         run: |
           npx cap sync android
-          cd android && ./gradlew assembleDebug && ./gradlew bundleDebug
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+          ./gradlew bundleDebug
           mv app/build/outputs/apk/debug/app-debug.apk ../ShopyKart-Admin.apk
           mv app/build/outputs/bundle/debug/app-debug.aab ../ShopyKart-Admin.aab
           cd ..
@@ -55,7 +61,10 @@ jobs:
       - name: Capacitor Sync & Build (Vendor)
         run: |
           npx cap sync android
-          cd android && ./gradlew assembleDebug && ./gradlew bundleDebug
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+          ./gradlew bundleDebug
           mv app/build/outputs/apk/debug/app-debug.apk ../ShopyKart-Vendor.apk
           mv app/build/outputs/bundle/debug/app-debug.aab ../ShopyKart-Vendor.aab
           cd ..
@@ -66,7 +75,10 @@ jobs:
       - name: Capacitor Sync & Build (Delivery)
         run: |
           npx cap sync android
-          cd android && ./gradlew assembleDebug && ./gradlew bundleDebug
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+          ./gradlew bundleDebug
           mv app/build/outputs/apk/debug/app-debug.apk ../ShopyKart-Delivery.apk
           mv app/build/outputs/bundle/debug/app-debug.aab ../ShopyKart-Delivery.aab
           cd ..
