@@ -419,6 +419,24 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
         className={cn("relative z-[110] px-4 transition-all duration-700 pb-10", isMapExpanded ? "translate-y-[80vh] opacity-0 pointer-events-none" : "-mt-20 opacity-100")}
         onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
       >
+         {/* ADMIN BROADCAST NOTE (LIVE UPDATE FROM ADMIN) */}
+         {order.adminNote && (
+           <div className="bg-amber-100 border-2 border-amber-400 p-5 rounded-[2.5rem] mb-4 shadow-xl animate-in zoom-in duration-700 flex items-start gap-4">
+              <div className="bg-amber-400 p-2 rounded-xl text-white shadow-sm shrink-0">
+                 <MessageSquare className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                 <h4 className="text-[10px] font-black text-amber-700 uppercase tracking-widest mb-1">Live Update from Admin</h4>
+                 <p className="text-sm font-black italic text-amber-900 leading-tight uppercase">"{order.adminNote}"</p>
+                 {order.noteUpdatedAt && (
+                   <span className="text-[7px] font-bold text-amber-600 block mt-1 uppercase">
+                     UPDATED {format(new Date(order.noteUpdatedAt.seconds * 1000 || order.noteUpdatedAt), 'hh:mm a')}
+                   </span>
+                 )}
+              </div>
+           </div>
+         )}
+
          {isDelivered && !order.isRated && (
            <div className="bg-gradient-to-br from-amber-400 to-orange-600 p-[2px] rounded-[2.5rem] mb-4 shadow-xl animate-in zoom-in duration-700">
              <div className="bg-white p-6 rounded-[2.4rem] space-y-4">
@@ -458,18 +476,6 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
                  </div>
               </div>
               <span className="text-[8px] font-black text-green-600 uppercase tracking-[0.2em] italic">Rewards Applied</span>
-           </div>
-         )}
-
-         {order.adminNote && (
-           <div className="bg-amber-100 border-2 border-amber-400 p-5 rounded-[2rem] mb-4 shadow-xl animate-in zoom-in duration-500 flex items-start gap-4">
-              <div className="bg-amber-400 p-2 rounded-xl text-white shadow-sm shrink-0">
-                 <MessageSquare className="h-5 w-5" />
-              </div>
-              <div className="min-w-0">
-                 <h4 className="text-[10px] font-black text-amber-700 uppercase tracking-widest mb-1">Message from Store</h4>
-                 <p className="text-sm font-black italic text-amber-900 leading-tight">"{order.adminNote}"</p>
-              </div>
            </div>
          )}
 
