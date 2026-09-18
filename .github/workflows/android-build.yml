@@ -27,14 +27,20 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Build Web
+      - name: Build Web Application
         run: npm run build:static
 
-      - name: Sync Capacitor
+      - name: Sync Capacitor Android
         run: npx cap sync android
 
-      - name: Fix Capacitor Missing Plugins (Critical)
+      - name: Patch Gradle Settings (Cordova Plugin Fix)
         run: |
+          # Ensure capacitor.settings.gradle is applied in settings.gradle
+          if ! grep -q "apply from: 'capacitor.settings.gradle'" android/settings.gradle; then
+            echo "apply from: 'capacitor.settings.gradle'" >> android/settings.gradle
+          fi
+          
+          # Force create capacitor-cordova-android-plugins if expected by build.gradle but missing
           mkdir -p android/capacitor-cordova-android-plugins/src/main
           if [ ! -f android/capacitor-cordova-android-plugins/src/main/AndroidManifest.xml ]; then
             echo '<?xml version="1.0" encoding="utf-8"?><manifest xmlns:android="http://schemas.android.com/apk/res/android" package="capacitor.cordova.android.plugins"></manifest>' > android/capacitor-cordova-android-plugins/src/main/AndroidManifest.xml
@@ -44,20 +50,16 @@ jobs:
             echo 'android { compileSdkVersion 34; default { minSdkVersion 22; targetSdkVersion 34 } }' >> android/capacitor-cordova-android-plugins/build.gradle
           fi
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-version: 8.2.1
-
       - name: Initialize Gradle Wrapper & Build APK
         run: |
           cd android
+          # Force Gradle 8.2.1 which is stable for Capacitor 6
           gradle wrapper --gradle-version 8.2.1
           chmod +x gradlew
           ./gradlew assembleDebug
           cp app/build/outputs/apk/debug/app-debug.apk ../ShopyKart-Customer.apk
 
-      - name: Build Customer AAB
+      - name: Build Customer AAB (Play Store)
         run: |
           cd android
           ./gradlew bundleDebug
