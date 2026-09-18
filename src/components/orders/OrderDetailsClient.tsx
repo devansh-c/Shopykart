@@ -305,7 +305,7 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
         </div>
         
         <div style="text-align: center; margin-top: 25px; padding: 15px; border: 2px dashed #000; border-radius: 25px; background: #fafafa; display: inline-block;">
-           <p style="font-size: 9px; font-weight: 900; margin-bottom: 12px;">SCAN TO PAY VIA UPI</p>
+           <p style="font-size: 9px; font-weight: 900; margin-bottom: 12px;">SCAN TO PAY EXACT AMOUNT</p>
            <img src="${qrUrl}" style="width: 160px; height: 160px; display: block; margin: 0 auto;" />
            <p style="font-size: 8px; font-weight: 900; margin-top: 10px;">PAY ID: 9450355709@axl</p>
         </div>

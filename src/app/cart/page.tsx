@@ -37,8 +37,8 @@ import { Switch } from '@/components/ui/switch';
 import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 
 /**
- * @fileOverview Frameless Glassy Checkout Page.
- * Fixed: Edit button no longer cuts off. Unified material design.
+ * @fileOverview Rebuilt Premium Checkout Page.
+ * Ensures all sections (Address, Items, Offers, Billing) are 100% visible.
  */
 export default function CartPage() {
   const { cart, addToCart, removeFromCart, totalPrice, clearCart } = useCart();
@@ -85,7 +85,8 @@ export default function CartPage() {
         setCurrentMinutes(now.getHours() * 60 + now.getMinutes()); 
       };
       syncTime(); 
-      setInterval(syncTime, 60000);
+      const interval = setInterval(syncTime, 60000);
+      return () => clearInterval(interval);
     }
   }, []);
 
@@ -98,9 +99,9 @@ export default function CartPage() {
 
   const cartItemsWithStatus = useMemo(() => {
     if (!vendors) return cart.map(item => ({ ...item, isClosed: false }));
-    const vMap = new Map(vendors.map(v => [v.id, v]));
+    const vMap = new Map(vendors.map(v => [String(v.id), v]));
     return cart.map(item => {
-      const v = vMap.get(item.vendorId || '');
+      const v = vMap.get(String(item.vendorId || ''));
       const isClosed = v ? (v.isOnline === false || !isStoreScheduleOpen(v, currentMinutes)) : false;
       return { ...item, isClosed };
     });
@@ -134,7 +135,7 @@ export default function CartPage() {
           toast({ variant: "destructive", title: "Min Order Not Met" });
         } else {
           setAppliedCoupon({ id: snap.docs[0].id, ...data });
-          toast({ title: "Applied!" });
+          toast({ title: "Coupon Applied!" });
         }
       }
     } catch (e) {
@@ -184,7 +185,7 @@ export default function CartPage() {
         total: totalPayable,
         status: 'Placed',
         createdAt: serverTimestamp(),
-        restaurantName: cart[0]?.restaurantName || 'ShopyKart',
+        restaurantName: cart[0]?.restaurantName || 'ShopyKart Hub',
         deliveryOTP: Math.floor(100000 + Math.random() * 900000).toString(),
         deliveryFee,
         deliveryTip,
@@ -218,62 +219,62 @@ export default function CartPage() {
   if (!isMounted) return null;
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] pb-40 max-w-lg mx-auto relative overflow-hidden">
+    <div className="min-h-screen bg-[#F9FAFB] pb-40 max-w-lg mx-auto relative overflow-hidden transform-gpu">
       <OrderSuccessOverlay isVisible={showSuccessOverlay} />
       
-      <header className="bg-white/60 backdrop-blur-xl py-4 px-6 sticky top-0 z-[100] flex items-center gap-4 border-b border-black/5">
+      <header className="bg-white/80 backdrop-blur-xl py-4 px-6 sticky top-0 z-[100] flex items-center gap-4 border-b border-black/5">
         <button onClick={() => router.back()} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/40 backdrop-blur-md border border-white/20 active:scale-90 transition-all"><ChevronLeft className="h-6 w-6" /></button>
-        <h1 className="text-sm font-black uppercase italic tracking-widest text-gray-800 flex-1 text-center">CHECKOUT</h1>
+        <h1 className="text-sm font-black uppercase italic tracking-widest text-gray-800 flex-1 text-center">Checkout</h1>
         <Badge variant="outline" className="rounded-xl border-amber-200 bg-amber-50 text-amber-600 font-black text-[9px] uppercase"><Coins className="h-2.5 w-2.5 mr-1" /> {userCoins} COINS</Badge>
       </header>
 
       <main className="px-4 pt-6 relative z-10 animate-in fade-in duration-700">
-        <div className="bg-white/40 backdrop-blur-xl rounded-[2.5rem] overflow-hidden border border-white/40 shadow-[0_10px_40px_rgba(0,0,0,0.05)]">
+        <div className="bg-white rounded-[2.5rem] overflow-hidden border border-border shadow-sm mb-6">
           
-          <section className="px-5 py-6 flex items-center justify-between border-b border-black/[0.03]">
+          <section className="px-5 py-6 flex items-center justify-between border-b border-gray-50">
              <div className="flex items-center gap-4 flex-1 min-w-0">
-                <div className="h-12 w-12 bg-[#0B0B0B] rounded-2xl flex items-center justify-center text-white shrink-0">
+                <div className="h-12 w-12 bg-[#0B0B0B] rounded-2xl flex items-center justify-center text-white shrink-0 shadow-lg">
                    <Navigation className="h-6 w-6" />
                 </div>
-                <div className="flex-1 min-w-0 pr-2">
-                   <h4 className="text-[10px] font-black uppercase tracking-widest text-primary mb-0.5 italic">Drop At</h4>
-                   <h4 className="text-xs font-black uppercase truncate text-gray-900">{recipientForm.name || 'Set Recipient'}</h4>
-                   <p className="text-[9px] font-bold text-gray-400 uppercase truncate leading-tight mt-0.5">{recipientForm.address || 'Select Address'}</p>
+                <div className="flex-1 min-w-0 pr-4">
+                   <h4 className="text-[10px] font-black uppercase tracking-widest text-primary mb-0.5 italic">Drop Details</h4>
+                   <h4 className="text-xs font-black uppercase truncate text-gray-900 leading-none">{recipientForm.name || 'Set Recipient'}</h4>
+                   <p className="text-[9px] font-bold text-gray-400 uppercase truncate leading-tight mt-1.5">{recipientForm.address || 'Select House Address'}</p>
                 </div>
              </div>
              <button 
               onClick={() => setIsAddressModalOpen(true)} 
-              className="bg-primary/10 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest text-primary active:scale-95 transition-all shrink-0"
+              className="bg-primary/5 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest text-primary active:scale-95 transition-all shrink-0 border border-primary/10"
              >
                EDIT
              </button>
           </section>
 
           <section className="p-6 space-y-6">
-             <div className="flex items-center gap-4 mb-4">
+             <div className="flex items-center gap-4 mb-2">
                 <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
                    <ShoppingBag className="h-5 w-5" />
                 </div>
                 <div>
-                   <h3 className="text-[10px] font-black uppercase tracking-widest text-primary italic">Bag Summary</h3>
-                   <h4 className="text-xs font-black uppercase text-gray-900">{cart.length} GOURMET ITEMS</h4>
+                   <h3 className="text-[10px] font-black uppercase tracking-widest text-primary italic leading-none">Bag Summary</h3>
+                   <h4 className="text-xs font-black uppercase text-gray-900 mt-1">{cart.length} PREMIUM ITEMS</h4>
                 </div>
              </div>
              
              <div className="space-y-6">
                 {cartItemsWithStatus.map((item, idx) => (
                   <div key={idx} className={cn("flex gap-4 items-center relative", item.isClosed && "opacity-40 grayscale")}>
-                     <div className="h-16 w-16 rounded-2xl overflow-hidden bg-white border border-black/5 relative shrink-0">
+                     <div className="h-16 w-16 rounded-2xl overflow-hidden bg-muted border border-black/5 relative shrink-0">
                         <Image src={item.imageUrl} alt={item.name} fill className="object-cover" unoptimized />
                         {item.isClosed && <div className="absolute inset-0 bg-red-600/60 flex items-center justify-center text-[7px] font-black text-white px-1 text-center">CLOSED</div>}
                      </div>
                      <div className="flex-1 min-w-0">
-                        <h4 className="text-[11px] font-black uppercase truncate text-gray-900">{item.name}</h4>
-                        {item.selectedOption && <p className="text-[7px] font-black uppercase text-primary tracking-widest mt-0.5 italic">VARIETY: {item.selectedOption.name}</p>}
-                        <div className="flex items-center mt-2 bg-black/5 w-fit rounded-xl p-0.5">
-                           <button onClick={() => removeFromCart(item.id)} className="h-7 w-7 flex items-center justify-center text-gray-500"><Minus className="h-3.5 w-3.5" /></button>
+                        <h4 className="text-[11px] font-black uppercase truncate text-gray-900 leading-tight">{item.name}</h4>
+                        {item.selectedOption && <p className="text-[7px] font-black uppercase text-primary tracking-widest mt-1 italic">VARIETY: {item.selectedOption.name}</p>}
+                        <div className="flex items-center mt-2 bg-gray-50 w-fit rounded-xl p-0.5 border border-gray-100">
+                           <button onClick={() => removeFromCart(item.id)} className="h-7 w-7 flex items-center justify-center text-gray-500 active:scale-90"><Minus className="h-3.5 w-3.5" /></button>
                            <span className="mx-2 text-[10px] font-black">{item.quantity}</span>
-                           <button onClick={() => addToCart({...item, quantity: 1})} className="h-7 w-7 flex items-center justify-center text-primary"><Plus className="h-3.5 w-3.5" /></button>
+                           <button onClick={() => addToCart({...item, quantity: 1})} className="h-7 w-7 flex items-center justify-center text-primary active:scale-90"><Plus className="h-3.5 w-3.5" /></button>
                         </div>
                      </div>
                      <div className="text-sm font-black italic text-gray-900">₹{(item.price * item.quantity).toFixed(0)}</div>
@@ -282,14 +283,14 @@ export default function CartPage() {
              </div>
           </section>
 
-          <section className="p-6 bg-white/20 border-y border-black/[0.03]">
+          <section className="p-6 bg-gray-50/50 border-y border-gray-100">
              <div className="flex items-center gap-4 mb-4">
                 <div className="h-10 w-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
                    <Ticket className="h-5 w-5" />
                 </div>
                 <div>
-                   <h3 className="text-[10px] font-black uppercase tracking-widest text-indigo-600 italic">Apply Offer</h3>
-                   <h4 className="text-xs font-black uppercase text-gray-900">PROMO CODES</h4>
+                   <h3 className="text-[10px] font-black uppercase tracking-widest text-indigo-600 italic leading-none">Apply Offer</h3>
+                   <h4 className="text-xs font-black uppercase text-gray-900 mt-1">PROMO CODES</h4>
                 </div>
              </div>
              
@@ -299,20 +300,20 @@ export default function CartPage() {
                      <div className="bg-green-500 text-white p-1.5 rounded-lg"><Tag className="h-3 w-3" /></div>
                      <span className="text-xs font-black text-green-700 uppercase">'{appliedCoupon.code}' APPLIED!</span>
                   </div>
-                  <button onClick={() => setAppliedCoupon(null)} className="text-gray-400 p-1"><X className="h-4 w-4" /></button>
+                  <button onClick={() => setAppliedCoupon(null)} className="text-gray-400 p-1 active:scale-90"><X className="h-4 w-4" /></button>
                </div>
              ) : (
                <div className="flex gap-2">
                  <Input 
                    value={couponCode}
                    onChange={e => setCouponCode(e.target.value.toUpperCase())}
-                   placeholder="ENTER CODE"
-                   className="h-12 rounded-xl bg-white/40 border-none font-black text-xs placeholder:text-gray-300"
+                   placeholder="ENTER PROMO CODE"
+                   className="h-12 rounded-xl bg-white border-gray-200 font-black text-xs uppercase"
                  />
                  <button 
                    onClick={handleApplyCoupon}
                    disabled={isValidatingCoupon || !couponCode.trim()}
-                   className="h-12 bg-black text-white px-6 rounded-xl font-black text-[10px] uppercase active:scale-95 transition-all"
+                   className="h-12 bg-black text-white px-6 rounded-xl font-black text-[10px] uppercase active:scale-95 transition-all shadow-lg"
                  >
                    {isValidatingCoupon ? <Loader2 className="h-4 w-4 animate-spin" /> : 'APPLY'}
                  </button>
@@ -320,21 +321,21 @@ export default function CartPage() {
              )}
           </section>
 
-          <section className="p-6 flex items-center justify-between border-b border-black/[0.03] bg-amber-50/10">
+          <section className="p-6 flex items-center justify-between border-b border-gray-50 bg-amber-50/20">
              <div className="flex items-center gap-4">
                 <div className="h-10 w-10 bg-amber-400 rounded-xl flex items-center justify-center text-black">
                    <Coins className="h-5 w-5" />
                 </div>
                 <div>
-                   <h3 className="text-xs font-black uppercase italic text-amber-900">Redeem Reward</h3>
-                   <p className="text-[8px] font-bold text-amber-600 uppercase tracking-widest mt-1">Use 20 Coins for ₹5 Discount</p>
+                   <h3 className="text-xs font-black uppercase italic text-amber-900 leading-none">Redeem Reward</h3>
+                   <p className="text-[8px] font-bold text-amber-600 uppercase tracking-widest mt-1.5">Use 20 Coins for ₹5 Discount</p>
                 </div>
              </div>
              <Switch 
               disabled={userCoins < 20}
               checked={isRedeemingCoins} 
               onCheckedChange={setIsRedeemingCoins}
-              className="data-[state=checked]:bg-amber-500"
+              className="data-[state=checked]:bg-amber-500 scale-90"
              />
           </section>
 
@@ -345,27 +346,30 @@ export default function CartPage() {
                       <PackageCheck className="h-5 w-5" />
                    </div>
                    <div>
-                      <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-900">Safety Pack</h4>
-                      <p className="text-[8px] font-bold text-muted-foreground uppercase">+ ₹10 for safety</p>
+                      <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-900 leading-none">Premium Packing</h4>
+                      <p className="text-[8px] font-bold text-muted-foreground uppercase mt-1.5">+ ₹10 Safety Surcharge</p>
                    </div>
                 </div>
-                <Switch checked={isPremiumPacking} onCheckedChange={setIsPremiumPacking} className="data-[state=checked]:bg-green-600" />
+                <Switch checked={isPremiumPacking} onCheckedChange={setIsPremiumPacking} className="data-[state=checked]:bg-green-600 scale-90" />
              </div>
-             <textarea 
-               value={deliveryInstructions}
-               onChange={e => setDeliveryInstructions(e.target.value)}
-               placeholder="DELIVERY INSTRUCTIONS (E.G. CALL ON ARRIVAL)"
-               className="w-full bg-white/40 border border-black/5 rounded-2xl p-4 text-[10px] font-black uppercase italic focus:outline-none min-h-[80px] resize-none"
-             />
+             <div className="relative">
+                <MessageSquare className="absolute left-4 top-4 h-4 w-4 text-gray-300" />
+                <textarea 
+                  value={deliveryInstructions}
+                  onChange={e => setDeliveryInstructions(e.target.value.toUpperCase())}
+                  placeholder="DELIVERY INSTRUCTIONS (E.G. DON'T RING BELL)"
+                  className="w-full bg-gray-50 border border-gray-100 rounded-2xl p-4 pl-12 text-[10px] font-black uppercase italic focus:outline-none min-h-[80px] resize-none focus:bg-white focus:border-primary/20 transition-all"
+                />
+             </div>
           </section>
 
-          <section className="p-6 space-y-6">
-             <h3 className="text-xl font-black italic uppercase tracking-tighter text-gray-900">Billing</h3>
+          <section className="p-6 space-y-6 bg-muted/10">
+             <h3 className="text-xl font-black italic uppercase tracking-tighter text-gray-900">Final Bill</h3>
              <div className="space-y-3">
-                <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Item Total</span><span className="text-gray-900 font-black">₹{totalPrice.toFixed(0)}</span></div>
-                <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Delivery Fee</span><span className="text-gray-900 font-black">₹{deliveryFee.toFixed(0)}</span></div>
+                <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Item Subtotal</span><span className="text-gray-900 font-black">₹{totalPrice.toFixed(0)}</span></div>
+                <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Delivery & Handling</span><span className="text-gray-900 font-black">₹{deliveryFee.toFixed(0)}</span></div>
                 {packingFee > 0 && <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Safety Pack</span><span className="text-gray-900 font-black">₹{packingFee}</span></div>}
-                {coinDiscount > 0 && <div className="flex justify-between text-[10px] font-black text-green-600 uppercase tracking-widest"><span>Coin Redeem</span><span className="font-black">- ₹{coinDiscount}</span></div>}
+                {coinDiscount > 0 && <div className="flex justify-between text-[10px] font-black text-green-600 uppercase tracking-widest"><span>Loyalty Discount</span><span className="font-black">- ₹{coinDiscount}</span></div>}
                 {couponDiscount > 0 && <div className="flex justify-between text-[10px] font-black text-indigo-600 uppercase tracking-widest"><span>Promo Discount</span><span className="font-black">- ₹{couponDiscount.toFixed(0)}</span></div>}
              </div>
              <div className="pt-6 border-t-2 border-dashed border-black/5 flex justify-between items-end">
@@ -375,16 +379,16 @@ export default function CartPage() {
           </section>
         </div>
 
-        <div className="pt-8 pb-32">
+        <div className="pt-4 pb-32">
            <div className="space-y-4">
-              {hasClosedItems && <div className="bg-red-50 p-4 rounded-3xl border border-red-100 text-center text-[9px] font-black text-red-800 uppercase">STORE CLOSED: REMOVE ITEMS TO CONTINUE.</div>}
-              {!isMinOrderMet && <div className="bg-amber-50 p-4 rounded-3xl border border-amber-100 text-center text-[9px] font-black text-amber-800 uppercase">MIN. ORDER ₹{minOrderValue} REQUIRED.</div>}
+              {hasClosedItems && <div className="bg-red-50 p-4 rounded-3xl border border-red-100 text-center text-[9px] font-black text-red-800 uppercase animate-pulse">SOME STORES ARE CLOSED. REMOVE ITEMS TO ORDER.</div>}
+              {!isMinOrderMet && <div className="bg-amber-50 p-4 rounded-3xl border border-amber-100 text-center text-[9px] font-black text-amber-800 uppercase">MIN. ORDER ₹{minOrderValue} REQUIRED FOR THIS ZONE.</div>}
 
               <div 
                 ref={sliderRef} 
                 className={cn(
-                  "w-full h-24 rounded-[3rem] p-3 flex items-center relative overflow-hidden transition-all duration-300", 
-                  (hasClosedItems || !isMinOrderMet) ? "bg-gray-100 opacity-50 grayscale" : "bg-[#0B0B0B] border-white/10 shadow-2xl"
+                  "w-full h-24 rounded-[3rem] p-3 flex items-center relative overflow-hidden transition-all duration-300 transform-gpu", 
+                  (hasClosedItems || !isMinOrderMet || cart.length === 0) ? "bg-gray-100 opacity-50 grayscale" : "bg-[#0B0B0B] border-white/10 shadow-2xl"
                 )}
               >
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -393,7 +397,7 @@ export default function CartPage() {
                   <div 
                     onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} 
                     style={{ transform: `translateX(${sliderOffset}px)` }} 
-                    className="h-16 w-16 rounded-[1.5rem] bg-white text-primary flex items-center justify-center z-10 transition-transform cursor-grab"
+                    className="h-16 w-16 rounded-[1.5rem] bg-white text-primary flex items-center justify-center z-10 transition-transform cursor-grab shadow-xl"
                   >
                     <ArrowRight className="h-8 w-8 stroke-[3]" />
                   </div>
@@ -401,24 +405,47 @@ export default function CartPage() {
                     <div className="text-[9px] font-black uppercase tracking-widest text-primary italic">Total</div>
                     <div className="text-3xl font-black italic text-white tracking-tighter leading-none mt-0.5">₹{totalPayable.toFixed(0)}</div>
                   </div>
-                  {isPlacing && <div className="absolute inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-20"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>}
+                  {isPlacing && <div className="absolute inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center z-20 animate-in fade-in duration-300"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
               </div>
            </div>
         </div>
       </main>
 
       <Dialog open={isAddressModalOpen} onOpenChange={setIsAddressModalOpen}>
-        <DialogContent className="rounded-t-[3.5rem] p-8 border-none shadow-2xl bg-white bottom-0 top-auto translate-y-0 h-[550px] flex flex-col focus:outline-none">
+        <DialogContent className="rounded-t-[3.5rem] p-8 border-none shadow-2xl bg-white bottom-0 top-auto translate-y-0 h-[580px] flex flex-col focus:outline-none">
           <DialogHeader className="pb-4 shrink-0 text-center">
              <div className="h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-3"><MapPin className="h-8 w-8" /></div>
              <DialogTitle className="text-3xl font-black italic uppercase tracking-tighter text-gray-900">Drop Address</DialogTitle>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto no-scrollbar space-y-4">
-              <Input placeholder="RECIPIENT NAME" value={recipientForm.name} onChange={e => setRecipientForm({...recipientForm, name: e.target.value.toUpperCase()})} className="h-14 rounded-2xl bg-gray-50 border-none font-black text-xs uppercase" />
-              <Input placeholder="10 DIGIT PHONE" value={recipientForm.phone} onChange={e => setRecipientForm({...recipientForm, phone: e.target.value.replace(/\D/g,'').slice(0, 10)})} className="h-14 rounded-2xl bg-gray-50 border-none font-black text-xs" />
-              <textarea placeholder="STREET ADDRESS / HOUSE NO" value={recipientForm.address} onChange={e => setRecipientForm({...recipientForm, address: e.target.value.toUpperCase()})} className="w-full h-28 p-4 rounded-2xl bg-gray-50 border-none font-bold text-xs uppercase focus:outline-none resize-none" />
+              <div className="space-y-1">
+                 <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Recipient Name</label>
+                 <Input placeholder="E.G. RAHUL SINGH" value={recipientForm.name} onChange={e => setRecipientForm({...recipientForm, name: e.target.value.toUpperCase()})} className="h-14 rounded-2xl bg-gray-50 border-none font-black text-xs uppercase" />
+              </div>
+              <div className="space-y-1">
+                 <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Phone Number</label>
+                 <Input placeholder="10 DIGIT MOBILE" value={recipientForm.phone} onChange={e => setRecipientForm({...recipientForm, phone: e.target.value.replace(/\D/g,'').slice(0, 10)})} className="h-14 rounded-2xl bg-gray-50 border-none font-black text-xs" />
+              </div>
+              <div className="space-y-1">
+                 <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">House No / Street / Area</label>
+                 <textarea placeholder="COMPLETE ADDRESS" value={recipientForm.address} onChange={e => setRecipientForm({...recipientForm, address: e.target.value.toUpperCase()})} className="w-full h-28 p-4 rounded-2xl bg-gray-50 border-none font-bold text-xs uppercase focus:outline-none resize-none" />
+              </div>
           </div>
-          <button onClick={() => { if(recipientForm.phone.length===10) { localStorage.setItem('user_name', recipientForm.name); localStorage.setItem('user_phone', recipientForm.phone); localStorage.setItem('user_address_line', recipientForm.address); setIsAddressModalOpen(false); } }} className="w-full h-18 bg-[#0B0B0B] text-white rounded-[2rem] font-black uppercase italic shadow-xl text-lg">SAVE & CONTINUE</button>
+          <button 
+            onClick={() => { 
+              if(recipientForm.phone.length===10 && recipientForm.name && recipientForm.address) { 
+                localStorage.setItem('user_name', recipientForm.name); 
+                localStorage.setItem('user_phone', recipientForm.phone); 
+                localStorage.setItem('user_address_line', recipientForm.address); 
+                setIsAddressModalOpen(false); 
+              } else {
+                toast({ variant: "destructive", title: "Missing Info" });
+              }
+            }} 
+            className="w-full h-20 bg-[#0B0B0B] text-white rounded-[2rem] font-black uppercase italic shadow-xl text-xl transition-all active:scale-95 mt-4"
+          >
+            SAVE DETAILS
+          </button>
         </DialogContent>
       </Dialog>
     </div>
