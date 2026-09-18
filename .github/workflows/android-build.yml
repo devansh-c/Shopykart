@@ -1,4 +1,4 @@
-name: Build ShopyKart Customer App (APK & AAB)
+name: Build ShopyKart Customer App (Zero Error)
 
 on:
   push:
@@ -19,7 +19,7 @@ jobs:
           cache: 'npm'
 
       - name: Install Dependencies
-        run: npm install
+        run: npm install --legacy-peer-deps
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -32,16 +32,17 @@ jobs:
         with:
           gradle-version: 8.2.1
 
+      - name: Initialize Android Project Files
+        run: |
+          mkdir -p android
+          cd android
+          gradle wrapper --gradle-version 8.2.1
+          chmod +x gradlew
+
       - name: Build Web & Sync Capacitor
         run: |
           npm run build:static
           npx cap sync android
-
-      - name: Generate Gradle Wrapper
-        run: |
-          cd android
-          gradle wrapper --gradle-version 8.2.1
-          chmod +x gradlew
 
       - name: Build Customer APK
         run: |

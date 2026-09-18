@@ -2,7 +2,7 @@
 
 import { useState, useCallback, Suspense } from 'react';
 import { LocationHeader } from '@/components/home/LocationHeader';
-import { ShoppingBag, HeartPulse, Sparkles, ArrowLeft } from 'lucide-react';
+import { ShoppingBag, HeartPulse, Sparkles, ArrowLeft, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 
@@ -22,8 +22,7 @@ interface HomeClientProps {
 }
 
 /**
- * @fileOverview HomeClient - Uses Search Params for standard History-based Navigation.
- * This ensures the Back button returns to the previous section instead of exiting the app.
+ * @fileOverview Inner content wrapped in Suspense to fix Next.js 15 searchParams bailout.
  */
 function HomeClientContent({ 
   initialBanners, 
@@ -158,9 +157,17 @@ function HomeClientContent({
   );
 }
 
+/**
+ * @fileOverview HomeClient Root with standard Next.js 15 Suspense handling.
+ */
 export default function HomeClient(props: HomeClientProps) {
   return (
-    <Suspense fallback={<div className="h-screen bg-white" />}>
+    <Suspense fallback={
+      <div className="h-screen bg-white flex flex-col items-center justify-center gap-4">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Initializing Network...</p>
+      </div>
+    }>
       <HomeClientContent {...props} />
     </Suspense>
   );
