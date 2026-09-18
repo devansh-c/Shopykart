@@ -27,62 +27,20 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-version: '8.2.1'
-
       - name: Build Web & Sync Capacitor
         run: |
           npm run build:static
           npx cap sync android
 
-      - name: Initialize Android Project
-        run: |
-          mkdir -p android/app
-          
-          # Create Root build.gradle
-          cat <<EOF > android/build.gradle
-          buildscript {
-              repositories { google(); mavenCentral() }
-              dependencies {
-                  classpath 'com.android.tools.build:gradle:8.2.1'
-                  classpath 'com.google.gms:google-services:4.4.1'
-              }
-          }
-          allprojects {
-              repositories { google(); mavenCentral() }
-          }
-          EOF
-          
-          # Create Root settings.gradle
-          cat <<EOF > android/settings.gradle
-          include ':app'
-          apply from: 'capacitor.settings.gradle'
-          EOF
-          
-          # Fix missing capacitor-cordova-android-plugins dependency
-          mkdir -p android/capacitor-cordova-android-plugins
-          cat <<EOF > android/capacitor-cordova-android-plugins/build.gradle
-          apply plugin: 'com.android.library'
-          android {
-              namespace 'co.in.shopykart.app.plugins'
-              compileSdk 34
-          }
-          EOF
-          
-          if ! grep -q "capacitor-cordova-android-plugins" android/settings.gradle; then
-            echo "include ':capacitor-cordova-android-plugins'" >> android/settings.gradle
-            echo "project(':capacitor-cordova-android-plugins').projectDir = new File('capacitor-cordova-android-plugins')" >> android/settings.gradle
-          fi
-
-          cd android
-          chmod +x gradlew
-          cd ..
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.2.1'
 
       - name: Build Customer APK
         run: |
           cd android
+          chmod +x gradlew
           ./gradlew assembleDebug
           cp app/build/outputs/apk/debug/app-debug.apk ../ShopyKart-Customer.apk
 
@@ -95,7 +53,7 @@ jobs:
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ShopyKart-Customer-Build
+          name: ShopyKart-Builds
           path: |
             ShopyKart-Customer.apk
             ShopyKart-Customer.aab
