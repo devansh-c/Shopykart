@@ -74,7 +74,6 @@ export default function VendorDashboard() {
     name: '', price: '', mrp: '', description: '', category: '', imageUrl: '', preparingTime: ''
   });
 
-  // KYC States
   const [isKYCOpen, setIsKYCOpen] = useState(false);
   const [isSavingKYC, setIsSavingKYC] = useState(false);
   const [kycForm, setKycForm] = useState({
@@ -86,7 +85,6 @@ export default function VendorDashboard() {
 
   useEffect(() => { setIsMounted(true); }, []);
 
-  // AUTH GUARD: Prevent repetitive logins
   useEffect(() => {
     if (!isMounted || authLoading) return;
     const sessionActive = localStorage.getItem('shopykart_session_active') === 'true';
@@ -101,21 +99,18 @@ export default function VendorDashboard() {
   }, [firestore, user]);
   const { data: vendorProfile, loading: profileLoading } = useDoc<any>(vendorRef);
 
-  // CATEGORY ISOLATION: Only show relevant categories
   const categoriesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'categories'), where('serviceType', '==', 'Food'));
   }, [firestore]);
   const { data: foodCategories } = useCollection<any>(categoriesQuery);
 
-  // PRODUCT ISOLATION: Only show my products
   const productsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(collection(firestore, 'products'), where('vendorId', '==', user.uid));
   }, [firestore, user]);
   const { data: myProducts } = useCollection<any>(productsQuery);
 
-  // ORDER ISOLATION: Only show my orders (including multi-vendor orders where I have items)
   const ordersQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(collection(firestore, 'orders'), orderBy('createdAt', 'desc'), limit(100));
@@ -376,7 +371,7 @@ export default function VendorDashboard() {
                            
                            <div className="grid grid-cols-2 gap-4">
                               <Input type="number" placeholder="Price ₹" value={productForm.price} onChange={e => setProductForm({...productForm, price: e.target.value})} className="h-12 rounded-xl border-none bg-gray-50 font-black italic text-primary" />
-                              <Input type="number" placeholder="Prep Time (Min)" value={productForm.preparingTime} onChange={e => setPreparingTime(e.target.value)} className="h-12 rounded-xl border-none bg-primary/5 font-black text-center" />
+                              <Input type="number" placeholder="Prep Time (Min)" value={productForm.preparingTime} onChange={e => setProductForm({...productForm, preparingTime: e.target.value})} className="h-12 rounded-xl border-none bg-primary/5 font-black text-center" />
                            </div>
 
                            <Select value={productForm.category} onValueChange={v => setProductForm({...productForm, category: v})}>
@@ -527,7 +522,6 @@ export default function VendorDashboard() {
         ))}
       </nav>
 
-      {/* KYC HUB - MOBILE OPTIMIZED FULL SCREEN */}
       <Dialog open={isKYCOpen} onOpenChange={setIsKYCOpen}>
          <DialogContent className="inset-0 w-full h-full max-w-none rounded-none p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none flex flex-col z-[60000]">
             <div className="bg-primary h-1.5 w-full shrink-0" />

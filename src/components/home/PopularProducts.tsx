@@ -182,12 +182,10 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       const vA = vendorMap.get(String(a.vendorId)); 
       const vB = vendorMap.get(String(b.vendorId));
       
-      // 1. OPEN STORES FIRST
       const openA = vA ? (vA.isOnline !== false && isStoreScheduleOpen(vA, currentTimeMinutes)) : true;
       const openB = vB ? (vB.isOnline !== false && isStoreScheduleOpen(vB, currentTimeMinutes)) : true;
       if (openA !== openB) return openA ? -1 : 1;
       
-      // 2. HIGHER RATING NEXT (STORE RATING + PRODUCT RATING)
       const rankA = (Number(vA?.rating) || 0) + (Number(a.rating) || 0);
       const rankB = (Number(vB?.rating) || 0) + (Number(b.rating) || 0);
       return rankB - rankA;

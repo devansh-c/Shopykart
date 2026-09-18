@@ -38,7 +38,7 @@ import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 
 /**
  * @fileOverview Frameless Glassy Checkout Page.
- * Pure glassy material without rectangular boxes for a modern futuristic feel.
+ * Fixed: Edit button no longer cuts off. Unified material design.
  */
 export default function CartPage() {
   const { cart, addToCart, removeFromCart, totalPrice, clearCart } = useCart();
@@ -228,10 +228,8 @@ export default function CartPage() {
       </header>
 
       <main className="px-4 pt-6 relative z-10 animate-in fade-in duration-700">
-        {/* UNIFIED GLASSY SURFACE - NO BOXES */}
         <div className="bg-white/40 backdrop-blur-xl rounded-[2.5rem] overflow-hidden border border-white/40 shadow-[0_10px_40px_rgba(0,0,0,0.05)]">
           
-          {/* ADDRESS SECTION */}
           <section className="px-5 py-6 flex items-center justify-between border-b border-black/[0.03]">
              <div className="flex items-center gap-4 flex-1 min-w-0">
                 <div className="h-12 w-12 bg-[#0B0B0B] rounded-2xl flex items-center justify-center text-white shrink-0">
@@ -251,7 +249,6 @@ export default function CartPage() {
              </button>
           </section>
 
-          {/* ITEMS SECTION */}
           <section className="p-6 space-y-6">
              <div className="flex items-center gap-4 mb-4">
                 <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
@@ -285,7 +282,6 @@ export default function CartPage() {
              </div>
           </section>
 
-          {/* COUPON SECTION */}
           <section className="p-6 bg-white/20 border-y border-black/[0.03]">
              <div className="flex items-center gap-4 mb-4">
                 <div className="h-10 w-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
@@ -324,7 +320,6 @@ export default function CartPage() {
              )}
           </section>
 
-          {/* COIN SECTION */}
           <section className="p-6 flex items-center justify-between border-b border-black/[0.03] bg-amber-50/10">
              <div className="flex items-center gap-4">
                 <div className="h-10 w-10 bg-amber-400 rounded-xl flex items-center justify-center text-black">
@@ -343,7 +338,6 @@ export default function CartPage() {
              />
           </section>
 
-          {/* BILLING SECTION */}
           <section className="p-6 space-y-6">
              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">

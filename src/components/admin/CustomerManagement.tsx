@@ -294,10 +294,10 @@ export default function CustomerManagement() {
                     </h3>
                     <div className="mt-1 flex flex-col gap-0.5">
                        <div className="flex items-center gap-1.5 text-[8px] font-black text-primary uppercase tracking-widest italic">
-                          <Calendar className="h-2.5 w-2.5" /> {dateStr}
+                          <Calendar className="h-2.5 w-2.5" /> Registered: {dateStr}
                        </div>
                        <div className="flex items-center gap-1.5 text-[8px] font-black text-muted-foreground uppercase tracking-widest italic">
-                          <Clock className="h-2.5 w-2.5" /> {timeStr}
+                          <Clock className="h-2.5 w-2.5" /> At {timeStr}
                        </div>
                     </div>
                   </div>
