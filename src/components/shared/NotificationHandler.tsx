@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 
 /**
  * @fileOverview Global Notification Handler - Unblocked Interaction.
- * Fixed: Added pointer-events-none to overlay to prevent blocking Admin Panel.
+ * Fixed: Added pointer-events-none to overlay and proper z-index to allow back-panel clicks.
  */
 export default function NotificationHandler() {
   const { user } = useUser();
@@ -139,7 +139,7 @@ export default function NotificationHandler() {
           <button 
             onClick={() => handleAcceptOrder(ringingOrders[0].id)} 
             disabled={isAccepting}
-            className="w-full h-20 bg-green-600 hover:bg-green-700 text-white rounded-[1.5rem] font-black uppercase text-xl shadow-xl shadow-green-100 active:scale-95 transition-all flex items-center justify-center cursor-pointer"
+            className="w-full h-20 bg-green-600 hover:bg-green-700 text-white rounded-[1.5rem] font-black uppercase text-xl shadow-xl shadow-green-100 active:scale-95 transition-all flex items-center justify-center cursor-pointer pointer-events-auto"
           >
             {isAccepting ? <Loader2 className="h-6 w-6 animate-spin" /> : "ACCEPT NOW"}
           </button>
