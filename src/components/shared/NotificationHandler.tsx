@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 
 /**
  * @fileOverview Global Notification Handler - Unblocked Interaction.
- * Fixed: Added pointer-events-none to overlay and proper z-index to allow back-panel clicks.
+ * Fixed: Backdrop set to select-none and button set to highest priority pointer events.
  */
 export default function NotificationHandler() {
   const { user } = useUser();
@@ -123,7 +123,7 @@ export default function NotificationHandler() {
   if (ringingOrders.length === 0) return null;
 
   return (
-    <div className="fixed inset-0 z-[2000000] flex items-center justify-center p-6 pointer-events-none">
+    <div className="fixed inset-0 z-[2000000] flex items-center justify-center p-6 pointer-events-none select-none">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300 pointer-events-none" />
       
       <div className="relative z-[2000001] bg-white rounded-[3.5rem] p-10 w-full max-w-sm flex flex-col items-center text-center shadow-2xl animate-in zoom-in duration-500 transform-gpu pointer-events-auto">
@@ -140,14 +140,14 @@ export default function NotificationHandler() {
           <button 
             onClick={() => handleAcceptOrder(ringingOrders[0].id)} 
             disabled={isAccepting}
-            className="w-full h-20 bg-green-600 hover:bg-green-700 text-white rounded-[1.5rem] font-black uppercase text-xl shadow-xl shadow-green-100 active:scale-95 transition-all flex items-center justify-center cursor-pointer pointer-events-auto"
+            className="w-full h-20 bg-green-600 hover:bg-green-700 text-white rounded-[1.5rem] font-black uppercase text-xl shadow-xl shadow-green-100 active:scale-95 transition-all flex items-center justify-center cursor-pointer relative z-[2000002]"
           >
             {isAccepting ? <Loader2 className="h-6 w-6 animate-spin" /> : "ACCEPT NOW"}
           </button>
           
           <button 
             onClick={() => setRingingOrders([])}
-            className="text-[9px] font-black text-gray-400 uppercase tracking-widest hover:text-red-500 transition-colors pointer-events-auto cursor-pointer"
+            className="text-[9px] font-black text-gray-400 uppercase tracking-widest hover:text-red-500 transition-colors cursor-pointer relative z-[2000002]"
           >
             Ignore Alert
           </button>

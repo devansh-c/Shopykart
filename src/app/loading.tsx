@@ -3,7 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 /**
  * @fileOverview Premium Pure White Shimmer Loading UI.
- * Optimized for Light mode to prevent "Black Boxes" flash.
+ * Optimized to prevent "Black Boxes" flash by removing borders and shadows from skeletons.
  */
 export default function Loading() {
   return (
@@ -20,7 +20,7 @@ export default function Loading() {
       <main className="space-y-8 pb-32">
         {/* Banner Skeleton */}
         <div className="px-4">
-          <Skeleton className="aspect-[18/9] w-full rounded-[2.5rem] shadow-sm" />
+          <Skeleton className="aspect-[18/9] w-full rounded-[2.5rem]" />
         </div>
 
         {/* Explore Hub Skeleton */}
@@ -53,7 +53,7 @@ export default function Loading() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             {[1, 2, 3, 4].map(i => (
-              <div key={i} className="space-y-3 bg-white p-3 rounded-[2.5rem] border border-gray-100 shadow-sm">
+              <div key={i} className="space-y-3 bg-white p-3 rounded-[2.5rem]">
                 <Skeleton className="aspect-square w-full rounded-[1.5rem]" />
                 <div className="space-y-2 px-1">
                   <Skeleton className="h-2 w-2/3 rounded-full" />

@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils"
 
 /**
  * @fileOverview Pure White Premium Skeleton Shimmer.
- * Optimized to be completely white with zero dark gray boxes.
+ * Optimized to be completely white with zero dark gray boxes or borders.
  */
 function Skeleton({
   className,
@@ -12,7 +12,7 @@ function Skeleton({
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-md bg-white border border-slate-50/50 before:absolute before:inset-0 before:-translate-x-full before:animate-[shimmer_2.5s_infinite] before:bg-gradient-to-r before:from-transparent before:via-white/60 before:to-transparent",
+        "relative overflow-hidden rounded-md bg-white before:absolute before:inset-0 before:-translate-x-full before:animate-[shimmer_2s_infinite] before:bg-gradient-to-r before:from-transparent before:via-slate-50/80 before:to-transparent",
         className
       )}
       {...props}
