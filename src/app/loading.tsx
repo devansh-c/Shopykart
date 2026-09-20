@@ -2,8 +2,8 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
 /**
- * @fileOverview Premium Pure White Shimmer Loading UI.
- * Optimized to prevent "Black Boxes" flash by removing borders and shadows from skeletons.
+ * @fileOverview Premium Pure White FAST Shimmer Loading UI.
+ * Speed increased for a more dynamic feel.
  */
 export default function Loading() {
   return (

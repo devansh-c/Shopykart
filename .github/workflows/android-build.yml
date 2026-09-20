@@ -34,15 +34,9 @@ jobs:
       - name: Sync Capacitor Android
         run: npx cap sync android
 
-      - name: Patch Gradle Settings (Fix Cordova Error)
+      - name: Patch Gradle Settings (Fix Cordova Reference Error)
         run: |
-          # Ensure the missing project is defined in settings.gradle
-          if ! grep -q ":capacitor-cordova-android-plugins" android/settings.gradle; then
-            echo "include ':capacitor-cordova-android-plugins'" >> android/settings.gradle
-            echo "project(':capacitor-cordova-android-plugins').projectDir = new File(settingsDir, 'capacitor-cordova-android-plugins')" >> android/settings.gradle
-          fi
-          
-          # Create a dummy structure for the plugins module if it doesn't exist
+          # This step ensures the missing :capacitor-cordova-android-plugins is stubbed before Gradle evaluation
           mkdir -p android/capacitor-cordova-android-plugins
           if [ ! -f android/capacitor-cordova-android-plugins/build.gradle ]; then
             cat <<EOF > android/capacitor-cordova-android-plugins/build.gradle
@@ -54,17 +48,19 @@ jobs:
             }
           EOF
           fi
+          
+          # Ensure it is registered in settings.gradle
+          if ! grep -q ":capacitor-cordova-android-plugins" android/settings.gradle; then
+            echo "include ':capacitor-cordova-android-plugins'" >> android/settings.gradle
+            echo "project(':capacitor-cordova-android-plugins').projectDir = new File(settingsDir, 'capacitor-cordova-android-plugins')" >> android/settings.gradle
+          fi
 
-      - name: Initialize Gradle Wrapper
+      - name: Initialize Gradle Wrapper & Build APK
         working-directory: android
         run: |
-          # Use system gradle to generate a stable wrapper
+          # Force stable Gradle 8.2.1 for Capacitor compatibility
           gradle wrapper --gradle-version 8.2.1
           chmod +x gradlew
-
-      - name: Build Customer APK
-        working-directory: android
-        run: |
           ./gradlew assembleDebug
           cp app/build/outputs/apk/debug/app-debug.apk ../ShopyKart-Customer.apk
 
