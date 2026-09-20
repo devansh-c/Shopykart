@@ -36,7 +36,6 @@ jobs:
 
       - name: Patch Gradle Settings (Cordova Plugin Fix)
         run: |
-          # Ensure the capacitor-cordova-android-plugins module is included in settings.gradle
           if [ -d "android" ]; then
             cd android
             if ! grep -q "':capacitor-cordova-android-plugins'" settings.gradle; then
@@ -44,16 +43,15 @@ jobs:
               echo "project(':capacitor-cordova-android-plugins').projectDir = new File('capacitor-cordova-android-plugins')" >> settings.gradle
             fi
             
-            # Create a minimal stub project for plugins if missing to satisfy Gradle evaluation
             mkdir -p capacitor-cordova-android-plugins/src/main
             echo 'apply plugin: "com.android.library"' > capacitor-cordova-android-plugins/build.gradle
             echo 'android { compileSdkVersion 34; default { minSdk 22; targetSdk 34 } }' >> capacitor-cordova-android-plugins/build.gradle
             echo '<?xml version="1.0" encoding="utf-8"?><manifest xmlns:android="http://schemas.android.com/apk/res/android" package="capacitor.cordova.android.plugins"></manifest>' > capacitor-cordova-android-plugins/src/main/AndroidManifest.xml
           fi
 
-      - name: Force Gradle 8.2.1 & Build APK
+      - name: Initialize Gradle Wrapper & Build APK
+        working-directory: android
         run: |
-          cd android
           # Use system gradle to generate the wrapper if it doesn't exist
           gradle wrapper --gradle-version 8.2.1
           chmod +x gradlew
@@ -61,8 +59,8 @@ jobs:
           cp app/build/outputs/apk/debug/app-debug.apk ../ShopyKart-Customer.apk
 
       - name: Build Customer AAB (Play Store)
+        working-directory: android
         run: |
-          cd android
           ./gradlew bundleDebug
           cp app/build/outputs/bundle/debug/app-debug.aab ../ShopyKart-Customer.aab
 
