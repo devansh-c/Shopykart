@@ -6,8 +6,8 @@ import { useEffect, useState, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 
 /**
- * @fileOverview Tawk.to visibility control with ultra-defensive error handling.
- * Hardened to suppress Google Maps Billing and Tawk internal noise that cause Red Screens.
+ * @fileOverview Tawk.to visibility control.
+ * Cleaned up console overrides to prevent Next.js 15 dev server loops.
  */
 export function TawkChat() {
   const [isClient, setIsClient] = useState(false);
@@ -18,47 +18,6 @@ export function TawkChat() {
   useEffect(() => {
     setIsClient(true);
     
-    if (typeof window !== 'undefined') {
-      // 1. STRICT SUPPRESSION: Override console.error specifically for Tawk Logger and Google Maps Billing noise
-      const originalError = window.console.error;
-      window.console.error = (...args) => {
-        const msg = args[0];
-        if (typeof msg === 'string') {
-          const ignorePatterns = [
-            '[Tawk/Logger]',
-            'Tawk_API',
-            'i18next',
-            'Geocoding Service',
-            'Google Maps JavaScript API error',
-            'Billing',
-            'quota',
-            'api-key'
-          ];
-          if (ignorePatterns.some(pattern => msg.toLowerCase().includes(pattern))) {
-            return; // Silently ignore matched patterns
-          }
-        }
-        originalError.apply(window.console, args);
-      };
-
-      // 2. GLOBAL ERROR SHIELD: Specifically catch and ignore Tawk-related runtime errors
-      const originalWindowError = window.onerror;
-      window.onerror = function(message, source, lineno, colno, error) {
-        const msg = String(message).toLowerCase();
-        const ignoreList = ['tawk', 'i18next', 'google', 'billing', 'maps', 'quota'];
-        
-        if (ignoreList.some(term => msg.includes(term)) || (source && source.includes('tawk.to'))) {
-          console.debug('Suppressed internal script error:', message);
-          return true; // Prevents the error from triggering the Next.js overlay
-        }
-        
-        if (originalWindowError) {
-          return originalWindowError.apply(window, [message, source, lineno, colno, error]);
-        }
-        return false;
-      };
-    }
-
     // Signal for script load
     (window as any).onTawkLoadSignal = () => {
       setIsTawkReady(true);
@@ -104,7 +63,7 @@ export function TawkChat() {
             }
             lastStateRef.current = newState;
           } catch (e) {
-            // Silently ignore script internal errors
+            // Silently ignore
           }
         }
       };
