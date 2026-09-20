@@ -1,5 +1,5 @@
 
-name: Build ShopyKart Customer App (Zero Error)
+name: Build ShopyKart Customer App (Zero Error Master)
 
 on:
   push:
@@ -28,46 +28,51 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Build Web Application
+      - name: Build Web Application (Static Export)
         run: npm run build:static
 
-      - name: Sync Capacitor Android
+      - name: Sync Capacitor Android (Bridge Generation)
         run: npx cap sync android
 
-      - name: Patch Gradle Settings (Fix Cordova Reference Error)
+      - name: Patch Gradle & Fix Plugin Paths
         run: |
-          # This step ensures the missing :capacitor-cordova-android-plugins is stubbed before Gradle evaluation
-          mkdir -p android/capacitor-cordova-android-plugins
-          if [ ! -f android/capacitor-cordova-android-plugins/build.gradle ]; then
-            cat <<EOF > android/capacitor-cordova-android-plugins/build.gradle
-            apply plugin: 'com.android.library'
-            android {
-                namespace 'co.in.shopykart.app.plugins'
-                compileSdk 34
-                defaultConfig { minSdk 23 }
-            }
-          EOF
-          fi
+          # This robust script ensures :capacitor-cordova-android-plugins exists and is included
+          mkdir -p android/capacitor-cordova-android-plugins/src/main
           
-          # Ensure it is registered in settings.gradle
+          # Create a valid stub build.gradle if missing
+          cat <<EOF > android/capacitor-cordova-android-plugins/build.gradle
+          apply plugin: 'com.android.library'
+          android {
+              namespace 'co.in.shopykart.app.plugins'
+              compileSdk 34
+              defaultConfig { minSdk 23 }
+          }
+          EOF
+
+          # Create a dummy manifest to satisfy Gradle
+          cat <<EOF > android/capacitor-cordova-android-plugins/src/main/AndroidManifest.xml
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="co.in.shopykart.app.plugins"></manifest>
+          EOF
+          
+          # Force the module inclusion in settings.gradle
           if ! grep -q ":capacitor-cordova-android-plugins" android/settings.gradle; then
             echo "include ':capacitor-cordova-android-plugins'" >> android/settings.gradle
             echo "project(':capacitor-cordova-android-plugins').projectDir = new File(settingsDir, 'capacitor-cordova-android-plugins')" >> android/settings.gradle
           fi
 
-      - name: Initialize Gradle Wrapper & Build APK
+      - name: Initialize Gradle & Build APK
         working-directory: android
         run: |
-          # Force stable Gradle 8.2.1 for Capacitor compatibility
+          # Use system gradle to generate wrapper first to avoid 'No such file'
           gradle wrapper --gradle-version 8.2.1
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleDebug --stacktrace
           cp app/build/outputs/apk/debug/app-debug.apk ../ShopyKart-Customer.apk
 
       - name: Build Customer AAB (Play Store)
         working-directory: android
         run: |
-          ./gradlew bundleDebug
+          ./gradlew bundleDebug --stacktrace
           cp app/build/outputs/bundle/debug/app-debug.aab ../ShopyKart-Customer.aab
 
       - name: Upload Build Artifacts

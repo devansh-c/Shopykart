@@ -2,8 +2,8 @@
 import { cn } from "@/lib/utils"
 
 /**
- * @fileOverview Pure White Premium Fast Shimmer.
- * Speed increased to 0.8s for a snappier feel.
+ * @fileOverview Pure White Premium FAST Shimmer.
+ * Speed increased to 0.6s for a high-performance snappy feel.
  * Optimized to be completely white with zero dark gray boxes.
  */
 function Skeleton({
@@ -13,7 +13,7 @@ function Skeleton({
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-md bg-white before:absolute before:inset-0 before:-translate-x-full before:animate-[shimmer_0.8s_infinite] before:bg-gradient-to-r before:from-transparent before:via-slate-50 before:to-transparent",
+        "relative overflow-hidden rounded-md bg-white before:absolute before:inset-0 before:-translate-x-full before:animate-[shimmer_0.6s_infinite] before:bg-gradient-to-r before:from-transparent before:via-slate-50/50 before:to-transparent",
         className
       )}
       {...props}
