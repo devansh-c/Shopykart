@@ -34,34 +34,33 @@ jobs:
       - name: Sync Capacitor Android
         run: npx cap sync android
 
-      - name: Bulletproof Gradle Patch (Cordova Plugin Fix)
+      - name: Patch Gradle Settings (Cordova Plugin Fix)
         run: |
-          # 1. Ensure the capacitor-cordova-android-plugins module is included in settings.gradle
-          if ! grep -q "':capacitor-cordova-android-plugins'" android/settings.gradle; then
-            echo "include ':capacitor-cordova-android-plugins'" >> android/settings.gradle
-            echo "project(':capacitor-cordova-android-plugins').projectDir = new File('capacitor-cordova-android-plugins')" >> android/settings.gradle
+          # Ensure the capacitor-cordova-android-plugins module is included in settings.gradle
+          if [ -d "android" ]; then
+            cd android
+            if ! grep -q "':capacitor-cordova-android-plugins'" settings.gradle; then
+              echo "include ':capacitor-cordova-android-plugins'" >> settings.gradle
+              echo "project(':capacitor-cordova-android-plugins').projectDir = new File('capacitor-cordova-android-plugins')" >> settings.gradle
+            fi
+            
+            # Create a minimal stub project for plugins if missing to satisfy Gradle evaluation
+            mkdir -p capacitor-cordova-android-plugins/src/main
+            echo 'apply plugin: "com.android.library"' > capacitor-cordova-android-plugins/build.gradle
+            echo 'android { compileSdkVersion 34; default { minSdk 22; targetSdk 34 } }' >> capacitor-cordova-android-plugins/build.gradle
+            echo '<?xml version="1.0" encoding="utf-8"?><manifest xmlns:android="http://schemas.android.com/apk/res/android" package="capacitor.cordova.android.plugins"></manifest>' > capacitor-cordova-android-plugins/src/main/AndroidManifest.xml
           fi
 
-          # 2. Ensure the folder exists even if no plugins are used (satisfy Gradle evaluator)
-          mkdir -p android/capacitor-cordova-android-plugins/src/main
-          
-          # Create a minimal build.gradle for the stub project
-          echo 'apply plugin: "com.android.library"' > android/capacitor-cordova-android-plugins/build.gradle
-          echo 'android { compileSdkVersion 34; default { minSdk 22; targetSdk 34 } }' >> android/capacitor-cordova-android-plugins/build.gradle
-          
-          # Create a minimal Manifest
-          echo '<?xml version="1.0" encoding="utf-8"?><manifest xmlns:android="http://schemas.android.com/apk/res/android" package="capacitor.cordova.android.plugins"></manifest>' > android/capacitor-cordova-android-plugins/src/main/AndroidManifest.xml
-
-      - name: Build APK (Gradle 8.2.1)
+      - name: Force Gradle 8.2.1 & Build APK
         run: |
           cd android
-          # Force a specific stable Gradle version to avoid SelfResolvingDependency errors
-          ./gradlew wrapper --gradle-version 8.2.1
+          # Use system gradle to generate the wrapper if it doesn't exist
+          gradle wrapper --gradle-version 8.2.1
           chmod +x gradlew
           ./gradlew assembleDebug
           cp app/build/outputs/apk/debug/app-debug.apk ../ShopyKart-Customer.apk
 
-      - name: Build Play Store AAB
+      - name: Build Customer AAB (Play Store)
         run: |
           cd android
           ./gradlew bundleDebug
@@ -70,7 +69,7 @@ jobs:
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ShopyKart-Builds
+          name: ShopyKart-Customer-Build
           path: |
             ShopyKart-Customer.apk
             ShopyKart-Customer.aab
