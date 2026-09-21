@@ -31,32 +31,37 @@ jobs:
       - name: Build Web Application (Static Export)
         run: npm run build:static
 
-      - name: Sync Capacitor Android (Bridge Generation)
+      - name: Sync Capacitor Android
         run: npx cap sync android
 
-      - name: Patch Gradle & AndroidX Properties
+      - name: Patch Android Project (Critical Fix)
         run: |
-          mkdir -p android
-          # Force AndroidX and Jetifier (Fixes AndroidXDisabledJetifierDisabled error)
+          # 1. Force AndroidX and Jetifier
           echo "android.useAndroidX=true" > android/gradle.properties
           echo "android.enableJetifier=true" >> android/gradle.properties
           echo "org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8" >> android/gradle.properties
           
-          # Ensure capacitor-cordova-android-plugins module exists to prevent evaluation error
+          # 2. Stub missing capacitor-cordova-android-plugins module if missing
+          # This prevents the "Project with path ':capacitor-cordova-android-plugins' could not be found" error
           mkdir -p android/capacitor-cordova-android-plugins/src/main
-          cat <<EOF > android/capacitor-cordova-android-plugins/build.gradle
-          apply plugin: 'com.android.library'
-          android {
-              namespace 'co.in.shopykart.app.plugins'
-              compileSdk 34
-              defaultConfig { minSdk 23 }
-          }
+          if [ ! -f "android/capacitor-cordova-android-plugins/build.gradle" ]; then
+            cat <<EOF > android/capacitor-cordova-android-plugins/build.gradle
+            apply plugin: 'com.android.library'
+            android {
+                namespace 'co.in.shopykart.app.plugins'
+                compileSdk 34
+                defaultConfig { minSdk 23 }
+            }
           EOF
-          cat <<EOF > android/capacitor-cordova-android-plugins/src/main/AndroidManifest.xml
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="co.in.shopykart.app.plugins"></manifest>
-          EOF
+          fi
           
-          # Link module in settings.gradle if missing
+          if [ ! -f "android/capacitor-cordova-android-plugins/src/main/AndroidManifest.xml" ]; then
+            cat <<EOF > android/capacitor-cordova-android-plugins/src/main/AndroidManifest.xml
+            <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="co.in.shopykart.app.plugins"></manifest>
+          EOF
+          fi
+          
+          # 3. Ensure module is included in settings.gradle
           if [ -f "android/settings.gradle" ]; then
             if ! grep -q ":capacitor-cordova-android-plugins" android/settings.gradle; then
               echo "include ':capacitor-cordova-android-plugins'" >> android/settings.gradle
@@ -64,7 +69,7 @@ jobs:
             fi
           fi
 
-      - name: Initialize Gradle & Build APK
+      - name: Build APK (Debug)
         working-directory: android
         run: |
           gradle wrapper --gradle-version 8.2.1
@@ -72,7 +77,7 @@ jobs:
           ./gradlew assembleDebug --stacktrace
           cp app/build/outputs/apk/debug/app-debug.apk ../ShopyKart-Customer.apk
 
-      - name: Build Customer AAB (Play Store)
+      - name: Build AAB (Release/Play Store Bundle)
         working-directory: android
         run: |
           ./gradlew bundleDebug --stacktrace
