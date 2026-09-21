@@ -36,7 +36,8 @@ jobs:
 
       - name: Patch Android Project (Critical Fix)
         run: |
-          # 1. Force AndroidX and Jetifier
+          # 1. Force AndroidX, Jetifier and Memory limits
+          mkdir -p android
           echo "android.useAndroidX=true" > android/gradle.properties
           echo "android.enableJetifier=true" >> android/gradle.properties
           echo "org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8" >> android/gradle.properties
