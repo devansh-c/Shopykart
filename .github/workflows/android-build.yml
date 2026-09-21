@@ -25,6 +25,7 @@ jobs:
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
+          status: 'success'
           distribution: 'zulu'
           java-version: '17'
 
@@ -34,14 +35,16 @@ jobs:
       - name: Sync Capacitor Android
         run: npx cap sync android
 
-      - name: Patch Android Project (AAPT2 Fix)
+      - name: Patch Android Project (Worker & Memory Fix)
         run: |
           mkdir -p android
-          # Use append (>>) instead of overwrite (>) to preserve existing properties
           touch android/gradle.properties
+          # Optimization for CI Runners to prevent NoIsolationWorkerFactory crash
           echo "android.useAndroidX=true" >> android/gradle.properties
           echo "android.enableJetifier=true" >> android/gradle.properties
-          echo "org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8" >> android/gradle.properties
+          echo "org.gradle.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=512m -Dfile.encoding=UTF-8" >> android/gradle.properties
+          echo "org.gradle.workers.max=2" >> android/gradle.properties
+          echo "android.nonTransitiveRClass=true" >> android/gradle.properties
           
           # Stub missing capacitor-cordova-android-plugins module if missing
           mkdir -p android/capacitor-cordova-android-plugins/src/main
@@ -62,7 +65,7 @@ jobs:
           EOF
           fi
           
-          # Ensure module is included in settings.gradle without breaking existing ones
+          # Ensure module is included in settings.gradle
           if [ -f "android/settings.gradle" ]; then
             if ! grep -q ":capacitor-cordova-android-plugins" android/settings.gradle; then
               echo "include ':capacitor-cordova-android-plugins'" >> android/settings.gradle
@@ -75,13 +78,13 @@ jobs:
         run: |
           gradle wrapper --gradle-version 8.2.1
           chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace
+          ./gradlew assembleDebug --stacktrace --max-workers=2
           cp app/build/outputs/apk/debug/app-debug.apk ../ShopyKart-Customer.apk
 
       - name: Build AAB (Release/Play Store Bundle)
         working-directory: android
         run: |
-          ./gradlew bundleDebug --stacktrace
+          ./gradlew bundleDebug --stacktrace --max-workers=2
           cp app/build/outputs/bundle/debug/app-debug.aab ../ShopyKart-Customer.aab
 
       - name: Upload Build Artifacts
