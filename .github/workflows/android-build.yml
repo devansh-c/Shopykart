@@ -34,16 +34,16 @@ jobs:
       - name: Sync Capacitor Android
         run: npx cap sync android
 
-      - name: Patch Android Project (Critical Fix)
+      - name: Patch Android Project (AAPT2 Fix)
         run: |
-          # 1. Force AndroidX, Jetifier and Memory limits
           mkdir -p android
-          echo "android.useAndroidX=true" > android/gradle.properties
+          # Use append (>>) instead of overwrite (>) to preserve existing properties
+          touch android/gradle.properties
+          echo "android.useAndroidX=true" >> android/gradle.properties
           echo "android.enableJetifier=true" >> android/gradle.properties
           echo "org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8" >> android/gradle.properties
           
-          # 2. Stub missing capacitor-cordova-android-plugins module if missing
-          # This prevents the "Project with path ':capacitor-cordova-android-plugins' could not be found" error
+          # Stub missing capacitor-cordova-android-plugins module if missing
           mkdir -p android/capacitor-cordova-android-plugins/src/main
           if [ ! -f "android/capacitor-cordova-android-plugins/build.gradle" ]; then
             cat <<EOF > android/capacitor-cordova-android-plugins/build.gradle
@@ -62,7 +62,7 @@ jobs:
           EOF
           fi
           
-          # 3. Ensure module is included in settings.gradle
+          # Ensure module is included in settings.gradle without breaking existing ones
           if [ -f "android/settings.gradle" ]; then
             if ! grep -q ":capacitor-cordova-android-plugins" android/settings.gradle; then
               echo "include ':capacitor-cordova-android-plugins'" >> android/settings.gradle
