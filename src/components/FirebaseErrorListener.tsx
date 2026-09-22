@@ -7,8 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 
 /**
  * @fileOverview Global Firebase Error Listener.
- * Strictly handles permission errors. Suppresses noisy backend connection warnings.
- * Fixed: Suppressed /orders and /users toasts to prevent scaring the user during auth transitions.
+ * Strictly handles permission errors. Suppresses noisy backend connection warnings and network glitches.
  */
 export function FirebaseErrorListener() {
   const { toast } = useToast();
@@ -22,10 +21,15 @@ export function FirebaseErrorListener() {
         operation: error.context.operation,
       });
 
+      // IGNORE NETWORK FLICKERS: Suppress connection unavailable errors visually
+      if (error.message?.includes('unavailable') || error.message?.includes('deadline')) {
+        return;
+      }
+
       if (lastErrorRef.current !== error.context.path) {
         lastErrorRef.current = error.context.path;
         
-        // SUPPRESS NOISY PATHS: Don't show toast for orders, users, products or banners as they sync in background
+        // SUPPRESS NOISY PATHS: Don't show toast for sync-heavy collections
         const noisyPaths = ['/orders', '/users', '/products', '/banners', '/categories'];
         const isNoisy = noisyPaths.some(p => error.context.path.includes(p));
 
