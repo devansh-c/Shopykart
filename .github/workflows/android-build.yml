@@ -25,7 +25,6 @@ jobs:
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          status: 'success'
           distribution: 'zulu'
           java-version: '17'
 
@@ -40,11 +39,14 @@ jobs:
           mkdir -p android
           touch android/gradle.properties
           # Optimization for CI Runners to prevent NoIsolationWorkerFactory crash
+          # We use append mode to avoid overwriting existing properties
           echo "android.useAndroidX=true" >> android/gradle.properties
           echo "android.enableJetifier=true" >> android/gradle.properties
           echo "org.gradle.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=512m -Dfile.encoding=UTF-8" >> android/gradle.properties
           echo "org.gradle.workers.max=2" >> android/gradle.properties
           echo "android.nonTransitiveRClass=true" >> android/gradle.properties
+          # Disable parallel execution in CI to avoid worker contention
+          echo "org.gradle.parallel=false" >> android/gradle.properties
           
           # Stub missing capacitor-cordova-android-plugins module if missing
           mkdir -p android/capacitor-cordova-android-plugins/src/main
@@ -78,19 +80,12 @@ jobs:
         run: |
           gradle wrapper --gradle-version 8.2.1
           chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace --max-workers=2
-          cp app/build/outputs/apk/debug/app-debug.apk ../ShopyKart-Customer.apk
-
-      - name: Build AAB (Release/Play Store Bundle)
-        working-directory: android
-        run: |
-          ./gradlew bundleDebug --stacktrace --max-workers=2
-          cp app/build/outputs/bundle/debug/app-debug.aab ../ShopyKart-Customer.aab
+          # Build with limited workers and no daemon for maximum stability on GitHub Runner
+          ./gradlew assembleDebug --stacktrace --max-workers=2 --no-daemon
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ShopyKart-Customer-Build
           path: |
-            ShopyKart-Customer.apk
-            ShopyKart-Customer.aab
+            android/app/build/outputs/apk/debug/app-debug.apk

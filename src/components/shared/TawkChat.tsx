@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation';
 
 /**
  * @fileOverview Tawk.to visibility control.
- * Optimized for Next.js 15 to prevent preview loop.
+ * Optimized for Next.js 15 to prevent preview loops and hydration errors.
  */
 export function TawkChat() {
   const [isClient, setIsClient] = useState(false);
@@ -28,10 +28,10 @@ export function TawkChat() {
   }, []);
 
   useEffect(() => {
-    if (!isClient || !isTawkReady) return;
+    if (!isClient || !isTawkReady || typeof window === 'undefined') return;
 
     const tawk = (window as any).Tawk_API;
-    if (!tawk) return;
+    if (!tawk || typeof tawk.show !== 'function' || typeof tawk.hide !== 'function') return;
 
     const path = pathname?.toLowerCase() || '';
     const isRestrictedRoute = 
@@ -43,23 +43,21 @@ export function TawkChat() {
       path.includes('/cart') ||
       path.startsWith('/order/track'); 
 
-    const locationSet = typeof window !== 'undefined' ? localStorage.getItem('user_location_set') === 'true' : false;
+    const locationSet = localStorage.getItem('user_location_set') === 'true';
     const shouldShow = !isRestrictedRoute && locationSet;
     const newState = shouldShow ? 'show' : 'hide';
 
     if (lastStateRef.current !== newState) {
-      const applyTawkState = () => {
-        const currentTawk = (window as any).Tawk_API;
-        if (currentTawk && typeof currentTawk.show === 'function' && typeof currentTawk.hide === 'function') {
-          try {
-            if (shouldShow) currentTawk.show();
-            else currentTawk.hide();
-            lastStateRef.current = newState;
-          } catch (e) {}
+      // Small delay to ensure script context is ready
+      const timer = setTimeout(() => {
+        try {
+          if (shouldShow) tawk.show();
+          else tawk.hide();
+          lastStateRef.current = newState;
+        } catch (e) {
+          console.debug("Tawk action skip");
         }
-      };
-
-      const timer = setTimeout(applyTawkState, 1000); 
+      }, 500); 
       return () => clearTimeout(timer);
     }
   }, [pathname, isClient, isTawkReady]);
@@ -67,7 +65,7 @@ export function TawkChat() {
   if (!isClient) return null;
 
   return (
-    <Script id="tawk-setup" strategy="lazyOnload">
+    <Script id="tawk-setup" strategy="afterInteractive">
       {`
         var Tawk_API = Tawk_API || {}, Tawk_LoadStart = new Date();
         Tawk_API.onLoad = function() {
