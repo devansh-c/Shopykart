@@ -79,16 +79,16 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="rounded-t-[2.5rem] sm:rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl z-[1000001] bottom-0 top-auto translate-y-0 sm:top-[50%] sm:translate-y-[-50%] focus:outline-none h-[85vh] sm:h-auto">
-        <div className="flex flex-col h-full bg-[#0B0B0B] text-white relative">
+      <DialogContent className="rounded-t-[2.5rem] sm:rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl z-[2000001] bottom-0 top-auto translate-y-0 sm:top-[50%] sm:translate-y-[-50%] focus:outline-none h-[85vh] sm:h-auto max-w-lg">
+        <div className="flex flex-col h-full bg-[#0B0B0B] text-white relative transform-gpu">
           
-          <DialogHeader className="p-6 pb-2 shrink-0 border-b border-white/5">
+          <DialogHeader className="p-6 pb-2 shrink-0 border-b border-white/5 relative z-10">
             <DialogTitle className="font-black italic uppercase text-center text-xl tracking-tighter text-white">{product.name}</DialogTitle>
             <DialogDescription className="text-center text-[10px] font-bold uppercase tracking-widest text-gray-500">Customize and Add to Bag</DialogDescription>
             <button onClick={() => setIsOpen(false)} className="absolute top-4 right-4 h-9 w-9 rounded-full bg-white/5 flex items-center justify-center text-gray-400 z-50 active:scale-90 transition-transform"><X className="h-4 w-4" /></button>
           </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto no-scrollbar pb-32">
+          <div className="flex-1 overflow-y-auto no-scrollbar pb-6 relative z-0">
             <div className="p-6 pt-4 flex gap-4 border-b border-dashed border-white/10">
                <div className="relative h-24 w-24 rounded-2xl overflow-hidden bg-muted border border-white/10 shadow-sm shrink-0">
                   <Image src={product.imageUrl} alt={product.name} fill className="object-cover" unoptimized />
@@ -154,8 +154,9 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
             </div>
           </div>
 
-          <div className="absolute bottom-0 left-0 right-0 p-6 bg-[#0B0B0B] border-t border-white/5 pb-10 z-[1000010] shadow-[0_-20px_50px_rgba(0,0,0,0.5)]">
-             <div className="flex items-center gap-3 max-md mx-auto">
+          {/* STABLE FLEX FOOTER - PREVENTS BUTTON HIDING */}
+          <div className="shrink-0 p-6 bg-[#0B0B0B] border-t border-white/5 pb-12 z-[2000010] shadow-[0_-20px_50px_rgba(0,0,0,0.5)]">
+             <div className="flex items-center gap-3 max-w-md mx-auto">
                 <div className="flex items-center bg-white/5 rounded-xl h-14 px-2">
                    <button disabled={isOffline} onClick={() => setLocalQuantity(Math.max(1, localQuantity - 1))} className="h-10 w-10 flex items-center justify-center bg-white/10 rounded-lg shadow-sm active:scale-90 transition-transform"><Minus className="h-4 w-4" /></button>
                    <span className="w-10 text-center text-lg font-black italic">{localQuantity}</span>

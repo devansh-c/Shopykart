@@ -40,6 +40,7 @@ jobs:
           touch android/gradle.properties
           
           # Optimization for CI Runners - Force AndroidX & Memory limits
+          # Using append mode (>>) to avoid clearing any required keys
           echo "" >> android/gradle.properties
           echo "android.useAndroidX=true" >> android/gradle.properties
           echo "android.enableJetifier=true" >> android/gradle.properties

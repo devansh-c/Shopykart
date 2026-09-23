@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -214,7 +213,7 @@ export default function CartPage() {
     }
   };
 
-  // Improved Slider Handlers
+  // Improved Slider Handlers for Mobile Browsers
   const handleTouchStart = (e: React.TouchEvent) => { 
     if (isPlacing || cart.length === 0 || hasClosedItems || !isMinOrderMet) return; 
     setIsDragging(true); 
