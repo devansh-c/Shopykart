@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useState, useEffect, memo, useCallback } from "react"
@@ -100,15 +101,20 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemo
             {!isOffline ? (
               <ProductQuickView product={product} vendorScheduleOpen={true}>
                 <div className="w-fit pointer-events-auto">
-                  {quantity === 0 ? (
-                    <button className="bg-primary text-white h-9 px-6 rounded-full font-black text-[10px] uppercase shadow-lg active:scale-90 transition-transform">ADD</button>
-                  ) : (
-                    <div className="flex items-center bg-primary text-white rounded-full h-9 px-1.5 shadow-xl border border-white/20">
-                      <button onClick={(e) => { e.stopPropagation(); onRemove(product.id); }} className="w-7 h-full flex items-center justify-center active:scale-90 transition-transform"><Minus className="h-4 w-4 stroke-[3]" /></button>
-                      <span className="text-[11px] font-black w-5 text-center">{quantity}</span>
-                      <button onClick={(e) => { e.stopPropagation(); onAdd({...product, quantity: 1}); }} className="w-7 h-full flex items-center justify-center active:scale-90 transition-transform"><Plus className="h-4 w-4 stroke-[3]" /></button>
-                    </div>
-                  )}
+                  <div className={cn(
+                    "flex items-center rounded-full h-9 transition-all duration-300",
+                    quantity === 0 ? "bg-primary px-6" : "bg-primary px-1.5 shadow-xl border border-white/20"
+                  )}>
+                    {quantity === 0 ? (
+                      <span className="text-white font-black text-[10px] uppercase">ADD</span>
+                    ) : (
+                      <>
+                        <button onClick={(e) => { e.stopPropagation(); onRemove(product.id); }} className="w-7 h-full flex items-center justify-center active:scale-90 transition-transform"><Minus className="h-4 w-4 stroke-[3] text-white" /></button>
+                        <span className="text-[11px] font-black w-5 text-center text-white">{quantity}</span>
+                        <button onClick={(e) => { e.stopPropagation(); onAdd({...product, quantity: 1}); }} className="w-7 h-full flex items-center justify-center active:scale-90 transition-transform"><Plus className="h-4 w-4 stroke-[3] text-white" /></button>
+                      </>
+                    )}
+                  </div>
                 </div>
               </ProductQuickView>
             ) : (

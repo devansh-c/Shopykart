@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -213,7 +214,6 @@ export default function CartPage() {
     }
   };
 
-  // Improved Slider Handlers for Mobile Browsers
   const handleTouchStart = (e: React.TouchEvent) => { 
     if (isPlacing || cart.length === 0 || hasClosedItems || !isMinOrderMet) return; 
     setIsDragging(true); 
@@ -224,7 +224,6 @@ export default function CartPage() {
     if (!isDragging || !sliderRef.current) return; 
     const diff = e.touches[0].clientX - startXRef.current; 
     if (diff > 0) {
-      // Limit to slider width minus handle width
       const maxOffset = sliderRef.current.offsetWidth - 88;
       setSliderOffset(Math.min(diff, maxOffset)); 
     }

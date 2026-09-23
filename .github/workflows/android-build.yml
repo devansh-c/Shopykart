@@ -39,14 +39,14 @@ jobs:
           mkdir -p android
           touch android/gradle.properties
           
-          # Optimization for CI Runners - Force AndroidX & Memory limits
+          # Optimization for CI Runners - Full Isolation to prevent NoIsolationWorkerFactory crash
           echo "" >> android/gradle.properties
           echo "android.useAndroidX=true" >> android/gradle.properties
           echo "android.enableJetifier=true" >> android/gradle.properties
           echo "org.gradle.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=512m -Dfile.encoding=UTF-8" >> android/gradle.properties
-          echo "org.gradle.workers.max=2" >> android/gradle.properties
-          echo "android.nonTransitiveRClass=true" >> android/gradle.properties
           echo "org.gradle.parallel=false" >> android/gradle.properties
+          echo "org.gradle.configureondemand=false" >> android/gradle.properties
+          echo "android.disableResourceValidation=true" >> android/gradle.properties
           
           # Force fix for missing capacitor-cordova-android-plugins module
           mkdir -p android/capacitor-cordova-android-plugins/src/main
@@ -79,8 +79,8 @@ jobs:
         run: |
           gradle wrapper --gradle-version 8.2.1
           chmod +x gradlew
-          # Build with limited workers and no daemon for maximum stability on GitHub Runner
-          ./gradlew assembleDebug --stacktrace --max-workers=2 --no-daemon
+          # Build with maximum isolation to prevent worker pool crashes
+          ./gradlew assembleDebug --stacktrace --max-workers=1 --no-daemon --no-parallel
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
