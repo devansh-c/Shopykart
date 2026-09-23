@@ -79,7 +79,7 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="rounded-t-[2.5rem] sm:rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl z-[2000001] bottom-0 top-auto translate-y-0 sm:top-[50%] sm:translate-y-[-50%] focus:outline-none h-[85vh] sm:h-auto max-w-lg">
+      <DialogContent className="rounded-t-[3rem] sm:rounded-[3rem] p-0 overflow-hidden border-none shadow-2xl z-[2000001] bottom-0 top-auto translate-y-0 sm:top-[50%] sm:translate-y-[-50%] focus:outline-none h-[85vh] sm:h-auto max-w-lg">
         <div className="flex flex-col h-full bg-[#0B0B0B] text-white relative transform-gpu">
           
           <DialogHeader className="p-6 pb-2 shrink-0 border-b border-white/5 relative z-10">
@@ -154,7 +154,6 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
             </div>
           </div>
 
-          {/* STABLE FLEX FOOTER - PREVENTS BUTTON HIDING */}
           <div className="shrink-0 p-6 bg-[#0B0B0B] border-t border-white/5 pb-12 z-[2000010] shadow-[0_-20px_50px_rgba(0,0,0,0.5)]">
              <div className="flex items-center gap-3 max-w-md mx-auto">
                 <div className="flex items-center bg-white/5 rounded-xl h-14 px-2">
