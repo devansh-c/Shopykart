@@ -38,7 +38,7 @@ import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 
 /**
  * @fileOverview Rebuilt Premium Checkout Page.
- * Added: Delivery Tip section and detailed bill breakdown.
+ * Added: Fixed Slide to Order interaction for mobile.
  */
 export default function CartPage() {
   const { cart, addToCart, removeFromCart, totalPrice, clearCart } = useCart();
@@ -212,9 +212,24 @@ export default function CartPage() {
     }
   };
 
-  const handleTouchStart = (e: React.TouchEvent) => { if (isPlacing || cart.length === 0 || hasClosedItems || !isMinOrderMet) return; setIsDragging(true); startXRef.current = e.touches[0].clientX; };
-  const handleTouchMove = (e: React.TouchEvent) => { if (!isDragging || !sliderRef.current) return; const diff = e.touches[0].clientX - startXRef.current; if (diff > 0) setSliderOffset(Math.min(diff, sliderRef.current.offsetWidth - 80)); };
-  const handleTouchEnd = () => { if (!isDragging) return; setIsDragging(false); if (sliderOffset > (sliderRef.current?.offsetWidth || 0) * 0.75) finalizeOrder(); else setSliderOffset(0); };
+  const handleTouchStart = (e: React.TouchEvent) => { 
+    if (isPlacing || cart.length === 0 || hasClosedItems || !isMinOrderMet) return; 
+    setIsDragging(true); 
+    startXRef.current = e.touches[0].clientX; 
+  };
+  
+  const handleTouchMove = (e: React.TouchEvent) => { 
+    if (!isDragging || !sliderRef.current) return; 
+    const diff = e.touches[0].clientX - startXRef.current; 
+    if (diff > 0) setSliderOffset(Math.min(diff, sliderRef.current.offsetWidth - 80)); 
+  };
+  
+  const handleTouchEnd = () => { 
+    if (!isDragging) return; 
+    setIsDragging(false); 
+    if (sliderOffset > (sliderRef.current?.offsetWidth || 0) * 0.75) finalizeOrder(); 
+    else setSliderOffset(0); 
+  };
 
   if (!isMounted) return null;
 
@@ -377,7 +392,7 @@ export default function CartPage() {
                    </div>
                    <div>
                       <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-900 leading-none">Premium Packing</h4>
-                      <p className="text-[8px] font-bold text-muted-foreground uppercase mt-1.5">+ ₹10 Safety Surcharge</p>
+                      <p className="text-[8px] font-bold text-muted-foreground uppercase">+ ₹10 Safety Surcharge</p>
                    </div>
                 </div>
                 <Switch checked={isPremiumPacking} onCheckedChange={setIsPremiumPacking} className="data-[state=checked]:bg-green-600 scale-90" />
@@ -426,9 +441,14 @@ export default function CartPage() {
                     <span className="text-[10px] font-black uppercase italic tracking-[0.4em] text-white/20">SLIDE TO PLACE ORDER</span>
                   </div>
                   <div 
-                    onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} 
+                    onTouchStart={handleTouchStart} 
+                    onTouchMove={handleTouchMove} 
+                    onTouchEnd={handleTouchEnd} 
                     style={{ transform: `translateX(${sliderOffset}px)` }} 
-                    className="h-16 w-16 rounded-[1.5rem] bg-white text-primary flex items-center justify-center z-10 transition-transform cursor-grab shadow-xl"
+                    className={cn(
+                      "h-16 w-16 rounded-[1.5rem] bg-white text-primary flex items-center justify-center z-10 cursor-grab shadow-xl select-none touch-none",
+                      !isDragging && "transition-transform duration-300"
+                    )}
                   >
                     <ArrowRight className="h-8 w-8 stroke-[3]" />
                   </div>
