@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -38,7 +39,7 @@ import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 
 /**
  * @fileOverview Rebuilt Premium Checkout Page.
- * Added: Fixed Slide to Order interaction for mobile.
+ * Fixed: 'Slide to Order' unblocked for mobile browsers with touch-action: none.
  */
 export default function CartPage() {
   const { cart, addToCart, removeFromCart, totalPrice, clearCart } = useCart();
@@ -65,6 +66,7 @@ export default function CartPage() {
   const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
 
+  // Slider State
   const [sliderOffset, setSliderOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const sliderRef = useRef<HTMLDivElement>(null);
@@ -212,6 +214,7 @@ export default function CartPage() {
     }
   };
 
+  // Improved Slider Handlers
   const handleTouchStart = (e: React.TouchEvent) => { 
     if (isPlacing || cart.length === 0 || hasClosedItems || !isMinOrderMet) return; 
     setIsDragging(true); 
@@ -221,14 +224,22 @@ export default function CartPage() {
   const handleTouchMove = (e: React.TouchEvent) => { 
     if (!isDragging || !sliderRef.current) return; 
     const diff = e.touches[0].clientX - startXRef.current; 
-    if (diff > 0) setSliderOffset(Math.min(diff, sliderRef.current.offsetWidth - 80)); 
+    if (diff > 0) {
+      // Limit to slider width minus handle width
+      const maxOffset = sliderRef.current.offsetWidth - 88;
+      setSliderOffset(Math.min(diff, maxOffset)); 
+    }
   };
   
   const handleTouchEnd = () => { 
     if (!isDragging) return; 
     setIsDragging(false); 
-    if (sliderOffset > (sliderRef.current?.offsetWidth || 0) * 0.75) finalizeOrder(); 
-    else setSliderOffset(0); 
+    const threshold = (sliderRef.current?.offsetWidth || 300) * 0.70;
+    if (sliderOffset > threshold) {
+      finalizeOrder(); 
+    } else {
+      setSliderOffset(0); 
+    }
   };
 
   if (!isMounted) return null;
@@ -444,9 +455,12 @@ export default function CartPage() {
                     onTouchStart={handleTouchStart} 
                     onTouchMove={handleTouchMove} 
                     onTouchEnd={handleTouchEnd} 
-                    style={{ transform: `translateX(${sliderOffset}px)` }} 
+                    style={{ 
+                      transform: `translateX(${sliderOffset}px)`,
+                      touchAction: 'none'
+                    }} 
                     className={cn(
-                      "h-16 w-16 rounded-[1.5rem] bg-white text-primary flex items-center justify-center z-10 cursor-grab shadow-xl select-none touch-none",
+                      "h-16 w-16 rounded-[1.5rem] bg-white text-primary flex items-center justify-center z-10 cursor-grab shadow-xl select-none",
                       !isDragging && "transition-transform duration-300"
                     )}
                   >

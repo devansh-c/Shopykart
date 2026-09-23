@@ -38,37 +38,36 @@ jobs:
         run: |
           mkdir -p android
           touch android/gradle.properties
+          
           # Optimization for CI Runners - Force AndroidX & Memory limits
-          # We use append mode to preserve existing keystore settings if any
           echo "" >> android/gradle.properties
           echo "android.useAndroidX=true" >> android/gradle.properties
           echo "android.enableJetifier=true" >> android/gradle.properties
           echo "org.gradle.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=512m -Dfile.encoding=UTF-8" >> android/gradle.properties
           echo "org.gradle.workers.max=2" >> android/gradle.properties
           echo "android.nonTransitiveRClass=true" >> android/gradle.properties
-          # Disable parallel execution in CI to avoid AAPT2 NoIsolationWorkerFactory crash
           echo "org.gradle.parallel=false" >> android/gradle.properties
           
           # Force fix for missing capacitor-cordova-android-plugins module
+          # This is the primary reason for "Project not found" evaluation errors
           mkdir -p android/capacitor-cordova-android-plugins/src/main
-          if [ ! -f "android/capacitor-cordova-android-plugins/build.gradle" ]; then
-            cat <<EOF > android/capacitor-cordova-android-plugins/build.gradle
-            apply plugin: 'com.android.library'
-            android {
-                namespace 'co.in.shopykart.app.plugins'
-                compileSdk 34
-                defaultConfig { minSdk 23 }
-            }
-          EOF
-          fi
           
-          if [ ! -f "android/capacitor-cordova-android-plugins/src/main/AndroidManifest.xml" ]; then
-            cat <<EOF > android/capacitor-cordova-android-plugins/src/main/AndroidManifest.xml
-            <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="co.in.shopykart.app.plugins"></manifest>
+          cat <<EOF > android/capacitor-cordova-android-plugins/build.gradle
+          apply plugin: 'com.android.library'
+          android {
+              namespace 'co.in.shopykart.app.plugins'
+              compileSdk 34
+              defaultConfig {
+                  minSdk 23
+              }
+          }
           EOF
-          fi
           
-          # Ensure module is properly included in settings.gradle
+          cat <<EOF > android/capacitor-cordova-android-plugins/src/main/AndroidManifest.xml
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="co.in.shopykart.app.plugins"></manifest>
+          EOF
+          
+          # Ensure module is properly included in settings.gradle without duplicates
           if [ -f "android/settings.gradle" ]; then
             if ! grep -q ":capacitor-cordova-android-plugins" android/settings.gradle; then
               echo "include ':capacitor-cordova-android-plugins'" >> android/settings.gradle
