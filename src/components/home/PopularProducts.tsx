@@ -95,21 +95,26 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemo
               <span className="text-[8px] font-bold text-gray-500">{(Number(product.rating) || 4.5).toFixed(1)}</span>
             </div>
           </div>
-          {!isOffline ? (
-            quantity === 0 ? (
+
+          <div className="flex-1 flex justify-end">
+            {!isOffline ? (
               <ProductQuickView product={product} vendorScheduleOpen={true}>
-                <button className="bg-primary text-white h-9 px-6 rounded-full font-black text-[10px] uppercase shadow-lg active:scale-90 transition-transform">ADD</button>
+                <div className="w-fit pointer-events-auto">
+                  {quantity === 0 ? (
+                    <button className="bg-primary text-white h-9 px-6 rounded-full font-black text-[10px] uppercase shadow-lg active:scale-90 transition-transform">ADD</button>
+                  ) : (
+                    <div className="flex items-center bg-primary text-white rounded-full h-9 px-1.5 shadow-xl border border-white/20">
+                      <button onClick={(e) => { e.stopPropagation(); onRemove(product.id); }} className="w-7 h-full flex items-center justify-center active:scale-90 transition-transform"><Minus className="h-4 w-4 stroke-[3]" /></button>
+                      <span className="text-[11px] font-black w-5 text-center">{quantity}</span>
+                      <button onClick={(e) => { e.stopPropagation(); onAdd({...product, quantity: 1}); }} className="w-7 h-full flex items-center justify-center active:scale-90 transition-transform"><Plus className="h-4 w-4 stroke-[3]" /></button>
+                    </div>
+                  )}
+                </div>
               </ProductQuickView>
             ) : (
-              <div className="flex items-center bg-primary text-white rounded-full h-9 px-1.5 shadow-xl border border-white/20">
-                <button onClick={() => onRemove(product.id)} className="w-7 h-full flex items-center justify-center active:scale-90 transition-transform"><Minus className="h-4 w-4 stroke-[3]" /></button>
-                <span className="text-[11px] font-black w-5 text-center">{quantity}</span>
-                <button onClick={() => onAdd({...product, quantity: 1})} className="w-7 h-full flex items-center justify-center active:scale-90 transition-transform"><Plus className="h-4 w-4 stroke-[3]" /></button>
-              </div>
-            )
-          ) : (
-            <div className="bg-white/5 text-gray-500 h-9 px-4 rounded-full font-black text-[8px] uppercase flex items-center border border-white/10">OFFLINE</div>
-          )}
+              <div className="bg-white/5 text-gray-500 h-9 px-4 rounded-full font-black text-[8px] uppercase flex items-center border border-white/10">OFFLINE</div>
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -79,8 +79,8 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="rounded-t-[3rem] sm:rounded-[3rem] p-0 overflow-hidden border-none shadow-2xl z-[2000001] bottom-0 top-auto translate-y-0 sm:top-[50%] sm:translate-y-[-50%] focus:outline-none h-[85vh] sm:h-auto max-w-lg">
-        <div className="flex flex-col h-full bg-[#0B0B0B] text-white relative transform-gpu">
+      <DialogContent className="rounded-t-[3rem] sm:rounded-[3rem] p-0 overflow-hidden border-none shadow-2xl z-[2000001] bottom-0 top-auto translate-y-0 sm:top-[50%] sm:translate-y-[-50%] focus:outline-none h-[90vh] sm:h-auto max-w-lg flex flex-col">
+        <div className="flex flex-col h-full bg-[#0B0B0B] text-white relative transform-gpu overflow-hidden">
           
           <DialogHeader className="p-6 pb-2 shrink-0 border-b border-white/5 relative z-10">
             <DialogTitle className="font-black italic uppercase text-center text-xl tracking-tighter text-white">{product.name}</DialogTitle>
@@ -154,7 +154,7 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
             </div>
           </div>
 
-          <div className="shrink-0 p-6 bg-[#0B0B0B] border-t border-white/5 pb-12 z-[2000010] shadow-[0_-20px_50px_rgba(0,0,0,0.5)]">
+          <div className="shrink-0 p-6 bg-[#0B0B0B] border-t border-white/5 pb-10 z-[2000010] shadow-[0_-20px_50px_rgba(0,0,0,0.5)]">
              <div className="flex items-center gap-3 max-w-md mx-auto">
                 <div className="flex items-center bg-white/5 rounded-xl h-14 px-2">
                    <button disabled={isOffline} onClick={() => setLocalQuantity(Math.max(1, localQuantity - 1))} className="h-10 w-10 flex items-center justify-center bg-white/10 rounded-lg shadow-sm active:scale-90 transition-transform"><Minus className="h-4 w-4" /></button>
