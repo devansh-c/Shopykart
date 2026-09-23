@@ -1,5 +1,5 @@
 
-name: Build ShopyKart Customer App (Zero Error Master)
+name: Build ShopyKart Customer App (Master Grade)
 
 on:
   push:
@@ -34,21 +34,22 @@ jobs:
       - name: Sync Capacitor Android
         run: npx cap sync android
 
-      - name: Patch Android Project (Worker & Memory Fix)
+      - name: Bulletproof Android Patching
         run: |
           mkdir -p android
           touch android/gradle.properties
-          # Optimization for CI Runners to prevent NoIsolationWorkerFactory crash
-          # We use append mode to avoid overwriting existing properties
+          # Optimization for CI Runners - Force AndroidX & Memory limits
+          # We use append mode to preserve existing keystore settings if any
+          echo "" >> android/gradle.properties
           echo "android.useAndroidX=true" >> android/gradle.properties
           echo "android.enableJetifier=true" >> android/gradle.properties
           echo "org.gradle.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=512m -Dfile.encoding=UTF-8" >> android/gradle.properties
           echo "org.gradle.workers.max=2" >> android/gradle.properties
           echo "android.nonTransitiveRClass=true" >> android/gradle.properties
-          # Disable parallel execution in CI to avoid worker contention
+          # Disable parallel execution in CI to avoid AAPT2 NoIsolationWorkerFactory crash
           echo "org.gradle.parallel=false" >> android/gradle.properties
           
-          # Stub missing capacitor-cordova-android-plugins module if missing
+          # Force fix for missing capacitor-cordova-android-plugins module
           mkdir -p android/capacitor-cordova-android-plugins/src/main
           if [ ! -f "android/capacitor-cordova-android-plugins/build.gradle" ]; then
             cat <<EOF > android/capacitor-cordova-android-plugins/build.gradle
@@ -67,7 +68,7 @@ jobs:
           EOF
           fi
           
-          # Ensure module is included in settings.gradle
+          # Ensure module is properly included in settings.gradle
           if [ -f "android/settings.gradle" ]; then
             if ! grep -q ":capacitor-cordova-android-plugins" android/settings.gradle; then
               echo "include ':capacitor-cordova-android-plugins'" >> android/settings.gradle

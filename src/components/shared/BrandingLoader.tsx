@@ -1,16 +1,16 @@
-
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 
 /**
  * @fileOverview BrandingLoader for dynamic SEO and visual identity.
- * Optimized to prevent layout shifts and compilation loops in Next.js 15.
+ * Optimized with useRef to prevent repetitive DOM updates that cause Next.js 15 refresh loops.
  */
 export default function BrandingLoader() {
   const firestore = useFirestore();
+  const lastUpdateRef = useRef<string>('');
 
   const brandingRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -21,6 +21,15 @@ export default function BrandingLoader() {
 
   useEffect(() => {
     if (typeof window === 'undefined' || !branding) return;
+
+    const currentHash = JSON.stringify({
+      title: branding.siteTitle,
+      desc: branding.siteDescription,
+      logo: branding.logoUrl
+    });
+
+    if (lastUpdateRef.current === currentHash) return;
+    lastUpdateRef.current = currentHash;
 
     const updateMetadata = () => {
       const defaultTitle = "Shopykart – Premium Delivery Hub";
@@ -41,7 +50,6 @@ export default function BrandingLoader() {
         metaDesc.setAttribute('content', newDesc);
       }
 
-      // CLEAN LOGO HANDLING: Only update if a valid data URL exists
       if (branding.logoUrl && branding.logoUrl.startsWith('data:')) {
         const updateIcon = (rel: string) => {
           let link = document.querySelector(`link[rel*='${rel}']`) as HTMLLinkElement;
@@ -61,7 +69,6 @@ export default function BrandingLoader() {
       }
     };
 
-    // Use requestAnimationFrame to ensure DOM is ready and prevent loops
     requestAnimationFrame(updateMetadata);
   }, [branding]);
 
