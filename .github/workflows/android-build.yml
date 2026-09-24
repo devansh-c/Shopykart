@@ -39,8 +39,7 @@ jobs:
         run: |
           mkdir -p android/app
           
-          # 1. FORCE CLEANUP PHANTOM MODULES FROM GRADLE
-          # This removes the cordova plugin reference if the directory doesn't exist on CI
+          # 1. CLEAN PHANTOM MODULES FROM SETTINGS
           if [ -f "android/settings.gradle" ]; then
             echo "Cleaning settings.gradle..."
             sed -i "/:capacitor-cordova-android-plugins/d" android/settings.gradle
@@ -51,13 +50,15 @@ jobs:
             sed -i "/project(':capacitor-cordova-android-plugins')/d" android/app/build.gradle
           fi
           
-          # 2. REPAIR GRADLE WRAPPER IF MISSING
-          if [ ! -f "android/gradlew" ]; then
-            echo "Gradlew missing! Repairing wrapper..."
-            cd android && gradle wrapper --gradle-version 8.2.1 && cd ..
+          # 2. FORCE STABLE GRADLE VERSION (Fixes ClassNotFoundException)
+          if [ -d "android" ]; then
+            cd android
+            gradle wrapper --gradle-version 8.2.1
+            cd ..
           fi
-          
-          # 3. OPTIMIZE GRADLE PROPERTIES (APPEND MODE)
+
+          # 3. OPTIMIZE MEMORY FOR GITHUB RUNNER
+          mkdir -p ~/.gradle
           echo "org.gradle.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=512m -Dfile.encoding=UTF-8" >> android/gradle.properties
           echo "org.gradle.parallel=false" >> android/gradle.properties
           echo "org.gradle.daemon=false" >> android/gradle.properties
@@ -65,8 +66,7 @@ jobs:
       - name: Build APK (Debug)
         working-directory: android
         run: |
-          if [ -f "gradlew" ]; then chmod +x gradlew; fi
-          # Limited workers and memory to prevent AAPT2 crash (exit code 1)
+          chmod +x gradlew
           ./gradlew assembleDebug --stacktrace --max-workers=2 --no-daemon
 
       - name: Upload Build Artifacts
