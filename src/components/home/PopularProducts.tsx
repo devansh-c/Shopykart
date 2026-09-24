@@ -55,59 +55,60 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemo
         </div>
       )}
 
-      <div className="relative aspect-square w-full mb-3">
-        {/* WRAP ENTIRE TOP PART IN QUICK VIEW TRIGGER FOR STABILITY */}
-        <ProductQuickView product={product} vendorScheduleOpen={!isOffline}>
-           <div className="relative w-full h-full cursor-pointer overflow-hidden rounded-[1.5rem] border border-white/10 shadow-inner">
-              <Image src={product.imageUrl} alt={product.name} fill className="object-cover" unoptimized priority={false} />
-              {isOffline && (
-                <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center p-2 text-center z-10">
-                  <Store className="h-6 w-6 text-white/80 mb-1" />
-                  <span className="text-white font-black text-[9px] uppercase italic border-2 border-white/30 px-3 py-1 rounded-xl shadow-2xl">Closed</span>
-                </div>
-              )}
-              {!isOffline && (
-                <div className="absolute bottom-2 left-2 flex flex-col gap-1 z-20">
-                   <div className="bg-black/60 backdrop-blur-md text-white text-[7px] font-black px-2 py-1 rounded-lg border border-white/10 flex items-center gap-1 shadow-xl">
-                      <Clock className="h-2 w-2 text-primary" />
-                      15-20 MIN
-                   </div>
-                </div>
-              )}
-           </div>
-        </ProductQuickView>
-        <button onClick={(e) => onShare(e, product)} className="absolute top-2.5 right-2.5 h-8 w-8 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/10 shadow-lg active:scale-75 z-30 transition-transform">
-          <Share2 className="h-4 w-4 text-primary" />
-        </button>
-      </div>
-      <div className="flex-1 flex flex-col px-1">
-        <p className="text-[9px] font-black text-primary uppercase tracking-[0.1em] italic truncate mb-1 opacity-90">{product.restaurantName || 'ShopyKart Select'}</p>
-        <h3 className="font-black text-[13px] text-white leading-[1.2] italic uppercase tracking-tighter line-clamp-2 mb-1 min-h-[2.2rem]">{product.name}</h3>
-        <div className="mt-auto flex items-center justify-between pt-2">
-          <div className="flex flex-col">
-            <span className="text-lg font-black text-white italic tracking-tighter leading-none">₹{displayPrice}</span>
-            <div className="flex items-center gap-1 mt-1">
-              <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
-              <span className="text-[8px] font-bold text-gray-500">{(Number(product.rating) || 4.5).toFixed(1)}</span>
-            </div>
+      {/* SINGLE STABLE TRIGGER FOR ENTIRE CONTENT */}
+      <ProductQuickView product={product} vendorScheduleOpen={!isOffline}>
+        <div className="flex flex-col h-full cursor-pointer">
+          <div className="relative aspect-square w-full mb-3">
+             <div className="relative w-full h-full overflow-hidden rounded-[1.5rem] border border-white/10 shadow-inner">
+                <Image src={product.imageUrl} alt={product.name} fill className="object-cover" unoptimized priority={false} />
+                {isOffline && (
+                  <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center p-2 text-center z-10">
+                    <Store className="h-6 w-6 text-white/80 mb-1" />
+                    <span className="text-white font-black text-[9px] uppercase italic border-2 border-white/30 px-3 py-1 rounded-xl shadow-2xl">Closed</span>
+                  </div>
+                )}
+                {!isOffline && (
+                  <div className="absolute bottom-2 left-2 flex flex-col gap-1 z-20">
+                     <div className="bg-black/60 backdrop-blur-md text-white text-[7px] font-black px-2 py-1 rounded-lg border border-white/10 flex items-center gap-1 shadow-xl">
+                        <Clock className="h-2 w-2 text-primary" />
+                        15-20 MIN
+                     </div>
+                  </div>
+                )}
+             </div>
+             <button onClick={(e) => { e.stopPropagation(); onShare(e, product); }} className="absolute top-2.5 right-2.5 h-8 w-8 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/10 shadow-lg active:scale-75 z-30 transition-transform">
+               <Share2 className="h-4 w-4 text-primary" />
+             </button>
           </div>
 
-          <div className="flex-1 flex justify-end">
-            {!isOffline ? (
-              <ProductQuickView product={product} vendorScheduleOpen={true}>
-                <button className={cn(
-                  "flex items-center justify-center rounded-full h-9 transition-all duration-300 font-black text-[10px] uppercase shadow-xl",
-                  quantity === 0 ? "bg-primary text-white px-6" : "bg-primary text-white px-4 border border-white/20"
-                )}>
-                  {quantity === 0 ? 'ADD' : `${quantity} IN BAG`}
-                </button>
-              </ProductQuickView>
-            ) : (
-              <div className="bg-white/5 text-gray-500 h-9 px-4 rounded-full font-black text-[8px] uppercase flex items-center border border-white/10">OFFLINE</div>
-            )}
+          <div className="flex-1 flex flex-col px-1">
+            <p className="text-[9px] font-black text-primary uppercase tracking-[0.1em] italic truncate mb-1 opacity-90">{product.restaurantName || 'ShopyKart Select'}</p>
+            <h3 className="font-black text-[13px] text-white leading-[1.2] italic uppercase tracking-tighter line-clamp-2 mb-1 min-h-[2.2rem]">{product.name}</h3>
+            <div className="mt-auto flex items-center justify-between pt-2">
+              <div className="flex flex-col">
+                <span className="text-lg font-black text-white italic tracking-tighter leading-none">₹{displayPrice}</span>
+                <div className="flex items-center gap-1 mt-1">
+                  <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
+                  <span className="text-[8px] font-bold text-gray-500">{(Number(product.rating) || 4.5).toFixed(1)}</span>
+                </div>
+              </div>
+
+              <div className="flex-1 flex justify-end">
+                {!isOffline ? (
+                  <div className={cn(
+                    "flex items-center justify-center rounded-full h-9 transition-all duration-300 font-black text-[10px] uppercase shadow-xl",
+                    quantity === 0 ? "bg-primary text-white px-6" : "bg-primary text-white px-4 border border-white/20"
+                  )}>
+                    {quantity === 0 ? 'ADD' : `${quantity} IN BAG`}
+                  </div>
+                ) : (
+                  <div className="bg-white/5 text-gray-500 h-9 px-4 rounded-full font-black text-[8px] uppercase flex items-center border border-white/10">OFFLINE</div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </ProductQuickView>
     </div>
   );
 });

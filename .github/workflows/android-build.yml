@@ -37,6 +37,13 @@ jobs:
       - name: Bulletproof Android Patching
         run: |
           mkdir -p android
+          # REPAIR MISSING GRADLE WRAPPER
+          if [ ! -f "android/gradlew" ]; then
+            echo "Gradlew missing! Generating wrapper..."
+            cd android && gradle wrapper || echo "Fallback: Using local gradle if available"
+            cd ..
+          fi
+          
           # FORCE SETTINGS.GRADLE FIX: Remove missing cordova plugins reference
           if [ -f "android/settings.gradle" ]; then
             if [ ! -d "android/capacitor-cordova-android-plugins" ]; then
@@ -50,16 +57,15 @@ jobs:
           echo "android.enableJetifier=true" >> android/gradle.properties
           echo "org.gradle.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=512m -Dfile.encoding=UTF-8" >> android/gradle.properties
           echo "org.gradle.parallel=false" >> android/gradle.properties
-          echo "org.gradle.configureondemand=false" >> android/gradle.properties
-          echo "android.disableResourceValidation=true" >> android/gradle.properties
           echo "org.gradle.daemon=false" >> android/gradle.properties
 
       - name: Build APK (Debug)
         working-directory: android
         run: |
-          chmod +x gradlew
-          # Build with maximum isolation to prevent worker pool crashes
-          ./gradlew assembleDebug --stacktrace --max-workers=1 --no-daemon --no-parallel
+          # Ensure execution permission
+          if [ -f "gradlew" ]; then chmod +x gradlew; fi
+          # Build with worker limits to prevent runner crash
+          ./gradlew assembleDebug --stacktrace --max-workers=2 --no-daemon
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
