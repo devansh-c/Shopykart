@@ -22,16 +22,12 @@ jobs:
       - name: Install Dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Setup Java
+      - name: Setup Java 17 (Temurin)
         uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
           java-version: '17'
-
-      - name: Setup Gradle
-        uses: gradle/gradle-build-action@v3
-        with:
-          gradle-version: 8.2.1
+          distribution: 'temurin'
+          cache: 'gradle'
 
       - name: Build Web Application (Static Export)
         run: npm run build:static
@@ -43,29 +39,25 @@ jobs:
         run: |
           mkdir -p android/app
           
-          # 1. FORCE REMOVE MISSING CORDOVA PLUGINS FROM GRADLE EVALUATION
+          # 1. FORCE CLEANUP PHANTOM MODULES FROM GRADLE
+          # This removes the cordova plugin reference if the directory doesn't exist on CI
           if [ -f "android/settings.gradle" ]; then
-            echo "Inspecting settings.gradle for phantom modules..."
-            # Remove any line containing the phantom cordova project
+            echo "Cleaning settings.gradle..."
             sed -i "/:capacitor-cordova-android-plugins/d" android/settings.gradle
           fi
 
           if [ -f "android/app/build.gradle" ]; then
-            echo "Cleaning app/build.gradle from cordova phantom dependencies..."
-            # Remove implementation reference to the phantom module
+            echo "Cleaning app/build.gradle..."
             sed -i "/project(':capacitor-cordova-android-plugins')/d" android/app/build.gradle
           fi
           
-          # 2. REPAIR MISSING GRADLE WRAPPER
+          # 2. REPAIR GRADLE WRAPPER IF MISSING
           if [ ! -f "android/gradlew" ]; then
-            echo "Gradlew missing! Generating wrapper..."
-            cd android && gradle wrapper --gradle-version 8.2.1 || echo "Fallback: Using local gradle if available"
-            cd ..
+            echo "Gradlew missing! Repairing wrapper..."
+            cd android && gradle wrapper --gradle-version 8.2.1 && cd ..
           fi
           
           # 3. OPTIMIZE GRADLE PROPERTIES (APPEND MODE)
-          echo "android.useAndroidX=true" >> android/gradle.properties
-          echo "android.enableJetifier=true" >> android/gradle.properties
           echo "org.gradle.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=512m -Dfile.encoding=UTF-8" >> android/gradle.properties
           echo "org.gradle.parallel=false" >> android/gradle.properties
           echo "org.gradle.daemon=false" >> android/gradle.properties
@@ -74,8 +66,8 @@ jobs:
         working-directory: android
         run: |
           if [ -f "gradlew" ]; then chmod +x gradlew; fi
-          # Build with strictly limited workers to prevent runner memory crash (exit code 1 fix)
-          ./gradlew assembleDebug --stacktrace --max-workers=1 --no-daemon
+          # Limited workers and memory to prevent AAPT2 crash (exit code 1)
+          ./gradlew assembleDebug --stacktrace --max-workers=2 --no-daemon
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4

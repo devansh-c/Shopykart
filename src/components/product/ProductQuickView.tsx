@@ -32,6 +32,10 @@ interface ProductQuickViewProps {
   vendorScheduleOpen?: boolean;
 }
 
+/**
+ * @fileOverview ProductQuickView with Fixed Footer Visibility.
+ * Layout changed to Flex Column to ensure "ADD TO BAG" button is never hidden.
+ */
 export function ProductQuickView({ product, children, isMedical, vendorScheduleOpen }: ProductQuickViewProps) {
   const { addToCart } = useCart();
   const { toast } = useToast();
@@ -81,12 +85,14 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="rounded-t-[3.5rem] p-0 overflow-hidden border-none shadow-2xl z-[2000001] bottom-0 top-auto translate-y-0 focus:outline-none h-[90vh] max-w-lg flex flex-col bg-[#0B0B0B]">
+        {/* HEADER */}
         <DialogHeader className="p-6 pb-4 shrink-0 border-b border-white/5 relative z-10 text-white">
           <DialogTitle className="font-black italic uppercase text-center text-xl tracking-tighter">{product.name}</DialogTitle>
           <DialogDescription className="text-center text-[10px] font-bold uppercase tracking-widest text-gray-500">Customize your premium order</DialogDescription>
           <button onClick={() => setIsOpen(false)} className="absolute top-4 right-4 h-9 w-9 rounded-full bg-white/5 flex items-center justify-center text-gray-400 active:scale-90 transition-transform"><X className="h-4 w-4" /></button>
         </DialogHeader>
 
+        {/* SCROLLABLE CONTENT */}
         <div className="flex-1 overflow-y-auto no-scrollbar relative z-0">
           <div className="p-6 pt-4 flex gap-4 border-b border-dashed border-white/10">
              <div className="relative h-24 w-24 rounded-2xl overflow-hidden bg-muted border border-white/10 shadow-sm shrink-0">
@@ -151,6 +157,7 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
           </div>
         </div>
 
+        {/* FOOTER - ALWAYS VISIBLE */}
         <div className="p-6 bg-[#0B0B0B] border-t border-white/5 pb-10 shrink-0 shadow-[0_-20px_50px_rgba(0,0,0,0.5)]">
            <div className="flex items-center gap-3 max-w-md mx-auto">
               <div className="flex items-center bg-white/5 rounded-xl h-14 px-2 border border-white/5">
@@ -163,7 +170,7 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
                 disabled={isOffline || (product.isVarietyRequired && !selectedOption)}
                 className="flex-1 h-14 bg-primary text-white rounded-[1.25rem] font-black uppercase italic text-sm shadow-xl shadow-primary/20 active:scale-95 transition-all"
               >
-                {isOffline ? 'TIMING CLOSED' : (product.isVarietyRequired && !selectedOption) ? 'PICK VARIETY' : `ADD • ₹${(currentPrice * localQuantity).toFixed(0)}`}
+                {isOffline ? 'CLOSED' : (product.isVarietyRequired && !selectedOption) ? 'PICK VARIETY' : `ADD • ₹${(currentPrice * localQuantity).toFixed(0)}`}
               </Button>
            </div>
         </div>

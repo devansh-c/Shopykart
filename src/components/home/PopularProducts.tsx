@@ -42,7 +42,9 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemo
   const displayPrice = Number(product.price) || 0;
   const isBestRated = (Number(product.rating) || 0) >= 4.5;
 
+  // DIRECT ADD HANDLER
   const handleAddClick = (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
     onAdd({ ...product, quantity: 1 });
   };
@@ -60,6 +62,7 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemo
         </div>
       )}
 
+      {/* CLICKABLE CARD FOR POPUP */}
       <ProductQuickView product={product} vendorScheduleOpen={!isOffline}>
         <div className="flex flex-col h-full cursor-pointer">
           <div className="relative aspect-square w-full mb-3">
