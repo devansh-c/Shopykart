@@ -37,47 +37,26 @@ jobs:
       - name: Bulletproof Android Patching
         run: |
           mkdir -p android
-          touch android/gradle.properties
+          # FORCE SETTINGS.GRADLE FIX: Remove missing cordova plugins reference
+          if [ -f "android/settings.gradle" ]; then
+            if [ ! -d "android/capacitor-cordova-android-plugins" ]; then
+              echo "Patching settings.gradle to remove missing cordova plugins..."
+              sed -i "/:capacitor-cordova-android-plugins/d" android/settings.gradle
+            fi
+          fi
           
-          # Optimization for CI Runners - Full Isolation to prevent NoIsolationWorkerFactory crash
-          echo "" >> android/gradle.properties
-          echo "android.useAndroidX=true" >> android/gradle.properties
+          # OPTIMIZE GRADLE PROPERTIES
+          echo "android.useAndroidX=true" > android/gradle.properties
           echo "android.enableJetifier=true" >> android/gradle.properties
           echo "org.gradle.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=512m -Dfile.encoding=UTF-8" >> android/gradle.properties
           echo "org.gradle.parallel=false" >> android/gradle.properties
           echo "org.gradle.configureondemand=false" >> android/gradle.properties
           echo "android.disableResourceValidation=true" >> android/gradle.properties
-          
-          # Force fix for missing capacitor-cordova-android-plugins module
-          mkdir -p android/capacitor-cordova-android-plugins/src/main
-          
-          cat <<EOF > android/capacitor-cordova-android-plugins/build.gradle
-          apply plugin: 'com.android.library'
-          android {
-              namespace 'co.in.shopykart.app.plugins'
-              compileSdk 34
-              defaultConfig {
-                  minSdk 23
-              }
-          }
-          EOF
-          
-          cat <<EOF > android/capacitor-cordova-android-plugins/src/main/AndroidManifest.xml
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="co.in.shopykart.app.plugins"></manifest>
-          EOF
-          
-          # Ensure module is properly included in settings.gradle without duplicates
-          if [ -f "android/settings.gradle" ]; then
-            if ! grep -q ":capacitor-cordova-android-plugins" android/settings.gradle; then
-              echo "include ':capacitor-cordova-android-plugins'" >> android/settings.gradle
-              echo "project(':capacitor-cordova-android-plugins').projectDir = new File(settingsDir, 'capacitor-cordova-android-plugins')" >> android/settings.gradle
-            fi
-          fi
+          echo "org.gradle.daemon=false" >> android/gradle.properties
 
       - name: Build APK (Debug)
         working-directory: android
         run: |
-          gradle wrapper --gradle-version 8.2.1
           chmod +x gradlew
           # Build with maximum isolation to prevent worker pool crashes
           ./gradlew assembleDebug --stacktrace --max-workers=1 --no-daemon --no-parallel

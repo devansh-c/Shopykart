@@ -56,6 +56,7 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemo
       )}
 
       <div className="relative aspect-square w-full mb-3">
+        {/* WRAP ENTIRE TOP PART IN QUICK VIEW TRIGGER FOR STABILITY */}
         <ProductQuickView product={product} vendorScheduleOpen={!isOffline}>
            <div className="relative w-full h-full cursor-pointer overflow-hidden rounded-[1.5rem] border border-white/10 shadow-inner">
               <Image src={product.imageUrl} alt={product.name} fill className="object-cover" unoptimized priority={false} />
@@ -71,12 +72,6 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemo
                       <Clock className="h-2 w-2 text-primary" />
                       15-20 MIN
                    </div>
-                   {product.preparingTime && (
-                     <div className="bg-green-600/80 backdrop-blur-md text-white text-[7px] font-black px-2 py-1 rounded-lg border border-white/10 flex items-center gap-1 shadow-xl">
-                        <div className="h-2 w-2 rounded-full bg-white animate-pulse" />
-                        READY IN {product.preparingTime}M
-                     </div>
-                   )}
                 </div>
               )}
            </div>
@@ -100,22 +95,12 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemo
           <div className="flex-1 flex justify-end">
             {!isOffline ? (
               <ProductQuickView product={product} vendorScheduleOpen={true}>
-                <div className="w-fit pointer-events-auto">
-                  <div className={cn(
-                    "flex items-center rounded-full h-9 transition-all duration-300",
-                    quantity === 0 ? "bg-primary px-6" : "bg-primary px-1.5 shadow-xl border border-white/20"
-                  )}>
-                    {quantity === 0 ? (
-                      <span className="text-white font-black text-[10px] uppercase">ADD</span>
-                    ) : (
-                      <>
-                        <button onClick={(e) => { e.stopPropagation(); onRemove(product.id); }} className="w-7 h-full flex items-center justify-center active:scale-90 transition-transform"><Minus className="h-4 w-4 stroke-[3] text-white" /></button>
-                        <span className="text-[11px] font-black w-5 text-center text-white">{quantity}</span>
-                        <button onClick={(e) => { e.stopPropagation(); onAdd({...product, quantity: 1}); }} className="w-7 h-full flex items-center justify-center active:scale-90 transition-transform"><Plus className="h-4 w-4 stroke-[3] text-white" /></button>
-                      </>
-                    )}
-                  </div>
-                </div>
+                <button className={cn(
+                  "flex items-center justify-center rounded-full h-9 transition-all duration-300 font-black text-[10px] uppercase shadow-xl",
+                  quantity === 0 ? "bg-primary text-white px-6" : "bg-primary text-white px-4 border border-white/20"
+                )}>
+                  {quantity === 0 ? 'ADD' : `${quantity} IN BAG`}
+                </button>
               </ProductQuickView>
             ) : (
               <div className="bg-white/5 text-gray-500 h-9 px-4 rounded-full font-black text-[8px] uppercase flex items-center border border-white/10">OFFLINE</div>
