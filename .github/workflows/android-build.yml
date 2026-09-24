@@ -34,26 +34,32 @@ jobs:
       - name: Sync Capacitor Android
         run: npx cap sync android
 
-      - name: Bulletproof Android Patching
+      - name: Master Grade Android Patching
         run: |
-          mkdir -p android
-          # REPAIR MISSING GRADLE WRAPPER
+          mkdir -p android/app
+          
+          # 1. FORCE REMOVE MISSING CORDOVA PLUGINS FROM GRADLE EVALUATION
+          if [ -f "android/settings.gradle" ]; then
+            echo "Inspecting settings.gradle for phantom modules..."
+            # Remove any line containing the phantom cordova project
+            sed -i "/:capacitor-cordova-android-plugins/d" android/settings.gradle
+          fi
+
+          if [ -f "android/app/build.gradle" ]; then
+            echo "Cleaning app/build.gradle from cordova phantom dependencies..."
+            # Remove implementation reference to the phantom module
+            sed -i "/project(':capacitor-cordova-android-plugins')/d" android/app/build.gradle
+          fi
+          
+          # 2. REPAIR MISSING GRADLE WRAPPER
           if [ ! -f "android/gradlew" ]; then
             echo "Gradlew missing! Generating wrapper..."
             cd android && gradle wrapper || echo "Fallback: Using local gradle if available"
             cd ..
           fi
           
-          # FORCE SETTINGS.GRADLE FIX: Remove missing cordova plugins reference
-          if [ -f "android/settings.gradle" ]; then
-            if [ ! -d "android/capacitor-cordova-android-plugins" ]; then
-              echo "Patching settings.gradle to remove missing cordova plugins..."
-              sed -i "/:capacitor-cordova-android-plugins/d" android/settings.gradle
-            fi
-          fi
-          
-          # OPTIMIZE GRADLE PROPERTIES
-          echo "android.useAndroidX=true" > android/gradle.properties
+          # 3. OPTIMIZE GRADLE PROPERTIES (APPEND MODE)
+          echo "android.useAndroidX=true" >> android/gradle.properties
           echo "android.enableJetifier=true" >> android/gradle.properties
           echo "org.gradle.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=512m -Dfile.encoding=UTF-8" >> android/gradle.properties
           echo "org.gradle.parallel=false" >> android/gradle.properties
@@ -64,8 +70,8 @@ jobs:
         run: |
           # Ensure execution permission
           if [ -f "gradlew" ]; then chmod +x gradlew; fi
-          # Build with worker limits to prevent runner crash
-          ./gradlew assembleDebug --stacktrace --max-workers=2 --no-daemon
+          # Build with strictly limited workers to prevent runner memory crash
+          ./gradlew assembleDebug --stacktrace --max-workers=1 --no-daemon
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4

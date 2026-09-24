@@ -55,7 +55,6 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemo
         </div>
       )}
 
-      {/* SINGLE STABLE TRIGGER FOR ENTIRE CONTENT */}
       <ProductQuickView product={product} vendorScheduleOpen={!isOffline}>
         <div className="flex flex-col h-full cursor-pointer">
           <div className="relative aspect-square w-full mb-3">

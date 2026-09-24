@@ -81,14 +81,12 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="rounded-t-[3.5rem] p-0 overflow-hidden border-none shadow-2xl z-[2000001] bottom-0 top-auto translate-y-0 focus:outline-none h-[90vh] max-w-lg flex flex-col bg-[#0B0B0B]">
-        {/* HEADER SECTION - FIXED */}
         <DialogHeader className="p-6 pb-4 shrink-0 border-b border-white/5 relative z-10 text-white">
           <DialogTitle className="font-black italic uppercase text-center text-xl tracking-tighter">{product.name}</DialogTitle>
           <DialogDescription className="text-center text-[10px] font-bold uppercase tracking-widest text-gray-500">Customize your premium order</DialogDescription>
           <button onClick={() => setIsOpen(false)} className="absolute top-4 right-4 h-9 w-9 rounded-full bg-white/5 flex items-center justify-center text-gray-400 active:scale-90 transition-transform"><X className="h-4 w-4" /></button>
         </DialogHeader>
 
-        {/* SCROLLABLE BODY */}
         <div className="flex-1 overflow-y-auto no-scrollbar relative z-0">
           <div className="p-6 pt-4 flex gap-4 border-b border-dashed border-white/10">
              <div className="relative h-24 w-24 rounded-2xl overflow-hidden bg-muted border border-white/10 shadow-sm shrink-0">
@@ -146,14 +144,13 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
                 disabled={isOffline} 
                 placeholder="e.g. no onion, extra spicy..." 
                 value={instructions} 
-                onChange={e => setInstructions(e.target.value)} 
+                onChange={e => setInstructions(e.target.value.toUpperCase())} 
                 className="rounded-2xl bg-white/5 border-none text-white text-xs min-h-[100px] p-4 focus-visible:ring-1 focus-visible:ring-primary/20" 
               />
             </div>
           </div>
         </div>
 
-        {/* FOOTER SECTION - FIXED TO BOTTOM */}
         <div className="sticky bottom-0 left-0 right-0 p-6 bg-[#0B0B0B] border-t border-white/5 pb-10 z-[2000010] shadow-[0_-20px_50px_rgba(0,0,0,0.5)]">
            <div className="flex items-center gap-3 max-w-md mx-auto">
               <div className="flex items-center bg-white/5 rounded-xl h-14 px-2 border border-white/5">
