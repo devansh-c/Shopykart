@@ -28,6 +28,11 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v3
+        with:
+          gradle-version: 8.2.1
+
       - name: Build Web Application (Static Export)
         run: npm run build:static
 
@@ -54,7 +59,7 @@ jobs:
           # 2. REPAIR MISSING GRADLE WRAPPER
           if [ ! -f "android/gradlew" ]; then
             echo "Gradlew missing! Generating wrapper..."
-            cd android && gradle wrapper || echo "Fallback: Using local gradle if available"
+            cd android && gradle wrapper --gradle-version 8.2.1 || echo "Fallback: Using local gradle if available"
             cd ..
           fi
           
@@ -68,9 +73,8 @@ jobs:
       - name: Build APK (Debug)
         working-directory: android
         run: |
-          # Ensure execution permission
           if [ -f "gradlew" ]; then chmod +x gradlew; fi
-          # Build with strictly limited workers to prevent runner memory crash
+          # Build with strictly limited workers to prevent runner memory crash (exit code 1 fix)
           ./gradlew assembleDebug --stacktrace --max-workers=1 --no-daemon
 
       - name: Upload Build Artifacts

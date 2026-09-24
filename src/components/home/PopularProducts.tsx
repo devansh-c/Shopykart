@@ -42,6 +42,11 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemo
   const displayPrice = Number(product.price) || 0;
   const isBestRated = (Number(product.rating) || 0) >= 4.5;
 
+  const handleAddClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onAdd({ ...product, quantity: 1 });
+  };
+
   return (
     <div className={cn(
       "relative bg-[#0B0B0B] rounded-[2.5rem] p-3 border border-white/5 flex flex-col shadow-2xl transition-all transform-gpu hover:scale-[1.02] will-change-transform", 
@@ -93,14 +98,18 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemo
               </div>
 
               <div className="flex-1 flex justify-end">
-                {!isOffline ? (
-                  <div className={cn(
-                    "flex items-center justify-center rounded-full h-9 transition-all duration-300 font-black text-[10px] uppercase shadow-xl",
-                    quantity === 0 ? "bg-primary text-white px-6" : "bg-primary text-white px-4 border border-white/20"
-                  )}>
+                {!isOffline && (
+                  <button 
+                    onClick={handleAddClick}
+                    className={cn(
+                      "flex items-center justify-center rounded-full h-9 transition-all duration-300 font-black text-[10px] uppercase shadow-xl active:scale-90",
+                      quantity === 0 ? "bg-primary text-white px-6" : "bg-primary text-white px-4 border border-white/20"
+                    )}
+                  >
                     {quantity === 0 ? 'ADD' : `${quantity} IN BAG`}
-                  </div>
-                ) : (
+                  </button>
+                )}
+                {isOffline && (
                   <div className="bg-white/5 text-gray-500 h-9 px-4 rounded-full font-black text-[8px] uppercase flex items-center border border-white/10">OFFLINE</div>
                 )}
               </div>

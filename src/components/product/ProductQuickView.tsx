@@ -106,7 +106,7 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
              </div>
           </div>
 
-          <div className="px-6 py-6 space-y-6 pb-32">
+          <div className="px-6 py-6 space-y-6">
             {product.description && <p className="text-[11px] font-medium text-gray-400 italic leading-relaxed">{product.description}</p>}
             
             {product.options && product.options.length > 0 && (
@@ -151,7 +151,7 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
           </div>
         </div>
 
-        <div className="sticky bottom-0 left-0 right-0 p-6 bg-[#0B0B0B] border-t border-white/5 pb-10 z-[2000010] shadow-[0_-20px_50px_rgba(0,0,0,0.5)]">
+        <div className="p-6 bg-[#0B0B0B] border-t border-white/5 pb-10 shrink-0 shadow-[0_-20px_50px_rgba(0,0,0,0.5)]">
            <div className="flex items-center gap-3 max-w-md mx-auto">
               <div className="flex items-center bg-white/5 rounded-xl h-14 px-2 border border-white/5">
                  <button disabled={isOffline} onClick={() => setLocalQuantity(Math.max(1, localQuantity - 1))} className="h-10 w-10 flex items-center justify-center bg-white/10 rounded-lg shadow-sm active:scale-90 transition-transform text-white"><Minus className="h-4 w-4" /></button>
