@@ -40,23 +40,23 @@ jobs:
           mkdir -p android/app
           cd android
           
-          # 1. CLEAN PHANTOM MODULES (Fixes Project Not Found)
+          # 1. DEEP CLEAN PHANTOM MODULES (Fixes Project Not Found)
           if [ -f "settings.gradle" ]; then
-            echo "Cleaning settings.gradle..."
+            echo "Deep cleaning settings.gradle..."
             sed -i "/:capacitor-cordova-android-plugins/d" settings.gradle
           fi
 
           if [ -f "app/build.gradle" ]; then
-            echo "Cleaning app/build.gradle..."
+            echo "Deep cleaning app/build.gradle..."
             sed -i "/project(':capacitor-cordova-android-plugins')/d" app/build.gradle
           fi
           
-          # 2. REPAIR GRADLE WRAPPER (Fixes gradlew missing)
-          echo "Generating Gradle Wrapper..."
+          # 2. REPAIR GRADLE WRAPPER
+          echo "Generating Gradle Wrapper 8.2.1..."
           gradle wrapper --gradle-version 8.2.1
           chmod +x gradlew
 
-          # 3. OPTIMIZE MEMORY & ISOLATION (Prevents AAPT2 Worker Crash)
+          # 3. OPTIMIZE MEMORY & ISOLATION
           echo "org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8" > gradle.properties
           echo "org.gradle.parallel=false" >> gradle.properties
           echo "org.gradle.daemon=false" >> gradle.properties

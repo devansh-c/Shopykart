@@ -39,7 +39,7 @@ import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 
 /**
  * @fileOverview Rebuilt Premium Checkout Page.
- * Fixed: 'Slide to Order' unblocked for mobile browsers with touch-action: none.
+ * Fixed: 'Slide to Order' strictly unblocked with touch-action: none.
  */
 export default function CartPage() {
   const { cart, addToCart, removeFromCart, totalPrice, clearCart } = useCart();
@@ -218,6 +218,7 @@ export default function CartPage() {
     if (isPlacing || cart.length === 0 || hasClosedItems || !isMinOrderMet) return; 
     setIsDragging(true); 
     startXRef.current = e.touches[0].clientX; 
+    e.stopPropagation();
   };
   
   const handleTouchMove = (e: React.TouchEvent) => { 
@@ -227,9 +228,10 @@ export default function CartPage() {
       const maxOffset = sliderRef.current.offsetWidth - 88;
       setSliderOffset(Math.min(diff, maxOffset)); 
     }
+    e.stopPropagation();
   };
   
-  const handleTouchEnd = () => { 
+  const handleTouchEnd = (e: React.TouchEvent) => { 
     if (!isDragging) return; 
     setIsDragging(false); 
     const threshold = (sliderRef.current?.offsetWidth || 300) * 0.70;
@@ -238,6 +240,7 @@ export default function CartPage() {
     } else {
       setSliderOffset(0); 
     }
+    e.stopPropagation();
   };
 
   if (!isMounted) return null;
@@ -442,7 +445,7 @@ export default function CartPage() {
               <div 
                 ref={sliderRef} 
                 className={cn(
-                  "w-full h-24 rounded-[3rem] p-3 flex items-center relative overflow-hidden transition-all duration-300 transform-gpu", 
+                  "w-full h-24 rounded-[3rem] p-3 flex items-center relative overflow-hidden transition-all duration-300 transform-gpu z-[2000]", 
                   (hasClosedItems || !isMinOrderMet || cart.length === 0) ? "bg-gray-100 opacity-50 grayscale" : "bg-[#0B0B0B] border-white/10 shadow-2xl"
                 )}
               >

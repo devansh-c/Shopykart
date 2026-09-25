@@ -14,7 +14,7 @@ let globalDataCache: any = null;
 
 /**
  * @fileOverview Multi-App Router for APK Builds.
- * Now includes Suspense for searchParams handling and robust error recovery.
+ * Optimized for Next.js 15 compilation stability.
  */
 function ShopyKartAppContent() {
   const router = useRouter();
@@ -49,6 +49,7 @@ function ShopyKartAppContent() {
   async function fetchData() {
     if (!firestore) return;
     try {
+      // Parallel fetch for speed
       const [bannersSnap, categoriesSnap, announcementSnap, vendorsSnap, productsSnap] = await Promise.all([
         getDocs(query(collection(firestore, 'banners'), limit(15))).catch(() => ({ docs: [] })),
         getDocs(query(collection(firestore, 'categories'), limit(40))).catch(() => ({ docs: [] })),
@@ -73,7 +74,6 @@ function ShopyKartAppContent() {
       globalDataCache = data;
       setInitialData(data);
     } catch (e) {
-      console.error("Initial data fetch error:", e);
       setInitialData({ banners: [], categories: [], announcement: null, vendors: [], products: [] });
     } finally {
       setLoading(false);
@@ -89,7 +89,7 @@ function ShopyKartAppContent() {
       <div className="h-screen bg-white flex flex-col items-center justify-center gap-4">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
         <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">
-          Launching {appType.toUpperCase()} Portal...
+          Launching Portal...
         </p>
       </div>
     );
