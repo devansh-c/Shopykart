@@ -35,38 +35,37 @@ jobs:
       - name: Sync Capacitor Android
         run: npx cap sync android
 
-      - name: Master Grade Android Patching
+      - name: Master Grade Android Repair & Patching
         run: |
           mkdir -p android/app
+          cd android
           
-          # 1. CLEAN PHANTOM MODULES FROM SETTINGS
-          if [ -f "android/settings.gradle" ]; then
+          # 1. CLEAN PHANTOM MODULES (Fixes Project Not Found)
+          if [ -f "settings.gradle" ]; then
             echo "Cleaning settings.gradle..."
-            sed -i "/:capacitor-cordova-android-plugins/d" android/settings.gradle
+            sed -i "/:capacitor-cordova-android-plugins/d" settings.gradle
           fi
 
-          if [ -f "android/app/build.gradle" ]; then
+          if [ -f "app/build.gradle" ]; then
             echo "Cleaning app/build.gradle..."
-            sed -i "/project(':capacitor-cordova-android-plugins')/d" android/app/build.gradle
+            sed -i "/project(':capacitor-cordova-android-plugins')/d" app/build.gradle
           fi
           
-          # 2. FORCE STABLE GRADLE VERSION (Fixes ClassNotFoundException)
-          if [ -d "android" ]; then
-            cd android
-            gradle wrapper --gradle-version 8.2.1
-            cd ..
-          fi
+          # 2. REPAIR GRADLE WRAPPER (Fixes gradlew missing)
+          echo "Generating Gradle Wrapper..."
+          gradle wrapper --gradle-version 8.2.1
+          chmod +x gradlew
 
-          # 3. OPTIMIZE MEMORY FOR GITHUB RUNNER
-          mkdir -p ~/.gradle
-          echo "org.gradle.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=512m -Dfile.encoding=UTF-8" >> android/gradle.properties
-          echo "org.gradle.parallel=false" >> android/gradle.properties
-          echo "org.gradle.daemon=false" >> android/gradle.properties
+          # 3. OPTIMIZE MEMORY & ISOLATION (Prevents AAPT2 Worker Crash)
+          echo "org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8" > gradle.properties
+          echo "org.gradle.parallel=false" >> gradle.properties
+          echo "org.gradle.daemon=false" >> gradle.properties
+          echo "android.useAndroidX=true" >> gradle.properties
+          echo "android.enableJetifier=true" >> gradle.properties
 
       - name: Build APK (Debug)
         working-directory: android
         run: |
-          chmod +x gradlew
           ./gradlew assembleDebug --stacktrace --max-workers=2 --no-daemon
 
       - name: Upload Build Artifacts

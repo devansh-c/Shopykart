@@ -14,7 +14,7 @@ let globalDataCache: any = null;
 
 /**
  * @fileOverview Multi-App Router for APK Builds.
- * Now includes Suspense for searchParams handling and data caching.
+ * Now includes Suspense for searchParams handling and robust error recovery.
  */
 function ShopyKartAppContent() {
   const router = useRouter();
@@ -50,14 +50,14 @@ function ShopyKartAppContent() {
     if (!firestore) return;
     try {
       const [bannersSnap, categoriesSnap, announcementSnap, vendorsSnap, productsSnap] = await Promise.all([
-        getDocs(query(collection(firestore, 'banners'), limit(15))),
-        getDocs(query(collection(firestore, 'categories'), limit(40))),
-        getDoc(doc(firestore, 'app_settings', 'announcement')),
-        getDocs(query(collection(firestore, 'vendors'), limit(50))),
-        getDocs(query(collection(firestore, 'products'), limit(100)))
+        getDocs(query(collection(firestore, 'banners'), limit(15))).catch(() => ({ docs: [] })),
+        getDocs(query(collection(firestore, 'categories'), limit(40))).catch(() => ({ docs: [] })),
+        getDoc(doc(firestore, 'app_settings', 'announcement')).catch(() => null),
+        getDocs(query(collection(firestore, 'vendors'), limit(50))).catch(() => ({ docs: [] })),
+        getDocs(query(collection(firestore, 'products'), limit(100))).catch(() => ({ docs: [] }))
       ]);
 
-      const sanitize = (docs: any[]) => docs.map(d => ({ 
+      const sanitize = (docs: any[]) => (docs || []).map(d => ({ 
         id: d.id, 
         ...d.data()
       }));
@@ -65,7 +65,7 @@ function ShopyKartAppContent() {
       const data = {
         banners: sanitize(bannersSnap.docs),
         categories: sanitize(categoriesSnap.docs),
-        announcement: announcementSnap.exists() ? { id: announcementSnap.id, ...announcementSnap.data() } : null,
+        announcement: (announcementSnap && announcementSnap.exists()) ? { id: announcementSnap.id, ...announcementSnap.data() } : null,
         vendors: sanitize(vendorsSnap.docs),
         products: sanitize(productsSnap.docs)
       };

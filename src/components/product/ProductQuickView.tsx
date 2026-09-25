@@ -33,8 +33,8 @@ interface ProductQuickViewProps {
 }
 
 /**
- * @fileOverview ProductQuickView with Guaranteed Button Visibility.
- * Fixed: Uses flex-col h-[85vh] and shrink-0 footer to ensure ADD TO BAG is never hidden.
+ * @fileOverview ProductQuickView with Guaranteed Button Visibility & Stability.
+ * Fixed: Uses flex-col h-[85vh] and shrink-0 footer. Added DialogDescription for Radix stability.
  */
 export function ProductQuickView({ product, children, isMedical, vendorScheduleOpen }: ProductQuickViewProps) {
   const { addToCart } = useCart();
@@ -78,6 +78,7 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
     setIsOpen(false); 
     setLocalQuantity(1); 
     setSelectedOption(null);
+    setInstructions('');
     toast({ title: "Added to Bag" });
   };
 
@@ -88,6 +89,7 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
         {/* FIXED HEADER */}
         <DialogHeader className="p-6 pb-4 shrink-0 border-b border-white/5 relative z-10 text-white">
           <DialogTitle className="font-black italic uppercase text-center text-lg tracking-tighter">{product.name}</DialogTitle>
+          <DialogDescription className="sr-only">Customize your order for {product.name}</DialogDescription>
           <button onClick={() => setIsOpen(false)} className="absolute top-4 right-4 h-8 w-8 rounded-full bg-white/5 flex items-center justify-center text-gray-400 active:scale-90 transition-transform"><X className="h-4 w-4" /></button>
         </DialogHeader>
 
@@ -138,7 +140,7 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
               </div>
             )}
 
-            <div className="space-y-2">
+            <div className="space-y-2 pb-10">
               <label className="text-[9px] font-black uppercase text-gray-500 ml-1">Cooking Request</label>
               <Textarea 
                 disabled={isOffline} 
@@ -152,7 +154,7 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
         </div>
 
         {/* GUARANTEED VISIBLE FOOTER */}
-        <div className="p-6 bg-[#0B0B0B] border-t border-white/5 pb-10 shrink-0 shadow-[0_-20px_50px_rgba(0,0,0,0.5)]">
+        <div className="p-6 bg-[#0B0B0B] border-t border-white/5 pb-10 shrink-0 shadow-[0_-20px_50px_rgba(0,0,0,0.5)] relative z-10">
            <div className="flex items-center gap-3 max-w-md mx-auto">
               <div className="flex items-center bg-white/5 rounded-xl h-14 px-2 border border-white/5">
                  <button disabled={isOffline} onClick={() => setLocalQuantity(Math.max(1, localQuantity - 1))} className="h-10 w-10 flex items-center justify-center bg-white/10 rounded-lg text-white active:scale-90"><Minus className="h-4 w-4" /></button>
