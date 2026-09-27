@@ -86,17 +86,13 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare }: any) => {
             <div className="mt-auto flex items-center justify-between pt-2">
               <div className="flex flex-col">
                 <span className="text-lg font-black text-white italic tracking-tighter leading-none">₹{displayPrice}</span>
-                <div className="flex items-center gap-1 mt-1">
-                  <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
-                  <span className="text-[8px] font-bold text-gray-500">{(Number(product.rating) || 4.5).toFixed(1)}</span>
-                </div>
               </div>
 
               <div className="flex-1 flex justify-end">
                 {!isOffline && (
                   <div className={cn(
-                    "flex items-center justify-center rounded-full h-9 transition-all duration-300 font-black text-[10px] uppercase shadow-xl",
-                    quantity === 0 ? "bg-primary text-white px-6" : "bg-primary text-white px-4 border border-white/20"
+                    "flex items-center justify-center rounded-full h-9 transition-all duration-300 font-black text-[10px] uppercase shadow-xl bg-primary text-white",
+                    quantity === 0 ? "px-6" : "px-4 border border-white/20"
                   )}>
                     {quantity === 0 ? 'ADD' : `${quantity} IN BAG`}
                   </div>
@@ -217,12 +213,6 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
           return <ProductItem key={product.id} product={{...product, restaurantName: v?.storeName}} quantity={quantity} isOffline={isOffline} onShare={handleShare} />;
         })}
       </div>
-      {productsToDisplay.length === 0 && (
-        <div className="text-center py-20 opacity-30">
-          <Store className="h-16 w-16 mx-auto mb-4" />
-          <p className="font-black uppercase text-xs italic">No items found in this area</p>
-        </div>
-      )}
     </div>
   );
 }

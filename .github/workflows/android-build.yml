@@ -40,7 +40,7 @@ jobs:
           mkdir -p android/app
           cd android
           
-          # 1. DEEP CLEAN PHANTOM MODULES (Fixes Project Not Found Error)
+          # 1. DEEP CLEAN PHANTOM MODULES (Fixes SelfResolvingDependency Error)
           if [ -f "settings.gradle" ]; then
             echo "Deep cleaning settings.gradle..."
             sed -i "/:capacitor-cordova-android-plugins/d" settings.gradle
@@ -57,7 +57,7 @@ jobs:
           chmod +x gradlew
 
           # 3. OPTIMIZE MEMORY & WORKER ISOLATION (Fixes AAPT2 Crash)
-          # Limit workers to 1 to prevent concurrency crashes on shared runners
+          # Use single worker to prevent memory overhead on shared runners
           echo "org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8" > gradle.properties
           echo "org.gradle.parallel=false" >> gradle.properties
           echo "org.gradle.daemon=false" >> gradle.properties

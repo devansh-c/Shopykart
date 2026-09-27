@@ -33,8 +33,8 @@ interface ProductQuickViewProps {
 }
 
 /**
- * @fileOverview ProductQuickView with Fixed Header/Footer and Scrollable Content.
- * Fixed: Added DialogTitle/Description and optimized layout for small screens.
+ * @fileOverview ProductQuickView with Fixed Header/Footer.
+ * Fixed: A11y titles added and Footer locked for visibility.
  */
 export function ProductQuickView({ product, children, isMedical, vendorScheduleOpen }: ProductQuickViewProps) {
   const { addToCart } = useCart();
@@ -92,7 +92,6 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="rounded-t-[3rem] p-0 overflow-hidden border-none shadow-2xl z-[2000001] bottom-0 top-auto translate-y-0 focus:outline-none h-[88vh] max-w-lg flex flex-col bg-[#0B0B0B] sm:h-[80vh] sm:rounded-[3rem] sm:bottom-1/2 sm:translate-y-1/2">
         
-        {/* FIXED HEADER */}
         <div className="p-6 pb-4 shrink-0 border-b border-white/5 relative z-10 text-white">
           <DialogHeader>
             <DialogTitle className="font-black italic uppercase text-center text-lg tracking-tighter truncate px-10">
@@ -105,7 +104,6 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
           <button onClick={() => setIsOpen(false)} className="absolute top-5 right-6 h-8 w-8 rounded-full bg-white/5 flex items-center justify-center text-gray-400 active:scale-90 transition-transform"><X className="h-5 w-5" /></button>
         </div>
 
-        {/* SCROLLABLE BODY */}
         <div className="flex-1 overflow-y-auto no-scrollbar relative z-0">
           <div className="p-6 pt-4 flex gap-4 border-b border-dashed border-white/10">
              <div className="relative h-24 w-24 rounded-2xl overflow-hidden bg-muted border border-white/10 shadow-sm shrink-0">
@@ -115,11 +113,6 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
                 <h3 className="font-black text-base text-white italic uppercase tracking-tighter leading-tight line-clamp-2">{product.name}</h3>
                 <div className="flex items-center gap-2 mt-1">
                    <p className="text-[9px] font-black text-primary uppercase tracking-widest italic">{product.restaurantName || 'ShopyKart Select'}</p>
-                   {product.preparingTime && (
-                     <Badge className="bg-green-600/20 text-green-400 border-none font-black text-[7px] px-1.5 py-0">
-                        <Timer className="h-2 w-2 mr-1" /> {product.preparingTime}M
-                     </Badge>
-                   )}
                 </div>
                 <div className="text-2xl font-black text-white italic tracking-tighter mt-1">₹ {currentPrice.toFixed(0)}</div>
              </div>
@@ -156,7 +149,7 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
               <label className="text-[9px] font-black uppercase text-gray-500 ml-1">Special Note</label>
               <Textarea 
                 disabled={isOffline} 
-                placeholder="e.g. NO ONION / EXTRA SPICY" 
+                placeholder="e.G. NO ONION / EXTRA SPICY" 
                 value={instructions} 
                 onChange={e => setInstructions(e.target.value.toUpperCase())} 
                 className="rounded-2xl bg-white/5 border-none text-white text-xs min-h-[80px] p-4 focus-visible:ring-1 focus-visible:ring-primary/20" 
@@ -165,7 +158,6 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
           </div>
         </div>
 
-        {/* FIXED FOOTER */}
         <div className="p-6 bg-[#0B0B0B] border-t border-white/10 pb-12 shrink-0 shadow-[0_-20px_50px_rgba(0,0,0,0.8)] relative z-50">
            <div className="flex items-center gap-3 max-w-md mx-auto">
               <div className="flex items-center bg-white/5 rounded-xl h-14 px-2 border border-white/10 shrink-0">

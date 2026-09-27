@@ -39,7 +39,7 @@ import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 
 /**
  * @fileOverview Rebuilt Premium Checkout Page.
- * Fixed: 'Slide to Order' strictly unblocked with touch-action: none.
+ * Fixed: 'Slide to Order' logic re-engineered for mobile stability.
  */
 export default function CartPage() {
   const { cart, addToCart, removeFromCart, totalPrice, clearCart } = useCart();
@@ -165,11 +165,21 @@ export default function CartPage() {
       setSliderOffset(0);
       return;
     }
-    if (!firestore || cart.length === 0 || hasClosedItems || !isMinOrderMet) {
-      setSliderOffset(0); 
+    if (cart.length === 0) {
+      toast({ variant: "destructive", title: "Empty Bag" });
+      setSliderOffset(0);
       return;
     }
-    
+    if (hasClosedItems) {
+      toast({ variant: "destructive", title: "Store Closed", description: "Remove closed items to proceed." });
+      setSliderOffset(0);
+      return;
+    }
+    if (!isMinOrderMet) {
+      toast({ variant: "destructive", title: "Min Order Not Met", description: `Minimum ₹${minOrderValue} required.` });
+      setSliderOffset(0);
+      return;
+    }
     if (!recipientForm.name || recipientForm.phone.length !== 10 || !recipientForm.address) {
       setIsAddressModalOpen(true); 
       setSliderOffset(0); 
@@ -210,7 +220,7 @@ export default function CartPage() {
     } catch (e) { 
       setIsPlacing(false); 
       setSliderOffset(0); 
-      toast({ variant: "destructive", title: "Failed" });
+      toast({ variant: "destructive", title: "Failed to place order." });
     }
   };
 
@@ -218,7 +228,6 @@ export default function CartPage() {
     if (isPlacing || cart.length === 0 || hasClosedItems || !isMinOrderMet) return; 
     setIsDragging(true); 
     startXRef.current = e.touches[0].clientX; 
-    e.stopPropagation();
   };
   
   const handleTouchMove = (e: React.TouchEvent) => { 
@@ -228,7 +237,6 @@ export default function CartPage() {
       const maxOffset = sliderRef.current.offsetWidth - 88;
       setSliderOffset(Math.min(diff, maxOffset)); 
     }
-    e.stopPropagation();
   };
   
   const handleTouchEnd = (e: React.TouchEvent) => { 
@@ -240,7 +248,6 @@ export default function CartPage() {
     } else {
       setSliderOffset(0); 
     }
-    e.stopPropagation();
   };
 
   if (!isMounted) return null;
@@ -393,7 +400,6 @@ export default function CartPage() {
                   </button>
                 ))}
              </div>
-             <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest text-center mt-2 italic">100% of the tip goes to your delivery partner.</p>
           </section>
 
           <section className="p-6 space-y-6">
@@ -439,29 +445,25 @@ export default function CartPage() {
 
         <div className="pt-4 pb-32">
            <div className="space-y-4">
-              {hasClosedItems && <div className="bg-red-50 p-4 rounded-3xl border border-red-100 text-center text-[9px] font-black text-red-800 uppercase animate-pulse">SOME STORES ARE CLOSED. REMOVE ITEMS TO ORDER.</div>}
-              {!isMinOrderMet && <div className="bg-amber-50 p-4 rounded-3xl border border-amber-100 text-center text-[9px] font-black text-amber-800 uppercase">MIN. ORDER ₹{minOrderValue} REQUIRED FOR THIS ZONE.</div>}
-
               <div 
                 ref={sliderRef} 
                 className={cn(
-                  "w-full h-24 rounded-[3rem] p-3 flex items-center relative overflow-hidden transition-all duration-300 transform-gpu z-[2000]", 
+                  "w-full h-24 rounded-[3rem] p-3 flex items-center relative overflow-hidden transition-all duration-300 transform-gpu z-[2000] touch-none", 
                   (hasClosedItems || !isMinOrderMet || cart.length === 0) ? "bg-gray-100 opacity-50 grayscale" : "bg-[#0B0B0B] border-white/10 shadow-2xl"
                 )}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
               >
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <span className="text-[10px] font-black uppercase italic tracking-[0.4em] text-white/20">SLIDE TO PLACE ORDER</span>
                   </div>
                   <div 
-                    onTouchStart={handleTouchStart} 
-                    onTouchMove={handleTouchMove} 
-                    onTouchEnd={handleTouchEnd} 
                     style={{ 
                       transform: `translateX(${sliderOffset}px)`,
-                      touchAction: 'none'
                     }} 
                     className={cn(
-                      "h-16 w-16 rounded-[1.5rem] bg-white text-primary flex items-center justify-center z-10 cursor-grab shadow-xl select-none",
+                      "h-16 w-16 rounded-[1.5rem] bg-white text-primary flex items-center justify-center z-10 shadow-xl select-none",
                       !isDragging && "transition-transform duration-300"
                     )}
                   >
