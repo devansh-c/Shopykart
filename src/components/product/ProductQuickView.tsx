@@ -33,8 +33,8 @@ interface ProductQuickViewProps {
 }
 
 /**
- * @fileOverview ProductQuickView with Industrial-Grade Bottom Locking and Accessibility.
- * Fixed: Added DialogTitle/Description and re-aligned layout for button visibility on small screens.
+ * @fileOverview ProductQuickView with Fixed Header/Footer and Scrollable Content.
+ * Fixed: Added DialogTitle/Description and optimized layout for small screens.
  */
 export function ProductQuickView({ product, children, isMedical, vendorScheduleOpen }: ProductQuickViewProps) {
   const { addToCart } = useCart();
@@ -90,16 +90,16 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="rounded-t-[3rem] p-0 overflow-hidden border-none shadow-2xl z-[2000001] bottom-0 top-auto translate-y-0 focus:outline-none h-[90vh] max-w-lg flex flex-col bg-[#0B0B0B] sm:h-[80vh] sm:rounded-[3rem] sm:bottom-1/2 sm:translate-y-1/2">
+      <DialogContent className="rounded-t-[3rem] p-0 overflow-hidden border-none shadow-2xl z-[2000001] bottom-0 top-auto translate-y-0 focus:outline-none h-[88vh] max-w-lg flex flex-col bg-[#0B0B0B] sm:h-[80vh] sm:rounded-[3rem] sm:bottom-1/2 sm:translate-y-1/2">
         
-        {/* FIXED HEADER WITH ACCESSIBILITY */}
+        {/* FIXED HEADER */}
         <div className="p-6 pb-4 shrink-0 border-b border-white/5 relative z-10 text-white">
           <DialogHeader>
             <DialogTitle className="font-black italic uppercase text-center text-lg tracking-tighter truncate px-10">
               {product.name}
             </DialogTitle>
             <DialogDescription className="text-center text-[8px] font-bold text-gray-500 uppercase tracking-widest mt-1">
-              Customize your premium order
+              Personalize your gourmet choice
             </DialogDescription>
           </DialogHeader>
           <button onClick={() => setIsOpen(false)} className="absolute top-5 right-6 h-8 w-8 rounded-full bg-white/5 flex items-center justify-center text-gray-400 active:scale-90 transition-transform"><X className="h-5 w-5" /></button>
@@ -152,11 +152,11 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
               </div>
             )}
 
-            <div className="space-y-2 pb-24">
-              <label className="text-[9px] font-black uppercase text-gray-500 ml-1">Cooking Request</label>
+            <div className="space-y-2 pb-10">
+              <label className="text-[9px] font-black uppercase text-gray-500 ml-1">Special Note</label>
               <Textarea 
                 disabled={isOffline} 
-                placeholder="e.g. EXTRA SPICY / NO ONION" 
+                placeholder="e.g. NO ONION / EXTRA SPICY" 
                 value={instructions} 
                 onChange={e => setInstructions(e.target.value.toUpperCase())} 
                 className="rounded-2xl bg-white/5 border-none text-white text-xs min-h-[80px] p-4 focus-visible:ring-1 focus-visible:ring-primary/20" 
@@ -165,8 +165,8 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
           </div>
         </div>
 
-        {/* INDUSTRIAL-GRADE FIXED FOOTER */}
-        <div className="p-6 bg-[#0B0B0B] border-t border-white/10 pb-10 shrink-0 shadow-[0_-20px_50px_rgba(0,0,0,0.8)] relative z-50">
+        {/* FIXED FOOTER */}
+        <div className="p-6 bg-[#0B0B0B] border-t border-white/10 pb-12 shrink-0 shadow-[0_-20px_50px_rgba(0,0,0,0.8)] relative z-50">
            <div className="flex items-center gap-3 max-w-md mx-auto">
               <div className="flex items-center bg-white/5 rounded-xl h-14 px-2 border border-white/10 shrink-0">
                  <button disabled={isOffline} onClick={() => setLocalQuantity(Math.max(1, localQuantity - 1))} className="h-10 w-10 flex items-center justify-center bg-white/10 rounded-lg text-white active:scale-90"><Minus className="h-4 w-4" /></button>
@@ -178,7 +178,7 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
                 disabled={isOffline || (product?.isVarietyRequired && !selectedOption)}
                 className="flex-1 h-14 bg-primary hover:bg-primary/90 text-white rounded-2xl font-black uppercase italic text-sm shadow-xl active:scale-95 transition-all shadow-primary/20"
               >
-                {isOffline ? 'CLOSED' : (product?.isVarietyRequired && !selectedOption) ? 'PICK OPTION' : `ADD • ₹${(currentPrice * localQuantity).toFixed(0)}`}
+                {isOffline ? 'OFFLINE' : (product?.isVarietyRequired && !selectedOption) ? 'PICK OPTION' : `ADD • ₹${(currentPrice * localQuantity).toFixed(0)}`}
               </Button>
            </div>
         </div>

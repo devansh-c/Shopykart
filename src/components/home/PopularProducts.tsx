@@ -55,7 +55,6 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare }: any) => {
         </div>
       )}
 
-      {/* Wrapping whole item in QuickView to ensure ADD button also triggers the popup */}
       <ProductQuickView product={product} vendorScheduleOpen={!isOffline}>
         <div className="flex flex-col h-full cursor-pointer">
           <div className="relative aspect-square w-full mb-3">

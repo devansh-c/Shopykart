@@ -57,7 +57,7 @@ jobs:
           chmod +x gradlew
 
           # 3. OPTIMIZE MEMORY & WORKER ISOLATION (Fixes AAPT2 Crash)
-          # Strictly limiting workers to 1 to prevent concurrency issues on shared runners
+          # Limit workers to 1 to prevent concurrency crashes on shared runners
           echo "org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8" > gradle.properties
           echo "org.gradle.parallel=false" >> gradle.properties
           echo "org.gradle.daemon=false" >> gradle.properties
@@ -67,7 +67,7 @@ jobs:
       - name: Build APK (Debug)
         working-directory: android
         run: |
-          # Use max-workers=1 for maximum stability
+          # Single worker mode for maximum stability
           ./gradlew assembleDebug --stacktrace --max-workers=1 --no-daemon
 
       - name: Upload Build Artifacts
