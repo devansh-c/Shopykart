@@ -17,7 +17,9 @@ import {
   ListTree,
   CalendarDays,
   StickyNote,
-  Plus
+  Plus,
+  Eye,
+  Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -204,12 +206,13 @@ export default function OrderManagement() {
       <div className="grid grid-cols-1 gap-6">
         {orders?.map((order: any) => (
           <div key={order.id} className="bg-white rounded-[2.5rem] p-6 border-2 border-border shadow-sm hover:shadow-xl transition-all relative overflow-hidden">
-            <div className="flex justify-between items-center mb-6">
-               <div className="flex items-center gap-4">
-                  <div className="h-14 w-14 rounded-2xl bg-primary/5 flex items-center justify-center text-primary border-2 border-primary/10"><Package className="h-7 w-7" /></div>
-                  <div>
-                    <h3 className="font-black text-xl italic uppercase tracking-tighter leading-none mb-1">Order #{order.customerOrderNumber}</h3>
-                    <div className="flex items-center gap-2">
+            {/* UPDATED HEADER: FIXED BUTTON CUTOFF */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+               <div className="flex items-center gap-4 min-w-0">
+                  <div className="h-14 w-14 rounded-2xl bg-primary/5 flex items-center justify-center text-primary border-2 border-primary/10 shrink-0"><Package className="h-7 w-7" /></div>
+                  <div className="min-w-0">
+                    <h3 className="font-black text-xl italic uppercase tracking-tighter leading-none mb-1 truncate">Order #{order.customerOrderNumber}</h3>
+                    <div className="flex flex-wrap items-center gap-2">
                        <Badge className="bg-primary text-white text-[8px] uppercase font-black px-2 py-0.5">{order.status}</Badge>
                        <div className="flex items-center gap-1 bg-gray-50 px-2 py-0.5 rounded-lg border border-gray-100">
                           <Clock className="h-3 w-3 text-gray-400" />
@@ -220,23 +223,23 @@ export default function OrderManagement() {
                     </div>
                   </div>
                </div>
-               <div className="flex gap-2">
+               <div className="flex flex-wrap gap-2 shrink-0">
                   <button 
                     onClick={() => { setNoteOrderId(order.id); setNoteText(order.adminNote || ''); setIsNoteOpen(true); }} 
-                    className="h-11 w-11 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center active:scale-90 transition-all border border-amber-100"
+                    className="h-10 w-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center active:scale-90 transition-all border border-amber-100"
                     title="Add Update Note"
                   >
                     <StickyNote className="h-5 w-5" />
                   </button>
 
-                  <button onClick={() => generateReceipt(order)} disabled={isDownloading === order.id} title="Generate Receipt" className="h-11 w-11 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center active:scale-90 transition-all border border-blue-100">
+                  <button onClick={() => generateReceipt(order)} disabled={isDownloading === order.id} title="Generate Receipt" className="h-10 w-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center active:scale-90 transition-all border border-blue-100">
                     {isDownloading === order.id ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileText className="h-5 w-5" />}
                   </button>
-                  <button onClick={() => window.open(`tel:${order.customerPhone}`)} className="h-11 w-11 bg-green-500 text-white rounded-xl flex items-center justify-center active:scale-90 transition-all shadow-lg shadow-green-100"><PhoneCall className="h-5 w-5" /></button>
+                  <button onClick={() => window.open(`tel:${order.customerPhone}`)} className="h-10 w-10 bg-green-500 text-white rounded-xl flex items-center justify-center active:scale-90 transition-all shadow-lg shadow-green-100"><PhoneCall className="h-5 w-5" /></button>
                   
                   <button 
                     onClick={() => handleCancelOrder(order.id)} 
-                    className="h-11 w-11 bg-red-50 text-red-500 rounded-xl flex items-center justify-center active:scale-90 transition-all border border-red-100"
+                    className="h-10 w-10 bg-red-50 text-red-500 rounded-xl flex items-center justify-center active:scale-90 transition-all border border-red-100"
                     title="Cancel Order"
                   >
                     <XCircle className="h-5 w-5" />
@@ -246,13 +249,13 @@ export default function OrderManagement() {
 
             <div className="bg-muted/30 rounded-[2rem] p-5 mb-6 space-y-4">
                <div className="flex items-center justify-between border-b border-white pb-3 mb-1">
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-full bg-white flex items-center justify-center shadow-sm text-primary"><User className="h-4 w-4" /></div>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="h-8 w-8 rounded-full bg-white flex items-center justify-center shadow-sm text-primary shrink-0"><User className="h-4 w-4" /></div>
                     <span className="text-sm font-black uppercase italic truncate max-w-[150px]">{order.customerName}</span>
                   </div>
-                  <div className="flex items-center gap-1 text-[9px] font-bold text-gray-400 uppercase tracking-widest">
+                  <div className="flex items-center gap-1 text-[9px] font-bold text-gray-400 uppercase tracking-widest shrink-0">
                      <CalendarDays className="h-3 w-3" />
-                     {isMounted && order.createdAt ? format(new Date(order.createdAt.seconds * 1000 || order.createdAt), 'MMM d, yyyy') : 'N/A'}
+                     {isMounted && order.createdAt ? format(new Date(order.createdAt.seconds * 1000 || order.createdAt), 'MMM d') : 'N/A'}
                   </div>
                </div>
 
