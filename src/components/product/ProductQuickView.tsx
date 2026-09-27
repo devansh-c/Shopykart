@@ -34,7 +34,7 @@ interface ProductQuickViewProps {
 
 /**
  * @fileOverview ProductQuickView with Industrial-Grade Bottom Locking.
- * Fixed: Uses grid-rows-[auto,1fr,auto] to ensure footer button is ALWAYS visible.
+ * Fixed: Uses flex-col with h-[88vh] to ensure footer button is ALWAYS visible.
  */
 export function ProductQuickView({ product, children, isMedical, vendorScheduleOpen }: ProductQuickViewProps) {
   const { addToCart } = useCart();
@@ -164,10 +164,10 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
               </div>
               <Button 
                 onClick={handleAddToCart} 
-                disabled={isOffline || (product.isVarietyRequired && !selectedOption)}
+                disabled={isOffline || (product?.isVarietyRequired && !selectedOption)}
                 className="flex-1 h-14 bg-primary text-white rounded-2xl font-black uppercase italic text-sm shadow-xl active:scale-95 transition-all shadow-primary/20"
               >
-                {isOffline ? 'CLOSED' : (product.isVarietyRequired && !selectedOption) ? 'PICK OPTION' : `ADD • ₹${(currentPrice * localQuantity).toFixed(0)}`}
+                {isOffline ? 'CLOSED' : (product?.isVarietyRequired && !selectedOption) ? 'PICK OPTION' : `ADD • ₹${(currentPrice * localQuantity).toFixed(0)}`}
               </Button>
            </div>
         </div>

@@ -1,3 +1,4 @@
+
 "use client"
 
 import { ShoppingBag, ChevronRight, Clock, MapPin, Package, Loader2, Trash2 } from 'lucide-react';
@@ -13,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 
 /**
  * @fileOverview My Orders Page with High-Fidelity Shimmer Effect.
- * Fixed: Added missing Badge import and robust loading states.
+ * Fixed: Verified all imports and stable query guards.
  */
 export default function OrdersPage() {
   const router = useRouter();
@@ -27,7 +28,6 @@ export default function OrdersPage() {
     setIsMounted(true);
   }, []);
 
-  // Stable query memoization with User ID guard
   const ordersQuery = useMemoFirebase(() => {
     if (!firestore || !user?.uid) return null;
     return query(
@@ -38,7 +38,6 @@ export default function OrdersPage() {
     );
   }, [firestore, user?.uid]);
 
-  // Providing a unique cacheKey ensures orders are loaded instantly from localStorage on return
   const { data: orders, loading: ordersLoading } = useCollection<any>(
     ordersQuery, 
     user?.uid ? `user_orders_${user.uid}` : undefined
@@ -62,7 +61,6 @@ export default function OrdersPage() {
     }
   };
 
-  // Logic: Show skeletons while authenticating OR while data is being fetched and cache is empty
   const showSkeletons = userLoading || (user && ordersLoading && (!orders || orders.length === 0));
 
   return (
@@ -73,52 +71,26 @@ export default function OrdersPage() {
 
       <div className="px-4 space-y-5">
         {showSkeletons ? (
-          /* HIGH-FIDELITY PREMIUM SHIMMER EFFECT */
           <div className="space-y-6 animate-in fade-in duration-500">
              {[1, 2, 3].map((i) => (
                <div key={i} className="bg-white rounded-[2.5rem] p-7 border border-border/60 shadow-sm space-y-6 transform-gpu">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                       <Skeleton className="h-16 w-16 rounded-2xl bg-gray-100" />
+                  <div className="flex justify-between">
+                    <div className="flex gap-4">
+                       <Skeleton className="h-16 w-16 rounded-2xl" />
                        <div className="space-y-2">
-                          <Skeleton className="h-5 w-28 rounded-full bg-gray-100" />
-                          <Skeleton className="h-3 w-20 rounded-full bg-gray-50 opacity-60" />
-                       </div>
-                    </div>
-                    <Skeleton className="h-8 w-24 rounded-full bg-gray-100" />
-                  </div>
-                  
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2">
-                       <Skeleton className="h-4 w-4 rounded-full bg-gray-100" />
-                       <Skeleton className="h-3 w-full max-w-[200px] rounded-full bg-gray-50" />
-                    </div>
-                    <div className="bg-muted/30 rounded-[1.5rem] p-5 space-y-3 border border-border/30">
-                       <div className="flex justify-between">
-                          <Skeleton className="h-3 w-32 rounded-full bg-gray-100" />
-                          <Skeleton className="h-3 w-12 rounded-full bg-gray-100" />
-                       </div>
-                       <div className="flex justify-between">
-                          <Skeleton className="h-3 w-24 rounded-full bg-gray-100 opacity-60" />
-                          <Skeleton className="h-3 w-10 rounded-full bg-gray-100 opacity-60" />
+                          <Skeleton className="h-5 w-28 rounded-full" />
+                          <Skeleton className="h-3 w-20 rounded-full" />
                        </div>
                     </div>
                   </div>
-
-                  <div className="flex items-center justify-between pt-2 border-t border-dashed border-border">
-                     <div className="space-y-1.5">
-                        <Skeleton className="h-2 w-12 rounded-full bg-gray-50 opacity-40" />
-                        <Skeleton className="h-7 w-24 rounded-full bg-gray-100" />
-                     </div>
-                     <div className="flex gap-2">
-                        <Skeleton className="h-12 w-28 rounded-2xl bg-gray-100" />
-                     </div>
+                  <div className="bg-muted/30 rounded-[1.5rem] p-5 space-y-3">
+                     <Skeleton className="h-3 w-full rounded-full" />
+                     <Skeleton className="h-3 w-2/3 rounded-full" />
                   </div>
                </div>
              ))}
           </div>
         ) : orders && orders.length > 0 ? (
-          /* ACTUAL ORDERS DATA */
           orders.map((order) => (
             <div 
               key={order.id} 
@@ -187,7 +159,6 @@ export default function OrdersPage() {
                       Cancel
                     </button>
                   )}
-
                   <div className="bg-[#0B0B0B] text-white px-6 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center group-hover:bg-primary transition-all shadow-xl active:scale-95">
                     Track
                     <ChevronRight className="h-4 w-4 ml-2 text-primary" />
@@ -197,10 +168,8 @@ export default function OrdersPage() {
             </div>
           ))
         ) : (
-          /* TRUE EMPTY STATE */
           <div className="text-center py-24 animate-in fade-in zoom-in duration-700">
             <div className="relative mb-8 flex justify-center">
-               <div className="absolute inset-0 bg-primary/5 rounded-full animate-ping opacity-20 scale-150" />
                <div className="relative bg-white h-32 w-32 rounded-[3rem] flex items-center justify-center border-4 border-white shadow-2xl">
                   <ShoppingBag className="h-14 w-14 text-gray-200" />
                </div>
