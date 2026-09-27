@@ -34,12 +34,13 @@ interface ProductQuickViewProps {
 
 /**
  * @fileOverview ProductQuickView with Industrial-Grade Bottom Locking and Accessibility.
- * Fixed: Added DialogTitle/Description and re-aligned layout for button visibility.
+ * Fixed: Added DialogTitle/Description and re-aligned layout for button visibility on small screens.
  */
 export function ProductQuickView({ product, children, isMedical, vendorScheduleOpen }: ProductQuickViewProps) {
   const { addToCart } = useCart();
   const { toast } = useToast();
   const firestore = useFirestore();
+  const { user } = useUser();
   const [isOpen, setIsOpen] = useState(false);
   const [localQuantity, setLocalQuantity] = useState(1);
   const [selectedOption, setSelectedOption] = useState<{ name: string; price: number } | null>(null);
@@ -68,6 +69,10 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
 
   const handleAddToCart = () => {
     if (isOffline) return;
+    if (!user) {
+      window.dispatchEvent(new CustomEvent('open-auth-overlay'));
+      return;
+    }
 
     if (product.isVarietyRequired && !selectedOption) {
       toast({ variant: "destructive", title: "Select a Variety", description: "Please pick an option to continue." });
@@ -85,7 +90,7 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="rounded-t-[3rem] p-0 overflow-hidden border-none shadow-2xl z-[2000001] bottom-0 top-auto translate-y-0 focus:outline-none h-[88vh] max-w-lg flex flex-col bg-[#0B0B0B] sm:h-[80vh] sm:rounded-[3rem] sm:bottom-1/2 sm:translate-y-1/2">
+      <DialogContent className="rounded-t-[3rem] p-0 overflow-hidden border-none shadow-2xl z-[2000001] bottom-0 top-auto translate-y-0 focus:outline-none h-[90vh] max-w-lg flex flex-col bg-[#0B0B0B] sm:h-[80vh] sm:rounded-[3rem] sm:bottom-1/2 sm:translate-y-1/2">
         
         {/* FIXED HEADER WITH ACCESSIBILITY */}
         <div className="p-6 pb-4 shrink-0 border-b border-white/5 relative z-10 text-white">
@@ -147,7 +152,7 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
               </div>
             )}
 
-            <div className="space-y-2 pb-20">
+            <div className="space-y-2 pb-24">
               <label className="text-[9px] font-black uppercase text-gray-500 ml-1">Cooking Request</label>
               <Textarea 
                 disabled={isOffline} 
@@ -160,10 +165,10 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
           </div>
         </div>
 
-        {/* GUARANTEED VISIBLE FOOTER */}
-        <div className="p-6 bg-[#0B0B0B] border-t border-white/5 pb-12 shrink-0 shadow-[0_-20px_50px_rgba(0,0,0,0.7)] relative z-50 mt-auto">
+        {/* INDUSTRIAL-GRADE FIXED FOOTER */}
+        <div className="p-6 bg-[#0B0B0B] border-t border-white/10 pb-10 shrink-0 shadow-[0_-20px_50px_rgba(0,0,0,0.8)] relative z-50">
            <div className="flex items-center gap-3 max-w-md mx-auto">
-              <div className="flex items-center bg-white/5 rounded-xl h-14 px-2 border border-white/5">
+              <div className="flex items-center bg-white/5 rounded-xl h-14 px-2 border border-white/10 shrink-0">
                  <button disabled={isOffline} onClick={() => setLocalQuantity(Math.max(1, localQuantity - 1))} className="h-10 w-10 flex items-center justify-center bg-white/10 rounded-lg text-white active:scale-90"><Minus className="h-4 w-4" /></button>
                  <span className="w-10 text-center text-lg font-black italic text-white">{localQuantity}</span>
                  <button disabled={isOffline} onClick={() => setLocalQuantity(localQuantity + 1)} className="h-10 w-10 flex items-center justify-center bg-white/10 rounded-lg text-white active:scale-90"><Plus className="h-4 w-4" /></button>
@@ -171,7 +176,7 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
               <Button 
                 onClick={handleAddToCart} 
                 disabled={isOffline || (product?.isVarietyRequired && !selectedOption)}
-                className="flex-1 h-14 bg-primary text-white rounded-2xl font-black uppercase italic text-sm shadow-xl active:scale-95 transition-all shadow-primary/20"
+                className="flex-1 h-14 bg-primary hover:bg-primary/90 text-white rounded-2xl font-black uppercase italic text-sm shadow-xl active:scale-95 transition-all shadow-primary/20"
               >
                 {isOffline ? 'CLOSED' : (product?.isVarietyRequired && !selectedOption) ? 'PICK OPTION' : `ADD • ₹${(currentPrice * localQuantity).toFixed(0)}`}
               </Button>
