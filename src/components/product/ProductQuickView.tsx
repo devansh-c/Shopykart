@@ -32,10 +32,6 @@ interface ProductQuickViewProps {
   vendorScheduleOpen?: boolean;
 }
 
-/**
- * @fileOverview ProductQuickView with Fixed Header/Footer.
- * Fixed: A11y titles added and Footer locked for visibility.
- */
 export function ProductQuickView({ product, children, isMedical, vendorScheduleOpen }: ProductQuickViewProps) {
   const { addToCart } = useCart();
   const { toast } = useToast();

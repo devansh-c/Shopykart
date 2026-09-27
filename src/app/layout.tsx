@@ -24,14 +24,14 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.variable} suppressHydrationWarning>
       <head>
-        <title>Shopykart – Premium Gourmet Delivery | Mauranipur, Ranipur</title>
-        <meta name="description" content="Official 10-Min Veg Food Delivery! 🥗 Order fresh gourmet food instantly." />
+        <title>Shopykart – 10 Min Veg Food Delivery|Mauranipur,Ranipur| Order Now</title>
+        <meta name="description" content="Get lightning-fast food delivery with Shopykart. Order fresh meals, delicious fast food, and daily specials from top local restaurants directly to your doorstep." />
         <link rel="manifest" href="/manifest.json" />
         <link rel="canonical" href={siteUrl} />
         
         <meta name="robots" content="index, follow, max-image-preview:large" />
         <meta property="og:type" content="website" />
-        <meta property="og:title" content="Shopykart – Premium 10-Min Delivery" />
+        <meta property="og:title" content="Shopykart – 10 Min Veg Food Delivery|Mauranipur,Ranipur| Order Now" />
         <meta property="og:url" content={siteUrl} />
 
         <meta name="apple-mobile-web-app-capable" content="yes" />

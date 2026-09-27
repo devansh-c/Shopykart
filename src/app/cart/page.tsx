@@ -37,10 +37,6 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 
-/**
- * @fileOverview Rebuilt Premium Checkout Page.
- * Fixed: 'Slide to Order' logic re-engineered for mobile stability.
- */
 export default function CartPage() {
   const { cart, addToCart, removeFromCart, totalPrice, clearCart } = useCart();
   const router = useRouter();
@@ -66,7 +62,7 @@ export default function CartPage() {
   const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
 
-  // Slider State
+  // Slider State - Re-engineered for Mobile Stability
   const [sliderOffset, setSliderOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const sliderRef = useRef<HTMLDivElement>(null);
@@ -182,6 +178,7 @@ export default function CartPage() {
     }
     if (!recipientForm.name || recipientForm.phone.length !== 10 || !recipientForm.address) {
       setIsAddressModalOpen(true); 
+      toast({ title: "Address Required", description: "Please set delivery location." });
       setSliderOffset(0); 
       return;
     }
@@ -228,6 +225,7 @@ export default function CartPage() {
     if (isPlacing || cart.length === 0 || hasClosedItems || !isMinOrderMet) return; 
     setIsDragging(true); 
     startXRef.current = e.touches[0].clientX; 
+    e.stopPropagation();
   };
   
   const handleTouchMove = (e: React.TouchEvent) => { 
@@ -237,17 +235,19 @@ export default function CartPage() {
       const maxOffset = sliderRef.current.offsetWidth - 88;
       setSliderOffset(Math.min(diff, maxOffset)); 
     }
+    e.stopPropagation();
   };
   
   const handleTouchEnd = (e: React.TouchEvent) => { 
     if (!isDragging) return; 
     setIsDragging(false); 
-    const threshold = (sliderRef.current?.offsetWidth || 300) * 0.70;
+    const threshold = (sliderRef.current?.offsetWidth || 300) * 0.75;
     if (sliderOffset > threshold) {
       finalizeOrder(); 
     } else {
       setSliderOffset(0); 
     }
+    e.stopPropagation();
   };
 
   if (!isMounted) return null;
@@ -448,7 +448,7 @@ export default function CartPage() {
               <div 
                 ref={sliderRef} 
                 className={cn(
-                  "w-full h-24 rounded-[3rem] p-3 flex items-center relative overflow-hidden transition-all duration-300 transform-gpu z-[2000] touch-none", 
+                  "w-full h-24 rounded-[3rem] p-3 flex items-center relative overflow-hidden transition-all duration-300 transform-gpu z-[2000] touch-none select-none", 
                   (hasClosedItems || !isMinOrderMet || cart.length === 0) ? "bg-gray-100 opacity-50 grayscale" : "bg-[#0B0B0B] border-white/10 shadow-2xl"
                 )}
                 onTouchStart={handleTouchStart}
@@ -463,7 +463,7 @@ export default function CartPage() {
                       transform: `translateX(${sliderOffset}px)`,
                     }} 
                     className={cn(
-                      "h-16 w-16 rounded-[1.5rem] bg-white text-primary flex items-center justify-center z-10 shadow-xl select-none",
+                      "h-16 w-16 rounded-[1.5rem] bg-white text-primary flex items-center justify-center z-10 shadow-xl pointer-events-auto",
                       !isDragging && "transition-transform duration-300"
                     )}
                   >
