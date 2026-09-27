@@ -38,15 +38,9 @@ export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
   return start < end ? (currentMins >= start && currentMins <= end) : (currentMins >= start || currentMins <= end);
 }
 
-const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemove }: any) => {
+const ProductItem = memo(({ product, quantity, isOffline, onShare }: any) => {
   const displayPrice = Number(product.price) || 0;
   const isBestRated = (Number(product.rating) || 0) >= 4.5;
-
-  const handleAddClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    onAdd({ ...product, quantity: 1 });
-  };
 
   return (
     <div className={cn(
@@ -100,15 +94,12 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemo
 
               <div className="flex-1 flex justify-end">
                 {!isOffline && (
-                  <button 
-                    onClick={handleAddClick}
-                    className={cn(
-                      "flex items-center justify-center rounded-full h-9 transition-all duration-300 font-black text-[10px] uppercase shadow-xl active:scale-90",
-                      quantity === 0 ? "bg-primary text-white px-6" : "bg-primary text-white px-4 border border-white/20"
-                    )}
-                  >
+                  <div className={cn(
+                    "flex items-center justify-center rounded-full h-9 transition-all duration-300 font-black text-[10px] uppercase shadow-xl",
+                    quantity === 0 ? "bg-primary text-white px-6" : "bg-primary text-white px-4 border border-white/20"
+                  )}>
                     {quantity === 0 ? 'ADD' : `${quantity} IN BAG`}
-                  </button>
+                  </div>
                 )}
                 {isOffline && (
                   <div className="bg-white/5 text-gray-500 h-9 px-4 rounded-full font-black text-[8px] uppercase flex items-center border border-white/10">OFFLINE</div>
@@ -124,7 +115,7 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemo
 ProductItem.displayName = "ProductItem";
 
 export function PopularProducts({ searchQuery = '', category = 'all', activeMode = 'Food', initialData = [], initialStores = [] }: { searchQuery?: string, category?: string, activeMode?: string, initialData?: any[], initialStores?: any[] }) {
-  const { cart, addToCart, removeFromCart } = useCart();
+  const { cart } = useCart();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
@@ -223,7 +214,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
           const v = (vendors && vendors.length > 0 ? vendors : initialStores)?.find(s => String(s.id) === String(product.vendorId));
           const isOffline = v ? (v.isOnline === false || !isStoreScheduleOpen(v, currentTimeMinutes)) : false;
           
-          return <ProductItem key={product.id} product={{...product, restaurantName: v?.storeName}} quantity={quantity} isOffline={isOffline} onShare={handleShare} onAdd={addToCart} onRemove={removeFromCart} />;
+          return <ProductItem key={product.id} product={{...product, restaurantName: v?.storeName}} quantity={quantity} isOffline={isOffline} onShare={handleShare} />;
         })}
       </div>
       {productsToDisplay.length === 0 && (

@@ -33,8 +33,8 @@ interface ProductQuickViewProps {
 }
 
 /**
- * @fileOverview ProductQuickView with Industrial-Grade Bottom Locking.
- * Fixed: Uses flex-col with h-[88vh] to ensure footer button is ALWAYS visible.
+ * @fileOverview ProductQuickView with Industrial-Grade Bottom Locking and Accessibility.
+ * Fixed: Added DialogTitle/Description and re-aligned layout for button visibility.
  */
 export function ProductQuickView({ product, children, isMedical, vendorScheduleOpen }: ProductQuickViewProps) {
   const { addToCart } = useCart();
@@ -87,10 +87,16 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="rounded-t-[3rem] p-0 overflow-hidden border-none shadow-2xl z-[2000001] bottom-0 top-auto translate-y-0 focus:outline-none h-[88vh] max-w-lg flex flex-col bg-[#0B0B0B] sm:h-[80vh] sm:rounded-[3rem] sm:bottom-1/2 sm:translate-y-1/2">
         
-        {/* FIXED HEADER */}
+        {/* FIXED HEADER WITH ACCESSIBILITY */}
         <div className="p-6 pb-4 shrink-0 border-b border-white/5 relative z-10 text-white">
-          <div className="font-black italic uppercase text-center text-lg tracking-tighter truncate px-10">{product.name}</div>
-          <DialogDescription className="sr-only">Customize your order for {product.name}</DialogDescription>
+          <DialogHeader>
+            <DialogTitle className="font-black italic uppercase text-center text-lg tracking-tighter truncate px-10">
+              {product.name}
+            </DialogTitle>
+            <DialogDescription className="text-center text-[8px] font-bold text-gray-500 uppercase tracking-widest mt-1">
+              Customize your premium order
+            </DialogDescription>
+          </DialogHeader>
           <button onClick={() => setIsOpen(false)} className="absolute top-5 right-6 h-8 w-8 rounded-full bg-white/5 flex items-center justify-center text-gray-400 active:scale-90 transition-transform"><X className="h-5 w-5" /></button>
         </div>
 
@@ -154,7 +160,7 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
           </div>
         </div>
 
-        {/* GUARANTEED VISIBLE FOOTER - INDUSTRIAL LOCK */}
+        {/* GUARANTEED VISIBLE FOOTER */}
         <div className="p-6 bg-[#0B0B0B] border-t border-white/5 pb-12 shrink-0 shadow-[0_-20px_50px_rgba(0,0,0,0.7)] relative z-50 mt-auto">
            <div className="flex items-center gap-3 max-w-md mx-auto">
               <div className="flex items-center bg-white/5 rounded-xl h-14 px-2 border border-white/5">
