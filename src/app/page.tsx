@@ -13,7 +13,8 @@ import Loading from './loading';
 let globalDataCache: any = null;
 
 /**
- * @fileOverview Multi-App Router with Instant Full Data Fetch (Filters Removed for Haal-ke-Haal Data).
+ * @fileOverview Multi-App Router Optimized for Store-First Experience.
+ * Fetches only Stores and Categories on home for maximum speed.
  */
 function ShopyKartAppContent() {
   const router = useRouter();
@@ -47,14 +48,13 @@ function ShopyKartAppContent() {
   async function fetchData() {
     if (!firestore) return;
     try {
-      // Parallel fetch optimized for crawler speed - Fetching EVERYTHING (1000 items)
-      // Removed isAvailable/isOnline filters to ensure all products show up "haal ke haal"
-      const [bannersSnap, categoriesSnap, announcementSnap, vendorsSnap, productsSnap] = await Promise.all([
+      // Parallel fetch optimized for store-centric UI
+      // Fetching All Vendors and Categories only. Products fetched per-store later.
+      const [bannersSnap, categoriesSnap, announcementSnap, vendorsSnap] = await Promise.all([
         getDocs(query(collection(firestore, 'banners'), limit(20))).catch(() => ({ docs: [] })),
         getDocs(query(collection(firestore, 'categories'), orderBy('name', 'asc'), limit(50))).catch(() => ({ docs: [] })),
         getDoc(doc(firestore, 'app_settings', 'announcement')).catch(() => null),
-        getDocs(query(collection(firestore, 'vendors'), limit(100))).catch(() => ({ docs: [] })),
-        getDocs(query(collection(firestore, 'products'), limit(1000))).catch(() => ({ docs: [] }))
+        getDocs(query(collection(firestore, 'vendors'), limit(100))).catch(() => ({ docs: [] }))
       ]);
 
       const sanitize = (docs: any[]) => (docs || []).map(d => ({ 
@@ -67,7 +67,7 @@ function ShopyKartAppContent() {
         categories: sanitize(categoriesSnap.docs),
         announcement: (announcementSnap && announcementSnap.exists()) ? { id: announcementSnap.id, ...announcementSnap.data() } : null,
         vendors: sanitize(vendorsSnap.docs),
-        products: sanitize(productsSnap.docs)
+        products: [] // Home page no longer fetches bulk products for speed
       };
 
       globalDataCache = data;
@@ -84,22 +84,13 @@ function ShopyKartAppContent() {
     "@context": "https://schema.org",
     "@type": "DeliveryService",
     "name": "Shopykart",
-    "description": "Premium 10-minute veg food delivery service in Mauranipur and Ranipur.",
+    "description": "Premium 10-minute gourmet delivery service in Mauranipur and Ranipur.",
     "url": "https://shopykart.co.in",
     "logo": "https://shopykart.co.in/logo.png",
     "areaServed": [
       { "@type": "City", "name": "Mauranipur" },
       { "@type": "City", "name": "Ranipur" }
-    ],
-    "hasOfferCatalog": {
-      "@type": "OfferCatalog",
-      "name": "Shopykart Menu",
-      "itemListElement": initialData?.categories?.map((c: any, i: number) => ({
-        "@type": "Offer",
-        "itemOffered": { "@type": "Service", "name": c.name },
-        "position": i + 1
-      })) || []
-    }
+    ]
   };
 
   if (appType === 'customer' && (loading || !initialData)) {

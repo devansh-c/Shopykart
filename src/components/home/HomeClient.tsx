@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useCallback, Suspense } from 'react';
@@ -9,7 +10,7 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { OfferSlider } from '@/components/home/OfferSlider';
 import { CategoryList } from '@/components/home/CategoryList';
 import { StoreSection } from '@/components/home/StoreSection';
-import { PopularProducts } from '@/components/home/PopularProducts';
+import { VerticalStoreList } from '@/components/home/VerticalStoreList';
 import OffersSection from '@/components/home/OffersSection';
 import AnnouncementBanner from '@/components/home/AnnouncementBanner';
 
@@ -22,14 +23,13 @@ interface HomeClientProps {
 }
 
 /**
- * @fileOverview Inner content optimized for crawler efficiency and speed.
+ * @fileOverview Inner content overhauled to prioritize Stores over Products on the main feed.
  */
 function HomeClientContent({ 
   initialBanners, 
   initialCategories, 
   initialAnnouncement, 
   initialStores, 
-  initialProducts 
 }: HomeClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -107,12 +107,11 @@ function HomeClientContent({
               serviceMode={activeMode}
               initialData={initialCategories}
             />
-            <PopularProducts 
-              searchQuery={searchQuery} 
-              category={activeCategory} 
-              activeMode={activeMode} 
-              initialData={initialProducts}
-              initialStores={initialStores}
+            {/* Main store feed even for medical/beauty */}
+            <VerticalStoreList 
+              searchQuery={searchQuery}
+              initialData={initialStores}
+              activeMode={activeMode}
             />
           </div>
         ) : (
@@ -139,12 +138,10 @@ function HomeClientContent({
                 />
               )}
               
-              <PopularProducts 
-                searchQuery={searchQuery} 
-                category={activeCategory} 
-                activeMode={activeMode} 
-                initialData={initialProducts}
-                initialStores={initialStores}
+              <VerticalStoreList 
+                searchQuery={searchQuery}
+                initialData={initialStores}
+                activeMode={activeMode}
               />
             </div>
           </div>
