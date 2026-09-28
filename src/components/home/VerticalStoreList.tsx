@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useState, useEffect, memo } from 'react';
-import { MapPin, Store, Star, Loader2, Award, Timer } from 'lucide-react';
+import { MapPin, Store, Star, Award, Timer } from 'lucide-react';
 import { cn, slugify } from '@/lib/utils';
 import Image from 'next/image';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -11,8 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import { useRouter } from 'next/navigation';
 
 /**
- * @fileOverview Optimized VerticalStoreList - Instant Zone Recovery.
- * Eliminates the 4-5s delay by initializing state from storage before the first render cycle.
+ * @fileOverview Super-Optimized VerticalStoreList - 0ms Interaction.
+ * Removed all artificial delays and skeleton-blocking for a "Haal-ke-Haal" experience.
  */
 export const VerticalStoreList = memo(({ 
   searchQuery = '', 
@@ -26,7 +26,7 @@ export const VerticalStoreList = memo(({
   const router = useRouter();
   const firestore = useFirestore();
 
-  // 1. INSTANT ZONE RECOVERY: Initialize state immediately from storage to avoid useEffect delay
+  // 1. INSTANT STATE INITIALIZATION: Direct sync read from localStorage
   const [activeZoneId, setActiveZoneId] = useState<string | null>(() => {
     if (typeof window !== 'undefined') return localStorage.getItem('active_zone_id');
     return null;
@@ -61,11 +61,12 @@ export const VerticalStoreList = memo(({
     return collection(firestore, 'vendors');
   }, [firestore]);
 
-  const { data: dbVendors, loading } = useCollection<any>(vendorsQuery, 'home_vertical_stores_v4', initialData);
+  // Use a stable cache key to recover data instantly
+  const { data: dbVendors, loading } = useCollection<any>(vendorsQuery, 'home_vstores_v5', initialData);
 
   const filteredVendors = useMemo(() => {
-    // Use cache or initial data immediately
-    const list = (dbVendors && dbVendors.length > 0) ? dbVendors : initialData;
+    // Prioritize cached data or initialData for instant paint
+    const list = (dbVendors && dbVendors.length > 0) ? dbVendors : (initialData.length > 0 ? initialData : []);
     if (!list || list.length === 0) return [];
     
     const searchLower = searchQuery.toLowerCase().trim();
@@ -79,15 +80,15 @@ export const VerticalStoreList = memo(({
         }
       }
 
-      // Category / Service Mode Check
+      // Flexible Category Matching
       const storeCat = (v.category || 'Food').toLowerCase();
       const isFoodRequest = currentMode === 'food';
-      const isStoreFood = storeCat === 'food' || storeCat === 'restaurant';
+      const isStoreFood = storeCat === 'food' || storeCat === 'restaurant' || storeCat === 'bakery';
 
       if (isFoodRequest) {
         if (!isStoreFood) return false;
-      } else {
-        if (storeCat !== currentMode) return false;
+      } else if (storeCat !== currentMode) {
+        return false;
       }
 
       const matchesSearch = !searchLower || 
@@ -108,14 +109,15 @@ export const VerticalStoreList = memo(({
     });
   }, [dbVendors, initialData, activeZoneId, searchQuery, activeMode, currentTimeMins]);
 
-  // Show data if we have it (from cache), even if still syncing (loading=true)
-  const showSkeletons = loading && (!dbVendors || dbVendors.length === 0);
+  // Only show skeletons if we have ZERO data (no cache, no db)
+  const isActuallyEmpty = !loading && filteredVendors.length === 0;
+  const showInitialSkeletons = loading && filteredVendors.length === 0;
 
   return (
-    <div className="px-4 py-8 bg-white min-h-[400px] content-visibility-auto">
-      <div className="flex items-center justify-between mb-8 px-2">
-        <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900">
-           Top <span className="text-primary">Hubs</span> Near You
+    <div className="px-4 py-6 bg-white min-h-[400px]">
+      <div className="flex items-center justify-between mb-6 px-2">
+        <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900 leading-none">
+           Best <span className="text-primary">Hubs</span>
         </h2>
         <Badge variant="outline" className="rounded-full border-primary/20 text-primary font-black uppercase text-[10px]">
           {filteredVendors.length} STORES
@@ -123,11 +125,11 @@ export const VerticalStoreList = memo(({
       </div>
 
       <div className="space-y-10">
-        {showSkeletons ? (
+        {showInitialSkeletons ? (
           <div className="space-y-8 animate-in fade-in duration-300">
-            {[1, 2, 3].map(i => (
+            {[1, 2].map(i => (
               <div key={i} className="space-y-4">
-                <div className="h-56 w-full bg-gray-50 rounded-[2.5rem] animate-pulse" />
+                <div className="h-52 w-full bg-gray-50 rounded-[2.5rem] animate-pulse" />
                 <div className="flex justify-between px-4">
                   <div className="h-6 w-1/3 bg-gray-50 rounded-full animate-pulse" />
                   <div className="h-6 w-12 bg-gray-50 rounded-full animate-pulse" />
@@ -164,7 +166,7 @@ export const VerticalStoreList = memo(({
 
                   {!isOffline && isBestRated && (
                     <div className="absolute top-4 left-4 z-20">
-                      <Badge className="bg-amber-400 text-black border-none font-black text-[8px] px-3 py-1 rounded-lg shadow-xl animate-pulse">
+                      <Badge className="bg-amber-400 text-black border-none font-black text-[7px] px-3 py-1 rounded-lg shadow-xl animate-pulse">
                         <Award className="h-2.5 w-2.5 mr-1 fill-black" /> BEST IN TOWN
                       </Badge>
                     </div>
@@ -204,26 +206,21 @@ export const VerticalStoreList = memo(({
                       <span className="text-[7px] font-black uppercase opacity-60 leading-none">Rating</span>
                     </div>
                   </div>
-
-                  <div className="mt-4 pt-4 border-t border-dashed border-gray-100 flex items-center gap-3">
-                     <div className="h-5 w-5 bg-blue-50 rounded-md flex items-center justify-center"><Badge variant="outline" className="border-none p-0 text-[8px] font-black text-blue-600 uppercase">PRO</Badge></div>
-                     <p className="text-[10px] font-bold text-gray-400 uppercase italic tracking-wide">Free delivery above ₹199 on this hub</p>
-                  </div>
                 </div>
               </button>
             );
           })
-        ) : (
+        ) : isActuallyEmpty && (
           <div className="text-center py-24 opacity-30 flex flex-col items-center">
              <Store className="h-20 w-20 mb-4" />
              <p className="font-black italic uppercase text-sm tracking-widest text-center">
-               No hubs matching your preference in {activeZoneId ? 'this zone' : 'your area'}
+               No stores found in your zone
              </p>
              <button 
                onClick={() => window.dispatchEvent(new CustomEvent('open-location-picker'))}
                className="mt-6 text-[10px] font-black text-primary uppercase underline underline-offset-4"
              >
-               Change Location
+               Switch Location
              </button>
           </div>
         )}
