@@ -12,8 +12,7 @@ const inter = Inter({
 });
 
 /**
- * @fileOverview Root Layout for ShopyKart.
- * SEO Optimized: Using standard head tags for static export compatibility while ensuring metadata richness.
+ * @fileOverview Root Layout for ShopyKart with Advanced SEO.
  */
 export default function RootLayout({
   children,

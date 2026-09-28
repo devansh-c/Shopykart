@@ -37,8 +37,7 @@ import { Switch } from '@/components/ui/switch';
 import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 
 /**
- * @fileOverview CartPage with Fixed Slide-to-Order and validation toasts.
- * Optimized for mobile touch events and crawler accessibility.
+ * @fileOverview CartPage with Re-engineered Slide-to-Order and validation.
  */
 export default function CartPage() {
   const { cart, addToCart, removeFromCart, totalPrice, clearCart } = useCart();
@@ -65,7 +64,6 @@ export default function CartPage() {
   const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
 
-  // Slider State - Industrial Grade Isolation
   const [sliderOffset, setSliderOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const sliderRef = useRef<HTMLDivElement>(null);
@@ -165,12 +163,12 @@ export default function CartPage() {
       return;
     }
     if (cart.length === 0) {
-      toast({ variant: "destructive", title: "Empty Bag", description: "Add items to place order." });
+      toast({ variant: "destructive", title: "Bag Empty" });
       setSliderOffset(0);
       return;
     }
     if (hasClosedItems) {
-      toast({ variant: "destructive", title: "Store Closed", description: "Remove closed items to proceed." });
+      toast({ variant: "destructive", title: "Items Unavailable", description: "Some items are from stores that are currently closed." });
       setSliderOffset(0);
       return;
     }
@@ -181,7 +179,7 @@ export default function CartPage() {
     }
     if (!recipientForm.name || recipientForm.phone.length !== 10 || !recipientForm.address) {
       setIsAddressModalOpen(true); 
-      toast({ title: "Address Required", description: "Please complete your delivery details." });
+      toast({ title: "Address Required" });
       setSliderOffset(0); 
       return;
     }
@@ -197,14 +195,13 @@ export default function CartPage() {
         total: totalPayable,
         status: 'Placed',
         createdAt: serverTimestamp(),
-        restaurantName: cart[0]?.restaurantName || 'ShopyKart Hub',
+        restaurantName: cart[0]?.restaurantName || 'ShopyKart Select',
         deliveryOTP: Math.floor(100000 + Math.random() * 900000).toString(),
         deliveryFee,
         deliveryTip,
         packingFee,
         coinDiscount,
         couponDiscount,
-        couponCode: appliedCoupon?.code || null,
         redeemCoins: isRedeemingCoins,
         isPremiumPacking,
         deliveryInstructions,
@@ -220,7 +217,7 @@ export default function CartPage() {
     } catch (e) { 
       setIsPlacing(false); 
       setSliderOffset(0); 
-      toast({ variant: "destructive", title: "Failed to place order." });
+      toast({ variant: "destructive", title: "Order Failed" });
     }
   };
 
@@ -271,9 +268,9 @@ export default function CartPage() {
                    <Navigation className="h-6 w-6" />
                 </div>
                 <div className="flex-1 min-w-0 pr-4">
-                   <h4 className="text-[10px] font-black uppercase tracking-widest text-primary mb-0.5 italic">Drop Details</h4>
+                   <h4 className="text-[10px] font-black uppercase tracking-widest text-primary mb-0.5 italic">Drop Spot</h4>
                    <h4 className="text-xs font-black uppercase truncate text-gray-900 leading-none">{recipientForm.name || 'Set Recipient'}</h4>
-                   <p className="text-[9px] font-bold text-gray-400 uppercase truncate leading-tight mt-1.5">{recipientForm.address || 'Select House Address'}</p>
+                   <p className="text-[9px] font-bold text-gray-400 uppercase truncate leading-tight mt-1.5">{recipientForm.address || 'Click Edit to Add Address'}</p>
                 </div>
              </div>
              <button 
@@ -341,7 +338,7 @@ export default function CartPage() {
                  <Input 
                    value={couponCode}
                    onChange={e => setCouponCode(e.target.value.toUpperCase())}
-                   placeholder="ENTER PROMO CODE"
+                   placeholder="PROMO CODE"
                    className="h-12 rounded-xl bg-white border-gray-200 font-black text-xs uppercase"
                  />
                  <button 
@@ -373,35 +370,6 @@ export default function CartPage() {
              />
           </section>
 
-          <section className="p-6 space-y-4 border-b border-gray-50">
-             <div className="flex items-center gap-4 mb-2">
-                <div className="h-10 w-10 bg-orange-50 rounded-xl flex items-center justify-center text-orange-600">
-                   <Bike className="h-5 w-5" />
-                </div>
-                <div>
-                   <h3 className="text-[10px] font-black uppercase tracking-widest text-orange-600 italic leading-none">Support Rider</h3>
-                   <h4 className="text-xs font-black uppercase text-gray-900 mt-1">DELIVERY TIP</h4>
-                </div>
-             </div>
-             
-             <div className="flex gap-3">
-                {[10, 20, 30, 50].map((amount) => (
-                  <button
-                    key={amount}
-                    onClick={() => setDeliveryTip(deliveryTip === amount ? 0 : amount)}
-                    className={cn(
-                      "flex-1 py-3 rounded-xl border-2 font-black text-xs transition-all active:scale-95",
-                      deliveryTip === amount 
-                        ? "border-orange-500 bg-orange-50 text-orange-600 shadow-inner" 
-                        : "border-gray-100 bg-white text-gray-400"
-                    )}
-                  >
-                    ₹{amount}
-                  </button>
-                ))}
-             </div>
-          </section>
-
           <section className="p-6 space-y-6">
              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -415,15 +383,6 @@ export default function CartPage() {
                 </div>
                 <Switch checked={isPremiumPacking} onCheckedChange={setIsPremiumPacking} className="data-[state=checked]:bg-green-600 scale-90" />
              </div>
-             <div className="relative">
-                <MessageSquare className="absolute left-4 top-4 h-4 w-4 text-gray-300" />
-                <textarea 
-                  value={deliveryInstructions}
-                  onChange={e => setDeliveryInstructions(e.target.value.toUpperCase())}
-                  placeholder="DELIVERY INSTRUCTIONS (E.G. DON'T RING BELL)"
-                  className="w-full bg-gray-50 border border-gray-100 rounded-2xl p-4 pl-12 text-[10px] font-black uppercase italic focus:outline-none min-h-[80px] resize-none focus:bg-white focus:border-primary/20 transition-all"
-                />
-             </div>
           </section>
 
           <section className="p-6 space-y-6 bg-muted/10">
@@ -431,7 +390,6 @@ export default function CartPage() {
              <div className="space-y-3">
                 <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Item Subtotal</span><span className="text-gray-900 font-black">₹{totalPrice.toFixed(0)}</span></div>
                 <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Delivery & Handling</span><span className="text-gray-900 font-black">₹{deliveryFee.toFixed(0)}</span></div>
-                {deliveryTip > 0 && <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Delivery Tip</span><span className="text-gray-900 font-black">₹{deliveryTip}</span></div>}
                 {packingFee > 0 && <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Safety Pack</span><span className="text-gray-900 font-black">₹{packingFee}</span></div>}
                 {coinDiscount > 0 && <div className="flex justify-between text-[10px] font-black text-green-600 uppercase tracking-widest"><span>Loyalty Discount</span><span className="font-black">- ₹{coinDiscount}</span></div>}
                 {couponDiscount > 0 && <div className="flex justify-between text-[10px] font-black text-indigo-600 uppercase tracking-widest"><span>Promo Discount</span><span className="font-black">- ₹{couponDiscount.toFixed(0)}</span></div>}
@@ -445,7 +403,6 @@ export default function CartPage() {
 
         <div className="pt-4 pb-32">
            <div className="space-y-4">
-              {/* SLIDE TO ORDER COMPONENT: Preserving Industrial-Grade Isolation */}
               <div 
                 ref={sliderRef} 
                 className={cn(
@@ -472,14 +429,14 @@ export default function CartPage() {
                     <ArrowRight className="h-8 w-8 stroke-[3]" />
                   </div>
                   <div className="flex-1 text-right pr-8 relative z-10">
-                    <div className="text-[9px] font-black uppercase tracking-widest text-primary italic">Total</div>
+                    <div className="text-[9px] font-black uppercase tracking-widest text-primary italic">Final Bill</div>
                     <div className="text-3xl font-black italic text-white tracking-tighter leading-none mt-0.5">₹{totalPayable.toFixed(0)}</div>
                   </div>
                   {isPlacing && <div className="absolute inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center z-20 animate-in fade-in duration-300"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
               </div>
               
               {(!isMinOrderMet && cart.length > 0) && (
-                <p className="text-center text-red-500 text-[10px] font-black uppercase animate-pulse">Min order ₹{minOrderValue} required to slide</p>
+                <p className="text-center text-red-500 text-[10px] font-black uppercase animate-pulse">Min order ₹{minOrderValue} required</p>
               )}
            </div>
         </div>
@@ -487,11 +444,10 @@ export default function CartPage() {
 
       <Dialog open={isAddressModalOpen} onOpenChange={setIsAddressModalOpen}>
         <DialogContent className="rounded-t-[3.5rem] p-8 border-none shadow-2xl bg-white bottom-0 top-auto translate-y-0 h-[580px] flex flex-col focus:outline-none">
-          {/* A11y fix: DialogTitle and DialogDescription */}
           <DialogHeader className="pb-4 shrink-0 text-center">
              <div className="h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-3"><MapPin className="h-8 w-8" /></div>
              <DialogTitle className="text-3xl font-black italic uppercase tracking-tighter text-gray-900">Drop Address</DialogTitle>
-             <DialogDescription className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Enter complete details for 10-min delivery</DialogDescription>
+             <DialogDescription className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Enter details for 10-min delivery</DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto no-scrollbar space-y-4">
               <div className="space-y-1">
@@ -503,8 +459,8 @@ export default function CartPage() {
                  <Input placeholder="10 DIGIT MOBILE" value={recipientForm.phone} onChange={e => setRecipientForm({...recipientForm, phone: e.target.value.replace(/\D/g,'').slice(0, 10)})} className="h-14 rounded-2xl bg-gray-50 border-none font-black text-xs" />
               </div>
               <div className="space-y-1">
-                 <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">House No / Street / Area</label>
-                 <textarea placeholder="COMPLETE ADDRESS" value={recipientForm.address} onChange={e => setRecipientForm({...recipientForm, address: e.target.value.toUpperCase()})} className="w-full h-28 p-4 rounded-2xl bg-gray-50 border-none font-bold text-xs uppercase focus-outline-none resize-none" />
+                 <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Full Delivery Address</label>
+                 <textarea placeholder="HOUSE NO / STREET / AREA" value={recipientForm.address} onChange={e => setRecipientForm({...recipientForm, address: e.target.value.toUpperCase()})} className="w-full h-28 p-4 rounded-2xl bg-gray-50 border-none font-bold text-xs uppercase focus-outline-none resize-none" />
               </div>
           </div>
           <button 
@@ -516,7 +472,7 @@ export default function CartPage() {
                 setIsAddressModalOpen(false); 
                 toast({ title: "Address Saved" });
               } else {
-                toast({ variant: "destructive", title: "Missing Info", description: "Complete all fields." });
+                toast({ variant: "destructive", title: "Missing Information" });
               }
             }} 
             className="w-full h-20 bg-[#0B0B0B] text-white rounded-[2rem] font-black uppercase italic shadow-xl text-xl transition-all active:scale-95 mt-4"

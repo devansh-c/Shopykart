@@ -41,8 +41,7 @@ const STATUS_FLOW = [
 ];
 
 /**
- * @fileOverview OrderManagement with Responsive Button Wrapping.
- * Preserves Admin UI button cutoff fix.
+ * @fileOverview OrderManagement with Responsive Button Wrapping for small screens.
  */
 export default function OrderManagement() {
   const firestore = useFirestore();
@@ -50,7 +49,6 @@ export default function OrderManagement() {
   const [isMounted, setIsMounted] = useState(false);
   const [isDownloading, setIsDownloading] = useState<string | null>(null);
   
-  // Note States
   const [isNoteOpen, setIsNoteOpen] = useState(false);
   const [noteOrderId, setNoteOrderId] = useState<string | null>(null);
   const [noteText, setNoteText] = useState('');
@@ -99,7 +97,7 @@ export default function OrderManagement() {
       setIsNoteOpen(false);
       setNoteText('');
       setNoteOrderId(null);
-      toast({ title: "Note Updated!", description: "Customer can now see this on their tracking page." });
+      toast({ title: "Note Updated!" });
     } catch (err) {
       toast({ variant: "destructive", title: "Save Failed" });
     } finally {
@@ -121,8 +119,6 @@ export default function OrderManagement() {
       receipt.style.color = '#000000';
       receipt.style.fontFamily = 'monospace';
       receipt.style.textTransform = 'uppercase';
-      
-      const orderDate = format(new Date(order.createdAt?.seconds * 1000 || Date.now()), 'dd MMM yyyy, hh:mm a');
       
       const itemsHtml = order.items?.map((item: any) => `
         <div style="margin-bottom: 12px; border-bottom: 1px dashed #eee; padding-bottom: 5px;">
@@ -164,26 +160,22 @@ export default function OrderManagement() {
       <div className="grid grid-cols-1 gap-6">
         {orders?.map((order: any) => (
           <div key={order.id} className="bg-white rounded-[2.5rem] p-6 border-2 border-border shadow-sm hover:shadow-xl transition-all relative overflow-hidden">
-            {/* RESPONSIVE HEADER: Fixed cutoff by using flex-wrap */}
             <div className="flex flex-wrap justify-between items-start mb-6 gap-4">
                <div className="flex items-center gap-4 min-w-0">
                   <div className="h-14 w-14 rounded-2xl bg-primary/5 flex items-center justify-center text-primary border-2 border-primary/10 shrink-0"><Package className="h-7 w-7" /></div>
                   <div className="min-w-0">
                     <h3 className="font-black text-xl italic uppercase tracking-tighter leading-none mb-1 truncate">Order #{order.customerOrderNumber}</h3>
-                    <div className="flex flex-wrap items-center gap-2">
-                       <Badge className="bg-primary text-white text-[8px] uppercase font-black px-2 py-0.5">{order.status}</Badge>
-                    </div>
+                    <Badge className="bg-primary text-white text-[8px] uppercase font-black px-2 py-0.5">{order.status}</Badge>
                   </div>
                </div>
                <div className="flex flex-wrap gap-2 sm:ml-auto">
                   <button 
                     onClick={() => { setNoteOrderId(order.id); setNoteText(order.adminNote || ''); setIsNoteOpen(true); }} 
                     className="h-10 w-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center active:scale-90 transition-all border border-amber-100"
-                    title="Add Update Note"
                   >
                     <StickyNote className="h-5 w-5" />
                   </button>
-                  <button onClick={() => generateReceipt(order)} disabled={isDownloading === order.id} title="Generate Receipt" className="h-10 w-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center active:scale-90 transition-all border border-blue-100">
+                  <button onClick={() => generateReceipt(order)} disabled={isDownloading === order.id} className="h-10 w-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center active:scale-90 transition-all border border-blue-100">
                     {isDownloading === order.id ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileText className="h-5 w-5" />}
                   </button>
                   <button onClick={() => window.open(`tel:${order.customerPhone}`)} className="h-10 w-10 bg-green-500 text-white rounded-xl flex items-center justify-center active:scale-90 transition-all shadow-lg shadow-green-100"><PhoneCall className="h-5 w-5" /></button>
@@ -214,11 +206,9 @@ export default function OrderManagement() {
                </div>
             </div>
 
-            <div className="flex gap-2">
-               <Button onClick={() => handleNextStatus(order.id, order.status)} disabled={['Delivered', 'Cancelled'].includes(order.status)} className="flex-1 h-14 bg-black hover:bg-primary text-white rounded-2xl font-black uppercase italic shadow-xl transition-all">
-                  NEXT STEP
-               </Button>
-            </div>
+            <Button onClick={() => handleNextStatus(order.id, order.status)} disabled={['Delivered', 'Cancelled'].includes(order.status)} className="w-full h-14 bg-black hover:bg-primary text-white rounded-2xl font-black uppercase italic shadow-xl transition-all">
+               NEXT STATUS
+            </Button>
           </div>
         ))}
       </div>
@@ -230,7 +220,7 @@ export default function OrderManagement() {
                   <StickyNote className="h-8 w-8" />
                </div>
                <DialogHeader>
-                  <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter">Broadcast Note</DialogTitle>
+                  <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter">Admin Note</DialogTitle>
                   <DialogDescription className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-relaxed">
                     Visible to customer on tracking page
                   </DialogDescription>
@@ -239,13 +229,13 @@ export default function OrderManagement() {
 
             <div className="space-y-6 mt-6">
                <Textarea 
-                 placeholder="e.g. RIDER ON THE WAY" 
+                 placeholder="E.G. RIDER ASSIGNED" 
                  value={noteText}
                  onChange={e => setNoteText(e.target.value.toUpperCase())}
                  className="min-h-[120px] rounded-[1.5rem] bg-gray-50 border-none font-black text-xs uppercase p-4"
                />
                <Button onClick={handleSaveNote} disabled={isSavingNote || !noteText.trim()} className="w-full h-16 bg-black hover:bg-amber-600 text-white rounded-[2rem] font-black uppercase italic shadow-xl transition-all">
-                 {isSavingNote ? <Loader2 className="h-6 w-6 animate-spin" /> : "PUBLISH TO CUSTOMER"}
+                 {isSavingNote ? <Loader2 className="h-6 w-6 animate-spin" /> : "PUBLISH NOTE"}
                </Button>
             </div>
          </DialogContent>

@@ -41,7 +41,6 @@ jobs:
           cd android
           
           # 1. PURGE PHANTOM MODULES (Fixes SelfResolvingDependency & ClassNotFound)
-          # These modules cause AAPT2 crashes if the folders are missing
           if [ -f "settings.gradle" ]; then
             echo "Deep cleaning settings.gradle..."
             sed -i "/:capacitor-cordova-android-plugins/d" settings.gradle

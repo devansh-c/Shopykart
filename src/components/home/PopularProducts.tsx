@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect, memo, useCallback } from "react"
@@ -191,7 +190,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     if (navigator.share) {
       navigator.share({ title: product.name, url }).catch(() => {});
     } else {
-      navigator.clipboard.writeText(url);
+      navigator.clipboard.writeText(url).catch(() => {});
       toast({ title: "Link Copied! 🔗" });
     }
   }, [toast]);

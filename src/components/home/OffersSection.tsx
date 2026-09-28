@@ -6,8 +6,7 @@ import { Crown, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 /**
- * @fileOverview OffersSection with Authentic-Only Data.
- * Mock coupons removed. Displays live deals from Firestore only.
+ * @fileOverview OffersSection with Clipboard error handling.
  */
 export default function OffersSection() {
   const { toast } = useToast();
@@ -19,10 +18,15 @@ export default function OffersSection() {
 
   const { data: dbCoupons } = useCollection<any>(couponsQuery, 'home_coupons_v4_instant');
 
-  const handleCopy = (code: string) => {
+  const handleCopy = async (code: string) => {
     if (typeof window !== 'undefined') {
-      navigator.clipboard.writeText(code);
-      toast({ title: "Coupon Copied! ✨", description: `${code} is ready!` });
+      try {
+        await navigator.clipboard.writeText(code);
+        toast({ title: "Coupon Copied! ✨", description: `${code} is ready!` });
+      } catch (err) {
+        // Fallback for document not focused or permission denied
+        toast({ title: "Copy Failed", description: `Code is: ${code}. Please enter manually.` });
+      }
     }
   };
 

@@ -4,7 +4,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import HomeClient from '@/components/home/HomeClient';
 import { useFirestore } from '@/firebase';
-import { collection, getDocs, query, limit, doc, getDoc, orderBy } from 'firebase/firestore';
+import { collection, getDocs, query, limit, doc, getDoc, orderBy, where } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 import Loading from './loading';
 
@@ -12,8 +12,7 @@ import Loading from './loading';
 let globalDataCache: any = null;
 
 /**
- * @fileOverview Multi-App Router for APK Builds with SEO Structured Data.
- * Optimized for Next.js 15 compilation stability and crawler accessibility.
+ * @fileOverview Multi-App Router with JSON-LD Structured Data for Advanced SEO.
  */
 function ShopyKartAppContent() {
   const router = useRouter();
@@ -47,7 +46,7 @@ function ShopyKartAppContent() {
   async function fetchData() {
     if (!firestore) return;
     try {
-      // Parallel fetch optimized for crawler speed (Priority 1 content first)
+      // Parallel fetch optimized for crawler speed
       const [bannersSnap, categoriesSnap, announcementSnap, vendorsSnap, productsSnap] = await Promise.all([
         getDocs(query(collection(firestore, 'banners'), limit(10))).catch(() => ({ docs: [] })),
         getDocs(query(collection(firestore, 'categories'), orderBy('name', 'asc'), limit(25))).catch(() => ({ docs: [] })),
@@ -78,7 +77,7 @@ function ShopyKartAppContent() {
     }
   }
 
-  // SEO: Structured Data (JSON-LD) for better Google Rich Results
+  // SEO: Structured Data (JSON-LD) for Google Rich Results
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "DeliveryService",
