@@ -1,4 +1,3 @@
-
 'use client';
 
 import Script from 'next/script';
@@ -7,28 +6,24 @@ import { usePathname } from 'next/navigation';
 
 /**
  * @fileOverview Tawk.to visibility control.
- * Optimized for Next.js 15 to prevent preview loops and hydration errors.
+ * Hydration safe: Script is always present in the tree, visibility logic runs after mount.
  */
 export function TawkChat() {
-  const [isClient, setIsClient] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
   const [isTawkReady, setIsTawkReady] = useState(false);
   const lastStateRef = useRef<string | null>(null);
 
   useEffect(() => {
-    setIsClient(true);
-    
+    setMounted(true);
     (window as any).onTawkLoadSignal = () => {
       setIsTawkReady(true);
     };
-
-    return () => {
-      delete (window as any).onTawkLoadSignal;
-    };
+    return () => { delete (window as any).onTawkLoadSignal; };
   }, []);
 
   useEffect(() => {
-    if (!isClient || !isTawkReady || typeof window === 'undefined') return;
+    if (!mounted || !isTawkReady || typeof window === 'undefined') return;
 
     const tawk = (window as any).Tawk_API;
     if (!tawk || typeof tawk.show !== 'function' || typeof tawk.hide !== 'function') return;
@@ -48,21 +43,16 @@ export function TawkChat() {
     const newState = shouldShow ? 'show' : 'hide';
 
     if (lastStateRef.current !== newState) {
-      // Small delay to ensure script context is ready
       const timer = setTimeout(() => {
         try {
           if (shouldShow) tawk.show();
           else tawk.hide();
           lastStateRef.current = newState;
-        } catch (e) {
-          console.debug("Tawk action skip");
-        }
+        } catch (e) {}
       }, 500); 
       return () => clearTimeout(timer);
     }
-  }, [pathname, isClient, isTawkReady]);
-
-  if (!isClient) return null;
+  }, [pathname, mounted, isTawkReady]);
 
   return (
     <Script id="tawk-setup" strategy="afterInteractive">
