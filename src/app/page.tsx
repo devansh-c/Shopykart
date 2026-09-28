@@ -5,7 +5,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import HomeClient from '@/components/home/HomeClient';
 import { useFirestore } from '@/firebase';
-import { collection, getDocs, query, limit, doc, getDoc, orderBy, where } from 'firebase/firestore';
+import { collection, getDocs, query, limit, doc, getDoc, orderBy } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 import Loading from './loading';
 
