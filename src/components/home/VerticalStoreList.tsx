@@ -1,19 +1,18 @@
-
 'use client';
 
 import React, { useMemo, useState, useEffect, memo } from 'react';
-import { Search, MapPin, Store, Star, Clock, ChevronRight, Loader2, Award, Timer } from 'lucide-react';
+import { MapPin, Store, Star, Loader2, Award, Timer } from 'lucide-react';
 import { cn, slugify } from '@/lib/utils';
 import Image from 'next/image';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, limit } from 'firebase/firestore';
+import { collection } from 'firebase/firestore';
 import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 import { Badge } from '@/components/ui/badge';
 import { useRouter } from 'next/navigation';
 
 /**
- * @fileOverview VerticalStoreList - Zomato-Style Premium Listing.
- * Optimized for rapid scanning and makkhan-speed data loading.
+ * @fileOverview Optimized VerticalStoreList - Instant Zone Recovery.
+ * Eliminates the 4-5s delay by initializing state from storage before the first render cycle.
  */
 export const VerticalStoreList = memo(({ 
   searchQuery = '', 
@@ -26,24 +25,30 @@ export const VerticalStoreList = memo(({
 }) => {
   const router = useRouter();
   const firestore = useFirestore();
-  const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
-  const [currentTimeMins, setCurrentTimeMins] = useState<number | null>(null);
+
+  // 1. INSTANT ZONE RECOVERY: Initialize state immediately from storage to avoid useEffect delay
+  const [activeZoneId, setActiveZoneId] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('active_zone_id');
+    return null;
+  });
+
+  const [currentTimeMins, setCurrentTimeMins] = useState<number | null>(() => {
+    if (typeof window !== 'undefined') {
+      const now = new Date();
+      return now.getHours() * 60 + now.getMinutes();
+    }
+    return null;
+  });
 
   useEffect(() => {
     const updateZone = () => {
-      if (typeof window !== 'undefined') {
-        setActiveZoneId(localStorage.getItem('active_zone_id'));
-      }
+      setActiveZoneId(localStorage.getItem('active_zone_id'));
     };
-    updateZone();
     window.addEventListener('user-address-updated', updateZone);
-
-    const syncTime = () => {
+    const interval = setInterval(() => {
       const now = new Date();
       setCurrentTimeMins(now.getHours() * 60 + now.getMinutes());
-    };
-    syncTime();
-    const interval = setInterval(syncTime, 60000);
+    }, 60000);
 
     return () => {
       window.removeEventListener('user-address-updated', updateZone);
@@ -56,9 +61,10 @@ export const VerticalStoreList = memo(({
     return collection(firestore, 'vendors');
   }, [firestore]);
 
-  const { data: dbVendors, loading } = useCollection<any>(vendorsQuery, 'home_vertical_stores_v3', initialData);
+  const { data: dbVendors, loading } = useCollection<any>(vendorsQuery, 'home_vertical_stores_v4', initialData);
 
   const filteredVendors = useMemo(() => {
+    // Use cache or initial data immediately
     const list = (dbVendors && dbVendors.length > 0) ? dbVendors : initialData;
     if (!list || list.length === 0) return [];
     
@@ -66,14 +72,14 @@ export const VerticalStoreList = memo(({
     const currentMode = activeMode.toLowerCase();
 
     return list.filter(v => {
-      // 1. Zone Matching: Show if store is Global, Matches Zone, or has NO zone set (Prototype safety)
+      // Zone Filtering
       if (activeZoneId) {
         if (v.zoneId && v.zoneId !== activeZoneId && v.zoneId !== 'global') {
           return false;
         }
       }
 
-      // 2. Mode Filter (Food/Medical/Beauty) with Aliases
+      // Category / Service Mode Check
       const storeCat = (v.category || 'Food').toLowerCase();
       const isFoodRequest = currentMode === 'food';
       const isStoreFood = storeCat === 'food' || storeCat === 'restaurant';
@@ -84,7 +90,6 @@ export const VerticalStoreList = memo(({
         if (storeCat !== currentMode) return false;
       }
 
-      // 3. Search Matching
       const matchesSearch = !searchLower || 
         v.storeName?.toLowerCase().includes(searchLower) || 
         v.category?.toLowerCase().includes(searchLower);
@@ -103,6 +108,9 @@ export const VerticalStoreList = memo(({
     });
   }, [dbVendors, initialData, activeZoneId, searchQuery, activeMode, currentTimeMins]);
 
+  // Show data if we have it (from cache), even if still syncing (loading=true)
+  const showSkeletons = loading && (!dbVendors || dbVendors.length === 0);
+
   return (
     <div className="px-4 py-8 bg-white min-h-[400px] content-visibility-auto">
       <div className="flex items-center justify-between mb-8 px-2">
@@ -115,8 +123,8 @@ export const VerticalStoreList = memo(({
       </div>
 
       <div className="space-y-10">
-        {loading && !dbVendors ? (
-          <div className="space-y-8">
+        {showSkeletons ? (
+          <div className="space-y-8 animate-in fade-in duration-300">
             {[1, 2, 3].map(i => (
               <div key={i} className="space-y-4">
                 <div className="h-56 w-full bg-gray-50 rounded-[2.5rem] animate-pulse" />
@@ -144,10 +152,8 @@ export const VerticalStoreList = memo(({
                   isOffline && "opacity-75 grayscale-[0.3]"
                 )}
               >
-                {/* Image Container */}
                 <div className="relative w-full aspect-[18/9] rounded-[2.5rem] overflow-hidden shadow-lg border border-black/[0.03]">
                   <Image src={displayImage} alt={store.storeName} fill className={cn("object-cover group-hover:scale-105 transition-transform duration-1000", isOffline && "grayscale")} unoptimized />
-                  
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10" />
 
                   {isOffline && (
@@ -174,7 +180,6 @@ export const VerticalStoreList = memo(({
                   )}
                 </div>
 
-                {/* Content section */}
                 <div className="pt-5 px-3">
                   <div className="flex justify-between items-start">
                     <div className="flex-1 min-w-0 pr-4">

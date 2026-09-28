@@ -1,9 +1,8 @@
-
 "use client"
 
-import { useState, useCallback, Suspense } from 'react';
+import { useState, useCallback } from 'react';
 import { LocationHeader } from '@/components/home/LocationHeader';
-import { ShoppingBag, HeartPulse, Sparkles, ArrowLeft, Loader2 } from 'lucide-react';
+import { ShoppingBag, HeartPulse, Sparkles, ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 
@@ -13,25 +12,11 @@ import { VerticalStoreList } from '@/components/home/VerticalStoreList';
 import OffersSection from '@/components/home/OffersSection';
 import AnnouncementBanner from '@/components/home/AnnouncementBanner';
 
-interface HomeClientProps {
-  initialBanners?: any[];
-  initialCategories?: any[];
-  initialAnnouncement?: any;
-  initialStores?: any[];
-  initialProducts?: any[];
-}
-
 /**
- * @fileOverview Home Page Orchestrator - Fixed Sequential Layout.
- * Order: Search -> Main Banner -> Announcement -> Coupons -> Vertical Stores.
- * Caching: rely on component-level localStorage for 0ms data paint.
+ * @fileOverview Home Page Orchestrator.
+ * Removed heavy Suspense to prevent "Initializing..." blocking.
  */
-function HomeClientContent({ 
-  initialBanners, 
-  initialCategories, 
-  initialAnnouncement, 
-  initialStores, 
-}: HomeClientProps) {
+export default function HomeClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -71,7 +56,7 @@ function HomeClientContent({
 
   return (
     <div className="min-h-screen bg-white transform-gpu content-visibility-auto">
-      {/* 0. SEARCH & LOCATION */}
+      {/* HEADER SECTION */}
       {activeMode !== 'Medical' && activeMode !== 'Beauty' && (
         <LocationHeader 
           searchValue={searchQuery} 
@@ -107,11 +92,9 @@ function HomeClientContent({
               activeCategory={activeCategory} 
               onCategoryChange={handleCategoryChange} 
               serviceMode={activeMode}
-              initialData={initialCategories}
             />
             <VerticalStoreList 
               searchQuery={searchQuery}
-              initialData={initialStores}
               activeMode={activeMode}
             />
           </div>
@@ -119,13 +102,8 @@ function HomeClientContent({
           <div className="animate-in fade-in duration-300">
             {!searchQuery && activeCategory === 'all' && (
               <div className="pt-2">
-                {/* 1. MAIN BANNER SLIDER */}
-                <OfferSlider initialData={initialBanners} />
-                
-                {/* 2. ANNOUNCEMENT */}
-                <AnnouncementBanner initialData={initialAnnouncement} />
-                
-                {/* 3. COUPONS SECTION */}
+                <OfferSlider />
+                <AnnouncementBanner />
                 <OffersSection />
               </div>
             )}
@@ -136,14 +114,11 @@ function HomeClientContent({
                   activeCategory={activeCategory} 
                   onCategoryChange={handleCategoryChange} 
                   serviceMode={activeMode}
-                  initialData={initialCategories}
                 />
               )}
               
-              {/* 4. VERTICAL STORES FEED */}
               <VerticalStoreList 
                 searchQuery={searchQuery}
-                initialData={initialStores}
                 activeMode={activeMode}
               />
             </div>
@@ -151,18 +126,5 @@ function HomeClientContent({
         )}
       </main>
     </div>
-  );
-}
-
-export default function HomeClient(props: HomeClientProps) {
-  return (
-    <Suspense fallback={
-      <div className="h-screen bg-white flex flex-col items-center justify-center gap-4">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Initializing Network...</p>
-      </div>
-    }>
-      <HomeClientContent {...props} />
-    </Suspense>
   );
 }

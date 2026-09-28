@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import HomeClient from '@/components/home/HomeClient';
 import { Loader2 } from 'lucide-react';
@@ -9,9 +8,9 @@ import Loading from './loading';
 
 /**
  * @fileOverview Optimized Home Router.
- * Now passes empty initial props to ensure children initiate their own smart fetching.
+ * Uses persistent appType detection to avoid hydration delays.
  */
-function ShopyKartAppContent() {
+export default function ShopyKartApp() {
   const router = useRouter();
   const [appType, setAppType] = useState<'customer' | 'admin' | 'biz' | 'tow' | null>(null);
 
@@ -34,7 +33,7 @@ function ShopyKartAppContent() {
     }
   }, [router]);
 
-  // SEO: Structured Data (JSON-LD) for Google Rich Results
+  // SEO: Structured Data
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "DeliveryService",
@@ -65,20 +64,7 @@ function ShopyKartAppContent() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
-      {/* EXPLICIT EMPTY PROPS TO TRIGGER INTERNAL COMPONENT FETCHING */}
-      <HomeClient 
-        initialBanners={[]} 
-        initialCategories={[]} 
-        initialStores={[]} 
-      />
+      <HomeClient />
     </>
-  );
-}
-
-export default function ShopyKartApp() {
-  return (
-    <Suspense fallback={<Loading />}>
-      <ShopyKartAppContent />
-    </Suspense>
   );
 }
