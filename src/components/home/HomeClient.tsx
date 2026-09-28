@@ -8,11 +8,14 @@ import { cn } from '@/lib/utils';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 
 import { OfferSlider } from '@/components/home/OfferSlider';
+import { QuickActionGrid } from '@/components/home/QuickActionGrid';
 import { CategoryList } from '@/components/home/CategoryList';
 import { StoreSection } from '@/components/home/StoreSection';
 import { VerticalStoreList } from '@/components/home/VerticalStoreList';
 import OffersSection from '@/components/home/OffersSection';
 import AnnouncementBanner from '@/components/home/AnnouncementBanner';
+import { SmartBasketAI } from '@/components/home/SmartBasketAI';
+import { IceCreamBanner } from '@/components/home/IceCreamBanner';
 
 interface HomeClientProps {
   initialBanners?: any[];
@@ -23,7 +26,7 @@ interface HomeClientProps {
 }
 
 /**
- * @fileOverview Inner content overhauled to prioritize Stores over Products on the main feed.
+ * @fileOverview Multi-App Router overhauled to show Banners, Coupons, and Zomato-style Vertical Stores.
  */
 function HomeClientContent({ 
   initialBanners, 
@@ -107,7 +110,6 @@ function HomeClientContent({
               serviceMode={activeMode}
               initialData={initialCategories}
             />
-            {/* Main store feed even for medical/beauty */}
             <VerticalStoreList 
               searchQuery={searchQuery}
               initialData={initialStores}
@@ -119,15 +121,21 @@ function HomeClientContent({
             {!searchQuery && activeCategory === 'all' && (
               <>
                 <OfferSlider initialData={initialBanners} />
-                <StoreSection activeMode={activeMode} initialData={initialStores} />
+                <QuickActionGrid />
                 
                 {activeMode === 'Food' && (
-                  <AnnouncementBanner initialData={initialAnnouncement} />
+                  <>
+                    <AnnouncementBanner initialData={initialAnnouncement} />
+                    <SmartBasketAI />
+                    <IceCreamBanner />
+                  </>
                 )}
                 
                 <OffersSection />
+                <StoreSection activeMode={activeMode} initialData={initialStores} />
               </>
             )}
+            
             <div className="bg-white">
               {!searchQuery && (
                 <CategoryList 
