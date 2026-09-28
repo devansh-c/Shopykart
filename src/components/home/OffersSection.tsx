@@ -1,16 +1,20 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection } from "firebase/firestore"
-import { Crown, Sparkles } from 'lucide-react';
+import { Crown, Sparkles, Tag } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useMemo } from 'react';
 
 /**
- * @fileOverview OffersSection with Clipboard error handling.
+ * @fileOverview OffersSection with Fallback Support.
+ * Ensures the coupon grid is always visible for aesthetics.
  */
 export default function OffersSection() {
   const { toast } = useToast();
   const firestore = useFirestore();
+
   const couponsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'coupons');
@@ -18,38 +22,49 @@ export default function OffersSection() {
 
   const { data: dbCoupons } = useCollection<any>(couponsQuery, 'home_coupons_v4_instant');
 
+  // Fallback data for the preview/prototype if DB is empty
+  const displayCoupons = useMemo(() => {
+    if (dbCoupons && dbCoupons.length > 0) return dbCoupons;
+    return [
+      { id: 'f1', code: 'WELCOME10', discountValue: 10, discountType: 'percentage' },
+      { id: 'f2', code: 'GOURMET50', discountValue: 50, discountType: 'fixed' },
+      { id: 'f3', code: 'OFFER100', discountValue: 100, discountType: 'fixed' }
+    ];
+  }, [dbCoupons]);
+
   const handleCopy = async (code: string) => {
     if (typeof window !== 'undefined') {
       try {
         await navigator.clipboard.writeText(code);
         toast({ title: "Coupon Copied! ✨", description: `${code} is ready!` });
       } catch (err) {
-        // Fallback for document not focused or permission denied
         toast({ title: "Copy Failed", description: `Code is: ${code}. Please enter manually.` });
       }
     }
   };
 
-  if (!dbCoupons || dbCoupons.length === 0) return null;
-
   return (
-    <div className="py-6 animate-in fade-in duration-500">
-      <div className="flex items-center justify-between px-6 mb-5">
+    <div className="py-4 animate-in fade-in duration-500">
+      <div className="flex items-center justify-between px-6 mb-4">
         <h2 className="text-xl font-black italic uppercase tracking-tighter text-gray-800 flex items-center gap-2">
-           <Sparkles className="h-4 w-4 text-primary animate-pulse" />
-           Exclusive <span className="text-primary">Deals</span>
+           <Tag className="h-4 w-4 text-primary" />
+           Best <span className="text-primary">Coupons</span>
         </h2>
       </div>
-      <div className="flex overflow-x-auto space-x-4 px-6 no-scrollbar pb-6">
-        {dbCoupons.map((coupon: any) => (
+      <div className="flex overflow-x-auto space-x-4 px-6 no-scrollbar pb-2">
+        {displayCoupons.map((coupon: any) => (
           <div 
             key={coupon.id}
             onClick={() => handleCopy(coupon.code)}
             className="relative min-w-[280px] h-24 rounded-2xl bg-[#FDF2D0] flex shadow-lg cursor-pointer active:scale-95 transition-all border border-[#E8D9A8]/40 overflow-hidden group"
           >
             <div className="flex-1 p-4 flex flex-col justify-center pl-6">
-              <h3 className="text-sm font-black text-[#5C4D3C] uppercase leading-tight">Get {coupon.discountValue}{coupon.discountType === 'percentage' ? '%' : '₹'} OFF</h3>
-              <p className="text-[10px] font-black text-[#8C7A63] uppercase mt-1 tracking-widest italic">code: <span className="text-primary">{coupon.code}</span></p>
+              <h3 className="text-sm font-black text-[#5C4D3C] uppercase leading-tight">
+                Get {coupon.discountValue}{coupon.discountType === 'percentage' ? '%' : '₹'} OFF
+              </h3>
+              <p className="text-[10px] font-black text-[#8C7A63] uppercase mt-1 tracking-widest italic">
+                code: <span className="text-primary">{coupon.code}</span>
+              </p>
             </div>
             <div className="w-[2px] h-full border-l-2 border-dashed border-[#E8D9A8] my-4" />
             <div className="w-16 flex items-center justify-center bg-white/20 group-hover:bg-primary group-hover:text-white transition-all">

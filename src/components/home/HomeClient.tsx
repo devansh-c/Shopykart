@@ -26,7 +26,8 @@ interface HomeClientProps {
 }
 
 /**
- * @fileOverview Multi-App Router overhauled to show Banners, Coupons, and Zomato-style Vertical Stores.
+ * @fileOverview Multi-App Router overhauled to show Grids immediately below search bar.
+ * Priority: Header -> Quick Actions -> Coupons -> Slider -> Stores.
  */
 function HomeClientContent({ 
   initialBanners, 
@@ -119,9 +120,15 @@ function HomeClientContent({
         ) : (
           <div className="animate-in fade-in duration-300">
             {!searchQuery && activeCategory === 'all' && (
-              <>
-                <OfferSlider initialData={initialBanners} />
+              <div className="pt-2">
+                {/* 1. FIRST PRIORITY: QUICK ACTION GRID */}
                 <QuickActionGrid />
+                
+                {/* 2. SECOND PRIORITY: OFFERS/COUPONS SECTION */}
+                <OffersSection />
+                
+                {/* 3. THIRD PRIORITY: BANNER SLIDER */}
+                <OfferSlider initialData={initialBanners} />
                 
                 {activeMode === 'Food' && (
                   <>
@@ -131,9 +138,8 @@ function HomeClientContent({
                   </>
                 )}
                 
-                <OffersSection />
                 <StoreSection activeMode={activeMode} initialData={initialStores} />
-              </>
+              </div>
             )}
             
             <div className="bg-white">
