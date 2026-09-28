@@ -11,10 +11,11 @@ import { CategoryList } from '@/components/home/CategoryList';
 import { VerticalStoreList } from '@/components/home/VerticalStoreList';
 import OffersSection from '@/components/home/OffersSection';
 import AnnouncementBanner from '@/components/home/AnnouncementBanner';
+import { Under49Products } from '@/components/home/Under49Products';
 
 /**
  * @fileOverview Home Page Orchestrator.
- * Removed heavy Suspense to prevent "Initializing..." blocking.
+ * Layout: Slider -> Announcement -> Under 49 -> Coupons -> Stores list.
  */
 export default function HomeClient() {
   const router = useRouter();
@@ -55,7 +56,7 @@ export default function HomeClient() {
   };
 
   return (
-    <div className="min-h-screen bg-white transform-gpu content-visibility-auto">
+    <div className="min-h-screen bg-white transform-gpu">
       {/* HEADER SECTION */}
       {activeMode !== 'Medical' && activeMode !== 'Beauty' && (
         <LocationHeader 
@@ -104,6 +105,7 @@ export default function HomeClient() {
               <div className="pt-2">
                 <OfferSlider />
                 <AnnouncementBanner />
+                <Under49Products />
                 <OffersSection />
               </div>
             )}
