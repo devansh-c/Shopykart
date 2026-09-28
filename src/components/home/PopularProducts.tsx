@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect, memo, useCallback } from "react"
@@ -7,7 +6,7 @@ import { useCart } from "@/components/cart/CartProvider"
 import { cn, slugify } from "@/lib/utils"
 import Image from "next/image"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
-import { collection, query, limit, orderBy } from "firebase/firestore"
+import { collection, query, limit, orderBy, where } from "firebase/firestore"
 import { ProductQuickView } from "@/components/product/ProductQuickView"
 import { useToast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
@@ -112,10 +111,6 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
   const [currentTimeMinutes, setCurrentTimeMinutes] = useState<number | null>(null);
   
-  // LAZY FETCH STATE: 20-by-20 logic
-  const [fetchLimit, setFetchLimit] = useState(20);
-  const [isScrollingMore, setIsScrollingMore] = useState(false);
-
   useEffect(() => {
     const updateZone = () => setActiveZoneId(localStorage.getItem('active_zone_id'));
     updateZone(); 
@@ -124,36 +119,19 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     syncTime(); 
     const interval = setInterval(syncTime, 60000);
 
-    const handleScroll = () => { 
-      if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 500 && !isScrollingMore) {
-        setIsScrollingMore(true);
-      }
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    
     return () => { 
       window.removeEventListener('user-address-updated', updateZone); 
-      window.removeEventListener('scroll', handleScroll); 
       clearInterval(interval); 
     };
-  }, [isScrollingMore]);
+  }, []);
 
-  useEffect(() => {
-    if (isScrollingMore) {
-      const timer = setTimeout(() => {
-        setFetchLimit(prev => prev + 20); // Increment fetch limit by 20
-        setIsScrollingMore(false);
-      }, 800);
-      return () => clearTimeout(timer);
-    }
-  }, [isScrollingMore]);
-
+  // INSTANT FETCH: Limits removed for immediate full catalog access
   const productsQuery = useMemoFirebase(() => 
-    firestore ? query(collection(firestore, 'products'), limit(fetchLimit)) : null, 
-    [firestore, fetchLimit]
+    firestore ? query(collection(firestore, 'products'), limit(500)) : null, 
+    [firestore]
   );
   
-  const { data: dbProducts, loading: queryLoading } = useCollection<any>(productsQuery, `home_products_v5_${fetchLimit}`);
+  const { data: dbProducts, loading: queryLoading } = useCollection<any>(productsQuery, 'home_products_full_v1');
   const vendorsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'vendors') : null, [firestore]);
   const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v5_stable', initialStores);
 
@@ -202,19 +180,28 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
           {productsToDisplay.length} ITEMS
         </Badge>
       </div>
-      <div className="grid grid-cols-2 gap-4">
-        {productsToDisplay.map((product) => {
-          const quantity = cart.find(c => String(c.id) === String(product.id) && !c.selectedOption)?.quantity || 0;
-          const v = (vendors && vendors.length > 0 ? vendors : initialStores)?.find(s => String(s.id) === String(product.vendorId));
-          const isOffline = v ? (v.isOnline === false || !isStoreScheduleOpen(v, currentTimeMinutes)) : false;
-          return <ProductItem key={product.id} product={{...product, restaurantName: v?.storeName}} quantity={quantity} isOffline={isOffline} onShare={handleShare} />;
-        })}
-      </div>
-
-      {isScrollingMore && (
-        <div className="flex flex-col items-center justify-center py-10 gap-3 opacity-60 animate-in fade-in duration-700">
-           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-           <p className="text-[10px] font-black uppercase tracking-[0.3em] italic text-primary">Loading more flavours...</p>
+      
+      {queryLoading && !dbProducts ? (
+        <div className="grid grid-cols-2 gap-4 animate-in fade-in duration-500">
+           {[1, 2, 3, 4].map(i => (
+             <div key={i} className="h-48 w-full bg-gray-50 rounded-[2.5rem] border border-gray-100 animate-pulse" />
+           ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-4">
+          {productsToDisplay.map((product) => {
+            const quantity = cart.find(c => String(c.id) === String(product.id) && !c.selectedOption)?.quantity || 0;
+            const v = (vendors && vendors.length > 0 ? vendors : initialStores)?.find(s => String(s.id) === String(product.vendorId));
+            const isOffline = v ? (v.isOnline === false || !isStoreScheduleOpen(v, currentTimeMinutes)) : false;
+            return <ProductItem key={product.id} product={{...product, restaurantName: v?.storeName}} quantity={quantity} isOffline={isOffline} onShare={handleShare} />;
+          })}
+        </div>
+      )}
+      
+      {!queryLoading && productsToDisplay.length === 0 && (
+        <div className="text-center py-20 opacity-30 flex flex-col items-center">
+           <Store className="h-16 w-16 mb-4" />
+           <p className="font-black italic uppercase text-xs">No items in this zone</p>
         </div>
       )}
     </div>
