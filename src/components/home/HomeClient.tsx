@@ -12,7 +12,6 @@ import { CategoryList } from '@/components/home/CategoryList';
 import { VerticalStoreList } from '@/components/home/VerticalStoreList';
 import OffersSection from '@/components/home/OffersSection';
 import AnnouncementBanner from '@/components/home/AnnouncementBanner';
-import { IceCreamBanner } from '@/components/home/IceCreamBanner';
 
 interface HomeClientProps {
   initialBanners?: any[];
@@ -25,6 +24,7 @@ interface HomeClientProps {
 /**
  * @fileOverview Home Page Orchestrator - Fixed Sequential Layout.
  * Order: Search -> Main Banner -> Announcement -> Coupons -> Vertical Stores.
+ * Caching: rely on component-level localStorage for 0ms data paint.
  */
 function HomeClientContent({ 
   initialBanners, 
@@ -127,10 +127,6 @@ function HomeClientContent({
                 
                 {/* 3. COUPONS SECTION */}
                 <OffersSection />
-                
-                {activeMode === 'Food' && (
-                  <IceCreamBanner />
-                )}
               </div>
             )}
             

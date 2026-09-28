@@ -4,24 +4,16 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import HomeClient from '@/components/home/HomeClient';
-import { useFirestore } from '@/firebase';
-import { collection, getDocs, query, limit, doc, getDoc, orderBy } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 import Loading from './loading';
 
-// Global cache to prevent "Loading..." flash during back navigation
-let globalDataCache: any = null;
-
 /**
- * @fileOverview Multi-App Router Optimized for Store-First Experience.
- * Fetches only Stores and Categories on home for maximum speed.
+ * @fileOverview Optimized Home Router.
+ * Removed blocking fetchData to allow components to render instantly from localStorage cache.
  */
 function ShopyKartAppContent() {
   const router = useRouter();
-  const firestore = useFirestore();
-  const [initialData, setInitialData] = useState<any>(globalDataCache);
-  const [loading, setLoading] = useState(!globalDataCache);
-  const [appType, setAppType] = useState<'customer' | 'admin' | 'biz' | 'tow'>('customer');
+  const [appType, setAppType] = useState<'customer' | 'admin' | 'biz' | 'tow' | null>(null);
 
   useEffect(() => {
     const isAdmin = process.env.NEXT_PUBLIC_ADMIN_APP === 'true';
@@ -39,45 +31,8 @@ function ShopyKartAppContent() {
       router.replace('/delivery/login');
     } else {
       setAppType('customer');
-      if (!globalDataCache) {
-        fetchData();
-      }
     }
   }, [router]);
-
-  async function fetchData() {
-    if (!firestore) return;
-    try {
-      // Parallel fetch optimized for store-centric UI
-      // Fetching All Vendors and Categories only. Products fetched per-store later.
-      const [bannersSnap, categoriesSnap, announcementSnap, vendorsSnap] = await Promise.all([
-        getDocs(query(collection(firestore, 'banners'), limit(20))).catch(() => ({ docs: [] })),
-        getDocs(query(collection(firestore, 'categories'), orderBy('name', 'asc'), limit(50))).catch(() => ({ docs: [] })),
-        getDoc(doc(firestore, 'app_settings', 'announcement')).catch(() => null),
-        getDocs(query(collection(firestore, 'vendors'), limit(100))).catch(() => ({ docs: [] }))
-      ]);
-
-      const sanitize = (docs: any[]) => (docs || []).map(d => ({ 
-        id: d.id, 
-        ...d.data()
-      }));
-
-      const data = {
-        banners: sanitize(bannersSnap.docs),
-        categories: sanitize(categoriesSnap.docs),
-        announcement: (announcementSnap && announcementSnap.exists()) ? { id: announcementSnap.id, ...announcementSnap.data() } : null,
-        vendors: sanitize(vendorsSnap.docs),
-        products: [] // Home page no longer fetches bulk products for speed
-      };
-
-      globalDataCache = data;
-      setInitialData(data);
-    } catch (e) {
-      setInitialData({ banners: [], categories: [], announcement: null, vendors: [], products: [] });
-    } finally {
-      setLoading(false);
-    }
-  }
 
   // SEO: Structured Data (JSON-LD) for Google Rich Results
   const structuredData = {
@@ -93,9 +48,7 @@ function ShopyKartAppContent() {
     ]
   };
 
-  if (appType === 'customer' && (loading || !initialData)) {
-    return <Loading />;
-  }
+  if (!appType) return <Loading />;
 
   if (appType !== 'customer') {
     return (
@@ -112,13 +65,7 @@ function ShopyKartAppContent() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
-      <HomeClient 
-        initialBanners={initialData.banners}
-        initialCategories={initialData.categories}
-        initialAnnouncement={initialData.announcement}
-        initialStores={initialData.vendors}
-        initialProducts={initialData.products}
-      />
+      <HomeClient />
     </>
   );
 }
