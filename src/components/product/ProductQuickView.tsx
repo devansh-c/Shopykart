@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -32,6 +31,10 @@ interface ProductQuickViewProps {
   vendorScheduleOpen?: boolean;
 }
 
+/**
+ * @fileOverview ProductQuickView with Industrial-Grade Bottom Locking and A11y.
+ * Fixes: Next.js 15 DialogTitle error and ADD button visibility.
+ */
 export function ProductQuickView({ product, children, isMedical, vendorScheduleOpen }: ProductQuickViewProps) {
   const { addToCart } = useCart();
   const { toast } = useToast();
@@ -88,6 +91,7 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="rounded-t-[3rem] p-0 overflow-hidden border-none shadow-2xl z-[2000001] bottom-0 top-auto translate-y-0 focus:outline-none h-[88vh] max-w-lg flex flex-col bg-[#0B0B0B] sm:h-[80vh] sm:rounded-[3rem] sm:bottom-1/2 sm:translate-y-1/2">
         
+        {/* ACCESSIBILITY: DialogTitle and DialogDescription added to prevent Next.js 15 Console Error */}
         <div className="p-6 pb-4 shrink-0 border-b border-white/5 relative z-10 text-white">
           <DialogHeader>
             <DialogTitle className="font-black italic uppercase text-center text-lg tracking-tighter truncate px-10">
@@ -141,7 +145,7 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
               </div>
             )}
 
-            <div className="space-y-2 pb-10">
+            <div className="space-y-2 pb-20">
               <label className="text-[9px] font-black uppercase text-gray-500 ml-1">Special Note</label>
               <Textarea 
                 disabled={isOffline} 
@@ -154,6 +158,7 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
           </div>
         </div>
 
+        {/* INDUSTRIAL BOTTOM LOCKING: Footer is shrink-0 and has extra padding for mobile browsers */}
         <div className="p-6 bg-[#0B0B0B] border-t border-white/10 pb-12 shrink-0 shadow-[0_-20px_50px_rgba(0,0,0,0.8)] relative z-50">
            <div className="flex items-center gap-3 max-w-md mx-auto">
               <div className="flex items-center bg-white/5 rounded-xl h-14 px-2 border border-white/10 shrink-0">

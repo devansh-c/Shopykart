@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -62,7 +61,7 @@
     -webkit-overflow-scrolling: touch !important; 
   }
 
-  /* Performance Optimizations */
+  /* PERFORMANCE: content-visibility allows faster browser rendering for long pages */
   .content-visibility-auto {
     content-visibility: auto;
     contain-intrinsic-size: 1px 180px;

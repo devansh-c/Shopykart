@@ -1,12 +1,15 @@
-
 import { MetadataRoute } from 'next';
 
 export const dynamic = 'force-static';
 
+/**
+ * @fileOverview Highly optimized Sitemap for Shopykart.
+ * Includes explicit priorities for critical routes and dynamic path patterns.
+ */
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = 'https://shopykart.co.in';
 
-  // Core static routes with high priority
+  // Core static routes with high priority (Daily updates)
   const staticRoutes = [
     '',
     '/menu',
@@ -21,10 +24,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     url: `${baseUrl}${route}`,
     lastModified: new Date(),
     changeFrequency: 'daily' as const,
-    priority: route === '' ? 1 : 0.8,
+    priority: route === '' ? 1.0 : 0.9,
   }));
 
-  // Business Portals (Less priority for indexing)
+  // Business Portals (Less priority for indexing, Monthly updates)
   const businessRoutes = [
     '/admin/login',
     '/vendor/login',
@@ -38,7 +41,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.1,
   }));
 
-  // SEO Optimized Dynamic segments
+  // SEO Optimized Dynamic segments patterns (Weekly updates)
   const dynamicPatterns = [
     'product',
     'store',
@@ -47,7 +50,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     url: `${baseUrl}/${type}/`,
     lastModified: new Date(),
     changeFrequency: 'weekly' as const,
-    priority: 0.6
+    priority: 0.7
   }));
 
   return [

@@ -22,7 +22,7 @@ interface HomeClientProps {
 }
 
 /**
- * @fileOverview Inner content wrapped in Suspense to fix Next.js 15 searchParams bailout.
+ * @fileOverview Inner content optimized for crawler efficiency and speed.
  */
 function HomeClientContent({ 
   initialBanners, 
@@ -37,7 +37,6 @@ function HomeClientContent({
   
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Sync state with URL to create history entries for Back button support
   const activeMode = searchParams.get('mode') || 'Food';
   const activeCategory = searchParams.get('cat') || 'all';
 
@@ -49,7 +48,6 @@ function HomeClientContent({
       params.set(key, value);
     }
     
-    // Reset category if mode changes
     if (key === 'mode') {
       params.delete('cat');
     }
@@ -71,7 +69,7 @@ function HomeClientContent({
   };
 
   return (
-    <div className="min-h-screen bg-white transform-gpu">
+    <div className="min-h-screen bg-white transform-gpu content-visibility-auto">
       {activeMode !== 'Medical' && activeMode !== 'Beauty' && (
         <LocationHeader 
           searchValue={searchQuery} 
@@ -99,7 +97,6 @@ function HomeClientContent({
                   <button onClick={handleBackToFood} className="h-9 w-9 bg-gray-50 rounded-full flex items-center justify-center text-gray-800 border border-gray-100 active:scale-90 transition-transform"><ArrowLeft className="h-4 w-4" /></button>
                   <div className="flex flex-col">
                     <span className="text-[12px] font-black uppercase italic tracking-tighter text-gray-900 leading-none">{activeMode === 'Medical' ? 'Medical Hub' : 'Beauty & Cosmetics'}</span>
-                    <span className="text-[8px] font-bold text-green-600 uppercase tracking-widest mt-0.5">10 Mins Delivery</span>
                   </div>
                </div>
                <div className={cn("h-9 w-9 rounded-xl flex items-center justify-center border", activeMode === 'Medical' ? "bg-teal-50 text-teal-600 border-teal-100" : "bg-rose-50 text-rose-600 border-rose-100")}>{activeMode === 'Medical' ? <HeartPulse className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}</div>
@@ -157,9 +154,6 @@ function HomeClientContent({
   );
 }
 
-/**
- * @fileOverview HomeClient Root with standard Next.js 15 Suspense handling.
- */
 export default function HomeClient(props: HomeClientProps) {
   return (
     <Suspense fallback={

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -37,6 +36,10 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 
+/**
+ * @fileOverview CartPage with Fixed Slide-to-Order and validation toasts.
+ * Optimized for mobile touch events and crawler accessibility.
+ */
 export default function CartPage() {
   const { cart, addToCart, removeFromCart, totalPrice, clearCart } = useCart();
   const router = useRouter();
@@ -442,6 +445,7 @@ export default function CartPage() {
 
         <div className="pt-4 pb-32">
            <div className="space-y-4">
+              {/* SLIDE TO ORDER COMPONENT: Preserving Industrial-Grade Isolation */}
               <div 
                 ref={sliderRef} 
                 className={cn(
@@ -474,7 +478,6 @@ export default function CartPage() {
                   {isPlacing && <div className="absolute inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center z-20 animate-in fade-in duration-300"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
               </div>
               
-              {/* SLIDER HINT: Show reason if slider is disabled or blocked */}
               {(!isMinOrderMet && cart.length > 0) && (
                 <p className="text-center text-red-500 text-[10px] font-black uppercase animate-pulse">Min order ₹{minOrderValue} required to slide</p>
               )}
@@ -484,6 +487,7 @@ export default function CartPage() {
 
       <Dialog open={isAddressModalOpen} onOpenChange={setIsAddressModalOpen}>
         <DialogContent className="rounded-t-[3.5rem] p-8 border-none shadow-2xl bg-white bottom-0 top-auto translate-y-0 h-[580px] flex flex-col focus:outline-none">
+          {/* A11y fix: DialogTitle and DialogDescription */}
           <DialogHeader className="pb-4 shrink-0 text-center">
              <div className="h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-3"><MapPin className="h-8 w-8" /></div>
              <DialogTitle className="text-3xl font-black italic uppercase tracking-tighter text-gray-900">Drop Address</DialogTitle>
