@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -168,7 +169,7 @@ export default function OrderManagement() {
                     <Badge className="bg-primary text-white text-[8px] uppercase font-black px-2 py-0.5">{order.status}</Badge>
                   </div>
                </div>
-               <div className="flex flex-wrap gap-2 sm:ml-auto">
+               <div className="flex flex-wrap gap-2">
                   <button 
                     onClick={() => { setNoteOrderId(order.id); setNoteText(order.adminNote || ''); setIsNoteOpen(true); }} 
                     className="h-10 w-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center active:scale-90 transition-all border border-amber-100"

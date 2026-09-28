@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -37,7 +38,7 @@ import { Switch } from '@/components/ui/switch';
 import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 
 /**
- * @fileOverview CartPage with Re-engineered Slide-to-Order and validation.
+ * @fileOverview CartPage with Fully Repaired Slide-to-Order touch interaction.
  */
 export default function CartPage() {
   const { cart, addToCart, removeFromCart, totalPrice, clearCart } = useCart();
@@ -168,12 +169,12 @@ export default function CartPage() {
       return;
     }
     if (hasClosedItems) {
-      toast({ variant: "destructive", title: "Items Unavailable", description: "Some items are from stores that are currently closed." });
+      toast({ variant: "destructive", title: "Items Unavailable", description: "Some stores are currently closed." });
       setSliderOffset(0);
       return;
     }
     if (!isMinOrderMet) {
-      toast({ variant: "destructive", title: "Min Order Not Met", description: `Add ₹${minOrderValue - totalPrice} more items.` });
+      toast({ variant: "destructive", title: "Min Order Not Met", description: `Add ₹${minOrderValue - totalPrice} more.` });
       setSliderOffset(0);
       return;
     }
@@ -422,7 +423,7 @@ export default function CartPage() {
                       transform: `translateX(${sliderOffset}px)`,
                     }} 
                     className={cn(
-                      "h-16 w-16 rounded-[1.5rem] bg-white text-primary flex items-center justify-center z-10 shadow-xl pointer-events-auto",
+                      "h-16 w-16 rounded-3xl bg-white text-primary flex items-center justify-center z-10 shadow-xl pointer-events-auto",
                       !isDragging && "transition-transform duration-300"
                     )}
                   >

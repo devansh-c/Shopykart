@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useState, useEffect, memo, useCallback } from "react"
@@ -10,6 +11,7 @@ import { collection, query, limit } from "firebase/firestore"
 import { ProductQuickView } from "@/components/product/ProductQuickView"
 import { useToast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
   if (!vendor) return true;
@@ -115,7 +117,8 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   const { toast } = useToast();
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
   const [currentTimeMinutes, setCurrentTimeMinutes] = useState<number | null>(null);
-  const [visibleCount, setVisibleCount] = useState(30);
+  const [visibleCount, setVisibleCount] = useState(20);
+  const [isScrollingMore, setIsScrollingMore] = useState(false);
 
   useEffect(() => {
     const updateZone = () => setActiveZoneId(localStorage.getItem('active_zone_id'));
@@ -130,8 +133,8 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     const interval = setInterval(syncTime, 60000);
     
     const handleScroll = () => { 
-      if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 800) {
-        setVisibleCount(p => p + 30);
+      if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 500) {
+        setIsScrollingMore(true);
       }
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -142,6 +145,16 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       clearInterval(interval); 
     };
   }, []);
+
+  useEffect(() => {
+    if (isScrollingMore) {
+      const timer = setTimeout(() => {
+        setVisibleCount(p => p + 20);
+        setIsScrollingMore(false);
+      }, 800);
+      return () => clearTimeout(timer);
+    }
+  }, [isScrollingMore]);
 
   const productsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'products'), limit(1000)) : null, [firestore]);
   const { data: dbProducts } = useCollection<any>(productsQuery, 'home_products_v4_stable', initialData);
@@ -212,6 +225,13 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
           return <ProductItem key={product.id} product={{...product, restaurantName: v?.storeName}} quantity={quantity} isOffline={isOffline} onShare={handleShare} />;
         })}
       </div>
+
+      {visibleCount < productsToDisplay.length && (
+        <div className="flex flex-col items-center justify-center py-10 gap-3 opacity-40 animate-in fade-in duration-700">
+           <Loader2 className="h-6 w-6 animate-spin text-primary" />
+           <p className="text-[10px] font-black uppercase tracking-[0.3em] italic">Loading more gourmet flavours...</p>
+        </div>
+      )}
     </div>
   );
 }

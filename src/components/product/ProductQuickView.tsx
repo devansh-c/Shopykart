@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -96,7 +97,7 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
               {product.name}
             </DialogTitle>
             <DialogDescription className="text-center text-[8px] font-bold text-gray-500 uppercase tracking-widest mt-1">
-              Customize your selection
+              Customize your selection for {product.restaurantName || 'ShopyKart'}
             </DialogDescription>
           </DialogHeader>
           <button onClick={() => setIsOpen(false)} className="absolute top-5 right-6 h-8 w-8 rounded-full bg-white/5 flex items-center justify-center text-gray-400 active:scale-90 transition-transform"><X className="h-5 w-5" /></button>
