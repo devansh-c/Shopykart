@@ -12,7 +12,7 @@ import Loading from './loading';
 let globalDataCache: any = null;
 
 /**
- * @fileOverview Multi-App Router with JSON-LD Structured Data for Advanced SEO.
+ * @fileOverview Multi-App Router with Optimized Initial Fetch (100 products limit).
  */
 function ShopyKartAppContent() {
   const router = useRouter();
@@ -46,13 +46,13 @@ function ShopyKartAppContent() {
   async function fetchData() {
     if (!firestore) return;
     try {
-      // Parallel fetch optimized for crawler speed
+      // Parallel fetch optimized for crawler speed - Limit increased to 100 for instant data
       const [bannersSnap, categoriesSnap, announcementSnap, vendorsSnap, productsSnap] = await Promise.all([
-        getDocs(query(collection(firestore, 'banners'), limit(10))).catch(() => ({ docs: [] })),
-        getDocs(query(collection(firestore, 'categories'), orderBy('name', 'asc'), limit(25))).catch(() => ({ docs: [] })),
+        getDocs(query(collection(firestore, 'banners'), limit(15))).catch(() => ({ docs: [] })),
+        getDocs(query(collection(firestore, 'categories'), orderBy('name', 'asc'), limit(30))).catch(() => ({ docs: [] })),
         getDoc(doc(firestore, 'app_settings', 'announcement')).catch(() => null),
-        getDocs(query(collection(firestore, 'vendors'), where('isOnline', '==', true), limit(20))).catch(() => ({ docs: [] })),
-        getDocs(query(collection(firestore, 'products'), where('isAvailable', '==', true), limit(40))).catch(() => ({ docs: [] }))
+        getDocs(query(collection(firestore, 'vendors'), where('isOnline', '==', true), limit(30))).catch(() => ({ docs: [] })),
+        getDocs(query(collection(firestore, 'products'), where('isAvailable', '==', true), limit(100))).catch(() => ({ docs: [] }))
       ]);
 
       const sanitize = (docs: any[]) => (docs || []).map(d => ({ 

@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect, memo, useCallback } from "react"
@@ -11,7 +10,6 @@ import { collection, query, limit } from "firebase/firestore"
 import { ProductQuickView } from "@/components/product/ProductQuickView"
 import { useToast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
-import { Skeleton } from "@/components/ui/skeleton"
 
 export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
   if (!vendor) return true;
@@ -76,7 +74,7 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare }: any) => {
                   </div>
                 )}
              </div>
-             <button onClick={(e) => { e.stopPropagation(); onShare(e, product); }} className="absolute top-2.5 right-2.5 h-8 w-8 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/10 shadow-lg active:scale-75 z-30 transition-transform">
+             <button onClick={(e) => { onShare(e, product); }} className="absolute top-2.5 right-2.5 h-8 w-8 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/10 shadow-lg active:scale-75 z-30 transition-transform">
                <Share2 className="h-4 w-4 text-primary" />
              </button>
           </div>
@@ -117,7 +115,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   const { toast } = useToast();
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
   const [currentTimeMinutes, setCurrentTimeMinutes] = useState<number | null>(null);
-  const [visibleCount, setVisibleCount] = useState(20);
+  const [visibleCount, setVisibleCount] = useState(50); // Increased for faster initial data display
   const [isScrollingMore, setIsScrollingMore] = useState(false);
 
   useEffect(() => {
@@ -149,9 +147,9 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   useEffect(() => {
     if (isScrollingMore) {
       const timer = setTimeout(() => {
-        setVisibleCount(p => p + 20);
+        setVisibleCount(p => p + 30);
         setIsScrollingMore(false);
-      }, 800);
+      }, 500);
       return () => clearTimeout(timer);
     }
   }, [isScrollingMore]);
@@ -203,8 +201,12 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     if (navigator.share) {
       navigator.share({ title: product.name, url }).catch(() => {});
     } else {
-      navigator.clipboard.writeText(url).catch(() => {});
-      toast({ title: "Link Copied! 🔗" });
+      try {
+        navigator.clipboard.writeText(url);
+        toast({ title: "Link Copied! 🔗" });
+      } catch (err) {
+        toast({ title: "Share link: " + url });
+      }
     }
   }, [toast]);
 
