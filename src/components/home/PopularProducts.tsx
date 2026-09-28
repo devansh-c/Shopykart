@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useState, useEffect, memo, useCallback } from "react"
@@ -125,15 +126,15 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     };
   }, []);
 
-  // INSTANT FETCH: Limits removed for immediate full catalog access
+  // INSTANT FETCH: Limits removed for immediate full catalog access (1000 items)
   const productsQuery = useMemoFirebase(() => 
-    firestore ? query(collection(firestore, 'products'), limit(500)) : null, 
+    firestore ? query(collection(firestore, 'products'), limit(1000)) : null, 
     [firestore]
   );
   
-  const { data: dbProducts, loading: queryLoading } = useCollection<any>(productsQuery, 'home_products_full_v1');
+  const { data: dbProducts, loading: queryLoading } = useCollection<any>(productsQuery, 'home_products_full_v2');
   const vendorsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'vendors') : null, [firestore]);
-  const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v5_stable', initialStores);
+  const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v6_stable', initialStores);
 
   const productsToDisplay = useMemo(() => {
     const list = (dbProducts && dbProducts.length > 0) ? dbProducts : initialData;

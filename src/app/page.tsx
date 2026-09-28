@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, Suspense } from 'react';
@@ -12,7 +13,7 @@ import Loading from './loading';
 let globalDataCache: any = null;
 
 /**
- * @fileOverview Multi-App Router with Instant Full Data Fetch (Limits removed as requested).
+ * @fileOverview Multi-App Router with Instant Full Data Fetch (Filters Removed for Haal-ke-Haal Data).
  */
 function ShopyKartAppContent() {
   const router = useRouter();
@@ -46,13 +47,14 @@ function ShopyKartAppContent() {
   async function fetchData() {
     if (!firestore) return;
     try {
-      // Parallel fetch optimized for crawler speed - Full data fetch (500 items)
+      // Parallel fetch optimized for crawler speed - Fetching EVERYTHING (1000 items)
+      // Removed isAvailable/isOnline filters to ensure all products show up "haal ke haal"
       const [bannersSnap, categoriesSnap, announcementSnap, vendorsSnap, productsSnap] = await Promise.all([
         getDocs(query(collection(firestore, 'banners'), limit(20))).catch(() => ({ docs: [] })),
         getDocs(query(collection(firestore, 'categories'), orderBy('name', 'asc'), limit(50))).catch(() => ({ docs: [] })),
         getDoc(doc(firestore, 'app_settings', 'announcement')).catch(() => null),
-        getDocs(query(collection(firestore, 'vendors'), where('isOnline', '==', true), limit(50))).catch(() => ({ docs: [] })),
-        getDocs(query(collection(firestore, 'products'), where('isAvailable', '==', true), limit(500))).catch(() => ({ docs: [] }))
+        getDocs(query(collection(firestore, 'vendors'), limit(100))).catch(() => ({ docs: [] })),
+        getDocs(query(collection(firestore, 'products'), limit(1000))).catch(() => ({ docs: [] }))
       ]);
 
       const sanitize = (docs: any[]) => (docs || []).map(d => ({ 
