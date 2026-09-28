@@ -2,9 +2,8 @@
 'use client';
 
 import React, { useMemo, useState, useEffect, memo } from 'react';
-import { Search, MapPin, Store, Star, Clock, ChevronRight, Loader2, Award } from 'lucide-react';
+import { Search, MapPin, Store, Star, Clock, ChevronRight, Loader2, Award, Timer } from 'lucide-react';
 import { cn, slugify } from '@/lib/utils';
-import Link from 'next/link';
 import Image from 'next/image';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, limit } from 'firebase/firestore';
@@ -13,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { useRouter } from 'next/navigation';
 
 /**
- * @fileOverview VerticalStoreList - Replaces vertical product grid on home page.
+ * @fileOverview VerticalStoreList - Zomato-Style Premium Listing.
  * Optimized for rapid scanning and makkhan-speed data loading.
  */
 export const VerticalStoreList = memo(({ 
@@ -55,7 +54,7 @@ export const VerticalStoreList = memo(({
     return collection(firestore, 'vendors');
   }, [firestore]);
 
-  const { data: dbVendors, loading } = useCollection<any>(vendorsQuery, 'home_vertical_stores_v1', initialData);
+  const { data: dbVendors, loading } = useCollection<any>(vendorsQuery, 'home_vertical_stores_v2', initialData);
 
   const filteredVendors = useMemo(() => {
     const list = (dbVendors && dbVendors.length > 0) ? dbVendors : initialData;
@@ -95,7 +94,7 @@ export const VerticalStoreList = memo(({
 
   return (
     <div className="px-4 py-8 bg-white min-h-[600px] content-visibility-auto">
-      <div className="flex items-center justify-between mb-6 px-2">
+      <div className="flex items-center justify-between mb-8 px-2">
         <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900">
            Top <span className="text-primary">Hubs</span> Near You
         </h2>
@@ -104,11 +103,17 @@ export const VerticalStoreList = memo(({
         </Badge>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-10">
         {loading && !dbVendors ? (
-          <div className="space-y-6">
+          <div className="space-y-8">
             {[1, 2, 3].map(i => (
-              <div key={i} className="h-44 w-full bg-gray-50 rounded-[2.5rem] animate-pulse" />
+              <div key={i} className="space-y-4">
+                <div className="h-56 w-full bg-gray-50 rounded-[2.5rem] animate-pulse" />
+                <div className="flex justify-between px-4">
+                  <div className="h-6 w-1/3 bg-gray-50 rounded-full animate-pulse" />
+                  <div className="h-6 w-12 bg-gray-50 rounded-full animate-pulse" />
+                </div>
+              </div>
             ))}
           </div>
         ) : filteredVendors.length > 0 ? (
@@ -117,48 +122,80 @@ export const VerticalStoreList = memo(({
             const isOpen = isStoreScheduleOpen(store, currentTimeMins);
             const isOffline = store.isOnline === false || !isOpen;
             const storeSlug = store.slug || slugify(store.storeName) || store.id;
+            const isBestRated = Number(store.rating) >= 4.5;
 
             return (
               <button 
                 key={store.id}
                 onClick={() => router.push(`/store/${storeSlug}/`)}
                 className={cn(
-                  "w-full text-left bg-white rounded-[2.5rem] overflow-hidden border-2 transition-all active:scale-[0.98] group relative transform-gpu shadow-sm",
-                  isOffline ? "border-gray-100 opacity-80" : "border-border/60 hover:shadow-xl hover:border-primary/20"
+                  "w-full text-left bg-white rounded-[2.5rem] transition-all active:scale-[0.98] group relative transform-gpu",
+                  isOffline && "opacity-75 grayscale-[0.3]"
                 )}
               >
-                <div className="flex p-4 gap-4 items-center">
-                  <div className="relative h-24 w-24 rounded-[1.75rem] overflow-hidden bg-muted border shrink-0">
-                    <Image src={displayImage} alt={store.storeName} fill className={cn("object-cover group-hover:scale-110 transition-transform duration-700", isOffline && "grayscale")} unoptimized />
-                    {isOffline && (
-                      <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-10">
-                        <span className="text-white font-black text-[8px] uppercase tracking-widest border border-white/30 px-2 py-0.5 rounded-lg">Closed</span>
-                      </div>
-                    )}
-                  </div>
+                {/* 1. Large High-Res Image Container */}
+                <div className="relative w-full aspect-[18/9] rounded-[2.5rem] overflow-hidden shadow-lg border border-black/[0.03]">
+                  <Image src={displayImage} alt={store.storeName} fill className={cn("object-cover group-hover:scale-105 transition-transform duration-1000", isOffline && "grayscale")} unoptimized />
+                  
+                  {/* Glass Gradient Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10" />
 
-                  <div className="flex-1 min-w-0 pr-6">
-                    <div className="flex items-center gap-1.5 mb-1">
-                       <h3 className="font-black text-xl italic uppercase tracking-tighter text-gray-900 truncate leading-none">{store.storeName}</h3>
-                       {Number(store.rating) >= 4.5 && <Award className="h-4 w-4 text-amber-500 fill-amber-500 shrink-0" />}
+                  {/* Status Overlays */}
+                  {isOffline && (
+                    <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px] flex items-center justify-center z-10">
+                      <span className="text-white font-black text-xl uppercase italic border-2 border-white/40 px-6 py-2 rounded-2xl shadow-2xl">Closed Now</span>
                     </div>
-                    
-                    <div className="flex items-center gap-2 mb-3">
-                       <div className="bg-[#15803d] text-white px-2 py-0.5 rounded-lg flex items-center gap-1 shadow-sm">
-                          <Star className="h-2.5 w-2.5 fill-white" />
-                          <span className="text-[10px] font-black">{Number(store.rating || 4.0).toFixed(1)}</span>
+                  )}
+
+                  {!isOffline && isBestRated && (
+                    <div className="absolute top-4 left-4 z-20">
+                      <Badge className="bg-amber-400 text-black border-none font-black text-[8px] px-3 py-1 rounded-lg shadow-xl animate-pulse">
+                        <Award className="h-2.5 w-2.5 mr-1 fill-black" /> BEST IN TOWN
+                      </Badge>
+                    </div>
+                  )}
+
+                  {/* Delivery Info Bottom Overlays */}
+                  {!isOffline && (
+                    <div className="absolute bottom-4 right-4 flex items-center gap-2 z-20">
+                       <div className="bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-xl border border-white/20">
+                          <Timer className="h-3.5 w-3.5 text-primary" />
+                          <span className="text-[11px] font-black text-gray-900 uppercase italic tracking-tighter">{store.deliveryTime || '20 min'}</span>
                        </div>
-                       <Badge className="bg-primary/5 text-primary border-none text-[8px] font-black uppercase px-2">{store.category || 'Gourmet'}</Badge>
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. Content Info Section */}
+                <div className="pt-5 px-3">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1 min-w-0 pr-4">
+                      <h3 className="font-black text-2xl italic uppercase tracking-tighter text-gray-900 leading-none mb-1.5 truncate group-hover:text-primary transition-colors">
+                        {store.storeName}
+                      </h3>
+                      <div className="flex items-center gap-2">
+                        <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest italic">{store.category || 'Premium Store'}</p>
+                        <span className="h-1 w-1 bg-gray-300 rounded-full" />
+                        <div className="flex items-center gap-1 text-[11px] font-bold text-gray-500 italic uppercase">
+                          <MapPin className="h-3 w-3 text-primary" />
+                          {store.town}
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="flex items-center gap-3 text-[10px] font-black text-gray-400 uppercase tracking-widest italic">
-                       <div className="flex items-center gap-1"><Clock className="h-3 w-3 text-amber-500" /> {store.deliveryTime || '20 min'}</div>
-                       <div className="flex items-center gap-1"><MapPin className="h-3 w-3 text-primary" /> {store.town}</div>
+                    <div className="bg-[#15803d] text-white px-2.5 py-1.5 rounded-xl flex flex-col items-center gap-0 shadow-lg border border-green-600">
+                      <div className="flex items-center gap-1">
+                        <span className="text-base font-black italic">{Number(store.rating || 4.0).toFixed(1)}</span>
+                        <Star className="h-3 w-3 fill-white stroke-none" />
+                      </div>
+                      <span className="text-[7px] font-black uppercase opacity-60 leading-none">Rating</span>
                     </div>
                   </div>
 
-                  <div className="absolute right-6 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-300 group-hover:bg-primary/10 group-hover:text-primary transition-all">
-                     <ChevronRight className="h-6 w-6" />
+                  {/* Promotion Banner Line (Optional) */}
+                  <div className="mt-4 pt-4 border-t border-dashed border-gray-100 flex items-center gap-3">
+                     <div className="h-5 w-5 bg-blue-50 rounded-md flex items-center justify-center"><Badge variant="outline" className="border-none p-0 text-[8px] font-black text-blue-600 uppercase">PRO</Badge></div>
+                     <p className="text-[10px] font-bold text-gray-400 uppercase italic tracking-wide">Free delivery above ₹199 on this hub</p>
                   </div>
                 </div>
               </button>
@@ -166,8 +203,8 @@ export const VerticalStoreList = memo(({
           })
         ) : (
           <div className="text-center py-24 opacity-30 flex flex-col items-center">
-             <Store className="h-16 w-16 mb-4" />
-             <p className="font-black italic uppercase text-xs">No stores matching your search</p>
+             <Store className="h-20 w-20 mb-4" />
+             <p className="font-black italic uppercase text-sm tracking-widest">No hubs matching your preference</p>
           </div>
         )}
       </div>
