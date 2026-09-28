@@ -40,12 +40,14 @@ jobs:
           mkdir -p android/app
           cd android
           
-          # 1. DEEP CLEAN PHANTOM MODULES (Fixes SelfResolvingDependency Error)
+          # 1. DEEP CLEAN PHANTOM MODULES (Fixes SelfResolvingDependency & classnotfound Errors)
           if [ -f "settings.gradle" ]; then
             echo "Deep cleaning settings.gradle..."
+            # Remove cordova plugins that might be missing locally
             sed -i "/:capacitor-cordova-android-plugins/d" settings.gradle
             # Also clean generic cordova references that cause AAPT2 crash
             sed -i "/project(':capacitor-android-plugins')/d" app/build.gradle || true
+            sed -i "/project(':capacitor-cordova-android-plugins')/d" app/build.gradle || true
           fi
 
           if [ -f "app/build.gradle" ]; then
@@ -53,7 +55,7 @@ jobs:
             sed -i "/project(':capacitor-cordova-android-plugins')/d" app/build.gradle
           fi
           
-          # 2. REPAIR GRADLE WRAPPER (Force 8.2.1 for Stability)
+          # 2. REPAIR GRADLE WRAPPER (Force 8.2.1 for Capacitor 6 Stability)
           echo "Generating Gradle Wrapper 8.2.1..."
           gradle wrapper --gradle-version 8.2.1
           chmod +x gradlew
@@ -68,7 +70,7 @@ jobs:
       - name: Build APK (Debug)
         working-directory: android
         run: |
-          # Single worker mode for maximum stability on GitHub Runners
+          # Single worker mode for maximum stability on low-resource GitHub Runners
           ./gradlew assembleDebug --stacktrace --max-workers=1 --no-daemon
 
       - name: Upload Build Artifacts

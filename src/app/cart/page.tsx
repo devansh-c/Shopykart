@@ -61,7 +61,7 @@ export default function CartPage() {
   const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
 
-  // Slider State - Re-engineered for Mobile Stability
+  // Slider State - Industrial Grade Isolation
   const [sliderOffset, setSliderOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const sliderRef = useRef<HTMLDivElement>(null);
@@ -161,7 +161,7 @@ export default function CartPage() {
       return;
     }
     if (cart.length === 0) {
-      toast({ variant: "destructive", title: "Empty Bag" });
+      toast({ variant: "destructive", title: "Empty Bag", description: "Add items to place order." });
       setSliderOffset(0);
       return;
     }
@@ -171,13 +171,13 @@ export default function CartPage() {
       return;
     }
     if (!isMinOrderMet) {
-      toast({ variant: "destructive", title: "Min Order Not Met", description: `Minimum ₹${minOrderValue} required.` });
+      toast({ variant: "destructive", title: "Min Order Not Met", description: `Add ₹${minOrderValue - totalPrice} more items.` });
       setSliderOffset(0);
       return;
     }
     if (!recipientForm.name || recipientForm.phone.length !== 10 || !recipientForm.address) {
       setIsAddressModalOpen(true); 
-      toast({ title: "Address Required", description: "Please set delivery location." });
+      toast({ title: "Address Required", description: "Please complete your delivery details." });
       setSliderOffset(0); 
       return;
     }
@@ -221,10 +221,9 @@ export default function CartPage() {
   };
 
   const handleTouchStart = (e: React.TouchEvent) => { 
-    if (isPlacing || cart.length === 0 || hasClosedItems || !isMinOrderMet) return; 
+    if (isPlacing) return; 
     setIsDragging(true); 
     startXRef.current = e.touches[0].clientX; 
-    e.stopPropagation();
   };
   
   const handleTouchMove = (e: React.TouchEvent) => { 
@@ -234,19 +233,17 @@ export default function CartPage() {
       const maxOffset = sliderRef.current.offsetWidth - 88;
       setSliderOffset(Math.min(diff, maxOffset)); 
     }
-    e.stopPropagation();
   };
   
   const handleTouchEnd = (e: React.TouchEvent) => { 
     if (!isDragging) return; 
     setIsDragging(false); 
-    const threshold = (sliderRef.current?.offsetWidth || 300) * 0.75;
+    const threshold = (sliderRef.current?.offsetWidth || 300) * 0.7;
     if (sliderOffset > threshold) {
       finalizeOrder(); 
     } else {
       setSliderOffset(0); 
     }
-    e.stopPropagation();
   };
 
   if (!isMounted) return null;
@@ -448,7 +445,7 @@ export default function CartPage() {
                 ref={sliderRef} 
                 className={cn(
                   "w-full h-24 rounded-[3rem] p-3 flex items-center relative overflow-hidden transition-all duration-300 transform-gpu z-[2000] touch-none select-none", 
-                  (hasClosedItems || !isMinOrderMet || cart.length === 0) ? "bg-gray-100 opacity-50 grayscale" : "bg-[#0B0B0B] border-white/10 shadow-2xl"
+                  (hasClosedItems || !isMinOrderMet || cart.length === 0) ? "bg-gray-100 opacity-60" : "bg-[#0B0B0B] border-white/10 shadow-2xl"
                 )}
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
@@ -474,6 +471,11 @@ export default function CartPage() {
                   </div>
                   {isPlacing && <div className="absolute inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center z-20 animate-in fade-in duration-300"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
               </div>
+              
+              {/* SLIDER HINT: Show reason if slider is disabled or blocked */}
+              {(!isMinOrderMet && cart.length > 0) && (
+                <p className="text-center text-red-500 text-[10px] font-black uppercase animate-pulse">Min order ₹{minOrderValue} required to slide</p>
+              )}
            </div>
         </div>
       </main>
@@ -505,8 +507,9 @@ export default function CartPage() {
                 localStorage.setItem('user_phone', recipientForm.phone); 
                 localStorage.setItem('user_address_line', recipientForm.address); 
                 setIsAddressModalOpen(false); 
+                toast({ title: "Address Saved" });
               } else {
-                toast({ variant: "destructive", title: "Missing Info" });
+                toast({ variant: "destructive", title: "Missing Info", description: "Complete all fields." });
               }
             }} 
             className="w-full h-20 bg-[#0B0B0B] text-white rounded-[2rem] font-black uppercase italic shadow-xl text-xl transition-all active:scale-95 mt-4"

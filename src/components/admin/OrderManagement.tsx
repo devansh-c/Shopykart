@@ -206,8 +206,8 @@ export default function OrderManagement() {
       <div className="grid grid-cols-1 gap-6">
         {orders?.map((order: any) => (
           <div key={order.id} className="bg-white rounded-[2.5rem] p-6 border-2 border-border shadow-sm hover:shadow-xl transition-all relative overflow-hidden">
-            {/* UPDATED HEADER: FIXED BUTTON CUTOFF */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+            {/* RESPONSIVE HEADER: FIXED CUTOFF ISSUES */}
+            <div className="flex flex-wrap justify-between items-start mb-6 gap-4">
                <div className="flex items-center gap-4 min-w-0">
                   <div className="h-14 w-14 rounded-2xl bg-primary/5 flex items-center justify-center text-primary border-2 border-primary/10 shrink-0"><Package className="h-7 w-7" /></div>
                   <div className="min-w-0">
@@ -223,7 +223,7 @@ export default function OrderManagement() {
                     </div>
                   </div>
                </div>
-               <div className="flex flex-wrap gap-2 shrink-0">
+               <div className="flex flex-wrap gap-2 sm:ml-auto">
                   <button 
                     onClick={() => { setNoteOrderId(order.id); setNoteText(order.adminNote || ''); setIsNoteOpen(true); }} 
                     className="h-10 w-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center active:scale-90 transition-all border border-amber-100"
