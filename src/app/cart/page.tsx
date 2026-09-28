@@ -37,7 +37,7 @@ import { Switch } from '@/components/ui/switch';
 import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 
 /**
- * @fileOverview CartPage with Repaired Slide-to-Order touch interaction.
+ * @fileOverview CartPage with Final Repaired Slide-to-Order touch interaction.
  */
 export default function CartPage() {
   const { cart, addToCart, removeFromCart, totalPrice, clearCart } = useCart();
@@ -64,6 +64,7 @@ export default function CartPage() {
   const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
 
+  // SLIDER STATE
   const [sliderOffset, setSliderOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const sliderRef = useRef<HTMLDivElement>(null);
@@ -179,7 +180,7 @@ export default function CartPage() {
     }
     if (!recipientForm.name || recipientForm.phone.length !== 10 || !recipientForm.address) {
       setIsAddressModalOpen(true); 
-      toast({ title: "Address Required" });
+      toast({ title: "Address Required", description: "Please complete your delivery profile." });
       setSliderOffset(0); 
       return;
     }
@@ -221,6 +222,7 @@ export default function CartPage() {
     }
   };
 
+  // REPAIRED SLIDER LOGIC
   const handleTouchStart = (e: React.TouchEvent) => { 
     if (isPlacing) return; 
     setIsDragging(true); 

@@ -160,6 +160,7 @@ export default function OrderManagement() {
       <div className="grid grid-cols-1 gap-6">
         {orders?.map((order: any) => (
           <div key={order.id} className="bg-white rounded-[2.5rem] p-6 border-2 border-border shadow-sm hover:shadow-xl transition-all relative overflow-hidden">
+            {/* RESPONSIVE HEADER FIX: Using flex-wrap and gap to prevent button cutoff */}
             <div className="flex flex-wrap justify-between items-start mb-6 gap-4">
                <div className="flex items-center gap-4 min-w-0">
                   <div className="h-14 w-14 rounded-2xl bg-primary/5 flex items-center justify-center text-primary border-2 border-primary/10 shrink-0"><Package className="h-7 w-7" /></div>

@@ -90,6 +90,7 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="rounded-t-[3rem] p-0 overflow-hidden border-none shadow-2xl z-[2000001] bottom-0 top-auto translate-y-0 focus:outline-none h-[88vh] max-w-lg flex flex-col bg-[#0B0B0B] sm:h-[80vh] sm:rounded-[3rem] sm:bottom-1/2 sm:translate-y-1/2">
         
+        {/* HEADER SECTION - FIXED */}
         <div className="p-6 pb-4 shrink-0 border-b border-white/5 relative z-10 text-white">
           <DialogHeader>
             <DialogTitle className="font-black italic uppercase text-center text-lg tracking-tighter truncate px-10">
@@ -102,6 +103,7 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
           <button onClick={() => setIsOpen(false)} className="absolute top-5 right-6 h-8 w-8 rounded-full bg-white/5 flex items-center justify-center text-gray-400 active:scale-90 transition-transform"><X className="h-5 w-5" /></button>
         </div>
 
+        {/* SCROLLABLE CONTENT */}
         <div className="flex-1 overflow-y-auto no-scrollbar relative z-0">
           <div className="p-6 pt-4 flex gap-4 border-b border-dashed border-white/10">
              <div className="relative h-24 w-24 rounded-2xl overflow-hidden bg-muted border border-white/10 shrink-0">
@@ -154,6 +156,7 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
           </div>
         </div>
 
+        {/* FOOTER ACTION - LOCKED TO BOTTOM */}
         <div className="p-6 bg-[#0B0B0B] border-t border-white/10 pb-12 shrink-0 shadow-[0_-20px_50px_rgba(0,0,0,0.8)] relative z-50">
            <div className="flex items-center gap-3 max-w-md mx-auto">
               <div className="flex items-center bg-white/5 rounded-xl h-14 px-2 border border-white/10 shrink-0">
