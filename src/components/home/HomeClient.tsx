@@ -8,13 +8,10 @@ import { cn } from '@/lib/utils';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 
 import { OfferSlider } from '@/components/home/OfferSlider';
-import { QuickActionGrid } from '@/components/home/QuickActionGrid';
 import { CategoryList } from '@/components/home/CategoryList';
-import { StoreSection } from '@/components/home/StoreSection';
 import { VerticalStoreList } from '@/components/home/VerticalStoreList';
 import OffersSection from '@/components/home/OffersSection';
 import AnnouncementBanner from '@/components/home/AnnouncementBanner';
-import { SmartBasketAI } from '@/components/home/SmartBasketAI';
 import { IceCreamBanner } from '@/components/home/IceCreamBanner';
 
 interface HomeClientProps {
@@ -26,8 +23,8 @@ interface HomeClientProps {
 }
 
 /**
- * @fileOverview Multi-App Router overhauled to show Grids immediately below search bar.
- * Priority: Header -> Quick Actions -> Coupons -> Slider -> Stores.
+ * @fileOverview Home Page Orchestrator - Clean Sequential Layout.
+ * Order: Search -> Main Banner -> Announcement -> Coupons -> Stores.
  */
 function HomeClientContent({ 
   initialBanners, 
@@ -121,24 +118,16 @@ function HomeClientContent({
           <div className="animate-in fade-in duration-300">
             {!searchQuery && activeCategory === 'all' && (
               <div className="pt-2">
-                {/* 1. FIRST PRIORITY: QUICK ACTION GRID */}
-                <QuickActionGrid />
-                
-                {/* 2. SECOND PRIORITY: OFFERS/COUPONS SECTION */}
-                <OffersSection />
-                
-                {/* 3. THIRD PRIORITY: BANNER SLIDER */}
+                {/* 1. PRIORITY SEQUENCE: Banner -> Announcement -> Coupons */}
                 <OfferSlider initialData={initialBanners} />
                 
-                {activeMode === 'Food' && (
-                  <>
-                    <AnnouncementBanner initialData={initialAnnouncement} />
-                    <SmartBasketAI />
-                    <IceCreamBanner />
-                  </>
-                )}
+                <AnnouncementBanner initialData={initialAnnouncement} />
                 
-                <StoreSection activeMode={activeMode} initialData={initialStores} />
+                <OffersSection />
+                
+                {activeMode === 'Food' && (
+                  <IceCreamBanner />
+                )}
               </div>
             )}
             
