@@ -31,7 +31,9 @@ export const VerticalStoreList = memo(({
 
   useEffect(() => {
     const updateZone = () => {
-      setActiveZoneId(typeof window !== 'undefined' ? localStorage.getItem('active_zone_id') : null);
+      if (typeof window !== 'undefined') {
+        setActiveZoneId(localStorage.getItem('active_zone_id'));
+      }
     };
     updateZone();
     window.addEventListener('user-address-updated', updateZone);
@@ -54,24 +56,33 @@ export const VerticalStoreList = memo(({
     return collection(firestore, 'vendors');
   }, [firestore]);
 
-  const { data: dbVendors, loading } = useCollection<any>(vendorsQuery, 'home_vertical_stores_v2', initialData);
+  const { data: dbVendors, loading } = useCollection<any>(vendorsQuery, 'home_vertical_stores_v3', initialData);
 
   const filteredVendors = useMemo(() => {
     const list = (dbVendors && dbVendors.length > 0) ? dbVendors : initialData;
-    if (!list) return [];
+    if (!list || list.length === 0) return [];
     
     const searchLower = searchQuery.toLowerCase().trim();
+    const currentMode = activeMode.toLowerCase();
 
     return list.filter(v => {
-      // 1. Zone Matching
+      // 1. Zone Matching: Show if store is Global, Matches Zone, or has NO zone set (Prototype safety)
       if (activeZoneId) {
         if (v.zoneId && v.zoneId !== activeZoneId && v.zoneId !== 'global') {
           return false;
         }
       }
 
-      // 2. Mode Filter (Food/Medical/Beauty)
-      if ((v.category || 'Food').toLowerCase() !== activeMode.toLowerCase()) return false;
+      // 2. Mode Filter (Food/Medical/Beauty) with Aliases
+      const storeCat = (v.category || 'Food').toLowerCase();
+      const isFoodRequest = currentMode === 'food';
+      const isStoreFood = storeCat === 'food' || storeCat === 'restaurant';
+
+      if (isFoodRequest) {
+        if (!isStoreFood) return false;
+      } else {
+        if (storeCat !== currentMode) return false;
+      }
 
       // 3. Search Matching
       const matchesSearch = !searchLower || 
@@ -93,7 +104,7 @@ export const VerticalStoreList = memo(({
   }, [dbVendors, initialData, activeZoneId, searchQuery, activeMode, currentTimeMins]);
 
   return (
-    <div className="px-4 py-8 bg-white min-h-[600px] content-visibility-auto">
+    <div className="px-4 py-8 bg-white min-h-[400px] content-visibility-auto">
       <div className="flex items-center justify-between mb-8 px-2">
         <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900">
            Top <span className="text-primary">Hubs</span> Near You
@@ -133,14 +144,12 @@ export const VerticalStoreList = memo(({
                   isOffline && "opacity-75 grayscale-[0.3]"
                 )}
               >
-                {/* 1. Large High-Res Image Container */}
+                {/* Image Container */}
                 <div className="relative w-full aspect-[18/9] rounded-[2.5rem] overflow-hidden shadow-lg border border-black/[0.03]">
                   <Image src={displayImage} alt={store.storeName} fill className={cn("object-cover group-hover:scale-105 transition-transform duration-1000", isOffline && "grayscale")} unoptimized />
                   
-                  {/* Glass Gradient Overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10" />
 
-                  {/* Status Overlays */}
                   {isOffline && (
                     <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px] flex items-center justify-center z-10">
                       <span className="text-white font-black text-xl uppercase italic border-2 border-white/40 px-6 py-2 rounded-2xl shadow-2xl">Closed Now</span>
@@ -155,7 +164,6 @@ export const VerticalStoreList = memo(({
                     </div>
                   )}
 
-                  {/* Delivery Info Bottom Overlays */}
                   {!isOffline && (
                     <div className="absolute bottom-4 right-4 flex items-center gap-2 z-20">
                        <div className="bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-xl border border-white/20">
@@ -166,7 +174,7 @@ export const VerticalStoreList = memo(({
                   )}
                 </div>
 
-                {/* 2. Content Info Section */}
+                {/* Content section */}
                 <div className="pt-5 px-3">
                   <div className="flex justify-between items-start">
                     <div className="flex-1 min-w-0 pr-4">
@@ -178,7 +186,7 @@ export const VerticalStoreList = memo(({
                         <span className="h-1 w-1 bg-gray-300 rounded-full" />
                         <div className="flex items-center gap-1 text-[11px] font-bold text-gray-500 italic uppercase">
                           <MapPin className="h-3 w-3 text-primary" />
-                          {store.town}
+                          {store.town || 'Local'}
                         </div>
                       </div>
                     </div>
@@ -192,7 +200,6 @@ export const VerticalStoreList = memo(({
                     </div>
                   </div>
 
-                  {/* Promotion Banner Line (Optional) */}
                   <div className="mt-4 pt-4 border-t border-dashed border-gray-100 flex items-center gap-3">
                      <div className="h-5 w-5 bg-blue-50 rounded-md flex items-center justify-center"><Badge variant="outline" className="border-none p-0 text-[8px] font-black text-blue-600 uppercase">PRO</Badge></div>
                      <p className="text-[10px] font-bold text-gray-400 uppercase italic tracking-wide">Free delivery above ₹199 on this hub</p>
@@ -204,7 +211,15 @@ export const VerticalStoreList = memo(({
         ) : (
           <div className="text-center py-24 opacity-30 flex flex-col items-center">
              <Store className="h-20 w-20 mb-4" />
-             <p className="font-black italic uppercase text-sm tracking-widest">No hubs matching your preference</p>
+             <p className="font-black italic uppercase text-sm tracking-widest text-center">
+               No hubs matching your preference in {activeZoneId ? 'this zone' : 'your area'}
+             </p>
+             <button 
+               onClick={() => window.dispatchEvent(new CustomEvent('open-location-picker'))}
+               className="mt-6 text-[10px] font-black text-primary uppercase underline underline-offset-4"
+             >
+               Change Location
+             </button>
           </div>
         )}
       </div>

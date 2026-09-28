@@ -9,7 +9,7 @@ import Loading from './loading';
 
 /**
  * @fileOverview Optimized Home Router.
- * Removed blocking fetchData to allow components to render instantly from localStorage cache.
+ * Now passes empty initial props to ensure children initiate their own smart fetching.
  */
 function ShopyKartAppContent() {
   const router = useRouter();
@@ -65,7 +65,12 @@ function ShopyKartAppContent() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
-      <HomeClient />
+      {/* EXPLICIT EMPTY PROPS TO TRIGGER INTERNAL COMPONENT FETCHING */}
+      <HomeClient 
+        initialBanners={[]} 
+        initialCategories={[]} 
+        initialStores={[]} 
+      />
     </>
   );
 }
