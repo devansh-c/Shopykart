@@ -28,7 +28,7 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 
 const STATUS_FLOW = [
@@ -319,10 +319,10 @@ export default function OrderManagement() {
                </div>
                <DialogHeader>
                   <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter">Broadcast Note</DialogTitle>
+                  <DialogDescription className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-relaxed">
+                    Visible to customer on tracking page
+                  </DialogDescription>
                </DialogHeader>
-               <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed tracking-widest">
-                  This note will be visible to the customer on their live tracking page.
-               </p>
             </div>
 
             <div className="space-y-6 mt-6">

@@ -31,7 +31,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { OrderSuccessOverlay } from '@/components/cart/OrderSuccessOverlay';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
@@ -446,11 +446,12 @@ export default function CartPage() {
                 ref={sliderRef} 
                 className={cn(
                   "w-full h-24 rounded-[3rem] p-3 flex items-center relative overflow-hidden transition-all duration-300 transform-gpu z-[2000] touch-none select-none", 
-                  (hasClosedItems || !isMinOrderMet || cart.length === 0) ? "bg-gray-100 opacity-60" : "bg-[#0B0B0B] border-white/10 shadow-2xl"
+                  (hasClosedItems || !isMinOrderMet || cart.length === 0) ? "bg-gray-100 opacity-60 cursor-not-allowed" : "bg-[#0B0B0B] border-white/10 shadow-2xl"
                 )}
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
+                style={{ touchAction: 'none' }}
               >
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <span className="text-[10px] font-black uppercase italic tracking-[0.4em] text-white/20">SLIDE TO PLACE ORDER</span>
@@ -486,6 +487,7 @@ export default function CartPage() {
           <DialogHeader className="pb-4 shrink-0 text-center">
              <div className="h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-3"><MapPin className="h-8 w-8" /></div>
              <DialogTitle className="text-3xl font-black italic uppercase tracking-tighter text-gray-900">Drop Address</DialogTitle>
+             <DialogDescription className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Enter complete details for 10-min delivery</DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto no-scrollbar space-y-4">
               <div className="space-y-1">
