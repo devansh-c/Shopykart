@@ -43,8 +43,7 @@
   html {
     scrollbar-width: none !important;
     -ms-overflow-style: none !important;
-    height: auto;
-    min-height: 100%;
+    height: 100%;
     overflow-x: hidden;
     scroll-behavior: smooth;
   }
@@ -56,16 +55,9 @@
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
     overflow-y: auto !important;
-    min-height: 100vh;
+    min-height: 100%;
     height: auto;
     -webkit-overflow-scrolling: touch !important; 
-  }
-
-  /* PERFORMANCE: content-visibility allows faster browser rendering for long pages */
-  .content-visibility-auto {
-    content-visibility: auto;
-    contain-intrinsic-size: 1px 180px;
-    contain: layout style paint;
   }
 
   .no-scrollbar::-webkit-scrollbar {
@@ -79,7 +71,6 @@
   .premium-card {
     @apply bg-white rounded-[2rem] border border-border/60 relative overflow-hidden;
     contain: content;
-    box-shadow: none; 
   }
 
   nav.fixed {
