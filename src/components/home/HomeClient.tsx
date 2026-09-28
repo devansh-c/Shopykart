@@ -23,8 +23,8 @@ interface HomeClientProps {
 }
 
 /**
- * @fileOverview Home Page Orchestrator - Clean Sequential Layout.
- * Order: Search -> Main Banner -> Announcement -> Coupons -> Stores.
+ * @fileOverview Home Page Orchestrator - Fixed Sequential Layout.
+ * Order: Search -> Main Banner -> Announcement -> Coupons -> Vertical Stores.
  */
 function HomeClientContent({ 
   initialBanners, 
@@ -71,6 +71,7 @@ function HomeClientContent({
 
   return (
     <div className="min-h-screen bg-white transform-gpu content-visibility-auto">
+      {/* 0. SEARCH & LOCATION */}
       {activeMode !== 'Medical' && activeMode !== 'Beauty' && (
         <LocationHeader 
           searchValue={searchQuery} 
@@ -118,11 +119,13 @@ function HomeClientContent({
           <div className="animate-in fade-in duration-300">
             {!searchQuery && activeCategory === 'all' && (
               <div className="pt-2">
-                {/* 1. PRIORITY SEQUENCE: Banner -> Announcement -> Coupons */}
+                {/* 1. MAIN BANNER SLIDER */}
                 <OfferSlider initialData={initialBanners} />
                 
+                {/* 2. ANNOUNCEMENT */}
                 <AnnouncementBanner initialData={initialAnnouncement} />
                 
+                {/* 3. COUPONS SECTION */}
                 <OffersSection />
                 
                 {activeMode === 'Food' && (
@@ -141,6 +144,7 @@ function HomeClientContent({
                 />
               )}
               
+              {/* 4. VERTICAL STORES FEED */}
               <VerticalStoreList 
                 searchQuery={searchQuery}
                 initialData={initialStores}
