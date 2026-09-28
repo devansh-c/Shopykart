@@ -5,7 +5,7 @@ import { useEffect, useState, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 
 /**
- * @fileOverview Tawk.to visibility control.
+ * @fileOverview Tawk.to visibility control and custom positioning.
  * Hydration safe: Script is always present in the tree, visibility logic runs after mount.
  */
 export function TawkChat() {
@@ -17,6 +17,15 @@ export function TawkChat() {
   useEffect(() => {
     setMounted(true);
     (window as any).onTawkLoadSignal = () => {
+      // POSITION FIX: Lift the widget to avoid overlapping with Bottom Nav
+      if ((window as any).Tawk_API) {
+        (window as any).Tawk_API.customStyle = {
+          visibility: {
+            desktop: { xOffset: 20, yOffset: 100 },
+            mobile: { xOffset: 15, yOffset: 95 }
+          }
+        };
+      }
       setIsTawkReady(true);
     };
     return () => { delete (window as any).onTawkLoadSignal; };

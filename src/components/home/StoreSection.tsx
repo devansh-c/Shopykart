@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -87,7 +86,7 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
                   const storeSlug = store.slug || slugify(store.storeName) || store.id;
                   router.push(`/store/${storeSlug}/`);
                 }}
-                className="block text-left w-full rounded-[2.5rem] overflow-hidden shadow-xl group border border-white/10 relative transform-gpu active:scale-95 transition-all"
+                className="block text-left w-full rounded-[1.5rem] overflow-hidden shadow-xl group border border-white/10 relative transform-gpu active:scale-95 transition-all"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-[#8C7A63] via-[#B8A38B] to-[#D9C4A9]" />
                 <div className="relative h-28 w-full overflow-hidden z-10">

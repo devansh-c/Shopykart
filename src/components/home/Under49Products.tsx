@@ -78,7 +78,7 @@ export function Under49Products() {
               className="relative min-w-[160px] flex flex-col group transition-all transform-gpu"
             >
               {/* Product Card Container */}
-              <div className="relative aspect-square w-full rounded-[2.2rem] overflow-hidden border border-gray-100 bg-gray-50 shadow-sm">
+              <div className="relative aspect-square w-full rounded-[1.5rem] overflow-hidden border border-gray-100 bg-gray-50 shadow-sm">
                  <Image 
                    src={p.imageUrl} 
                    alt={p.name} 

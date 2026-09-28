@@ -122,7 +122,7 @@ export const VerticalStoreList = memo(({
           <div className="space-y-10">
             {[1, 2].map(i => (
               <div key={i} className="space-y-4">
-                <div className="h-52 w-full bg-gray-50 rounded-[2.5rem]" />
+                <div className="h-52 w-full bg-gray-50 rounded-[1.5rem]" />
                 <div className="flex justify-between px-4">
                   <div className="h-6 w-1/3 bg-gray-50 rounded-full" />
                   <div className="h-6 w-12 bg-gray-50 rounded-full" />
@@ -147,7 +147,7 @@ export const VerticalStoreList = memo(({
                   isOffline && "opacity-75 grayscale-[0.3]"
                 )}
               >
-                <div className="relative w-full aspect-[18/9] rounded-[2.5rem] overflow-hidden border border-gray-100 bg-gray-50">
+                <div className="relative w-full aspect-[18/9] rounded-[1.5rem] overflow-hidden border border-gray-100 bg-gray-50">
                   <Image 
                     src={displayImage} 
                     alt={store.storeName} 
