@@ -32,15 +32,14 @@ interface ProductQuickViewProps {
 }
 
 /**
- * @fileOverview ProductQuickView with Fixed Cart Addition Logic.
- * FIXED: Auth overlay triggers if not logged in.
- * FIXED: Rounding adjusted to 1.5rem for professional look.
+ * @fileOverview ProductQuickView with Fixed Cart Addition Logic for Deployed Apps.
+ * FIXED: Auth guard now accounts for loading states to prevent button "freezing".
  */
 export function ProductQuickView({ product, children, isMedical, vendorScheduleOpen }: ProductQuickViewProps) {
   const { addToCart } = useCart();
   const { toast } = useToast();
   const firestore = useFirestore();
-  const { user } = useUser();
+  const { user, loading: authLoading } = useUser();
   const [isOpen, setIsOpen] = useState(false);
   const [localQuantity, setLocalQuantity] = useState(1);
   const [selectedOption, setSelectedOption] = useState<{ name: string; price: number } | null>(null);
@@ -70,8 +69,15 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
   const handleAddToCart = () => {
     if (isOffline) return;
     
-    // AUTH GUARD: If not logged in, open verification and stop
-    if (!user) {
+    // AUTH GUARD FIX: Check for session flag too if firebase is loading
+    const sessionActive = typeof window !== 'undefined' && localStorage.getItem('shopykart_session_active') === 'true';
+    
+    if (authLoading) {
+      toast({ title: "Initializing...", description: "Please wait a moment." });
+      return;
+    }
+
+    if (!user && !sessionActive) {
       setIsOpen(false);
       window.dispatchEvent(new CustomEvent('open-auth-overlay'));
       return;
@@ -82,7 +88,6 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
       return;
     }
 
-    // PRECISE CART SYNC: Structured for reliability
     const finalItem = {
       ...product,
       id: String(product.id),
@@ -182,9 +187,9 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
               <Button 
                 onClick={handleAddToCart} 
                 disabled={isOffline || (product?.isVarietyRequired && !selectedOption)}
-                className="flex-1 h-14 bg-primary hover:bg-primary/90 text-white rounded-2xl font-black uppercase italic text-sm shadow-xl active:scale-95 transition-all shadow-primary/20"
+                className="flex-1 h-14 bg-primary hover:bg-primary/90 text-white rounded-[1.5rem] font-black uppercase italic text-sm shadow-xl active:scale-95 transition-all shadow-primary/20"
               >
-                {isOffline ? 'OFFLINE' : (product?.isVarietyRequired && !selectedOption) ? 'PICK OPTION' : `ADD • ₹${(currentPrice * localQuantity).toFixed(0)}`}
+                {isOffline ? 'OFFLINE' : authLoading ? 'LOADING...' : (product?.isVarietyRequired && !selectedOption) ? 'PICK OPTION' : `ADD • ₹${(currentPrice * localQuantity).toFixed(0)}`}
               </Button>
            </div>
         </div>

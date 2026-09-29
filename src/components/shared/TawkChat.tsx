@@ -1,4 +1,3 @@
-
 'use client';
 
 import Script from 'next/script';
@@ -6,8 +5,8 @@ import { useEffect, useState, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 
 /**
- * @fileOverview Tawk.to visibility control and custom positioning.
- * POSITION FIX: Increased yOffset to 140px to ensure it clears the Bottom Nav and Toasts.
+ * @fileOverview Tawk.to visibility control with Deployed App Position Fix.
+ * FORCE FIX: Set yOffset to 140px to ensure it clears Bottom Nav in all mobile environments.
  */
 export function TawkChat() {
   const [mounted, setMounted] = useState(false);
@@ -19,7 +18,7 @@ export function TawkChat() {
     setMounted(true);
     (window as any).onTawkLoadSignal = () => {
       if ((window as any).Tawk_API) {
-        // FORCE LIFT: Ensuring the widget is high enough on mobile (140px)
+        // LIFT CHAT: Ensuring it doesn't overlap navigation buttons
         (window as any).Tawk_API.customStyle = {
           visibility: {
             desktop: { xOffset: 20, yOffset: 120 },

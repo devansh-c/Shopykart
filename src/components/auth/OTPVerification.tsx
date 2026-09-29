@@ -12,8 +12,8 @@ import { cn } from '@/lib/utils';
 type AuthStep = 'details' | 'otp';
 
 /**
- * @fileOverview Redesigned OTP Verification in Premium Light Mode.
- * Optimized for ultra-fast execution with minimal simulated delays.
+ * @fileOverview Accelerated Identity Verification Flow.
+ * Optimized for 10-second total completion.
  */
 export function OTPVerification() {
   const [loading, setLoading] = useState(false);
@@ -35,41 +35,36 @@ export function OTPVerification() {
     e.preventDefault();
     
     if (!formData.fullName.trim() || formData.phoneNumber.length !== 10 || !formData.address.trim() || formData.pincode.length !== 6) {
-      toast({ variant: "destructive", title: "Incomplete Details", description: "Please fill all fields correctly." });
+      toast({ variant: "destructive", title: "Incomplete Details", description: "All fields are required for 10-min delivery." });
       return;
     }
 
     setLoading(true);
-    // Reduced simulated delay for snappier feel
+    // Instant simulation for speed
     setTimeout(() => {
       setStep('otp');
       setLoading(false);
       toast({ 
         title: "OTP SENT! 📩", 
-        description: "Verification code is 788911",
-        duration: 5000 
+        description: "Security code: 788911",
+        duration: 8000 
       });
-    }, 400);
+    }, 200);
   };
 
   const handleVerifyOTP = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!firestore) return;
+    if (!firestore || !auth) return;
 
     if (otpValue !== '788911') {
-      toast({ variant: "destructive", title: "Invalid OTP", description: "Please use the code 788911." });
+      toast({ variant: "destructive", title: "Invalid Code", description: "Please enter 788911." });
       return;
     }
 
     setLoading(true);
     try {
-      let uid = '';
-      if (auth) {
-        const userCredential = await signInAnonymously(auth);
-        uid = userCredential.user.uid;
-      } else {
-        uid = 'user_' + Date.now();
-      }
+      const userCredential = await signInAnonymously(auth);
+      const uid = userCredential.user.uid;
 
       const userRef = doc(firestore, 'users', uid);
       await setDoc(userRef, {
@@ -86,20 +81,18 @@ export function OTPVerification() {
         isVerified: true
       }, { merge: true });
 
+      // SESSION LOCK: Critical for deployed app persistence
       localStorage.setItem('user_name', formData.fullName.toUpperCase());
-      localStorage.setItem('user_phone', formData.phoneNumber);
       localStorage.setItem('shopykart_session_active', 'true');
       localStorage.setItem('user_location_set', 'true');
       localStorage.setItem('show_welcome_bonus', 'true');
 
-      toast({ title: "Welcome!", description: "Identity verified successfully." });
+      toast({ title: "Welcome!", description: "Account activated instantly." });
       
-      setTimeout(() => {
-        window.location.reload();
-      }, 100);
-
+      // Full refresh to sync state across all components
+      window.location.reload();
     } catch (err: any) {
-      toast({ variant: "destructive", title: "System Busy", description: "Retry after a second." });
+      toast({ variant: "destructive", title: "Server Error", description: "Retrying..." });
     } finally {
       setLoading(false);
     }
@@ -110,17 +103,17 @@ export function OTPVerification() {
       <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full space-y-12 py-10">
         
         <div className="text-center space-y-4">
-          <div className="bg-primary/5 h-20 w-20 rounded-[2.5rem] flex items-center justify-center text-primary mx-auto mb-2 border border-primary/10 shadow-inner">
+          <div className="bg-primary/5 h-20 w-20 rounded-[1.5rem] flex items-center justify-center text-primary mx-auto mb-2 border border-primary/10 shadow-inner">
             {step === 'details' ? <Sparkles className="h-10 w-10" /> : <KeyRound className="h-10 w-10 animate-pulse" />}
           </div>
           <div className="space-y-1">
             <h1 className="text-4xl font-black italic tracking-tighter leading-tight text-gray-900 uppercase">
-              {step === 'details' ? 'Customer\n' : 'Verify\n'}<span className="text-primary">{step === 'details' ? 'Access.' : 'Identity.'}</span>
+              {step === 'details' ? 'Quick\n' : 'Verify\n'}<span className="text-primary">{step === 'details' ? 'Setup.' : 'Access.'}</span>
             </h1>
             <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.3em] max-w-[240px] mx-auto leading-relaxed">
               {step === 'details' 
-                ? 'UNLOCK PREMIUM GOURMET SERVICES INSTANTLY.' 
-                : 'ENTER THE 6-DIGIT SECURITY CODE TO PROCEED.'}
+                ? 'UNLOCK SHOPYKART NETWORK IN SECONDS.' 
+                : 'ENTER THE CODE 788911 TO CONTINUE.'}
             </p>
           </div>
         </div>
@@ -134,7 +127,7 @@ export function OTPVerification() {
                   placeholder="FULL NAME"
                   value={formData.fullName}
                   onChange={(e) => setFormData({...formData, fullName: e.target.value})}
-                  className="w-full h-14 bg-gray-50 border border-gray-100 rounded-2xl pl-12 pr-4 text-[11px] font-black tracking-widest text-gray-800 focus:outline-none focus:border-primary/30 transition-all uppercase placeholder:text-gray-300"
+                  className="w-full h-14 bg-gray-50 border border-gray-100 rounded-[1.25rem] pl-12 pr-4 text-[11px] font-black tracking-widest text-gray-800 focus:outline-none focus:border-primary/30 transition-all uppercase placeholder:text-gray-300"
                   required
                 />
               </div>
@@ -146,7 +139,7 @@ export function OTPVerification() {
                   placeholder="MOBILE NUMBER"
                   value={formData.phoneNumber}
                   onChange={(e) => setFormData({...formData, phoneNumber: e.target.value.replace(/\D/g, '').slice(0, 10)})}
-                  className="w-full h-14 bg-gray-50 border border-gray-100 rounded-2xl pl-12 pr-4 text-[11px] font-black tracking-widest text-gray-800 focus:outline-none focus:border-primary/30 transition-all uppercase placeholder:text-gray-300"
+                  className="w-full h-14 bg-gray-50 border border-gray-100 rounded-[1.25rem] pl-12 pr-4 text-[11px] font-black tracking-widest text-gray-800 focus:outline-none focus:border-primary/30 transition-all uppercase placeholder:text-gray-300"
                   required
                 />
               </div>
@@ -154,10 +147,10 @@ export function OTPVerification() {
               <div className="relative group">
                 <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-primary transition-colors" />
                 <input
-                  placeholder="DELIVERY ADDRESS"
+                  placeholder="DROP ADDRESS"
                   value={formData.address}
                   onChange={(e) => setFormData({...formData, address: e.target.value})}
-                  className="w-full h-14 bg-gray-50 border border-gray-100 rounded-2xl pl-12 pr-4 text-[11px] font-black tracking-widest text-gray-800 focus:outline-none focus:border-primary/30 transition-all uppercase placeholder:text-gray-300"
+                  className="w-full h-14 bg-gray-50 border border-gray-100 rounded-[1.25rem] pl-12 pr-4 text-[11px] font-black tracking-widest text-gray-800 focus:outline-none focus:border-primary/30 transition-all uppercase placeholder:text-gray-300"
                   required
                 />
               </div>
@@ -167,7 +160,7 @@ export function OTPVerification() {
                   placeholder="CITY"
                   value={formData.city}
                   onChange={(e) => setFormData({...formData, city: e.target.value})}
-                  className="w-full h-14 bg-gray-50 border border-gray-100 rounded-2xl px-6 text-[11px] font-black text-gray-800 focus:outline-none focus:border-primary/30 transition-all uppercase placeholder:text-gray-300"
+                  className="w-full h-14 bg-gray-50 border border-gray-100 rounded-[1.25rem] px-6 text-[11px] font-black text-gray-800 focus:outline-none focus:border-primary/30 transition-all uppercase placeholder:text-gray-300"
                   required
                 />
                 <input
@@ -175,7 +168,7 @@ export function OTPVerification() {
                   placeholder="PINCODE"
                   value={formData.pincode}
                   onChange={(e) => setFormData({...formData, pincode: e.target.value.replace(/\D/g, '').slice(0, 6)})}
-                  className="w-full h-14 bg-gray-50 border border-gray-100 rounded-2xl px-6 text-[11px] font-black text-gray-800 focus:outline-none focus:border-primary/30 transition-all uppercase text-center placeholder:text-gray-300"
+                  className="w-full h-14 bg-gray-50 border border-gray-100 rounded-[1.25rem] px-6 text-[11px] font-black text-gray-800 focus:outline-none focus:border-primary/30 transition-all uppercase text-center placeholder:text-gray-300"
                   required
                 />
               </div>
@@ -184,9 +177,9 @@ export function OTPVerification() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full h-16 bg-black hover:bg-primary text-white rounded-[2rem] font-black uppercase italic shadow-2xl transition-all text-sm tracking-widest"
+              className="w-full h-16 bg-[#0B0B0B] hover:bg-primary text-white rounded-[1.5rem] font-black uppercase italic shadow-2xl transition-all text-sm tracking-widest"
             >
-              {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : 'REQUEST VERIFICATION'}
+              {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : 'GET VERIFICATION'}
             </Button>
           </form>
         ) : (
@@ -196,7 +189,7 @@ export function OTPVerification() {
                    <div className="flex gap-2">
                      {[...Array(6)].map((_, i) => (
                        <div key={i} className={cn(
-                         "w-12 h-16 rounded-2xl border-2 flex items-center justify-center text-2xl font-black italic",
+                         "w-12 h-16 rounded-[1rem] border-2 flex items-center justify-center text-2xl font-black italic",
                          otpValue.length > i ? "border-primary bg-primary/5 text-primary" : "border-gray-100 bg-gray-50 text-gray-200"
                        )}>
                          {otpValue[i] || '•'}
@@ -213,7 +206,7 @@ export function OTPVerification() {
                   required
                 />
                 <p className="text-[9px] text-gray-400 font-bold text-center uppercase tracking-widest leading-relaxed">
-                  Verification code is 788911<br />Instant activation enabled.
+                  Security code is 788911<br />Account is ready for activation.
                 </p>
              </div>
 
@@ -221,12 +214,12 @@ export function OTPVerification() {
                 <Button
                   type="submit"
                   disabled={loading || otpValue.length !== 6}
-                  className="w-full h-16 bg-primary hover:bg-black text-white rounded-[2rem] font-black uppercase italic shadow-xl active:scale-98 transition-all text-sm tracking-widest"
+                  className="w-full h-16 bg-primary hover:bg-[#0B0B0B] text-white rounded-[1.5rem] font-black uppercase italic shadow-xl active:scale-98 transition-all text-sm tracking-widest"
                 >
-                  {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : 'ACTIVATE ACCOUNT'}
+                  {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : 'START SHOPPING'}
                 </Button>
                 <button type="button" onClick={() => setStep('details')} className="w-full text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] hover:text-primary transition-colors">
-                  ← Edit Information
+                  ← Back to Details
                 </button>
              </div>
           </form>
