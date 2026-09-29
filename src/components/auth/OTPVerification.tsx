@@ -40,7 +40,7 @@ export function OTPVerification() {
     }
 
     setLoading(true);
-    // Reduced simulated delay from 1000ms to 300ms for snappier feel
+    // Reduced simulated delay for snappier feel
     setTimeout(() => {
       setStep('otp');
       setLoading(false);
@@ -49,7 +49,7 @@ export function OTPVerification() {
         description: "Verification code is 788911",
         duration: 5000 
       });
-    }, 300);
+    }, 400);
   };
 
   const handleVerifyOTP = async (e: React.FormEvent) => {
@@ -71,7 +71,6 @@ export function OTPVerification() {
         uid = 'user_' + Date.now();
       }
 
-      // Perform write immediately
       const userRef = doc(firestore, 'users', uid);
       await setDoc(userRef, {
         fullName: formData.fullName.toUpperCase(),
@@ -87,7 +86,6 @@ export function OTPVerification() {
         isVerified: true
       }, { merge: true });
 
-      // Immediate session marking
       localStorage.setItem('user_name', formData.fullName.toUpperCase());
       localStorage.setItem('user_phone', formData.phoneNumber);
       localStorage.setItem('shopykart_session_active', 'true');
@@ -96,7 +94,6 @@ export function OTPVerification() {
 
       toast({ title: "Welcome!", description: "Identity verified successfully." });
       
-      // Faster reload transition
       setTimeout(() => {
         window.location.reload();
       }, 100);
@@ -109,7 +106,7 @@ export function OTPVerification() {
   };
 
   return (
-    <div className="fixed inset-0 z-[500] bg-white flex flex-col p-8 animate-in fade-in duration-300 overflow-y-auto no-scrollbar">
+    <div className="fixed inset-0 z-[1000002] bg-white flex flex-col p-8 animate-in fade-in duration-300 overflow-y-auto no-scrollbar">
       <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full space-y-12 py-10">
         
         <div className="text-center space-y-4">
@@ -239,7 +236,7 @@ export function OTPVerification() {
       <div className="mt-auto text-center pb-8 opacity-40">
         <div className="flex items-center justify-center gap-2">
           <ShieldCheck className="h-4 w-4" />
-          <p className="text-[8px] font-black uppercase tracking-[0.5em]">Bank-Grade Security</p>
+          <p className="text-[8px] font-black uppercase tracking-[0.5em]">Identity Secured</p>
         </div>
       </div>
     </div>

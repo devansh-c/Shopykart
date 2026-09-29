@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -33,9 +32,9 @@ interface ProductQuickViewProps {
 }
 
 /**
- * @fileOverview ProductQuickView with Auth Guard on Add button.
+ * @fileOverview ProductQuickView with Fixed Cart Addition Logic.
  * FIXED: Auth overlay triggers if not logged in.
- * FIXED: Rounding adjusted to 1.5rem.
+ * FIXED: Rounding adjusted to 1.5rem for professional look.
  */
 export function ProductQuickView({ product, children, isMedical, vendorScheduleOpen }: ProductQuickViewProps) {
   const { addToCart } = useCart();
@@ -57,8 +56,8 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
   const { data: globalOffer } = useDoc<any>(offerRef);
 
   const currentPrice = useMemo(() => {
-    const base = product.price || 0;
-    const optPrice = selectedOption ? selectedOption.price : 0;
+    const base = Number(product.price) || 0;
+    const optPrice = selectedOption ? Number(selectedOption.price) : 0;
     const totalBase = base + optPrice;
     
     if (globalOffer?.isActive && globalOffer?.isClosedAfterMilestone !== true) {
@@ -71,7 +70,7 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
   const handleAddToCart = () => {
     if (isOffline) return;
     
-    // AUTH GUARD: If not logged in, open auth overlay and stop
+    // AUTH GUARD: If not logged in, open verification and stop
     if (!user) {
       setIsOpen(false);
       window.dispatchEvent(new CustomEvent('open-auth-overlay'));
@@ -83,7 +82,20 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
       return;
     }
 
-    addToCart({ ...product, imageUrl: product.imageUrl, quantity: localQuantity, selectedOption, instructions, price: currentPrice });
+    // PRECISE CART SYNC: Structured for reliability
+    const finalItem = {
+      ...product,
+      id: String(product.id),
+      imageUrl: product.imageUrl,
+      quantity: localQuantity,
+      selectedOption,
+      instructions: instructions.trim(),
+      price: currentPrice,
+      restaurantName: product.restaurantName || vendor?.storeName || 'ShopyKart'
+    };
+
+    addToCart(finalItem);
+    
     setIsOpen(false); 
     setLocalQuantity(1); 
     setSelectedOption(null);

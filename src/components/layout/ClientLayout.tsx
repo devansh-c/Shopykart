@@ -5,6 +5,7 @@ import { useUser } from '@/firebase';
 import { usePathname, useRouter } from 'next/navigation';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 import { EmailAuth } from '@/components/auth/EmailAuth';
+import { OTPVerification } from '@/components/auth/OTPVerification';
 import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
 import React, { ReactNode, useState, useEffect, useMemo, memo } from 'react';
@@ -61,10 +62,7 @@ const AuthGuard = memo(({ children }: { children: ReactNode }) => {
     <>
       {children}
       {shouldRenderAuth && (
-        <EmailAuth onClose={() => {
-          setShowAuthOverlay(false);
-          if (isAuthRequiredRoute) router.push('/');
-        }} />
+        <OTPVerification />
       )}
     </>
   );
