@@ -34,6 +34,7 @@ interface ProductQuickViewProps {
 
 /**
  * @fileOverview ProductQuickView with Next.js 15 A11y compliance and Industrial Bottom Locking.
+ * Fixed: Typos and mobile interaction layers.
  */
 export function ProductQuickView({ product, children, isMedical, vendorScheduleOpen }: ProductQuickViewProps) {
   const { addToCart } = useCart();
@@ -89,7 +90,7 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="rounded-t-[3rem] p-0 overflow-hidden border-none shadow-2xl z-[2000001] bottom-0 top-auto translate-y-0 focus:outline-none h-[88vh] max-w-lg flex flex-col bg-[#0B0B0B] sm:h-[80vh] sm:rounded-[3rem] sm:bottom-1/2 sm:translate-y-1/2">
+      <DialogContent className="rounded-t-[2rem] p-0 overflow-hidden border-none shadow-2xl z-[2000001] bottom-0 top-auto translate-y-0 focus:outline-none h-[88vh] max-w-lg flex flex-col bg-[#0B0B0B] sm:h-[80vh] sm:rounded-[2rem] sm:bottom-1/2 sm:translate-y-1/2">
         
         {/* HEADER SECTION - FIXED */}
         <div className="p-6 pb-4 shrink-0 border-b border-white/5 relative z-10 text-white">
@@ -121,7 +122,7 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
             {product.description && <p className="text-[10px] font-medium text-gray-400 italic leading-relaxed">{product.description}</p>}
             
             {product.options && product.options.length > 0 && (
-              <div className="space-y-4 pt-2 bg-white/5 p-5 rounded-[2rem] border border-white/5">
+              <div className="space-y-4 pt-2 bg-white/5 p-5 rounded-[1.5rem] border border-white/5">
                  <div className="flex items-center gap-2">
                     <ListTree className="h-4 w-4 text-primary" />
                     <span className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400 italic">Select Option {product.isVarietyRequired && <span className="text-primary">*</span>}</span>
@@ -146,7 +147,7 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
 
             <div className="space-y-2 pb-20">
               <label className="text-[9px] font-black uppercase text-gray-500 ml-1">Kitchen Note</label>
-              <Taxarea 
+              <Textarea 
                 disabled={isOffline} 
                 placeholder="E.G. NO ONION / EXTRA SPICY" 
                 value={instructions} 
@@ -158,7 +159,7 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
         </div>
 
         {/* FOOTER ACTION - LOCKED TO BOTTOM */}
-        <div className="p-6 bg-[#0B0B0B] border-t border-white/10 pb-12 shrink-0 shadow-[0_-20px_50px_rgba(0,0,0,0.8)] relative z-50">
+        <div className="p-6 bg-[#0B0B0B] border-t border-white/10 pb-12 shrink-0 shadow-[0_-20px_50px_rgba(0,0,0,0.8)] relative z-50 pointer-events-auto">
            <div className="flex items-center gap-3 max-w-md mx-auto">
               <div className="flex items-center bg-white/5 rounded-xl h-14 px-2 border border-white/10 shrink-0">
                  <button disabled={isOffline} onClick={() => setLocalQuantity(Math.max(1, localQuantity - 1))} className="h-10 w-10 flex items-center justify-center bg-white/10 rounded-lg text-white active:scale-90"><Minus className="h-4 w-4" /></button>

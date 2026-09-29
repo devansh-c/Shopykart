@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
@@ -9,7 +10,7 @@ import { cn, slugify } from "@/lib/utils"
 import { useState, useEffect, useMemo } from "react"
 
 /**
- * @fileOverview TopTenProducts with Strict Zone Filtering.
+ * @fileOverview TopTenProducts with Strict Zone Filtering and Consistent Rounding.
  */
 export function TopTenProducts() {
   const firestore = useFirestore();
@@ -64,7 +65,7 @@ export function TopTenProducts() {
           <div 
             key={p.id} 
             onClick={() => router.push(`/product/${p.slug || slugify(p.name)}-${p.id}`)}
-            className="relative min-w-[180px] aspect-[4/5] rounded-[2.5rem] bg-[#0B0B0B] p-5 flex flex-col justify-between shadow-2xl active:scale-95 transition-all cursor-pointer border border-white/5 overflow-hidden group transform-gpu"
+            className="relative min-w-[180px] aspect-[4/5] rounded-[1.5rem] bg-[#0B0B0B] p-5 flex flex-col justify-between shadow-2xl active:scale-95 transition-all cursor-pointer border border-white/5 overflow-hidden group transform-gpu"
           >
             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity"><Zap className="h-20 w-20 -rotate-12 text-white" /></div>
             <div className="relative h-28 w-full rounded-2xl overflow-hidden bg-white/5 border border-white/10 shadow-inner">

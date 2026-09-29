@@ -42,7 +42,7 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare }: any) => {
 
   return (
     <div className={cn(
-      "relative bg-[#0B0B0B] rounded-[2.5rem] p-3 border border-white/5 flex flex-col shadow-2xl transition-all transform-gpu hover:scale-[1.02] will-change-transform", 
+      "relative bg-[#0B0B0B] rounded-[1.5rem] p-3 border border-white/5 flex flex-col shadow-2xl transition-all transform-gpu hover:scale-[1.02] will-change-transform", 
       isOffline && "opacity-75 grayscale-[0.5]"
     )}>
       {isBestRated && !isOffline && (
@@ -56,7 +56,7 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare }: any) => {
       <ProductQuickView product={product} vendorScheduleOpen={!isOffline}>
         <div className="flex flex-col h-full cursor-pointer">
           <div className="relative aspect-square w-full mb-3">
-             <div className="relative w-full h-full overflow-hidden rounded-[1.5rem] border border-white/10 shadow-inner">
+             <div className="relative w-full h-full overflow-hidden rounded-[1.25rem] border border-white/10 shadow-inner">
                 <Image src={product.imageUrl} alt={product.name} fill className="object-cover" unoptimized priority={false} />
                 {isOffline && (
                   <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center p-2 text-center z-10">
@@ -126,7 +126,6 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     };
   }, []);
 
-  // INSTANT FETCH: Limits removed for immediate full catalog access (1000 items)
   const productsQuery = useMemoFirebase(() => 
     firestore ? query(collection(firestore, 'products'), limit(1000)) : null, 
     [firestore]
@@ -185,7 +184,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       {queryLoading && !dbProducts ? (
         <div className="grid grid-cols-2 gap-4 animate-in fade-in duration-500">
            {[1, 2, 3, 4].map(i => (
-             <div key={i} className="h-48 w-full bg-gray-50 rounded-[2.5rem] border border-gray-100 animate-pulse" />
+             <div key={i} className="h-48 w-full bg-gray-50 rounded-[1.5rem] border border-gray-100 animate-pulse" />
            ))}
         </div>
       ) : (

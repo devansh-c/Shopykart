@@ -22,8 +22,8 @@ export function TawkChat() {
       if ((window as any).Tawk_API) {
         (window as any).Tawk_API.customStyle = {
           visibility: {
-            desktop: { xOffset: 20, yOffset: 100 },
-            mobile: { xOffset: 15, yOffset: 95 }
+            desktop: { xOffset: 20, yOffset: 120 },
+            mobile: { xOffset: 15, yOffset: 110 }
           }
         };
       }
