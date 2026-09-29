@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation';
 
 /**
  * @fileOverview Tawk.to visibility control and custom positioning.
- * Hydration safe: Script is always present in the tree, visibility logic runs after mount.
+ * POSITION FIX: Increased yOffset to 140px to ensure it clears the Bottom Nav and Toasts.
  */
 export function TawkChat() {
   const [mounted, setMounted] = useState(false);
@@ -18,12 +18,12 @@ export function TawkChat() {
   useEffect(() => {
     setMounted(true);
     (window as any).onTawkLoadSignal = () => {
-      // POSITION FIX: Lift the widget to avoid overlapping with Bottom Nav
       if ((window as any).Tawk_API) {
+        // FORCE LIFT: Ensuring the widget is high enough on mobile (140px)
         (window as any).Tawk_API.customStyle = {
           visibility: {
             desktop: { xOffset: 20, yOffset: 120 },
-            mobile: { xOffset: 15, yOffset: 110 }
+            mobile: { xOffset: 20, yOffset: 140 }
           }
         };
       }

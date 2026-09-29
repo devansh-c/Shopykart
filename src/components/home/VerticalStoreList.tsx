@@ -12,8 +12,8 @@ import { Badge } from '@/components/ui/badge';
 import { useRouter } from 'next/navigation';
 
 /**
- * @fileOverview Super-Optimized VerticalStoreList - Zero GPU Load.
- * Removed heavy shadows and blurs to prevent blank screen on scroll.
+ * @fileOverview Super-Optimized VerticalStoreList.
+ * UI UPDATE: Reduced rounding to 1.5rem for professional look.
  */
 export const VerticalStoreList = memo(({ 
   searchQuery = '', 
