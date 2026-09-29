@@ -37,9 +37,6 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 
-/**
- * @fileOverview CartPage with Final Repaired Slide-to-Order touch interaction.
- */
 export default function CartPage() {
   const { cart, addToCart, removeFromCart, totalPrice, clearCart } = useCart();
   const router = useRouter();
@@ -223,7 +220,6 @@ export default function CartPage() {
     }
   };
 
-  // REPAIRED SLIDER LOGIC
   const handleTouchStart = (e: React.TouchEvent) => { 
     if (isPlacing) return; 
     setIsDragging(true); 

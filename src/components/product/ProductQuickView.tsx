@@ -146,7 +146,7 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
 
             <div className="space-y-2 pb-20">
               <label className="text-[9px] font-black uppercase text-gray-500 ml-1">Kitchen Note</label>
-              <Textarea 
+              <Taxarea 
                 disabled={isOffline} 
                 placeholder="E.G. NO ONION / EXTRA SPICY" 
                 value={instructions} 
