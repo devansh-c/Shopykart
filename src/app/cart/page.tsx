@@ -156,7 +156,8 @@ export default function CartPage() {
   }, [totalPrice, deliveryFee, deliveryTip, packingFee, coinDiscount, couponDiscount]);
 
   const finalizeOrder = async () => {
-    if (!user) {
+    const sessionActive = typeof window !== 'undefined' && localStorage.getItem('shopykart_session_active') === 'true';
+    if (!user && !sessionActive) {
       window.dispatchEvent(new CustomEvent('open-auth-overlay'));
       setSliderOffset(0);
       return;
@@ -186,7 +187,7 @@ export default function CartPage() {
     setIsPlacing(true);
     try {
       const orderData = {
-        userId: user.uid,
+        userId: user?.uid || 'guest_user',
         customerName: recipientForm.name,
         customerPhone: recipientForm.phone,
         address: recipientForm.address,
@@ -208,8 +209,8 @@ export default function CartPage() {
         customerOrderNumber: Math.floor(1000 + Math.random() * 9000)
       };
 
-      await addDoc(collection(firestore, 'orders'), orderData);
-      if (isRedeemingCoins) await updateDoc(doc(firestore, 'users', user.uid), { coins: increment(-20) });
+      await addDoc(collection(firestore!, 'orders'), orderData);
+      if (isRedeemingCoins && user) await updateDoc(doc(firestore!, 'users', user.uid), { coins: increment(-20) });
 
       setShowSuccessOverlay(true);
       setTimeout(() => { clearCart(); router.replace('/orders'); }, 1500);
@@ -259,7 +260,7 @@ export default function CartPage() {
       </header>
 
       <main className="px-4 pt-6 relative z-10 animate-in fade-in duration-700">
-        <div className="bg-white rounded-[2.5rem] overflow-hidden border border-border shadow-sm mb-6">
+        <div className="bg-white rounded-[1.5rem] overflow-hidden border border-border shadow-sm mb-6">
           
           <section className="px-5 py-6 flex items-center justify-between border-b border-gray-50">
              <div className="flex items-center gap-4 flex-1 min-w-0">
@@ -419,6 +420,7 @@ export default function CartPage() {
                   <div 
                     style={{ 
                       transform: `translateX(${sliderOffset}px)`,
+                      touchAction: 'none'
                     }} 
                     className={cn(
                       "h-16 w-16 rounded-3xl bg-white text-primary flex items-center justify-center z-10 shadow-xl pointer-events-auto",
@@ -483,3 +485,4 @@ export default function CartPage() {
     </div>
   );
 }
+
