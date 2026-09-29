@@ -33,9 +33,9 @@ interface ProductQuickViewProps {
 }
 
 /**
- * @fileOverview ProductQuickView with Next.js 15 A11y compliance.
- * FIXED: Replaced 'Taxarea' with 'Textarea' to resolve runtime error.
- * FIXED: Increased z-index for mobile interaction priority.
+ * @fileOverview ProductQuickView with Auth Guard on Add button.
+ * FIXED: Auth overlay triggers if not logged in.
+ * FIXED: Rounding adjusted to 1.5rem.
  */
 export function ProductQuickView({ product, children, isMedical, vendorScheduleOpen }: ProductQuickViewProps) {
   const { addToCart } = useCart();
@@ -70,7 +70,10 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
 
   const handleAddToCart = () => {
     if (isOffline) return;
+    
+    // AUTH GUARD: If not logged in, open auth overlay and stop
     if (!user) {
+      setIsOpen(false);
       window.dispatchEvent(new CustomEvent('open-auth-overlay'));
       return;
     }
@@ -91,7 +94,7 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="rounded-t-[2rem] p-0 overflow-hidden border-none shadow-2xl z-[2000001] bottom-0 top-auto translate-y-0 focus:outline-none h-[88vh] max-w-lg flex flex-col bg-[#0B0B0B] sm:h-[80vh] sm:rounded-[2rem] sm:bottom-1/2 sm:translate-y-1/2">
+      <DialogContent className="rounded-t-[1.5rem] p-0 overflow-hidden border-none shadow-2xl z-[2000001] bottom-0 top-auto translate-y-0 focus:outline-none h-[88vh] max-w-lg flex flex-col bg-[#0B0B0B] sm:h-[80vh] sm:rounded-[1.5rem] sm:bottom-1/2 sm:translate-y-1/2">
         
         <div className="p-6 pb-4 shrink-0 border-b border-white/5 relative z-10 text-white">
           <DialogHeader>
@@ -121,7 +124,7 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
             {product.description && <p className="text-[10px] font-medium text-gray-400 italic leading-relaxed">{product.description}</p>}
             
             {product.options && product.options.length > 0 && (
-              <div className="space-y-4 pt-2 bg-white/5 p-5 rounded-[1.5rem] border border-white/5">
+              <div className="space-y-4 pt-2 bg-white/5 p-5 rounded-[1.25rem] border border-white/5">
                  <div className="flex items-center gap-2">
                     <ListTree className="h-4 w-4 text-primary" />
                     <span className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400 italic">Select Option {product.isVarietyRequired && <span className="text-primary">*</span>}</span>
