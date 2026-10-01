@@ -26,7 +26,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useFirestore, useUser, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { doc, addDoc, collection, serverTimestamp, query, updateDoc, increment, getDocs, where } from 'firebase/firestore';
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { OrderSuccessOverlay } from '@/components/cart/OrderSuccessOverlay';
@@ -60,12 +60,6 @@ export default function CartPage() {
   const [couponCode, setCouponCode] = useState('');
   const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
-
-  // SLIDER STATE
-  const [sliderOffset, setSliderOffset] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
-  const sliderRef = useRef<HTMLDivElement>(null);
-  const startXRef = useRef(0);
 
   useEffect(() => {
     setIsMounted(true);
@@ -158,28 +152,23 @@ export default function CartPage() {
     const sessionActive = typeof window !== 'undefined' && localStorage.getItem('shopykart_session_active') === 'true';
     if (!user && !sessionActive) {
       window.dispatchEvent(new CustomEvent('open-auth-overlay'));
-      setSliderOffset(0);
       return;
     }
     if (cart.length === 0) {
       toast({ variant: "destructive", title: "Bag Empty" });
-      setSliderOffset(0);
       return;
     }
     if (hasClosedItems) {
       toast({ variant: "destructive", title: "Items Unavailable", description: "Some stores are currently closed." });
-      setSliderOffset(0);
       return;
     }
     if (!isMinOrderMet) {
       toast({ variant: "destructive", title: "Min Order Not Met", description: `Add ₹${minOrderValue - totalPrice} more.` });
-      setSliderOffset(0);
       return;
     }
     if (!recipientForm.name || recipientForm.phone.length !== 10 || !recipientForm.address) {
       setIsAddressModalOpen(true); 
       toast({ title: "Address Required", description: "Please complete your delivery profile." });
-      setSliderOffset(0); 
       return;
     }
 
@@ -215,34 +204,7 @@ export default function CartPage() {
       setTimeout(() => { clearCart(); router.replace('/orders'); }, 1500);
     } catch (e) { 
       setIsPlacing(false); 
-      setSliderOffset(0); 
       toast({ variant: "destructive", title: "Order Failed" });
-    }
-  };
-
-  const handleTouchStart = (e: React.TouchEvent) => { 
-    if (isPlacing || (hasClosedItems || !isMinOrderMet || cart.length === 0)) return; 
-    setIsDragging(true); 
-    startXRef.current = e.touches[0].clientX; 
-  };
-  
-  const handleTouchMove = (e: React.TouchEvent) => { 
-    if (!isDragging || !sliderRef.current) return; 
-    const diff = e.touches[0].clientX - startXRef.current; 
-    if (diff > 0) {
-      const maxOffset = sliderRef.current.offsetWidth - 88;
-      setSliderOffset(Math.min(diff, maxOffset)); 
-    }
-  };
-  
-  const handleTouchEnd = (e: React.TouchEvent) => { 
-    if (!isDragging) return; 
-    setIsDragging(false); 
-    const threshold = (sliderRef.current?.offsetWidth || 300) * 0.7;
-    if (sliderOffset > threshold) {
-      finalizeOrder(); 
-    } else {
-      setSliderOffset(0); 
     }
   };
 
@@ -294,7 +256,7 @@ export default function CartPage() {
              <div className="space-y-6">
                 {cartItemsWithStatus.map((item, idx) => (
                   <div key={idx} className={cn("flex gap-4 items-center relative", item.isClosed && "opacity-40 grayscale")}>
-                     <div className="h-16 w-16 rounded-[1.5rem] overflow-hidden bg-muted border border-black/5 relative shrink-0">
+                     <div className="h-16 w-16 rounded-[1.25rem] overflow-hidden bg-muted border border-black/5 relative shrink-0">
                         <Image src={item.imageUrl} alt={item.name} fill className="object-cover" unoptimized />
                         {item.isClosed && <div className="absolute inset-0 bg-red-600/60 flex items-center justify-center text-[7px] font-black text-white px-1 text-center">CLOSED</div>}
                      </div>
@@ -402,37 +364,22 @@ export default function CartPage() {
 
         <div className="pt-4 pb-32">
            <div className="space-y-4">
-              <div 
-                ref={sliderRef} 
-                className={cn(
-                  "w-full h-24 rounded-[3rem] p-3 flex items-center relative overflow-hidden transition-all duration-300 transform-gpu z-[2000] touch-none select-none", 
-                  (hasClosedItems || !isMinOrderMet || cart.length === 0) ? "bg-gray-100 opacity-60 cursor-not-allowed" : "bg-[#0B0B0B] border-white/10 shadow-2xl"
-                )}
-                onTouchStart={handleTouchStart}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
-                style={{ touchAction: 'none' }}
-              >
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <span className="text-[10px] font-black uppercase italic tracking-[0.4em] text-white/20">SLIDE TO PLACE ORDER</span>
+              <div className={cn(
+                "w-full h-24 rounded-[3rem] p-4 flex items-center justify-between transition-all duration-300 transform-gpu z-[2000] border shadow-2xl", 
+                (hasClosedItems || !isMinOrderMet || cart.length === 0) ? "bg-gray-100 opacity-60" : "bg-white border-primary/20"
+              )}>
+                  <div className="flex flex-col pl-4">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-primary italic">Total</span>
+                    <div className="text-3xl font-black italic text-gray-900 tracking-tighter leading-none mt-1">₹{totalPayable.toFixed(0)}</div>
                   </div>
-                  <div 
-                    style={{ 
-                      transform: `translateX(${sliderOffset}px)`,
-                      touchAction: 'none'
-                    }} 
-                    className={cn(
-                      "h-16 w-16 rounded-[1.5rem] bg-white text-primary flex items-center justify-center z-10 shadow-xl pointer-events-auto",
-                      !isDragging && "transition-transform duration-300"
-                    )}
+                  
+                  <Button 
+                    onClick={finalizeOrder}
+                    disabled={isPlacing || hasClosedItems || !isMinOrderMet || cart.length === 0}
+                    className="h-16 px-10 bg-[#0B0B0B] hover:bg-primary text-white rounded-[2rem] font-black uppercase italic text-lg shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
-                    <ArrowRight className="h-8 w-8 stroke-[3]" />
-                  </div>
-                  <div className="flex-1 text-right pr-8 relative z-10">
-                    <div className="text-[9px] font-black uppercase tracking-widest text-primary italic">Final Bill</div>
-                    <div className="text-3xl font-black italic text-white tracking-tighter leading-none mt-0.5">₹{totalPayable.toFixed(0)}</div>
-                  </div>
-                  {isPlacing && <div className="absolute inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center z-20 animate-in fade-in duration-300"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
+                    {isPlacing ? <Loader2 className="h-6 w-6 animate-spin" /> : <>PLACE ORDER <ArrowRight className="h-5 w-5" /></>}
+                  </Button>
               </div>
               
               {(!isMinOrderMet && cart.length > 0) && (

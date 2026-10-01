@@ -33,7 +33,7 @@ interface ProductQuickViewProps {
 
 /**
  * @fileOverview ProductQuickView with Fixed Cart Addition Logic and Auth Guard.
- * FIXED: Runtime error "Taxarea is not defined" resolved by using "Textarea".
+ * Rounding updated to professional 1.25rem/1.5rem.
  */
 export function ProductQuickView({ product, children, isMedical, vendorScheduleOpen }: ProductQuickViewProps) {
   const { addToCart } = useCart();
@@ -186,7 +186,7 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
               <Button 
                 onClick={handleAddToCart} 
                 disabled={isOffline || (product?.isVarietyRequired && !selectedOption)}
-                className="flex-1 h-14 bg-primary hover:bg-primary/90 text-white rounded-[1.5rem] font-black uppercase italic text-sm shadow-xl active:scale-95 transition-all shadow-primary/20"
+                className="flex-1 h-14 bg-primary hover:bg-primary/90 text-white rounded-[1.25rem] font-black uppercase italic text-sm shadow-xl active:scale-95 transition-all shadow-primary/20"
               >
                 {isOffline ? 'OFFLINE' : authLoading ? 'LOADING...' : (product?.isVarietyRequired && !selectedOption) ? 'PICK OPTION' : `ADD • ₹${(currentPrice * localQuantity).toFixed(0)}`}
               </Button>
