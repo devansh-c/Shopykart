@@ -32,8 +32,8 @@ interface ProductQuickViewProps {
 }
 
 /**
- * @fileOverview ProductQuickView with Fixed Cart Addition Logic for Deployed Apps.
- * FIXED: Auth guard now accounts for loading states to prevent button "freezing".
+ * @fileOverview ProductQuickView with Fixed Cart Addition Logic and Auth Guard.
+ * FIXED: Runtime error "Taxarea is not defined" resolved by using "Textarea".
  */
 export function ProductQuickView({ product, children, isMedical, vendorScheduleOpen }: ProductQuickViewProps) {
   const { addToCart } = useCart();
@@ -69,7 +69,6 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
   const handleAddToCart = () => {
     if (isOffline) return;
     
-    // AUTH GUARD FIX: Check for session flag too if firebase is loading
     const sessionActive = typeof window !== 'undefined' && localStorage.getItem('shopykart_session_active') === 'true';
     
     if (authLoading) {

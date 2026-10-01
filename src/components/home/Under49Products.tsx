@@ -29,7 +29,6 @@ export function Under49Products() {
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // Fetch products under 49. Limit to 20 for horizontal scroll.
     return query(collection(firestore, 'products'), where('price', '<=', 49), limit(20));
   }, [firestore]);
 
@@ -41,7 +40,6 @@ export function Under49Products() {
   const filteredProducts = useMemo(() => {
     if (!allProducts || !vendors) return [];
     return allProducts.filter(p => {
-      // Zone Filtering
       if (activeZoneId) {
         const vendor = vendors.find(v => v.id === p.vendorId);
         const itemZoneId = p.zoneId || vendor?.zoneId;
@@ -77,7 +75,6 @@ export function Under49Products() {
               key={p.id} 
               className="relative min-w-[160px] flex flex-col group transition-all transform-gpu"
             >
-              {/* Product Card Container */}
               <div className="relative aspect-square w-full rounded-[1.5rem] overflow-hidden border border-gray-100 bg-gray-50 shadow-sm">
                  <Image 
                    src={p.imageUrl} 
@@ -87,12 +84,10 @@ export function Under49Products() {
                    unoptimized 
                  />
                  
-                 {/* Top Badge */}
                  <div className="absolute top-3 left-3">
                     <Badge className="bg-white/95 text-[#16a34a] border-none font-black text-[8px] uppercase px-2 py-0.5 rounded-lg shadow-sm">Popular</Badge>
                  </div>
 
-                 {/* Bottom Floating Stats */}
                  <div className="absolute bottom-3 left-3">
                     <div className="bg-white/95 backdrop-blur-sm px-1.5 py-0.5 rounded-lg flex items-center gap-1 shadow-md border border-white/20">
                        <Star className="h-2.5 w-2.5 fill-green-500 text-green-500" />
@@ -100,7 +95,6 @@ export function Under49Products() {
                     </div>
                  </div>
 
-                 {/* Action Button */}
                  <ProductQuickView product={{...p, restaurantName: storeName}}>
                     <button className="absolute bottom-3 right-3 h-10 w-10 bg-white text-primary rounded-full flex items-center justify-center shadow-2xl active:scale-90 transition-transform border border-black/[0.03] z-20">
                        <Plus className="h-5 w-5 stroke-[4]" />
@@ -108,7 +102,6 @@ export function Under49Products() {
                  </ProductQuickView>
               </div>
 
-              {/* Text Meta Info */}
               <div className="pt-3 px-1.5 space-y-1">
                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-tighter truncate leading-none">{storeName}</p>
                  <div className="flex items-center gap-1.5">

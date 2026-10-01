@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -222,7 +221,7 @@ export default function CartPage() {
   };
 
   const handleTouchStart = (e: React.TouchEvent) => { 
-    if (isPlacing) return; 
+    if (isPlacing || (hasClosedItems || !isMinOrderMet || cart.length === 0)) return; 
     setIsDragging(true); 
     startXRef.current = e.touches[0].clientX; 
   };
@@ -295,7 +294,7 @@ export default function CartPage() {
              <div className="space-y-6">
                 {cartItemsWithStatus.map((item, idx) => (
                   <div key={idx} className={cn("flex gap-4 items-center relative", item.isClosed && "opacity-40 grayscale")}>
-                     <div className="h-16 w-16 rounded-2xl overflow-hidden bg-muted border border-black/5 relative shrink-0">
+                     <div className="h-16 w-16 rounded-[1.5rem] overflow-hidden bg-muted border border-black/5 relative shrink-0">
                         <Image src={item.imageUrl} alt={item.name} fill className="object-cover" unoptimized />
                         {item.isClosed && <div className="absolute inset-0 bg-red-600/60 flex items-center justify-center text-[7px] font-black text-white px-1 text-center">CLOSED</div>}
                      </div>
@@ -423,7 +422,7 @@ export default function CartPage() {
                       touchAction: 'none'
                     }} 
                     className={cn(
-                      "h-16 w-16 rounded-3xl bg-white text-primary flex items-center justify-center z-10 shadow-xl pointer-events-auto",
+                      "h-16 w-16 rounded-[1.5rem] bg-white text-primary flex items-center justify-center z-10 shadow-xl pointer-events-auto",
                       !isDragging && "transition-transform duration-300"
                     )}
                   >
@@ -485,4 +484,3 @@ export default function CartPage() {
     </div>
   );
 }
-
