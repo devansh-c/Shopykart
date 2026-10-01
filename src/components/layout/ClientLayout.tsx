@@ -5,7 +5,6 @@ import { useUser } from '@/firebase';
 import { usePathname, useRouter } from 'next/navigation';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 import { EmailAuth } from '@/components/auth/EmailAuth';
-import { OTPVerification } from '@/components/auth/OTPVerification';
 import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
 import React, { ReactNode, useState, useEffect, useMemo, memo } from 'react';
@@ -25,7 +24,6 @@ import PermissionManager from '@/components/shared/PermissionManager';
 const AuthGuard = memo(({ children }: { children: ReactNode }) => {
   const { user, loading } = useUser();
   const pathname = usePathname();
-  const router = useRouter();
   const [showAuthOverlay, setShowAuthOverlay] = useState(false);
   const [isClient, setIsClient] = useState(false);
 
@@ -62,7 +60,7 @@ const AuthGuard = memo(({ children }: { children: ReactNode }) => {
     <>
       {children}
       {shouldRenderAuth && (
-        <OTPVerification />
+        <EmailAuth onClose={() => setShowAuthOverlay(false)} />
       )}
     </>
   );
@@ -93,7 +91,7 @@ export function ClientLayout({ children }: { children: ReactNode }) {
           <PermissionManager />
           
           <AuthGuard>
-            <div className="relative min-h-screen flex flex-col max-w-lg mx-auto w-full bg-white shadow-2xl border-x border-gray-100 overflow-y-auto">
+            <div className="relative min-h-screen flex flex-col max-w-lg mx-auto w-full bg-white shadow-2xl border-x border-gray-100 overflow-y-auto no-scrollbar">
               <main className={cn("flex-1", !isExcludedPath && "pb-24")}>
                 {!isExcludedPath && <LocationRequest />}
                 <NotificationHandler />

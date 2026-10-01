@@ -12,12 +12,8 @@ import {
   ArrowRight, 
   Navigation, 
   IndianRupee,
-  AlertCircle,
-  Clock,
   Coins,
   PackageCheck,
-  MessageSquare,
-  Bike,
   Tag,
   Ticket,
   X
@@ -47,7 +43,7 @@ export default function CartPage() {
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
   const [isPlacing, setIsPlacing] = useState(false);
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
-  const [currentMinutes, setCurrentMinutes] = useState<number | null>(null);
+  const [currentMinutes, setCurrentTimeMinutes] = useState<number | null>(null);
   
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [recipientForm, setRecipientForm] = useState({ name: '', phone: '', address: '' });
@@ -73,7 +69,7 @@ export default function CartPage() {
       
       const syncTime = () => { 
         const now = new Date(); 
-        setCurrentMinutes(now.getHours() * 60 + now.getMinutes()); 
+        setCurrentTimeMinutes(now.getHours() * 60 + now.getMinutes()); 
       };
       syncTime(); 
       const interval = setInterval(syncTime, 60000);
