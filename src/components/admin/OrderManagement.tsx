@@ -22,7 +22,8 @@ import {
   Eye,
   Trash2,
   Store,
-  Calendar
+  Calendar,
+  ShoppingBag
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
