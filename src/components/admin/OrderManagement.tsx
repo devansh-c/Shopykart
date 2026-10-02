@@ -20,7 +20,9 @@ import {
   StickyNote,
   Plus,
   Eye,
-  Trash2
+  Trash2,
+  Store,
+  Calendar
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -42,7 +44,7 @@ const STATUS_FLOW = [
 ];
 
 /**
- * @fileOverview OrderManagement with Responsive Button Wrapping for small screens.
+ * @fileOverview OrderManagement with Enhanced Visibility: Address, Time, and Store Names.
  */
 export default function OrderManagement() {
   const firestore = useFirestore();
@@ -123,6 +125,7 @@ export default function OrderManagement() {
       
       const itemsHtml = order.items?.map((item: any) => `
         <div style="margin-bottom: 12px; border-bottom: 1px dashed #eee; padding-bottom: 5px;">
+           <div style="font-size: 8px; font-weight: 900; color: #666; margin-bottom: 2px;">FROM: ${item.restaurantName || order.restaurantName || 'SHopyKart'}</div>
           <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: 900;">
             <span style="flex: 2;">${item.name}</span>
             <span style="flex: 0.5; text-align: center;">X${item.quantity}</span>
@@ -159,62 +162,126 @@ export default function OrderManagement() {
   return (
     <div className="space-y-6 pb-32">
       <div className="grid grid-cols-1 gap-6">
-        {orders?.map((order: any) => (
-          <div key={order.id} className="bg-white rounded-[2.5rem] p-6 border-2 border-border shadow-sm hover:shadow-xl transition-all relative overflow-hidden">
-            {/* RESPONSIVE HEADER FIX: Using flex-wrap and gap to prevent button cutoff */}
-            <div className="flex flex-wrap justify-between items-start mb-6 gap-4">
-               <div className="flex items-center gap-4 min-w-0">
-                  <div className="h-14 w-14 rounded-2xl bg-primary/5 flex items-center justify-center text-primary border-2 border-primary/10 shrink-0"><Package className="h-7 w-7" /></div>
-                  <div className="min-w-0">
-                    <h3 className="font-black text-xl italic uppercase tracking-tighter leading-none mb-1 truncate">Order #{order.customerOrderNumber}</h3>
-                    <Badge className="bg-primary text-white text-[8px] uppercase font-black px-2 py-0.5">{order.status}</Badge>
-                  </div>
-               </div>
-               <div className="flex flex-wrap gap-2">
-                  <button 
-                    onClick={() => { setNoteOrderId(order.id); setNoteText(order.adminNote || ''); setIsNoteOpen(true); }} 
-                    className="h-10 w-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center active:scale-90 transition-all border border-amber-100"
-                  >
-                    <StickyNote className="h-5 w-5" />
-                  </button>
-                  <button onClick={() => generateReceipt(order)} disabled={isDownloading === order.id} className="h-10 w-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center active:scale-90 transition-all border border-blue-100">
-                    {isDownloading === order.id ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileText className="h-5 w-5" />}
-                  </button>
-                  <button onClick={() => window.open(`tel:${order.customerPhone}`)} className="h-10 w-10 bg-green-500 text-white rounded-xl flex items-center justify-center active:scale-90 transition-all shadow-lg shadow-green-100"><PhoneCall className="h-5 w-5" /></button>
-                  <button onClick={() => handleCancelOrder(order.id)} className="h-10 w-10 bg-red-50 text-red-500 rounded-xl flex items-center justify-center active:scale-90 transition-all border border-red-100"><XCircle className="h-5 w-5" /></button>
-               </div>
-            </div>
-
-            <div className="bg-muted/30 rounded-[2rem] p-5 mb-6 space-y-4">
-               <div className="flex items-center justify-between border-b border-white pb-3 mb-1">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="h-8 w-8 rounded-full bg-white flex items-center justify-center shadow-sm text-primary shrink-0"><User className="h-4 w-4" /></div>
-                    <span className="text-sm font-black uppercase italic truncate max-w-[150px]">{order.customerName}</span>
-                  </div>
-               </div>
-
-               <div className="space-y-3 pt-2">
-                  {order.items?.map((item: any, i: number) => (
-                    <div key={i} className="flex justify-between text-xs font-black italic">
-                       <span className="text-gray-800">{item.quantity}x {item.name}</span>
-                       <span className="text-gray-900">₹{(item.price * item.quantity).toFixed(0)}</span>
+        {orders?.map((order: any) => {
+          const orderDate = order.createdAt?.seconds ? new Date(order.createdAt.seconds * 1000) : new Date();
+          
+          return (
+            <div key={order.id} className="bg-white rounded-[2.5rem] p-6 border-2 border-border shadow-sm hover:shadow-xl transition-all relative overflow-hidden">
+              {/* HEADER: ORDER #, STATUS, TIME */}
+              <div className="flex flex-wrap justify-between items-start mb-6 gap-4">
+                 <div className="flex items-center gap-4 min-w-0">
+                    <div className="h-14 w-14 rounded-2xl bg-primary/5 flex items-center justify-center text-primary border-2 border-primary/10 shrink-0"><Package className="h-7 w-7" /></div>
+                    <div className="min-w-0">
+                      <h3 className="font-black text-xl italic uppercase tracking-tighter leading-none mb-1 truncate">Order #{order.customerOrderNumber}</h3>
+                      <div className="flex items-center gap-2">
+                        <Badge className="bg-primary text-white text-[8px] uppercase font-black px-2 py-0.5">{order.status}</Badge>
+                        <div className="flex items-center gap-1 text-[9px] font-black text-muted-foreground uppercase">
+                           <Clock className="h-3 w-3 text-primary" />
+                           {isMounted ? format(orderDate, 'hh:mm a') : '--:--'}
+                        </div>
+                      </div>
                     </div>
-                  ))}
-               </div>
-               
-               <div className="flex justify-between items-center pt-2 border-t border-white font-black italic text-lg text-gray-900">
-                  <span className="text-sm uppercase tracking-tighter text-gray-500">Total</span>
-                  <span>₹{order.total?.toFixed(0)}</span>
-               </div>
-            </div>
+                 </div>
+                 <div className="flex flex-wrap gap-2">
+                    <button 
+                      onClick={() => { setNoteOrderId(order.id); setNoteText(order.adminNote || ''); setIsNoteOpen(true); }} 
+                      className="h-10 w-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center active:scale-90 transition-all border border-amber-100"
+                    >
+                      <StickyNote className="h-5 w-5" />
+                    </button>
+                    <button onClick={() => generateReceipt(order)} disabled={isDownloading === order.id} className="h-10 w-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center active:scale-90 transition-all border border-blue-100">
+                      {isDownloading === order.id ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileText className="h-5 w-5" />}
+                    </button>
+                    <button onClick={() => window.open(`tel:${order.customerPhone}`)} className="h-10 w-10 bg-green-500 text-white rounded-xl flex items-center justify-center active:scale-90 transition-all shadow-lg shadow-green-100"><PhoneCall className="h-5 w-5" /></button>
+                    <button onClick={() => handleCancelOrder(order.id)} className="h-10 w-10 bg-red-50 text-red-500 rounded-xl flex items-center justify-center active:scale-90 transition-all border border-red-100"><XCircle className="h-5 w-5" /></button>
+                 </div>
+              </div>
 
-            <Button onClick={() => handleNextStatus(order.id, order.status)} disabled={['Delivered', 'Cancelled'].includes(order.status)} className="w-full h-14 bg-black hover:bg-primary text-white rounded-2xl font-black uppercase italic shadow-xl transition-all">
-               NEXT STATUS
-            </Button>
-          </div>
-        ))}
+              {/* LOGISTICS BLOCK: CUSTOMER & ADDRESS */}
+              <div className="bg-muted/30 rounded-[2rem] p-6 mb-6 space-y-5 border border-border/40">
+                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white pb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-xl bg-white flex items-center justify-center shadow-sm text-primary shrink-0"><User className="h-5 w-5" /></div>
+                      <div>
+                        <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block">Customer</span>
+                        <span className="text-sm font-black uppercase italic text-gray-900">{order.customerName}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                       <div className="h-10 w-10 rounded-xl bg-white flex items-center justify-center shadow-sm text-green-500 shrink-0"><Phone className="h-5 w-5" /></div>
+                       <div>
+                         <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block">Contact</span>
+                         <span className="text-sm font-black text-gray-900">{order.customerPhone}</span>
+                       </div>
+                    </div>
+                 </div>
+
+                 {/* NEW: ADDRESS BLOCK */}
+                 <div className="flex items-start gap-3 pt-1">
+                    <div className="h-10 w-10 rounded-xl bg-white flex items-center justify-center shadow-sm text-blue-500 shrink-0"><MapPin className="h-5 w-5" /></div>
+                    <div className="min-w-0">
+                       <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block">Delivery Destination</span>
+                       <p className="text-[11px] font-bold text-gray-700 leading-relaxed uppercase italic mt-0.5 line-clamp-2">
+                          {order.address}
+                       </p>
+                    </div>
+                 </div>
+              </div>
+
+              {/* PRODUCT ITEMS: GROUPED OR LABELLED WITH STORE NAMES */}
+              <div className="bg-gray-50 rounded-[2.5rem] p-6 mb-6 space-y-4 border border-border/20">
+                 <div className="flex items-center gap-2 mb-2 px-1">
+                    <ShoppingBag className="h-4 w-4 text-primary" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Order Contents</span>
+                 </div>
+                 
+                 <div className="space-y-4">
+                    {order.items?.map((item: any, i: number) => (
+                      <div key={i} className="bg-white/60 p-4 rounded-2xl border border-white relative overflow-hidden group">
+                         {/* NEW: STORE NAME ABOVE PRODUCT */}
+                         <div className="flex items-center gap-1.5 mb-2 opacity-60">
+                            <Store className="h-2.5 w-2.5 text-primary" />
+                            <span className="text-[8px] font-black uppercase tracking-tighter text-gray-500">Store: {item.restaurantName || order.restaurantName || 'ShopyKart'}</span>
+                         </div>
+                         
+                         <div className="flex justify-between items-center text-xs font-black italic">
+                            <span className="text-gray-800"><span className="text-primary">{item.quantity}x</span> {item.name}</span>
+                            <span className="text-gray-900">₹{(item.price * item.quantity).toFixed(0)}</span>
+                         </div>
+                         
+                         {item.selectedOption && (
+                           <div className="mt-1 flex items-center gap-1.5">
+                              <ListTree className="h-2.5 w-2.5 text-primary opacity-50" />
+                              <span className="text-[8px] font-black text-primary uppercase tracking-widest">Variety: {item.selectedOption.name}</span>
+                           </div>
+                         )}
+                      </div>
+                    ))}
+                 </div>
+                 
+                 <div className="flex justify-between items-center pt-4 border-t-2 border-dashed border-gray-200 font-black italic text-2xl text-gray-900 px-2">
+                    <div className="flex flex-col">
+                       <span className="text-[8px] font-black uppercase tracking-tighter text-gray-400 not-italic">Order Total</span>
+                       <span>₹{order.total?.toFixed(0)}</span>
+                    </div>
+                    <Badge className="bg-green-100 text-green-700 border-none font-black text-[9px] uppercase">{order.paymentMethod || 'COD'}</Badge>
+                 </div>
+              </div>
+
+              {/* ACTION BUTTON */}
+              <Button 
+                onClick={() => handleNextStatus(order.id, order.status)} 
+                disabled={['Delivered', 'Cancelled'].includes(order.status)} 
+                className="w-full h-16 bg-[#0B0B0B] hover:bg-primary text-white rounded-[1.75rem] font-black uppercase italic shadow-xl transition-all active:scale-95"
+              >
+                 {['Delivered', 'Cancelled'].includes(order.status) ? 'COMPLETED' : 'MOVE TO NEXT STAGE'}
+              </Button>
+            </div>
+          );
+        })}
       </div>
 
+      {/* ADMIN NOTE DIALOG */}
       <Dialog open={isNoteOpen} onOpenChange={setIsNoteOpen}>
          <DialogContent className="rounded-[2.5rem] max-w-sm p-8 border-none shadow-2xl bg-white focus:outline-none">
             <div className="flex flex-col items-center text-center space-y-4">
