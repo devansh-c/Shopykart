@@ -1,10 +1,11 @@
+// Standard Capacitor Cordova Plugins build file
 apply plugin: 'com.android.library'
 
 android {
-    namespace "co.in.shopykart.plugins"
+    namespace "app.capacitor.cordova.android.plugins"
     compileSdk 34
     defaultConfig {
-        minSdk 22
+        minSdk 23
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
@@ -18,6 +19,5 @@ repositories {
 }
 
 dependencies {
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation project(':capacitor-android')
+    implementation "com.capacitorjs:android:6.0.0"
 }

@@ -60,13 +60,13 @@ jobs:
         run: |
           echo "Locating and renaming build outputs..."
           
-          # Find APK
+          # Find APK (Usually in app/build/outputs/apk/debug)
           APK_PATH=$(find android/app/build/outputs/apk -name "*.apk" | head -n 1)
           if [ -f "$APK_PATH" ]; then
             cp "$APK_PATH" app.shopykart.apk
           fi
           
-          # Find AAB (Prioritizing release/signed)
+          # Find AAB (Prioritizing release bundle)
           AAB_PATH=$(find android/app/build/outputs/bundle -name "*.aab" | grep "release" | head -n 1)
           if [ -z "$AAB_PATH" ]; then
             AAB_PATH=$(find android/app/build/outputs/bundle -name "*.aab" | head -n 1)
