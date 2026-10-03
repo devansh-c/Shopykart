@@ -168,7 +168,6 @@ export default function OrderManagement() {
           
           return (
             <div key={order.id} className="bg-white rounded-[2.5rem] p-6 border-2 border-border shadow-sm hover:shadow-xl transition-all relative overflow-hidden">
-              {/* HEADER: ORDER #, STATUS, TIME */}
               <div className="flex flex-wrap justify-between items-start mb-6 gap-4">
                  <div className="flex items-center gap-4 min-w-0">
                     <div className="h-14 w-14 rounded-2xl bg-primary/5 flex items-center justify-center text-primary border-2 border-primary/10 shrink-0"><Package className="h-7 w-7" /></div>
@@ -198,7 +197,6 @@ export default function OrderManagement() {
                  </div>
               </div>
 
-              {/* LOGISTICS BLOCK: CUSTOMER & ADDRESS */}
               <div className="bg-muted/30 rounded-[2rem] p-6 mb-6 space-y-5 border border-border/40">
                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white pb-4">
                     <div className="flex items-center gap-3">
@@ -228,7 +226,6 @@ export default function OrderManagement() {
                  </div>
               </div>
 
-              {/* PRODUCT ITEMS */}
               <div className="bg-gray-50 rounded-[2.5rem] p-6 mb-6 space-y-4 border border-border/20">
                  <div className="flex items-center gap-2 mb-2 px-1">
                     <ShoppingBag className="h-4 w-4 text-primary" />
@@ -279,7 +276,6 @@ export default function OrderManagement() {
         })}
       </div>
 
-      {/* ADMIN NOTE DIALOG */}
       <Dialog open={isNoteOpen} onOpenChange={setIsNoteOpen}>
          <DialogContent className="rounded-[2.5rem] max-w-sm p-8 border-none shadow-2xl bg-white focus:outline-none">
             <div className="flex flex-col items-center text-center space-y-4">
