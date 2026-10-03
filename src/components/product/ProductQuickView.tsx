@@ -108,91 +108,93 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="rounded-t-[1.5rem] p-0 overflow-hidden border-none shadow-2xl z-[2000001] bottom-0 top-auto translate-y-0 focus:outline-none h-[88vh] max-w-lg flex flex-col bg-[#0B0B0B] sm:h-[80vh] sm:rounded-[1.5rem] sm:bottom-1/2 sm:translate-y-1/2">
-        
-        <div className="p-6 pb-4 shrink-0 border-b border-white/5 relative z-10 text-white">
-          <DialogHeader>
-            <DialogTitle className="font-black italic uppercase text-center text-lg tracking-tighter truncate px-10">
-              {product.name}
-            </DialogTitle>
-            <DialogDescription className="text-center text-[8px] font-bold text-gray-500 uppercase tracking-widest mt-1">
-              Customize your selection for {product.restaurantName || 'ShopyKart'}
-            </DialogDescription>
-          </DialogHeader>
-          <button onClick={() => setIsOpen(false)} className="absolute top-5 right-6 h-8 w-8 rounded-full bg-white/5 flex items-center justify-center text-gray-400 active:scale-90 transition-transform"><X className="h-5 w-5" /></button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto no-scrollbar relative z-0">
-          <div className="p-6 pt-4 flex gap-4 border-b border-dashed border-white/10">
-             <div className="relative h-24 w-24 rounded-2xl overflow-hidden bg-muted border border-white/10 shrink-0">
-                <Image src={product.imageUrl} alt={product.name} fill className="object-cover" unoptimized />
-             </div>
-             <div className="flex-1 min-w-0">
-                <h3 className="font-black text-base text-white italic uppercase tracking-tighter leading-tight line-clamp-2">{product.name}</h3>
-                <p className="text-[9px] font-black text-primary uppercase tracking-widest italic">{product.restaurantName || 'ShopyKart Select'}</p>
-                <div className="text-2xl font-black text-white italic tracking-tighter mt-1">₹ {currentPrice.toFixed(0)}</div>
-             </div>
+    <div className="px-4 py-2">
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogTrigger asChild>{children}</DialogTrigger>
+        <DialogContent className="rounded-t-[1.5rem] p-0 overflow-hidden border-none shadow-2xl z-[2000001] bottom-0 top-auto translate-y-0 focus:outline-none h-[88vh] max-w-lg flex flex-col bg-[#0B0B0B] sm:h-[80vh] sm:rounded-[1.5rem] sm:bottom-1/2 sm:translate-y-1/2">
+          
+          <div className="p-6 pb-4 shrink-0 border-b border-white/5 relative z-10 text-white">
+            <DialogHeader>
+              <DialogTitle className="font-black italic uppercase text-center text-lg tracking-tighter truncate px-10">
+                {product.name}
+              </DialogTitle>
+              <DialogDescription className="text-center text-[8px] font-bold text-gray-500 uppercase tracking-widest mt-1">
+                Customize your selection for {product.restaurantName || 'ShopyKart'}
+              </DialogDescription>
+            </DialogHeader>
+            <button onClick={() => setIsOpen(false)} className="absolute top-5 right-6 h-8 w-8 rounded-full bg-white/5 flex items-center justify-center text-gray-400 active:scale-90 transition-transform"><X className="h-5 w-5" /></button>
           </div>
 
-          <div className="px-6 py-6 space-y-6">
-            {product.description && <p className="text-[10px] font-medium text-gray-400 italic leading-relaxed">{product.description}</p>}
-            
-            {product.options && product.options.length > 0 && (
-              <div className="space-y-4 pt-2 bg-white/5 p-5 rounded-[1.25rem] border border-white/5">
-                 <div className="flex items-center gap-2">
-                    <ListTree className="h-4 w-4 text-primary" />
-                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400 italic">Select Option {product.isVarietyRequired && <span className="text-primary">*</span>}</span>
-                 </div>
-                 <div className="grid grid-cols-1 gap-2">
-                    {product.options.map((opt: any, idx: number) => (
-                      <button 
-                        key={idx}
-                        onClick={() => setSelectedOption(opt)}
-                        className={cn(
-                          "flex items-center justify-between p-4 rounded-2xl border-2 transition-all active:scale-[0.98]",
-                          selectedOption?.name === opt.name ? "border-primary bg-primary/10" : "border-white/5 bg-white/5"
-                        )}
-                      >
-                        <span className={cn("text-xs font-black uppercase italic", selectedOption?.name === opt.name ? "text-white" : "text-gray-400")}>{opt.name}</span>
-                        <span className="text-sm font-black italic text-primary">+ ₹ {opt.price}</span>
-                      </button>
-                    ))}
-                 </div>
-              </div>
-            )}
+          <div className="flex-1 overflow-y-auto no-scrollbar relative z-0">
+            <div className="p-6 pt-4 flex gap-4 border-b border-dashed border-white/10">
+               <div className="relative h-24 w-24 rounded-2xl overflow-hidden bg-muted border border-white/10 shrink-0">
+                  <Image src={product.imageUrl} alt={product.name} fill className="object-cover" unoptimized />
+               </div>
+               <div className="flex-1 min-w-0">
+                  <h3 className="font-black text-base text-white italic uppercase tracking-tighter leading-tight line-clamp-2">{product.name}</h3>
+                  <p className="text-[9px] font-black text-primary uppercase tracking-widest italic">{product.restaurantName || 'ShopyKart Select'}</p>
+                  <div className="text-2xl font-black text-white italic tracking-tighter mt-1">₹ {currentPrice.toFixed(0)}</div>
+               </div>
+            </div>
 
-            <div className="space-y-2 pb-20">
-              <label className="text-[9px] font-black uppercase text-gray-500 ml-1">Kitchen Note</label>
-              <Textarea 
-                disabled={isOffline} 
-                placeholder="E.G. NO ONION / EXTRA SPICY" 
-                value={instructions} 
-                onChange={e => setInstructions(e.target.value.toUpperCase())} 
-                className="rounded-2xl bg-white/5 border-none text-white text-xs min-h-[80px] p-4 focus-visible:ring-1 focus-visible:ring-primary/20" 
-              />
+            <div className="px-6 py-6 space-y-6">
+              {product.description && <p className="text-[10px] font-medium text-gray-400 italic leading-relaxed">{product.description}</p>}
+              
+              {product.options && product.options.length > 0 && (
+                <div className="space-y-4 pt-2 bg-white/5 p-5 rounded-[1.25rem] border border-white/5">
+                   <div className="flex items-center gap-2">
+                      <ListTree className="h-4 w-4 text-primary" />
+                      <span className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400 italic">Select Option {product.isVarietyRequired && <span className="text-primary">*</span>}</span>
+                   </div>
+                   <div className="grid grid-cols-1 gap-2">
+                      {product.options.map((opt: any, idx: number) => (
+                        <button 
+                          key={idx}
+                          onClick={() => setSelectedOption(opt)}
+                          className={cn(
+                            "flex items-center justify-between p-4 rounded-2xl border-2 transition-all active:scale-[0.98]",
+                            selectedOption?.name === opt.name ? "border-primary bg-primary/10" : "border-white/5 bg-white/5"
+                          )}
+                        >
+                          <span className={cn("text-xs font-black uppercase italic", selectedOption?.name === opt.name ? "text-white" : "text-gray-400")}>{opt.name}</span>
+                          <span className="text-sm font-black italic text-primary">+ ₹ {opt.price}</span>
+                        </button>
+                      ))}
+                   </div>
+                </div>
+              )}
+
+              <div className="space-y-2 pb-20">
+                <label className="text-[9px] font-black uppercase text-gray-500 ml-1">Kitchen Note</label>
+                <Textarea 
+                  disabled={isOffline} 
+                  placeholder="E.G. NO ONION / EXTRA SPICY" 
+                  value={instructions} 
+                  onChange={e => setInstructions(e.target.value.toUpperCase())} 
+                  className="rounded-2xl bg-white/5 border-none text-white text-xs min-h-[80px] p-4 focus-visible:ring-1 focus-visible:ring-primary/20" 
+                />
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="p-6 bg-[#0B0B0B] border-t border-white/10 pb-12 shrink-0 shadow-[0_-20px_50px_rgba(0,0,0,0.8)] relative z-50 pointer-events-auto">
-           <div className="flex items-center gap-3 max-w-md mx-auto">
-              <div className="flex items-center bg-white/5 rounded-xl h-14 px-2 border border-white/10 shrink-0">
-                 <button disabled={isOffline} onClick={() => setLocalQuantity(Math.max(1, localQuantity - 1))} className="h-10 w-10 flex items-center justify-center bg-white/10 rounded-lg text-white active:scale-90"><Minus className="h-4 w-4" /></button>
-                 <span className="w-10 text-center text-lg font-black italic text-white">{localQuantity}</span>
-                 <button disabled={isOffline} onClick={() => setLocalQuantity(localQuantity + 1)} className="h-10 w-10 flex items-center justify-center bg-white/10 rounded-lg text-white active:scale-90"><Plus className="h-4 w-4" /></button>
-              </div>
-              <Button 
-                onClick={handleAddToCart} 
-                disabled={isOffline || (product?.isVarietyRequired && !selectedOption)}
-                className="flex-1 h-14 bg-primary hover:bg-primary/90 text-white rounded-[1.25rem] font-black uppercase italic text-sm shadow-xl active:scale-95 transition-all shadow-primary/20"
-              >
-                {isOffline ? 'OFFLINE' : authLoading ? 'LOADING...' : (product?.isVarietyRequired && !selectedOption) ? 'PICK OPTION' : `ADD • ₹${(currentPrice * localQuantity).toFixed(0)}`}
-              </Button>
-           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+          <div className="p-6 bg-[#0B0B0B] border-t border-white/10 pb-12 shrink-0 shadow-[0_-20px_50px_rgba(0,0,0,0.8)] relative z-50 pointer-events-auto">
+             <div className="flex items-center gap-3 max-w-md mx-auto">
+                <div className="flex items-center bg-white/5 rounded-xl h-14 px-2 border border-white/10 shrink-0">
+                   <button disabled={isOffline} onClick={() => setLocalQuantity(Math.max(1, localQuantity - 1))} className="h-10 w-10 flex items-center justify-center bg-white/10 rounded-lg text-white active:scale-90"><Minus className="h-4 w-4" /></button>
+                   <span className="w-10 text-center text-lg font-black italic text-white">{localQuantity}</span>
+                   <button disabled={isOffline} onClick={() => setLocalQuantity(localQuantity + 1)} className="h-10 w-10 flex items-center justify-center bg-white/10 rounded-lg text-white active:scale-90"><Plus className="h-4 w-4" /></button>
+                </div>
+                <Button 
+                  onClick={handleAddToCart} 
+                  disabled={isOffline || (product?.isVarietyRequired && !selectedOption)}
+                  className="flex-1 h-14 bg-primary hover:bg-primary/90 text-white rounded-[1.25rem] font-black uppercase italic text-sm shadow-xl active:scale-95 transition-all shadow-primary/20"
+                >
+                  {isOffline ? 'OFFLINE' : authLoading ? 'LOADING...' : (product?.isVarietyRequired && !selectedOption) ? 'PICK OPTION' : `ADD • ₹${(currentPrice * localQuantity).toFixed(0)}`}
+                </Button>
+             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }

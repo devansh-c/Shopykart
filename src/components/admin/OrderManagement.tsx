@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -126,7 +125,7 @@ export default function OrderManagement() {
       
       const itemsHtml = order.items?.map((item: any) => `
         <div style="margin-bottom: 12px; border-bottom: 1px dashed #eee; padding-bottom: 5px;">
-           <div style="font-size: 8px; font-weight: 900; color: #666; margin-bottom: 2px;">FROM: ${item.restaurantName || order.restaurantName || 'SHopyKart'}</div>
+           <div style="font-size: 8px; font-weight: 900; color: #666; margin-bottom: 2px;">FROM: ${item.restaurantName || order.restaurantName || 'ShopyKart'}</div>
           <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: 900;">
             <span style="flex: 2;">${item.name}</span>
             <span style="flex: 0.5; text-align: center;">X${item.quantity}</span>

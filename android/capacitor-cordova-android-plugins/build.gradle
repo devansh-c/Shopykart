@@ -1,23 +1,16 @@
-// Standard Capacitor Cordova Plugins build file
-apply plugin: 'com.android.library'
-
-android {
-    namespace "app.capacitor.cordova.android.plugins"
-    compileSdk 34
-    defaultConfig {
-        minSdk 23
-    }
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
-    }
+ext {
+    apply from: '../capacitor.build.gradle'
 }
 
-repositories {
-    google()
-    mavenCentral()
+android {
+    namespace "com.capacitor.cordova.android.plugins"
+    compileSdkVersion project.ext.compileSdkVersion
+    defaultConfig {
+        minSdkVersion project.ext.minSdkVersion
+        targetSdkVersion project.ext.targetSdkVersion
+    }
 }
 
 dependencies {
-    implementation "com.capacitorjs:android:6.0.0"
+    implementation project(':capacitor-android')
 }

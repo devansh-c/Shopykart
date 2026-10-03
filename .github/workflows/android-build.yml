@@ -38,6 +38,12 @@ jobs:
           fi
           npx cap sync android
 
+      - name: Fix Missing Cordova Module
+        run: |
+          mkdir -p android/capacitor-cordova-android-plugins
+          echo "ext { apply from: '../capacitor.build.gradle' }" > android/capacitor-cordova-android-plugins/build.gradle
+          echo "android { namespace 'com.capacitor.cordova.android.plugins'; compileSdkVersion project.ext.compileSdkVersion; defaultConfig { minSdkVersion project.ext.minSdkVersion; targetSdkVersion project.ext.targetSdkVersion } }; dependencies { implementation project(':capacitor-android') }" >> android/capacitor-cordova-android-plugins/build.gradle
+
       - name: Fix Gradle Permissions
         run: |
           if [ -f "android/gradlew" ]; then
