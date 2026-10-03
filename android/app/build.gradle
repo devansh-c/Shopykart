@@ -11,8 +11,7 @@ android {
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
-             // Fragments allowed to have more than one top level element with a pull to refresh
-             // and collape behavior
+             // Strings and other resources can be filtered here
              ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
@@ -22,16 +21,21 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
 }
 
 repositories {
-    google()
-    mavenCentral()
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
 }
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation "androidx.appcompat:appcompat:1.6.1"
     implementation project(':capacitor-android')
     implementation project(':capacitor-cordova-android-plugins')
 }

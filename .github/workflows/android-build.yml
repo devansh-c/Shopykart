@@ -1,4 +1,3 @@
-
 name: Build ShopyKart Customer App (Master Grade)
 
 on:
@@ -32,30 +31,22 @@ jobs:
       - name: Build Web Application (Static Export)
         run: npm run build:static
 
-      - name: Sync or Add Capacitor Android
+      - name: Sync Capacitor Android
         run: |
           if [ ! -d "android" ]; then
             npx cap add android
+          fi
+          npx cap sync android
+
+      - name: Fix Gradle Permissions
+        run: |
+          if [ -f "android/gradlew" ]; then
+            chmod +x android/gradlew
           else
-            npx cap sync android
-          fi
-
-      - name: Build System Diagnostic & Repair
-        run: |
-          echo "Checking Android Directory Structure..."
-          if [ ! -f "android/gradlew" ]; then
-            echo "Gradle wrapper missing. Forcing regeneration..."
+            echo "Generating Gradle wrapper..."
             cd android && gradle wrapper --gradle-version 8.2.1 && cd ..
+            chmod +x android/gradlew
           fi
-          chmod +x android/gradlew
-
-      - name: Industrial Build Sanitization
-        working-directory: android
-        run: |
-          echo "org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m -Dfile.encoding=UTF-8" > gradle.properties
-          echo "org.gradle.parallel=true" >> gradle.properties
-          echo "android.useAndroidX=true" >> gradle.properties
-          echo "android.enableJetifier=false" >> gradle.properties
 
       - name: Build APK (Debug)
         working-directory: android
@@ -65,25 +56,30 @@ jobs:
         working-directory: android
         run: ./gradlew bundleRelease --stacktrace --no-daemon
 
-      - name: Prepare Final Output Names
+      - name: Prepare ShopyKart Artifacts
         run: |
-          echo "Renaming Build Artifacts..."
-          # Copy APK to root with custom name
-          cp android/app/build/outputs/apk/debug/app-debug.apk app.shopykart.apk
+          echo "Locating and renaming build outputs..."
           
-          # Find and Copy AAB (Checking both signed and unsigned paths)
-          AAB_PATH=$(find android/app/build/outputs/bundle/release -name "*.aab" | head -n 1)
+          # Find APK
+          APK_PATH=$(find android/app/build/outputs/apk -name "*.apk" | head -n 1)
+          if [ -f "$APK_PATH" ]; then
+            cp "$APK_PATH" app.shopykart.apk
+          fi
+          
+          # Find AAB (Prioritizing release/signed)
+          AAB_PATH=$(find android/app/build/outputs/bundle -name "*.aab" | grep "release" | head -n 1)
+          if [ -z "$AAB_PATH" ]; then
+            AAB_PATH=$(find android/app/build/outputs/bundle -name "*.aab" | head -n 1)
+          fi
+          
           if [ -f "$AAB_PATH" ]; then
             cp "$AAB_PATH" app.shopykart.aab
-          else
-            echo "AAB not found in standard release path, checking alternative..."
-            cp android/app/build/outputs/bundle/debug/app-debug.aab app.shopykart.aab || echo "AAB Copy Failed"
           fi
 
       - name: Verify Final Files
         run: |
-          ls -lh app.shopykart.apk
-          ls -lh app.shopykart.aab || echo "AAB check skipped"
+          ls -lh app.shopykart.apk || echo "APK Missing"
+          ls -lh app.shopykart.aab || echo "AAB Missing"
 
       - name: Upload ShopyKart Artifacts
         uses: actions/upload-artifact@v4
