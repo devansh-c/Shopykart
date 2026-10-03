@@ -76,4 +76,5 @@ jobs:
         with:
           name: ShopyKart-Build-Artifacts
           path: |
-            android/app/build/outputs/apk/debug/app-shopykart.apk
+            android/app/build/outputs/apk/debug/app-debug.apk
+            
