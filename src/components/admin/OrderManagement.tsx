@@ -217,7 +217,6 @@ export default function OrderManagement() {
                     </div>
                  </div>
 
-                 {/* NEW: ADDRESS BLOCK */}
                  <div className="flex items-start gap-3 pt-1">
                     <div className="h-10 w-10 rounded-xl bg-white flex items-center justify-center shadow-sm text-blue-500 shrink-0"><MapPin className="h-5 w-5" /></div>
                     <div className="min-w-0">
@@ -229,7 +228,7 @@ export default function OrderManagement() {
                  </div>
               </div>
 
-              {/* PRODUCT ITEMS: GROUPED OR LABELLED WITH STORE NAMES */}
+              {/* PRODUCT ITEMS */}
               <div className="bg-gray-50 rounded-[2.5rem] p-6 mb-6 space-y-4 border border-border/20">
                  <div className="flex items-center gap-2 mb-2 px-1">
                     <ShoppingBag className="h-4 w-4 text-primary" />
@@ -239,7 +238,6 @@ export default function OrderManagement() {
                  <div className="space-y-4">
                     {order.items?.map((item: any, i: number) => (
                       <div key={i} className="bg-white/60 p-4 rounded-2xl border border-white relative overflow-hidden group">
-                         {/* NEW: STORE NAME ABOVE PRODUCT */}
                          <div className="flex items-center gap-1.5 mb-2 opacity-60">
                             <Store className="h-2.5 w-2.5 text-primary" />
                             <span className="text-[8px] font-black uppercase tracking-tighter text-gray-500">Store: {item.restaurantName || order.restaurantName || 'ShopyKart'}</span>
@@ -269,7 +267,6 @@ export default function OrderManagement() {
                  </div>
               </div>
 
-              {/* ACTION BUTTON */}
               <Button 
                 onClick={() => handleNextStatus(order.id, order.status)} 
                 disabled={['Delivered', 'Cancelled'].includes(order.status)} 
