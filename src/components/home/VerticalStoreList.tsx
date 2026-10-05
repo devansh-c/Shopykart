@@ -5,11 +5,12 @@ import { MapPin, Star, Award, Timer, Plus, Heart, Store as StoreIcon, Loader2 } 
 import { cn, slugify } from '@/lib/utils';
 import Image from 'next/image';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, limit, orderBy } from 'firebase/firestore';
+import { collection, query, limit, orderBy, where } from 'firebase/firestore';
 import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 import { Badge } from '@/components/ui/badge';
 import { useRouter } from 'next/navigation';
 import { ProductQuickView } from '@/components/product/ProductQuickView';
+import { useCart } from '@/components/cart/CartProvider';
 
 /**
  * @fileOverview Product Strip Item to match screenshot style.
@@ -19,7 +20,7 @@ const ProductStripItem = memo(({ product, isOffline }: any) => {
   const quantity = cart.find(c => String(c.id) === String(product.id) && !c.selectedOption)?.quantity || 0;
   const displayPrice = Number(product.price) || 0;
   const mrp = Number(product.mrp) || displayPrice + 15;
-  const discount = Math.round(((mrp - displayPrice) / mrp) * 100);
+  const discount = Math.round(((mrp - displayPrice) / (mrp || 1)) * 100);
 
   return (
     <div className={cn("min-w-[140px] max-w-[140px] flex flex-col group/item transition-all animate-in fade-in zoom-in duration-300", isOffline && "opacity-60")}>
@@ -58,11 +59,9 @@ const ProductStripItem = memo(({ product, isOffline }: any) => {
 });
 ProductStripItem.displayName = "ProductStripItem";
 
-import { useCart } from '@/components/cart/CartProvider';
-
 /**
  * @fileOverview Super-Optimized VerticalStoreList with Horizontal Product Grids.
- * FIX: Added strict limits and order to prevents 30min loading delays on home page.
+ * FIX: Added missing 'where' import to resolve ReferenceError.
  */
 export const VerticalStoreList = memo(({ 
   searchQuery = '', 
@@ -80,7 +79,11 @@ export const VerticalStoreList = memo(({
   const [currentTimeMins, setCurrentTimeMins] = useState<number | null>(null);
 
   useEffect(() => {
-    const updateZone = () => setActiveZoneId(localStorage.getItem('active_zone_id'));
+    const updateZone = () => {
+      if (typeof window !== 'undefined') {
+        setActiveZoneId(localStorage.getItem('active_zone_id'));
+      }
+    };
     updateZone();
     window.addEventListener('user-address-updated', updateZone);
     
@@ -98,14 +101,14 @@ export const VerticalStoreList = memo(({
     };
   }, []);
 
-  // Fetch Vendors - Limited to 30 for home page performance
+  // Fetch Vendors - Limited to 40 for home page performance
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'vendors'), limit(40));
   }, [firestore]);
-  const { data: dbVendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery, 'home_vstores_v8', initialData);
+  const { data: dbVendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery, 'home_vstores_v9', initialData);
 
-  // Fetch only necessary Products for strips - Strict limit(200) to prevent 30min delay
+  // Fetch only necessary Products for strips - Strict limit(200) to prevent long delay
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(
@@ -114,7 +117,7 @@ export const VerticalStoreList = memo(({
       limit(200)
     );
   }, [firestore]);
-  const { data: allProducts } = useCollection<any>(productsQuery, 'home_strip_products_v8');
+  const { data: allProducts } = useCollection<any>(productsQuery, 'home_strip_products_v9');
 
   const filteredVendors = useMemo(() => {
     const list = (dbVendors && dbVendors.length > 0) ? dbVendors : initialData;
@@ -180,7 +183,6 @@ export const VerticalStoreList = memo(({
             const storeSlug = store.slug || slugify(store.storeName) || store.id;
             const isBestRated = Number(store.rating) >= 4.5;
 
-            // Mapping products to store efficiently
             const storeProducts = allProducts?.filter(p => String(p.vendorId) === String(store.id)).slice(0, 10) || [];
 
             return (
