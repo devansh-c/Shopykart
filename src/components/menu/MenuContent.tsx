@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, memo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Search, X, Clock, MapPin, Loader2, Store } from 'lucide-react';
+import { Search, X, Clock, MapPin, Loader2, Store, Plus, Heart } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -16,15 +16,58 @@ import { ProductQuickView } from '@/components/product/ProductQuickView';
 import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 
 /**
- * @fileOverview MenuContent with Black Product Cards.
+ * @fileOverview Product Horizontal Item for Menu Page.
+ * Matches the requested screenshot style with pink savings line and popular badge.
  */
+const ProductHorizontalItem = memo(({ product, isOffline }: any) => {
+  const { cart } = useCart();
+  const quantity = cart.find(c => String(c.id) === String(product.id) && !c.selectedOption)?.quantity || 0;
+  const displayPrice = Number(product.price) || 0;
+  const mrp = Number(product.mrp) || displayPrice + 15;
+  const discount = Math.round(((mrp - displayPrice) / mrp) * 100);
+
+  return (
+    <div className={cn("min-w-[160px] max-w-[160px] flex flex-col group/item transition-all animate-in fade-in zoom-in duration-300", isOffline && "opacity-60")}>
+       <div className="relative aspect-square w-full rounded-2xl overflow-hidden bg-muted mb-2 border border-black/[0.03]">
+          <Image src={product.imageUrl} alt={product.name} fill className="object-cover group-hover/item:scale-105 transition-transform duration-500" unoptimized />
+          
+          <div className="absolute top-2 left-2">
+             <Badge className="bg-[#15803d] text-white border-none font-bold text-[7px] px-2 py-0.5 rounded-lg uppercase shadow-sm">Popular</Badge>
+          </div>
+
+          <ProductQuickView product={product} vendorScheduleOpen={!isOffline}>
+             <button className="absolute bottom-2 right-2 h-9 w-9 bg-white text-primary rounded-full flex items-center justify-center shadow-xl active:scale-75 transition-transform z-20">
+                {quantity > 0 ? <span className="text-[10px] font-black text-primary">{quantity}</span> : <Plus className="h-4 w-4 stroke-[4]" />}
+             </button>
+          </ProductQuickView>
+       </div>
+
+       <div className="space-y-0.5 px-1 text-left">
+          <div className="flex items-center gap-1 mb-1">
+             <div className="h-2.5 w-2.5 border border-green-600 rounded-sm flex items-center justify-center p-0.5 shrink-0"><div className="h-full w-full bg-green-600 rounded-full" /></div>
+             <h4 className="text-[11px] font-black text-gray-800 uppercase italic truncate tracking-tight">{product.name}</h4>
+          </div>
+          
+          <div className="flex items-center gap-2">
+             <span className="text-[9px] font-bold text-gray-400 line-through">₹{mrp}</span>
+             <Badge className="bg-rose-50 text-rose-600 border-none font-black text-[11px] italic px-2 py-0.5 rounded-lg">₹{displayPrice}</Badge>
+          </div>
+          
+          <p className="text-[8px] font-black text-[#D946EF] uppercase italic tracking-tighter flex items-center gap-1 mt-1 animate-pulse">
+             <Heart className="h-2 w-2 fill-[#D946EF]" /> Our app: {discount > 0 ? discount : '40'}% lower
+          </p>
+       </div>
+    </div>
+  );
+});
+ProductHorizontalItem.displayName = "ProductHorizontalItem";
+
 export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
   const params = useParams();
   const rawSlug = forcedSlug || (params?.slug as string);
   const router = useRouter();
   
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeCategory, setActiveCategory] = useState('all');
   const [currentMinutes, setCurrentMinutes] = useState<number | null>(null);
   const [vendorProfile, setVendorProfile] = useState<any>(null);
   const [vendorLoading, setVendorLoading] = useState(true);
@@ -94,15 +137,27 @@ export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
   
   const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, `menu_${vendorProfile?.id}`);
 
-  const filteredProducts = useMemo(() => {
+  const categoriesWithProducts = useMemo(() => {
     if (!dbProducts) return [];
-    return dbProducts.filter((product: any) => {
+    
+    const filtered = dbProducts.filter((product: any) => {
       if (product.isDeleted) return false;
       const matchesSearch = (product.name || '').toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory = activeCategory === 'all' || product.category?.toLowerCase() === activeCategory;
-      return matchesSearch && matchesCategory;
+      return matchesSearch;
     });
-  }, [searchQuery, activeCategory, dbProducts]);
+
+    const groups: { [key: string]: any[] } = {};
+    filtered.forEach(p => {
+      const cat = p.category || 'General';
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(p);
+    });
+
+    return Object.entries(groups).map(([name, items]) => ({
+      name,
+      items: items.sort((a, b) => (Number(a.price) - Number(b.price)))
+    }));
+  }, [searchQuery, dbProducts]);
 
   const scheduleOpen = useMemo(() => isStoreScheduleOpen(vendorProfile, currentMinutes), [vendorProfile, currentMinutes]);
   const isOffline = vendorProfile?.isOnline === false || !scheduleOpen;
@@ -139,7 +194,7 @@ export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
             <div className="h-20 w-20 rounded-2xl overflow-hidden border-2 border-primary shadow-xl shrink-0 bg-white">
               <img src={vendorProfile?.imageUrl} className="h-full w-full object-cover" alt="Logo" />
             </div>
-            <div className="flex-1 pb-1 min-w-0">
+            <div className="flex-1 pb-1 min-w-0 text-left">
               <h1 className="text-2xl font-black italic uppercase text-white tracking-tighter leading-none mb-2 truncate drop-shadow-lg">{vendorProfile?.storeName}</h1>
               <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-primary italic">
                 <span className="flex items-center gap-1 shrink-0 bg-black/40 backdrop-blur-sm px-2 py-0.5 rounded-lg border border-white/10"><Clock className="h-3 w-3" /> {vendorProfile?.deliveryTime || '20 min'}</span>
@@ -150,10 +205,9 @@ export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
         </div>
       </div>
 
-      <div className="px-6 pt-12 pb-4">
+      <div className="px-6 pt-12 pb-4 text-left">
         <div className="flex items-center justify-between mb-1">
            <h1 className="text-4xl font-black italic uppercase tracking-tighter">Premium Menu</h1>
-           <Badge className="bg-primary text-white border-none font-black text-[10px]">{filteredProducts.length} ITEMS</Badge>
         </div>
         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest italic">Curated from {vendorProfile?.storeName || 'Partner Store'}</p>
       </div>
@@ -170,52 +224,45 @@ export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
         </div>
       </div>
 
-      <div className="px-6 space-y-6">
-        {productsLoading && !dbProducts ? (
-           <div className="space-y-6">
-             {[1, 2, 3].map(i => <div key={i} className="h-32 w-full bg-muted/20 animate-pulse rounded-[2rem]" />)}
+      <div className="space-y-12">
+        {productsLoading ? (
+           <div className="px-6 space-y-10">
+             {[1, 2].map(i => (
+               <div key={i} className="space-y-4">
+                 <div className="h-6 w-32 bg-gray-100 rounded-full animate-pulse" />
+                 <div className="flex gap-4 overflow-hidden">
+                    <div className="h-40 w-40 bg-gray-50 rounded-2xl shrink-0" />
+                    <div className="h-40 w-40 bg-gray-50 rounded-2xl shrink-0" />
+                 </div>
+               </div>
+             ))}
            </div>
-        ) : filteredProducts.length > 0 ? (
-          filteredProducts.map((product: any) => (
-            <div key={product.id} className={cn(
-              "premium-card p-5 flex justify-between items-center bg-[#0B0B0B] relative overflow-hidden group hover:shadow-2xl transition-all border border-white/5",
-              isOffline && "opacity-60 grayscale-[0.5]"
-            )}>
-              <div className="flex-1 pr-4 min-w-0">
-                <ProductQuickView product={product} vendorScheduleOpen={scheduleOpen}>
-                  <button className="text-left w-full pointer-events-auto">
-                    <h3 className="font-black text-xl italic tracking-tight leading-tight mb-2 text-white group-hover:text-primary transition-colors line-clamp-2 uppercase">{product.name}</h3>
-                    <div className="text-3xl font-black text-white italic tracking-tighter">₹{(product.price || 0).toFixed(0)}</div>
-                  </button>
-                </ProductQuickView>
-              </div>
-              <div className="relative w-28 h-28 shrink-0">
-                <ProductQuickView product={product} vendorScheduleOpen={scheduleOpen}>
-                  <div className="relative w-full h-full cursor-pointer overflow-hidden rounded-3xl border border-white/10 shadow-md">
-                    <Image src={product.imageUrl} alt={product.name} fill className="object-cover group-hover:scale-110 transition-transform duration-700" unoptimized />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+        ) : categoriesWithProducts.length > 0 ? (
+          categoriesWithProducts.map((category) => (
+            <div key={category.name} className="animate-in fade-in duration-700">
+               <div className="px-6 mb-4 flex items-center justify-between">
+                  <h2 className="text-xl font-black italic uppercase tracking-tighter text-gray-900 border-l-4 border-primary pl-3">{category.name}</h2>
+                  <Badge variant="outline" className="rounded-full border-gray-100 text-gray-400 font-black uppercase text-[8px]">{category.items.length} ITEMS</Badge>
+               </div>
+               
+               <div className="px-6 overflow-x-auto no-scrollbar">
+                  <div className="flex space-x-5 pb-4">
+                     {category.items.map((product) => (
+                       <ProductHorizontalItem 
+                        key={product.id} 
+                        product={{...product, restaurantName: vendorProfile.storeName}} 
+                        isOffline={isOffline} 
+                       />
+                     ))}
+                     <div className="min-w-[10px]" />
                   </div>
-                </ProductQuickView>
-                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-[90%] z-20">
-                  <ProductQuickView product={product} vendorScheduleOpen={scheduleOpen}>
-                    <button className="w-full h-9 bg-white text-primary border-2 border-primary shadow-lg font-black text-[10px] uppercase rounded-xl active:scale-95 transition-all hover:bg-primary hover:text-white">
-                      ADD
-                    </button>
-                  </ProductQuickView>
-                </div>
-              </div>
-              
-              {isOffline && (
-                <div className="absolute top-2 right-2 bg-red-500 text-white text-[7px] font-black px-2 py-0.5 rounded-full uppercase italic tracking-widest z-30 shadow-lg">
-                  Unavailable
-                </div>
-              )}
+               </div>
             </div>
           ))
         ) : (
-          <div className="text-center py-20 bg-gray-50 rounded-[3rem] border-2 border-dashed">
+          <div className="px-6 text-center py-20 bg-gray-50 rounded-[3rem] border-2 border-dashed mx-6">
              <Store className="h-12 w-12 mx-auto text-muted-foreground/20 mb-4" />
-             <p className="text-muted-foreground font-black italic uppercase tracking-widest text-sm">Menu is empty or hidden</p>
+             <p className="text-muted-foreground font-black italic uppercase tracking-widest text-sm">No items found matching your search</p>
           </div>
         )}
       </div>
