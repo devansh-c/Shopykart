@@ -45,6 +45,7 @@ const STATUS_FLOW = [
 
 /**
  * @fileOverview OrderManagement with Enhanced Visibility: Address, Time, and Store Names.
+ * Fixed: Added missing ShoppingBag icon import to prevent ReferenceError.
  */
 export default function OrderManagement() {
   const firestore = useFirestore();
