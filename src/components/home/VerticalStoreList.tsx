@@ -33,11 +33,6 @@ const ProductStripItem = memo(({ product, quantity, isOffline }: any) => {
                 <Plus className="h-4 w-4 stroke-[4]" />
              </button>
           </ProductQuickView>
-
-          <div className="absolute bottom-2 left-2 bg-[#15803d] text-white px-1.5 py-0.5 rounded-lg flex items-center gap-1 shadow-md border border-white/20">
-             <Star className="h-2.5 w-Star fill-white stroke-none" />
-             <span className="text-[10px] font-black">{product.rating || '3.8'}</span>
-          </div>
        </div>
 
        <div className="space-y-0.5 px-1">

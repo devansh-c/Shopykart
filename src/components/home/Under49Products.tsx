@@ -88,13 +88,6 @@ export function Under49Products() {
                     <Badge className="bg-white/95 text-[#16a34a] border-none font-black text-[8px] uppercase px-2 py-0.5 rounded-lg shadow-sm">Popular</Badge>
                  </div>
 
-                 <div className="absolute bottom-3 left-3">
-                    <div className="bg-white/95 backdrop-blur-sm px-1.5 py-0.5 rounded-lg flex items-center gap-1 shadow-md border border-white/20">
-                       <Star className="h-2.5 w-2.5 fill-green-500 text-green-500" />
-                       <span className="text-[10px] font-black text-gray-900">{p.rating || '4.0'}</span>
-                    </div>
-                 </div>
-
                  <ProductQuickView product={{...p, restaurantName: storeName}}>
                     <button className="absolute bottom-3 right-3 h-10 w-10 bg-white text-primary rounded-full flex items-center justify-center shadow-2xl active:scale-90 transition-transform border border-black/[0.03] z-20">
                        <Plus className="h-5 w-5 stroke-[4]" />
@@ -106,7 +99,7 @@ export function Under49Products() {
                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-tighter truncate leading-none">{storeName}</p>
                  <div className="flex items-center gap-1.5">
                     <div className="h-2.5 w-2.5 border border-green-600 rounded-sm flex items-center justify-center p-0.5 shrink-0"><div className="h-full w-full bg-green-600 rounded-full" /></div>
-                    <h4 className="text-[13px] font-black text-gray-800 uppercase italic truncate tracking-tight leading-tight">{p.name}</h4>
+                    <h4 className="text-[11px] font-black text-gray-800 uppercase italic truncate tracking-tight">{p.name}</h4>
                  </div>
                  
                  <div className="flex items-center gap-2 pt-0.5">

@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect, memo, useCallback } from "react"
@@ -38,21 +37,12 @@ export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
 
 const ProductItem = memo(({ product, quantity, isOffline, onShare }: any) => {
   const displayPrice = Number(product.price) || 0;
-  const isBestRated = (Number(product.rating) || 0) >= 4.5;
 
   return (
     <div className={cn(
       "relative bg-[#0B0B0B] rounded-[1.5rem] p-3 border border-white/5 flex flex-col shadow-2xl transition-all transform-gpu hover:scale-[1.02] will-change-transform", 
       isOffline && "opacity-75 grayscale-[0.5]"
     )}>
-      {isBestRated && !isOffline && (
-        <div className="absolute -top-1 -left-1 z-30 animate-in zoom-in duration-500">
-           <Badge className="bg-amber-400 text-black border-none font-black text-[7px] uppercase tracking-widest px-2 py-0.5 rounded-full shadow-lg flex items-center gap-1">
-              <Award className="h-2 w-2 fill-black" /> BEST RATED
-           </Badge>
-        </div>
-      )}
-
       <ProductQuickView product={product} vendorScheduleOpen={!isOffline}>
         <div className="flex flex-col h-full cursor-pointer">
           <div className="relative aspect-square w-full mb-3">
