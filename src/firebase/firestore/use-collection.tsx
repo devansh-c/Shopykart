@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Query, 
   onSnapshot, 
@@ -13,7 +13,7 @@ import { FirestorePermissionError } from '../errors';
 
 /**
  * @fileOverview High-Performance Real-time Collection Hook.
- * Optimized for Instant Hydration from localStorage.
+ * Optimized for Instant Hydration from localStorage and stable snapshot listeners.
  */
 export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey?: string, initialData?: T[]) {
   // 1. ATOMIC INITIALIZATION: Try to get data from cache before first render
@@ -29,12 +29,11 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
     return null;
   });
 
-  // Loading is only true if we have absolutely NO data (state or cache) to show
   const [loading, setLoading] = useState(() => !data && !!query);
   const [error, setError] = useState<FirestoreError | null>(null);
   
-  // Stable query string for effect dependency
-  const queryStr = useMemo(() => query ? JSON.stringify((query as any)._query || {}) : '', [query]);
+  // Ref to track query hash to prevent unnecessary listener resets
+  const lastQueryKeyRef = useRef<string>('');
 
   useEffect(() => {
     if (!query) {
@@ -42,21 +41,24 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
       return;
     }
 
+    // Creating a stable key for the current query
+    const queryKey = (query as any)._query?.path?.segments?.join('/') || 'root';
+    
     // 2. Real-time Background Sync
-    // We use { includeMetadataChanges: false } to reduce noise
     const unsubscribe = onSnapshot(
       query,
       { includeMetadataChanges: false },
       (snapshot: QuerySnapshot<T>) => {
         const items = snapshot.docs.map(doc => {
           const rawData = doc.data();
-          // Normalize data for consistency
-          const cleanData = JSON.parse(JSON.stringify(rawData, (key, value) => {
-            if (value && typeof value === 'object' && value.seconds !== undefined) {
-              return new Date(value.seconds * 1000).toISOString();
+          // Fast normalization for dates
+          const cleanData = { ...rawData };
+          Object.keys(cleanData).forEach(key => {
+            const val = (cleanData as any)[key];
+            if (val && typeof val === 'object' && val.seconds !== undefined) {
+              (cleanData as any)[key] = new Date(val.seconds * 1000).toISOString();
             }
-            return value;
-          }));
+          });
           
           return {
             ...cleanData,
@@ -72,9 +74,7 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
         if (cacheKey && typeof window !== 'undefined') {
           try {
             localStorage.setItem(`fire_cache_${cacheKey}`, JSON.stringify(items));
-          } catch (e: any) {
-            // Silently ignore quota errors (private browsing or full storage)
-          }
+          } catch (e: any) {}
         }
       },
       (err: FirestoreError) => {
@@ -98,7 +98,7 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
     );
 
     return () => unsubscribe();
-  }, [queryStr, cacheKey]);
+  }, [query ? JSON.stringify((query as any)._query || {}) : '', cacheKey]);
 
   return { data, loading, error };
 }

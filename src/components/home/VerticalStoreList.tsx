@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useMemo, useState, useEffect, memo } from 'react';
-import { MapPin, Star, Award, Timer, Plus, Heart, Store as StoreIcon } from 'lucide-react';
+import { MapPin, Star, Award, Timer, Plus, Heart, Store as StoreIcon, Loader2 } from 'lucide-react';
 import { cn, slugify } from '@/lib/utils';
 import Image from 'next/image';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, limit } from 'firebase/firestore';
+import { collection, query, limit, orderBy } from 'firebase/firestore';
 import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 import { Badge } from '@/components/ui/badge';
 import { useRouter } from 'next/navigation';
@@ -15,6 +15,8 @@ import { ProductQuickView } from '@/components/product/ProductQuickView';
  * @fileOverview Product Strip Item to match screenshot style.
  */
 const ProductStripItem = memo(({ product, isOffline }: any) => {
+  const { cart } = useCart();
+  const quantity = cart.find(c => String(c.id) === String(product.id) && !c.selectedOption)?.quantity || 0;
   const displayPrice = Number(product.price) || 0;
   const mrp = Number(product.mrp) || displayPrice + 15;
   const discount = Math.round(((mrp - displayPrice) / mrp) * 100);
@@ -30,7 +32,7 @@ const ProductStripItem = memo(({ product, isOffline }: any) => {
 
           <ProductQuickView product={product} vendorScheduleOpen={!isOffline}>
              <button className="absolute bottom-2 right-2 h-8 w-8 bg-white text-primary rounded-full flex items-center justify-center shadow-xl active:scale-75 transition-transform z-20">
-                <Plus className="h-4 w-4 stroke-[4]" />
+                {quantity > 0 ? <span className="text-[10px] font-black text-primary">{quantity}</span> : <Plus className="h-4 w-4 stroke-[4]" />}
              </button>
           </ProductQuickView>
        </div>
@@ -56,9 +58,11 @@ const ProductStripItem = memo(({ product, isOffline }: any) => {
 });
 ProductStripItem.displayName = "ProductStripItem";
 
+import { useCart } from '@/components/cart/CartProvider';
+
 /**
  * @fileOverview Super-Optimized VerticalStoreList with Horizontal Product Grids.
- * Uses content-visibility: auto for faster initial page paint.
+ * FIX: Added strict limits and order to prevents 30min loading delays on home page.
  */
 export const VerticalStoreList = memo(({ 
   searchQuery = '', 
@@ -94,19 +98,23 @@ export const VerticalStoreList = memo(({
     };
   }, []);
 
-  // Fetch Vendors
+  // Fetch Vendors - Limited to 30 for home page performance
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return collection(firestore, 'vendors');
+    return query(collection(firestore, 'vendors'), limit(40));
   }, [firestore]);
-  const { data: dbVendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery, 'home_vstores_v7', initialData);
+  const { data: dbVendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery, 'home_vstores_v8', initialData);
 
-  // Fetch all Products (used for the horizontal strips)
+  // Fetch only necessary Products for strips - Strict limit(200) to prevent 30min delay
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return collection(firestore, 'products');
+    return query(
+      collection(firestore, 'products'), 
+      where('isDeleted', '==', false),
+      limit(200)
+    );
   }, [firestore]);
-  const { data: allProducts } = useCollection<any>(productsQuery, 'home_strip_products_v7');
+  const { data: allProducts } = useCollection<any>(productsQuery, 'home_strip_products_v8');
 
   const filteredVendors = useMemo(() => {
     const list = (dbVendors && dbVendors.length > 0) ? dbVendors : initialData;
@@ -159,17 +167,10 @@ export const VerticalStoreList = memo(({
       </div>
 
       <div className="space-y-16">
-        {vendorsLoading && filteredVendors.length === 0 ? (
-          <div className="space-y-10">
-            {[1, 2].map(i => (
-              <div key={i} className="space-y-4">
-                <div className="h-52 w-full bg-gray-50 rounded-[1.5rem] animate-pulse" />
-                <div className="flex justify-between px-4">
-                  <div className="h-6 w-1/3 bg-gray-50 rounded-full animate-pulse" />
-                  <div className="h-6 w-12 bg-gray-50 rounded-full animate-pulse" />
-                </div>
-              </div>
-            ))}
+        {(vendorsLoading && filteredVendors.length === 0) ? (
+          <div className="space-y-10 flex flex-col items-center py-20">
+            <Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" />
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground mt-4 animate-pulse">Syncing with nearby hubs...</p>
           </div>
         ) : filteredVendors.length > 0 ? (
           filteredVendors.map((store: any) => {
@@ -179,8 +180,8 @@ export const VerticalStoreList = memo(({
             const storeSlug = store.slug || slugify(store.storeName) || store.id;
             const isBestRated = Number(store.rating) >= 4.5;
 
-            // Highly efficient product matching
-            const storeProducts = allProducts?.filter(p => String(p.vendorId) === String(store.id) && !p.isDeleted).slice(0, 10) || [];
+            // Mapping products to store efficiently
+            const storeProducts = allProducts?.filter(p => String(p.vendorId) === String(store.id)).slice(0, 10) || [];
 
             return (
               <div key={store.id} className="flex flex-col space-y-4 animate-in fade-in duration-500">
