@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo, useRef } from 'react';
@@ -32,8 +33,15 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
   const [loading, setLoading] = useState(() => !data && !!query);
   const [error, setError] = useState<FirestoreError | null>(null);
   
-  // Ref to track query hash to prevent unnecessary listener resets
-  const lastQueryKeyRef = useRef<string>('');
+  // Create a stable string representation of the query path to avoid unstable dependencies
+  const stableQueryPath = useMemo(() => {
+    if (!query) return '';
+    try {
+      return (query as any)._query?.path?.segments?.join('/') || Math.random().toString();
+    } catch (e) {
+      return Math.random().toString();
+    }
+  }, [query]);
 
   useEffect(() => {
     if (!query) {
@@ -41,9 +49,6 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
       return;
     }
 
-    // Creating a stable key for the current query
-    const queryKey = (query as any)._query?.path?.segments?.join('/') || 'root';
-    
     // 2. Real-time Background Sync
     const unsubscribe = onSnapshot(
       query,
@@ -98,7 +103,7 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
     );
 
     return () => unsubscribe();
-  }, [query ? JSON.stringify((query as any)._query || {}) : '', cacheKey]);
+  }, [stableQueryPath, cacheKey]);
 
   return { data, loading, error };
 }

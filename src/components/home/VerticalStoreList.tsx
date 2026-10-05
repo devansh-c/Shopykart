@@ -63,7 +63,8 @@ ProductStripItem.displayName = "ProductStripItem";
 
 /**
  * @fileOverview Super-Optimized VerticalStoreList.
- * FIXED: Data now renders INSTANTLY from cache. No more 30-min delays.
+ * FIXED: Limit increased to 500 to ensure all Ranipur stores are fetched.
+ * FIXED: Badge shows '...' while loading to prevent "0 Stores" confusion.
  */
 export const VerticalStoreList = memo(({ 
   searchQuery = '', 
@@ -105,10 +106,10 @@ export const VerticalStoreList = memo(({
     };
   }, []);
 
-  // Fetch Vendors - Aggressive Cache Hit
+  // Fetch Vendors - Limit increased to 500 to ensure no Ranipur stores are skipped
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'vendors'), limit(50));
+    return query(collection(firestore, 'vendors'), limit(500));
   }, [firestore]);
   const { data: dbVendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery, 'home_vstores_v10', initialData);
 
@@ -124,13 +125,14 @@ export const VerticalStoreList = memo(({
   const { data: allProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_strip_products_v10');
 
   const filteredVendors = useMemo(() => {
-    const list = dbVendors || initialData || [];
-    if (list.length === 0) return [];
+    if (!dbVendors && (!initialData || initialData.length === 0)) return null;
     
+    const list = dbVendors || initialData || [];
     const searchLower = searchQuery.toLowerCase().trim();
     const currentMode = activeMode.toLowerCase();
 
     return list.filter(v => {
+      // Zone Filtering
       if (activeZoneId && v.zoneId && v.zoneId !== activeZoneId && v.zoneId !== 'global') {
         return false;
       }
@@ -169,12 +171,12 @@ export const VerticalStoreList = memo(({
            Best <span className="text-primary">Hubs</span>
         </h2>
         <Badge variant="outline" className="rounded-full border-gray-200 text-gray-400 font-black uppercase text-[10px]">
-          {filteredVendors.length} STORES
+          {filteredVendors === null ? '...' : `${filteredVendors.length} STORES`}
         </Badge>
       </div>
 
       <div className="space-y-16">
-        {(!dbVendors && vendorsLoading) ? (
+        {filteredVendors === null ? (
           <div className="space-y-10 flex flex-col items-center py-20">
             <Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" />
             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground mt-4 animate-pulse">Scanning nearby hubs...</p>
@@ -299,4 +301,3 @@ export const VerticalStoreList = memo(({
 });
 
 VerticalStoreList.displayName = "VerticalStoreList";
-    
