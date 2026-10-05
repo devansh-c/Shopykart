@@ -16,7 +16,7 @@ import { FirestorePermissionError } from '../errors';
  * Optimized for Instant Hydration from localStorage.
  */
 export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey?: string, initialData?: T[]) {
-  // 1. ATOMIC INITIALIZATION: Try to get data from cache or props before first render
+  // 1. ATOMIC INITIALIZATION: Try to get data from cache before first render
   const [data, setData] = useState<T[] | null>(() => {
     if (initialData && initialData.length > 0) return initialData;
     
@@ -29,10 +29,11 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
     return null;
   });
 
-  // Loading is only true if we have absolutely NO data to show
+  // Loading is only true if we have absolutely NO data (state or cache) to show
   const [loading, setLoading] = useState(() => !data && !!query);
   const [error, setError] = useState<FirestoreError | null>(null);
   
+  // Stable query string for effect dependency
   const queryStr = useMemo(() => query ? JSON.stringify((query as any)._query || {}) : '', [query]);
 
   useEffect(() => {
@@ -42,13 +43,14 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
     }
 
     // 2. Real-time Background Sync
+    // We use { includeMetadataChanges: false } to reduce noise
     const unsubscribe = onSnapshot(
       query,
       { includeMetadataChanges: false },
       (snapshot: QuerySnapshot<T>) => {
         const items = snapshot.docs.map(doc => {
           const rawData = doc.data();
-          // Normalize timestamps to strings for consistent serializability
+          // Normalize data for consistency
           const cleanData = JSON.parse(JSON.stringify(rawData, (key, value) => {
             if (value && typeof value === 'object' && value.seconds !== undefined) {
               return new Date(value.seconds * 1000).toISOString();
@@ -66,13 +68,12 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
         setLoading(false);
         setError(null);
         
+        // Persist to local storage for instant load on next visit
         if (cacheKey && typeof window !== 'undefined') {
           try {
             localStorage.setItem(`fire_cache_${cacheKey}`, JSON.stringify(items));
           } catch (e: any) {
-            if (e.name === 'QuotaExceededError') {
-               console.warn("Cache Quota Full");
-            }
+            // Silently ignore quota errors (private browsing or full storage)
           }
         }
       },

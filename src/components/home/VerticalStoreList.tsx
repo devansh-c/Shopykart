@@ -14,7 +14,7 @@ import { ProductQuickView } from '@/components/product/ProductQuickView';
 /**
  * @fileOverview Product Strip Item to match screenshot style.
  */
-const ProductStripItem = memo(({ product, quantity, isOffline }: any) => {
+const ProductStripItem = memo(({ product, isOffline }: any) => {
   const displayPrice = Number(product.price) || 0;
   const mrp = Number(product.mrp) || displayPrice + 15;
   const discount = Math.round(((mrp - displayPrice) / mrp) * 100);
@@ -58,6 +58,7 @@ ProductStripItem.displayName = "ProductStripItem";
 
 /**
  * @fileOverview Super-Optimized VerticalStoreList with Horizontal Product Grids.
+ * Uses content-visibility: auto for faster initial page paint.
  */
 export const VerticalStoreList = memo(({ 
   searchQuery = '', 
@@ -71,27 +72,20 @@ export const VerticalStoreList = memo(({
   const router = useRouter();
   const firestore = useFirestore();
 
-  const [activeZoneId, setActiveZoneId] = useState<string | null>(() => {
-    if (typeof window !== 'undefined') return localStorage.getItem('active_zone_id');
-    return null;
-  });
-
-  const [currentTimeMins, setCurrentTimeMins] = useState<number | null>(() => {
-    if (typeof window !== 'undefined') {
-      const now = new Date();
-      return now.getHours() * 60 + now.getMinutes();
-    }
-    return null;
-  });
+  const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
+  const [currentTimeMins, setCurrentTimeMins] = useState<number | null>(null);
 
   useEffect(() => {
-    const updateZone = () => {
-      setActiveZoneId(localStorage.getItem('active_zone_id'));
-    };
+    const updateZone = () => setActiveZoneId(localStorage.getItem('active_zone_id'));
+    updateZone();
     window.addEventListener('user-address-updated', updateZone);
+    
+    const now = new Date();
+    setCurrentTimeMins(now.getHours() * 60 + now.getMinutes());
+    
     const interval = setInterval(() => {
-      const now = new Date();
-      setCurrentTimeMins(now.getHours() * 60 + now.getMinutes());
+      const d = new Date();
+      setCurrentTimeMins(d.getHours() * 60 + d.getMinutes());
     }, 60000);
 
     return () => {
@@ -100,37 +94,36 @@ export const VerticalStoreList = memo(({
     };
   }, []);
 
+  // Fetch Vendors
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'vendors');
   }, [firestore]);
-  const { data: dbVendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery, 'home_vstores_v6', initialData);
+  const { data: dbVendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery, 'home_vstores_v7', initialData);
 
+  // Fetch all Products (used for the horizontal strips)
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'products');
   }, [firestore]);
-  const { data: allProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_strip_products');
+  const { data: allProducts } = useCollection<any>(productsQuery, 'home_strip_products_v7');
 
   const filteredVendors = useMemo(() => {
-    const list = (dbVendors && dbVendors.length > 0) ? dbVendors : (initialData.length > 0 ? initialData : []);
-    if (!list || list.length === 0) return [];
+    const list = (dbVendors && dbVendors.length > 0) ? dbVendors : initialData;
+    if (!list) return [];
     
     const searchLower = searchQuery.toLowerCase().trim();
     const currentMode = activeMode.toLowerCase();
 
     return list.filter(v => {
-      if (activeZoneId) {
-        if (v.zoneId && v.zoneId !== activeZoneId && v.zoneId !== 'global') {
-          return false;
-        }
+      if (activeZoneId && v.zoneId && v.zoneId !== activeZoneId && v.zoneId !== 'global') {
+        return false;
       }
 
       const storeCat = (v.category || 'Food').toLowerCase();
-      const isFoodRequest = currentMode === 'food';
       const isStoreFood = storeCat === 'food' || storeCat === 'restaurant' || storeCat === 'bakery';
 
-      if (isFoodRequest) {
+      if (currentMode === 'food') {
         if (!isStoreFood) return false;
       } else if (storeCat !== currentMode) {
         return false;
@@ -154,10 +147,8 @@ export const VerticalStoreList = memo(({
     });
   }, [dbVendors, initialData, activeZoneId, searchQuery, activeMode, currentTimeMins]);
 
-  const showInitialSkeletons = vendorsLoading && filteredVendors.length === 0;
-
   return (
-    <div className="px-4 py-6 bg-white min-h-[400px]">
+    <div className="px-4 py-6 bg-white min-h-[500px] content-visibility-auto">
       <div className="flex items-center justify-between mb-8 px-2">
         <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900 leading-none">
            Best <span className="text-primary">Hubs</span>
@@ -168,14 +159,14 @@ export const VerticalStoreList = memo(({
       </div>
 
       <div className="space-y-16">
-        {showInitialSkeletons ? (
+        {vendorsLoading && filteredVendors.length === 0 ? (
           <div className="space-y-10">
             {[1, 2].map(i => (
               <div key={i} className="space-y-4">
-                <div className="h-52 w-full bg-gray-50 rounded-[1.5rem]" />
+                <div className="h-52 w-full bg-gray-50 rounded-[1.5rem] animate-pulse" />
                 <div className="flex justify-between px-4">
-                  <div className="h-6 w-1/3 bg-gray-50 rounded-full" />
-                  <div className="h-6 w-12 bg-gray-50 rounded-full" />
+                  <div className="h-6 w-1/3 bg-gray-50 rounded-full animate-pulse" />
+                  <div className="h-6 w-12 bg-gray-50 rounded-full animate-pulse" />
                 </div>
               </div>
             ))}
@@ -188,12 +179,11 @@ export const VerticalStoreList = memo(({
             const storeSlug = store.slug || slugify(store.storeName) || store.id;
             const isBestRated = Number(store.rating) >= 4.5;
 
-            // Filter products for this specific store
-            const storeProducts = allProducts?.filter(p => String(p.vendorId) === String(store.id) && !p.isDeleted) || [];
+            // Highly efficient product matching
+            const storeProducts = allProducts?.filter(p => String(p.vendorId) === String(store.id) && !p.isDeleted).slice(0, 10) || [];
 
             return (
               <div key={store.id} className="flex flex-col space-y-4 animate-in fade-in duration-500">
-                {/* Store Header Info (Clickable) */}
                 <button 
                   onClick={() => router.push(`/store/${storeSlug}/`)}
                   className={cn(
@@ -208,7 +198,7 @@ export const VerticalStoreList = memo(({
                       fill 
                       className={cn("object-cover", isOffline && "grayscale")} 
                       unoptimized 
-                      loading="lazy"
+                      priority={filteredVendors.indexOf(store) < 2}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-60" />
 
@@ -263,18 +253,16 @@ export const VerticalStoreList = memo(({
                   </div>
                 </button>
 
-                {/* Horizontal Product Grid (Screenshot Style) */}
                 {storeProducts.length > 0 && (
                   <div className="px-1 overflow-hidden">
                     <div className="flex overflow-x-auto space-x-4 no-scrollbar pb-4 pt-2">
-                      {storeProducts.slice(0, 10).map((p: any) => (
+                      {storeProducts.map((p: any) => (
                         <ProductStripItem 
                           key={p.id} 
                           product={{...p, restaurantName: store.storeName}} 
                           isOffline={isOffline}
                         />
                       ))}
-                      {/* End of list spacer */}
                       <div className="min-w-[1px] h-full" />
                     </div>
                   </div>
