@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo, useState, useEffect, memo } from 'react';
@@ -62,9 +61,7 @@ const ProductStripItem = memo(({ product, isOffline }: any) => {
 ProductStripItem.displayName = "ProductStripItem";
 
 /**
- * @fileOverview Super-Optimized VerticalStoreList.
- * FIXED: Limit increased to 500 to ensure all Ranipur stores are fetched.
- * FIXED: Badge shows '...' while loading to prevent "0 Stores" confusion.
+ * @fileOverview Super-Optimized VerticalStoreList with Shimmer Effects.
  */
 export const VerticalStoreList = memo(({ 
   searchQuery = '', 
@@ -106,14 +103,12 @@ export const VerticalStoreList = memo(({
     };
   }, []);
 
-  // Fetch Vendors - Limit increased to 500 to ensure no Ranipur stores are skipped
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'vendors'), limit(500));
   }, [firestore]);
   const { data: dbVendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery, 'home_vstores_v10', initialData);
 
-  // Fetch Products - Optimized for Strips
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(
@@ -132,7 +127,6 @@ export const VerticalStoreList = memo(({
     const currentMode = activeMode.toLowerCase();
 
     return list.filter(v => {
-      // Zone Filtering
       if (activeZoneId && v.zoneId && v.zoneId !== activeZoneId && v.zoneId !== 'global') {
         return false;
       }
@@ -177,9 +171,23 @@ export const VerticalStoreList = memo(({
 
       <div className="space-y-16">
         {filteredVendors === null ? (
-          <div className="space-y-10 flex flex-col items-center py-20">
-            <Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" />
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground mt-4 animate-pulse">Scanning nearby hubs...</p>
+          <div className="space-y-16">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="space-y-6">
+                <div className="space-y-4">
+                  <Skeleton className="w-full aspect-[18/9] rounded-[1.5rem]" />
+                  <div className="space-y-2 px-2">
+                    <Skeleton className="h-6 w-2/3 rounded-full" />
+                    <Skeleton className="h-3 w-1/2 rounded-full" />
+                  </div>
+                </div>
+                <div className="flex gap-4 overflow-hidden px-2">
+                  <Skeleton className="h-40 w-[140px] shrink-0 rounded-2xl" />
+                  <Skeleton className="h-40 w-[140px] shrink-0 rounded-2xl" />
+                  <Skeleton className="h-40 w-[140px] shrink-0 rounded-2xl" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : filteredVendors.length > 0 ? (
           filteredVendors.map((store: any) => {

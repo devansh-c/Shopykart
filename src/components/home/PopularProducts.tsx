@@ -10,6 +10,7 @@ import { collection, query, limit, orderBy, where } from "firebase/firestore"
 import { ProductQuickView } from "@/components/product/ProductQuickView"
 import { useToast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
   if (!vendor) return true;
@@ -174,7 +175,17 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       {queryLoading && !dbProducts ? (
         <div className="grid grid-cols-2 gap-4 animate-in fade-in duration-500">
            {[1, 2, 3, 4].map(i => (
-             <div key={i} className="h-48 w-full bg-gray-50 rounded-[1.5rem] border border-gray-100 animate-pulse" />
+             <div key={i} className="space-y-3 bg-white p-3 rounded-[1.5rem] border border-gray-100">
+                <Skeleton className="aspect-square w-full rounded-2xl" />
+                <div className="space-y-2">
+                   <Skeleton className="h-3 w-2/3 rounded-full" />
+                   <Skeleton className="h-2 w-1/3 rounded-full" />
+                   <div className="flex justify-between pt-2">
+                      <Skeleton className="h-5 w-10 rounded-full" />
+                      <Skeleton className="h-8 w-16 rounded-full" />
+                   </div>
+                </div>
+             </div>
            ))}
         </div>
       ) : (
