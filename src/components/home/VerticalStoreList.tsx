@@ -114,7 +114,7 @@ export const VerticalStoreList = memo(({
     return query(
       collection(firestore, 'products'), 
       where('isDeleted', '==', false),
-      limit(300)
+      limit(1000) // INCREASED LIMIT TO 1000 TO ENSURE ALL STORES HAVE PRODUCTS IN POOL
     );
   }, [firestore]);
   const { data: allProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_strip_products_v10');
@@ -288,7 +288,11 @@ export const VerticalStoreList = memo(({
                            <Skeleton className="h-3 w-full" />
                         </div>
                       ))
-                    ) : null}
+                    ) : (
+                      <div className="h-40 flex items-center justify-center w-full bg-gray-50 rounded-2xl border border-dashed">
+                        <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">No products listed</p>
+                      </div>
+                    )}
                     <div className="min-w-[1px] h-full" />
                   </div>
                 </div>

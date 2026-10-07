@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo, useRef } from 'react';
@@ -37,6 +36,7 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
   const stableQueryPath = useMemo(() => {
     if (!query) return '';
     try {
+      // Using query segments for stability
       return (query as any)._query?.path?.segments?.join('/') || Math.random().toString();
     } catch (e) {
       return Math.random().toString();
@@ -79,7 +79,9 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
         if (cacheKey && typeof window !== 'undefined') {
           try {
             localStorage.setItem(`fire_cache_${cacheKey}`, JSON.stringify(items));
-          } catch (e: any) {}
+          } catch (e: any) {
+            // Silently handle storage errors (e.g. quota exceeded)
+          }
         }
       },
       (err: FirestoreError) => {
