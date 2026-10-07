@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     # Memory optimization to prevent CI crashes and fix the JVM flag error
     env:
-      GRADLE_OPTS: -Xmx2048m -Dorg.gradle.jvmargs="-Xmx2048m -XX:MaxMetaspaceSize=512m"
+      GRADLE_OPTS: -Xmx2048m
       NODE_OPTIONS: --max-old-space-size=4096
     steps:
       - name: Checkout Source
