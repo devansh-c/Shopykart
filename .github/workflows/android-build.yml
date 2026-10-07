@@ -38,18 +38,12 @@ jobs:
           fi
           npx cap sync android
 
-      - name: Fix Missing Cordova Module
-        run: |
-          mkdir -p android/capacitor-cordova-android-plugins
-          echo "ext { apply from: '../capacitor.build.gradle' }" > android/capacitor-cordova-android-plugins/build.gradle
-          echo "android { namespace 'com.capacitor.cordova.android.plugins'; compileSdkVersion project.ext.compileSdkVersion; defaultConfig { minSdkVersion project.ext.minSdkVersion; targetSdkVersion project.ext.targetSdkVersion } }; dependencies { implementation project(':capacitor-android') }" >> android/capacitor-cordova-android-plugins/build.gradle
-
       - name: Fix Gradle Permissions
         run: |
           if [ -f "android/gradlew" ]; then
             chmod +x android/gradlew
           else
-            echo "Generating Gradle wrapper..."
+            echo "Error: gradlew missing after sync. Attempting repair..."
             cd android && gradle wrapper --gradle-version 8.2.1 && cd ..
             chmod +x android/gradlew
           fi
@@ -66,13 +60,13 @@ jobs:
         run: |
           echo "Locating and renaming build outputs..."
           
-          # Find APK (Usually in app/build/outputs/apk/debug)
+          # Find APK
           APK_PATH=$(find android/app/build/outputs/apk -name "*.apk" | head -n 1)
           if [ -f "$APK_PATH" ]; then
             cp "$APK_PATH" app.shopykart.apk
           fi
           
-          # Find AAB (Prioritizing release bundle)
+          # Find AAB (Release prioritized)
           AAB_PATH=$(find android/app/build/outputs/bundle -name "*.aab" | grep "release" | head -n 1)
           if [ -z "$AAB_PATH" ]; then
             AAB_PATH=$(find android/app/build/outputs/bundle -name "*.aab" | head -n 1)
