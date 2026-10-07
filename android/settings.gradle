@@ -1,2 +1,2 @@
 include ':app'
-// Removed stale capacitor-cordova-android-plugins include as it caused build failures in pure Capacitor environments.
+apply from: 'capacitor.settings.gradle'

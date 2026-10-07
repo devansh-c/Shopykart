@@ -32,46 +32,31 @@ jobs:
         run: npm run build:static
 
       - name: Sync Capacitor Android
-        run: |
-          if [ ! -d "android" ]; then
-            npx cap add android
-          fi
-          npx cap sync android
+        run: npx cap sync android
 
       - name: Fix Gradle Permissions
-        run: |
-          if [ -f "android/gradlew" ]; then
-            chmod +x android/gradlew
-          else
-            echo "Error: gradlew missing after sync. Attempting repair..."
-            cd android && gradle wrapper --gradle-version 8.2.1 && cd ..
-            chmod +x android/gradlew
-          fi
-
-      - name: Build APK (Debug)
-        working-directory: android
-        run: ./gradlew assembleDebug --stacktrace --no-daemon
+        run: chmod +x android/gradlew
 
       - name: Build Release Bundle (AAB)
         working-directory: android
         run: ./gradlew bundleRelease --stacktrace --no-daemon
+
+      - name: Build APK (Release)
+        working-directory: android
+        run: ./gradlew assembleRelease --stacktrace --no-daemon
 
       - name: Prepare ShopyKart Artifacts
         run: |
           echo "Locating and renaming build outputs..."
           
           # Find APK
-          APK_PATH=$(find android/app/build/outputs/apk -name "*.apk" | head -n 1)
+          APK_PATH=$(find android/app/build/outputs/apk/release -name "*.apk" | head -n 1)
           if [ -f "$APK_PATH" ]; then
             cp "$APK_PATH" app.shopykart.apk
           fi
           
-          # Find AAB (Release prioritized)
-          AAB_PATH=$(find android/app/build/outputs/bundle -name "*.aab" | grep "release" | head -n 1)
-          if [ -z "$AAB_PATH" ]; then
-            AAB_PATH=$(find android/app/build/outputs/bundle -name "*.aab" | head -n 1)
-          fi
-          
+          # Find AAB
+          AAB_PATH=$(find android/app/build/outputs/bundle/release -name "*.aab" | head -n 1)
           if [ -f "$AAB_PATH" ]; then
             cp "$AAB_PATH" app.shopykart.aab
           fi
