@@ -42,11 +42,9 @@ jobs:
 
       - name: Build Release Bundle (AAB)
         working-directory: android
-        working-directory: android
         run: ./gradlew bundleRelease --stacktrace --no-daemon
 
       - name: Build APK (Release)
-        working-directory: android
         working-directory: android
         run: ./gradlew assembleRelease --stacktrace --no-daemon
 
