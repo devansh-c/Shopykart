@@ -52,11 +52,11 @@ jobs:
         run: |
           echo "Locating and renaming build outputs..."
           APK_PATH=$(find android/app/build/outputs/apk/release -name "*.apk" | head -n 1)
-          if [ -f "$APK_PATH" ]; then
+          if [ -n "$APK_PATH" ] && [ -f "$APK_PATH" ]; then
             cp "$APK_PATH" app.shopykart.apk
           fi
           AAB_PATH=$(find android/app/build/outputs/bundle/release -name "*.aab" | head -n 1)
-          if [ -f "$AAB_PATH" ]; then
+          if [ -n "$AAB_PATH" ] && [ -f "$AAB_PATH" ]; then
             cp "$AAB_PATH" app.shopykart.aab
           fi
 
