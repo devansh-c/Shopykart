@@ -16,16 +16,7 @@ const config: CapacitorConfig = {
   plugins: {
     PushNotifications: { presentationOptions: ["badge", "sound", "alert"] },
     LocalNotifications: { smallIcon: "ic_stat_notification", iconColor: "#FF5200" },
-    SplashScreen: {
-      launchShowDuration: 1000,
-      launchAutoHide: true,
-      backgroundColor: "#ffffff",
-      androidScaleType: "CENTER_CROP",
-      showSpinner: false,
-      splashFullScreen: true,
-      splashImmersive: true,
-      useDialog: false
-    }
+    
   }
 };
 
