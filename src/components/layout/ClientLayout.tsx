@@ -78,7 +78,7 @@ export function ClientLayout({ children }: { children: ReactNode }) {
         if (typeof window !== "undefined") {
           const currentPath = window.location.pathname;
           if (currentPath === "/" || currentPath === "") {
-            CapacitorApp.exitApp();
+            Capacitorconsole.log("Back on home");
           } else {
             window.history.back();
           }
