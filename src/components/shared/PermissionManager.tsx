@@ -1,22 +1,36 @@
 "use client";
+
 import { useEffect } from "react";
 
 export default function PermissionManager() {
   useEffect(() => {
-    const run = async () => {
+    const initNativeFeatures = async () => {
       try {
         const { Capacitor } = await import("@capacitor/core");
-        if (Capacitor.isNativePlatform()) {
-          const { Geolocation } = await import("@capacitor/geolocation");
-          await Geolocation.requestPermissions().catch(() => {});
-          const { PushNotifications } = await import("@capacitor/push-notifications");
-          await PushNotifications.requestPermissions().catch(() => {});
-        }
+        if (!Capacitor.isNativePlatform()) return;
+
+        // Delay 1.5s so Next.js UI mounts completely first
+        setTimeout(async () => {
+          try {
+            const { Geolocation } = await import("@capacitor/geolocation");
+            await Geolocation.requestPermissions().catch(() => {});
+          } catch (e) {}
+
+          try {
+            const { PushNotifications } = await import("@capacitor/push-notifications");
+            const perm = await PushNotifications.checkPermissions().catch(() => null);
+            if (perm && perm.receive !== "granted") {
+              await PushNotifications.requestPermissions().catch(() => {});
+            }
+          } catch (e) {}
+        }, 1500);
       } catch (err) {
-        console.warn("Permission setup error:", err);
+        console.warn("Native feature init warning:", err);
       }
     };
-    run();
+
+    initNativeFeatures();
   }, []);
+
   return null;
 }
