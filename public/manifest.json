@@ -1,19 +1,19 @@
 {
-  "name": "ShopyKart Premium",
-  "short_name": "ShopyKart",
-  "description": "Premium Gourmet Food Delivery",
+  "name": "Shopykart",
+  "short_name": "Shopykart",
+  "description": "Order food and grocery online",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#000000",
-  "theme_color": "#EF4444",
+  "background_color": "#ffffff",
+  "theme_color": "#FF5200",
   "icons": [
     {
-      "src": "https://picsum.photos/seed/shopy/192/192",
+      "src": "/icons/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "https://picsum.photos/seed/shopy/512/512",
+      "src": "/icons/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png"
     }

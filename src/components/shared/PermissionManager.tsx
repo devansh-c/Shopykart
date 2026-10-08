@@ -24,6 +24,22 @@ export default function PermissionManager() {
           const pushStatus = await PushNotifications.checkPermissions();
           if (pushStatus.receive !== "granted") {
             await PushNotifications.requestPermissions();
+
+        try {
+          await PushNotifications.createChannel({
+            id: "shopykart_alerts",
+            name: "Shopykart Orders & Offers",
+            description: "Custom tone for orders and updates",
+            importance: 5,
+            visibility: 1,
+            sound: "shopykart_tone",
+            vibration: true,
+          });
+          console.log("Custom sound notification channel created!");
+        } catch (err) {
+          console.warn("Channel creation error:", err);
+        }
+
           }
         } catch (e) {
           console.warn("Push permission error:", e);

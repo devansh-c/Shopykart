@@ -1,3 +1,4 @@
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
 /**
  * Firebase configuration using the project credentials provided.
  */
