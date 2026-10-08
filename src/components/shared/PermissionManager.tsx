@@ -1,47 +1,34 @@
+"use client";
 
-'use client';
+import { useEffect } from "react";
+import { Capacitor } from "@capacitor/core";
+import { Geolocation } from "@capacitor/geolocation";
+import { PushNotifications } from "@capacitor/push-notifications";
 
-import { useEffect } from 'react';
-import { requestPushToken } from '@/firebase/messaging';
-
-/**
- * @fileOverview Global Permission Manager.
- * Optimized for Android 13+ support with aggressive prompt logic for Play Store.
- */
 export default function PermissionManager() {
   useEffect(() => {
     const askPermissions = async () => {
-      if (typeof window === 'undefined') return;
-
-      // Small delay to let the app settle
-      setTimeout(async () => {
+      if (Capacitor.isNativePlatform()) {
         try {
-          // 1. Notification Permission - Forced request for Android 13+
-          if ('Notification' in window) {
-            const currentPermission = Notification.permission;
-            if (currentPermission !== 'granted') {
-              const permission = await Notification.requestPermission();
-              if (permission === 'granted') {
-                console.log("Notification permission granted.");
-                await requestPushToken();
-              }
-            } else {
-              await requestPushToken();
-            }
+          // Android Native Location Prompt
+          const locStatus = await Geolocation.checkPermissions();
+          if (locStatus.location !== "granted") {
+            await Geolocation.requestPermissions();
           }
-
-          // 2. Location Permission (Mandatory for Delivery Accuracy)
-          if ('geolocation' in navigator) {
-            navigator.geolocation.getCurrentPosition(
-              () => { console.log("GPS granted."); }, 
-              () => { console.log("GPS denied."); }, 
-              { enableHighAccuracy: true, timeout: 5000 }
-            );
-          }
-        } catch (err) {
-          console.debug("Permission check skip", err);
+        } catch (e) {
+          console.warn("Location permission error:", e);
         }
-      }, 3000); 
+
+        try {
+          // Android 13+ Native Notification Prompt
+          const pushStatus = await PushNotifications.checkPermissions();
+          if (pushStatus.receive !== "granted") {
+            await PushNotifications.requestPermissions();
+          }
+        } catch (e) {
+          console.warn("Push permission error:", e);
+        }
+      }
     };
 
     askPermissions();

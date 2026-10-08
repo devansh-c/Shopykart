@@ -13,6 +13,13 @@ const nextConfig: NextConfig = {
   },
   trailingSlash: false,
   staticPageGenerationTimeout: 1200,
+  // Fix for Cross Origin Dev Requests in Cloud Workstations / Firebase Studio
+  experimental: {
+    allowedDevOrigins: [
+      '*.cloudworkstations.dev',
+      '*.firebase-studio.dev'
+    ]
+  },
   // Optimized for faster builds and stable preview in Next.js 15
   turbopack: {
     rules: {
