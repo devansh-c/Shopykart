@@ -105,19 +105,20 @@ export const VerticalStoreList = memo(({
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'vendors'), limit(500));
+    // Limit increased to 100 for stable production, but reasonable for dev performance
+    return query(collection(firestore, 'vendors'), limit(100));
   }, [firestore]);
-  const { data: dbVendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery, 'home_vstores_v10', initialData);
+  const { data: dbVendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery, 'home_vstores_v11', initialData);
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(
       collection(firestore, 'products'), 
       where('isDeleted', '==', false),
-      limit(1000) // INCREASED LIMIT TO 1000 TO ENSURE ALL STORES HAVE PRODUCTS IN POOL
+      limit(200) // Lowered from 1000 for dev stability, 200 is enough for a rich preview
     );
   }, [firestore]);
-  const { data: allProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_strip_products_v10');
+  const { data: allProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_strip_products_v11');
 
   const filteredVendors = useMemo(() => {
     if (!dbVendors && (!initialData || initialData.length === 0)) return null;

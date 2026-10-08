@@ -1,7 +1,8 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
-  output: process.env.NEXT_PUBLIC_STATIC_EXPORT === 'true' ? 'export' : 'standalone',
+  // Use export only for static builds, standalone for server-side
+  output: process.env.NEXT_PUBLIC_STATIC_EXPORT === 'true' ? 'export' : undefined,
   images: {
     unoptimized: true,
   },
@@ -13,14 +14,13 @@ const nextConfig: NextConfig = {
   },
   trailingSlash: false,
   staticPageGenerationTimeout: 1200,
-  // Fix for Cross Origin Dev Requests in Cloud Workstations / Firebase Studio
+  // Optimization for faster dev compilation in Next.js 15
   experimental: {
-    allowedDevOrigins: [
-      '*.cloudworkstations.dev',
-      '*.firebase-studio.dev'
-    ]
+    // Removed allowedDevOrigins as it causes validation errors in some 15.x versions
+    // and is currently only a future warning.
+    serverExternalPackages: ['archiver', 'jszip'],
   },
-  // Optimized for faster builds and stable preview in Next.js 15
+  // Turbopack rules for stable and fast preview
   turbopack: {
     rules: {
       '*.svg': {
