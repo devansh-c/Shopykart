@@ -8,7 +8,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    # Stable memory optimization to fix the JVM flag class-not-found error
     env:
       GRADLE_OPTS: -Xmx2048m
       NODE_OPTIONS: --max-old-space-size=4096
@@ -52,14 +51,10 @@ jobs:
       - name: Prepare ShopyKart Artifacts
         run: |
           echo "Locating and renaming build outputs..."
-          
-          # Find APK
           APK_PATH=$(find android/app/build/outputs/apk/release -name "*.apk" | head -n 1)
           if [ -f "$APK_PATH" ]; then
             cp "$APK_PATH" app.shopykart.apk
           fi
-          
-          # Find AAB
           AAB_PATH=$(find android/app/build/outputs/bundle/release -name "*.aab" | head -n 1)
           if [ -f "$AAB_PATH" ]; then
             cp "$AAB_PATH" app.shopykart.aab
