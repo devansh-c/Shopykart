@@ -1,5 +1,5 @@
+"use client";
 import { App as CapacitorApp } from "@capacitor/app";
-'use client';
 
 import { CartProvider } from '@/components/cart/CartProvider';
 import { useUser } from '@/firebase';
