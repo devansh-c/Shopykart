@@ -1,3 +1,4 @@
+import { App as CapacitorApp } from "@capacitor/app";
 'use client';
 
 import { CartProvider } from '@/components/cart/CartProvider';
@@ -68,6 +69,28 @@ const AuthGuard = memo(({ children }: { children: ReactNode }) => {
 AuthGuard.displayName = "AuthGuard";
 
 export function ClientLayout({ children }: { children: ReactNode }) {
+  const router = useRouter();
+
+  useEffect(() => {
+    let handler;
+    const setupListener = async () => {
+      handler = await CapacitorApp.addListener("backButton", () => {
+        if (typeof window !== "undefined") {
+          const currentPath = window.location.pathname;
+          if (currentPath === "/" || currentPath === "") {
+            CapacitorApp.exitApp();
+          } else {
+            window.history.back();
+          }
+        }
+      });
+    };
+    setupListener();
+
+    return () => {
+      if (handler) handler.remove();
+    };
+  }, []);
   const pathname = usePathname();
 
   const { isLoaded } = useJsApiLoader({
