@@ -14,6 +14,8 @@ const config: CapacitorConfig = {
     ]
   },
   plugins: {
+    PushNotifications: { presentationOptions: ["badge", "sound", "alert"] },
+    LocalNotifications: { smallIcon: "ic_stat_notification", iconColor: "#FF5200" },
     SplashScreen: {
       launchShowDuration: 3000,
       launchAutoHide: true,
