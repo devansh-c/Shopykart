@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ShopyKart</string>
+    <string name="title_activity_main">ShopyKart</string>
+    <string name="package_name">co.in.shopykart.app</string>
+    <string name="custom_url_scheme">co.in.shopykart.app</string>
+</resources>
