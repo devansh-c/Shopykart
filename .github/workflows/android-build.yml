@@ -8,7 +8,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    # Memory optimization to prevent CI crashes and fix the JVM flag error
+    # Stable memory optimization to fix the JVM flag class-not-found error
     env:
       GRADLE_OPTS: -Xmx2048m
       NODE_OPTIONS: --max-old-space-size=4096

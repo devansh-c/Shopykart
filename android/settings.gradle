@@ -1,4 +1,2 @@
 include ':app'
-
-// Link Capacitor modules
 apply from: 'capacitor.settings.gradle'
