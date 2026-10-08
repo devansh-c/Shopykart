@@ -1,4 +1,5 @@
-name: Build ShopyKart Customer App (Master Grade)
+
+name: Build ShopyKart Multi-App Suite
 
 on:
   push:
@@ -8,6 +9,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app-type: [customer, admin, biz, tow]
     env:
       GRADLE_OPTS: -Xmx2048m
       NODE_OPTIONS: --max-old-space-size=4096
@@ -24,21 +28,44 @@ jobs:
       - name: Install Dependencies
         run: npm install --legacy-peer-deps
 
+      - name: Build Web Application (Dynamic Mode)
+        run: |
+          if [ "${{ matrix.app-type }}" == "admin" ]; then
+            npm run build:admin
+          elif [ "${{ matrix.app-type }}" == "biz" ]; then
+            npm run build:biz
+          elif [ "${{ matrix.app-type }}" == "tow" ]; then
+            npm run build:tow
+          else
+            npm run build:static
+          fi
+
+      - name: Configure Native Identity
+        run: |
+          # Swap Package ID and App Name based on matrix type
+          STRINGS_FILE="android/app/src/main/res/values/strings.xml"
+          BUILD_GRADLE="android/app/build.gradle"
+          
+          if [ "${{ matrix.app-type }}" == "admin" ]; then
+            sed -i 's/ShopyKart/ShopyKart Admin/g' $STRINGS_FILE
+            sed -i 's/co.in.shopykart.app/co.in.shopykart.admin/g' $BUILD_GRADLE
+          elif [ "${{ matrix.app-type }}" == "biz" ]; then
+            sed -i 's/ShopyKart/ShopyKart Biz/g' $STRINGS_FILE
+            sed -i 's/co.in.shopykart.app/co.in.shopykart.biz/g' $BUILD_GRADLE
+          elif [ "${{ matrix.app-type }}" == "tow" ]; then
+            sed -i 's/ShopyKart/ShopyKart Tow/g' $STRINGS_FILE
+            sed -i 's/co.in.shopykart.app/co.in.shopykart.tow/g' $BUILD_GRADLE
+          fi
+
+      - name: Sync Capacitor Android
+        run: npx cap sync android
+
       - name: Setup Java 17 (Temurin)
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
           cache: 'gradle'
-
-      - name: Build Web Application (Static Export)
-        run: npm run build:static
-
-      - name: Sync Capacitor Android
-        run: npx cap sync android
-
-      - name: Fix Gradle Permissions
-        run: chmod +x android/gradlew
 
       - name: Build Release Bundle (AAB)
         working-directory: android
@@ -48,27 +75,17 @@ jobs:
         working-directory: android
         run: ./gradlew assembleRelease --stacktrace --no-daemon
 
-      - name: Prepare ShopyKart Artifacts
+      - name: Prepare Artifacts
         run: |
-          echo "Locating and renaming build outputs..."
           APK_PATH=$(find android/app/build/outputs/apk/release -name "*.apk" | head -n 1)
-          if [ -n "$APK_PATH" ] && [ -f "$APK_PATH" ]; then
-            cp "$APK_PATH" app.shopykart.apk
-          fi
           AAB_PATH=$(find android/app/build/outputs/bundle/release -name "*.aab" | head -n 1)
-          if [ -n "$AAB_PATH" ] && [ -f "$AAB_PATH" ]; then
-            cp "$AAB_PATH" app.shopykart.aab
-          fi
+          cp "$APK_PATH" "shopykart_${{ matrix.app-type }}.apk"
+          cp "$AAB_PATH" "shopykart_${{ matrix.app-type }}.aab"
 
-      - name: Verify Final Files
-        run: |
-          ls -lh app.shopykart.apk || echo "APK Missing"
-          ls -lh app.shopykart.aab || echo "AAB Missing"
-
-      - name: Upload ShopyKart Artifacts
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ShopyKart-Build-Files
+          name: ShopyKart-${{ matrix.app-type }}-Build
           path: |
-            app.shopykart.apk
-            app.shopykart.aab
+            shopykart_${{ matrix.app-type }}.apk
+            shopykart_${{ matrix.app-type }}.aab

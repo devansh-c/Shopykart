@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useRef, useMemo } from 'react';
@@ -10,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { cn, slugify } from '@/lib/utils';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, updateDoc, serverTimestamp, writeBatch, query, where, getDocs, setDoc } from 'firebase/firestore';
+import { collection, doc, updateDoc, serverTimestamp, writeBatch, query, where, getDocs, setDoc, limit } from 'firebase/firestore';
 import { compressImage } from '@/lib/image-utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
@@ -39,15 +40,15 @@ export default function ProductManagement() {
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return collection(firestore, 'products');
+    return query(collection(firestore, 'products'), limit(500));
   }, [firestore]);
-  const { data: products, loading } = useCollection<any>(productsQuery);
+  const { data: products, loading } = useCollection<any>(productsQuery, 'admin_products_master');
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return collection(firestore, 'vendors');
+    return query(collection(firestore, 'vendors'), limit(500));
   }, [firestore]);
-  const { data: vendors } = useCollection<any>(vendorsQuery);
+  const { data: vendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery, 'admin_vendors_master');
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -203,7 +204,6 @@ export default function ProductManagement() {
                   </div>
                </div>
 
-               {/* VARIETY SECTION - RESTORED AS PER REQUEST */}
                <div className="space-y-4 p-6 bg-gray-50 rounded-[2rem] border-2 border-dashed border-gray-200">
                   <div className="flex items-center justify-between">
                      <div className="flex items-center gap-2">
@@ -258,8 +258,16 @@ export default function ProductManagement() {
                <div className="space-y-1">
                   <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Assign to Partner Store</label>
                   <Select value={selectedVendorId} onValueChange={setSelectedVendorId}>
-                     <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold"><SelectValue placeholder="Select Store" /></SelectTrigger>
-                     <SelectContent className="rounded-2xl">{vendors?.map((v:any) => <SelectItem key={v.id} value={v.id} className="font-bold py-3 uppercase text-xs">{v.storeName}</SelectItem>)}</SelectContent>
+                     <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold">
+                        <SelectValue placeholder={vendorsLoading ? "Loading stores..." : "Select Store Hub"} />
+                     </SelectTrigger>
+                     <SelectContent className="rounded-2xl">
+                        {vendors?.map((v:any) => (
+                          <SelectItem key={v.id} value={v.id} className="font-bold py-3 uppercase text-xs">
+                            {v.storeName}
+                          </SelectItem>
+                        ))}
+                     </SelectContent>
                   </Select>
                </div>
 

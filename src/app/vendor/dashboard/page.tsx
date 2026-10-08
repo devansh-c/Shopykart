@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -99,10 +100,12 @@ export default function VendorDashboard() {
   }, [firestore, user]);
   const { data: vendorProfile, loading: profileLoading } = useDoc<any>(vendorRef);
 
+  // DYNAMIC CATEGORIES FETCH: Based on Vendor's Service Type
   const categoriesQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return query(collection(firestore, 'categories'), where('serviceType', '==', 'Food'));
-  }, [firestore]);
+    if (!firestore || !vendorProfile) return null;
+    const type = vendorProfile.category || 'Food';
+    return query(collection(firestore, 'categories'), where('serviceType', '==', type));
+  }, [firestore, vendorProfile]);
   const { data: foodCategories } = useCollection<any>(categoriesQuery);
 
   const productsQuery = useMemoFirebase(() => {
@@ -374,12 +377,21 @@ export default function VendorDashboard() {
                               <Input type="number" placeholder="Prep Time (Min)" value={productForm.preparingTime} onChange={e => setProductForm({...productForm, preparingTime: e.target.value})} className="h-12 rounded-xl border-none bg-primary/5 font-black text-center" />
                            </div>
 
-                           <Select value={productForm.category} onValueChange={v => setProductForm({...productForm, category: v})}>
-                              <SelectTrigger className="h-12 rounded-xl bg-gray-50 border-none font-bold"><SelectValue placeholder="Pick Category" /></SelectTrigger>
-                              <SelectContent className="rounded-2xl">
-                                 {foodCategories?.map((c: any) => <SelectItem key={c.id} value={c.name.toLowerCase()} className="font-bold py-3 uppercase text-xs">{c.name}</SelectItem>)}
-                              </SelectContent>
-                           </Select>
+                           <div className="space-y-1">
+                              <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Select Category</label>
+                              <Select value={productForm.category} onValueChange={v => setProductForm({...productForm, category: v})}>
+                                <SelectTrigger className="h-12 rounded-xl bg-gray-50 border-none font-bold">
+                                  <SelectValue placeholder={foodCategories && foodCategories.length > 0 ? "Pick Category" : "Loading categories..."} />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-2xl">
+                                  {foodCategories?.map((c: any) => (
+                                    <SelectItem key={c.id} value={c.name.toLowerCase()} className="font-bold py-3 uppercase text-xs">
+                                      {c.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                           </div>
 
                            <div className="space-y-4 p-5 bg-gray-50 rounded-[2rem] border border-gray-100">
                               <div className="flex items-center justify-between">
@@ -476,7 +488,7 @@ export default function VendorDashboard() {
                           </div>
                           <div className="flex justify-between items-end">
                              <div>
-                                <span className="text-[8px] font-black uppercase text-gray-500">Account Number</span>
+                                <span className="text-[8px] font-black uppercase text-gray-500">A/C Number</span>
                                 <p className="text-sm font-black tracking-widest">{vendorProfile.accountNumber}</p>
                              </div>
                              <div>
