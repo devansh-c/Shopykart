@@ -72,7 +72,7 @@ export function ClientLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    let handler;
+    let handler: any;
     const setupListener = async () => {
       handler = await CapacitorApp.addListener("backButton", () => {
         if (typeof window !== "undefined") {
