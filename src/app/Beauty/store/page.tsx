@@ -366,7 +366,6 @@ export default function BeautyDashboard() {
                           <div className="flex items-center gap-2 border-b border-white pb-2 mb-1"><User className="h-3.5 w-3.5 text-rose-600" /><span className="text-xs font-black uppercase italic">{o.customerName}</span></div>
                           {o.items?.filter((it:any) => String(it.vendorId) === String(user?.uid)).map((item:any, i:number) => (<div key={i} className="flex justify-between items-center text-xs font-bold"><span className="text-gray-700">{item.quantity}x {item.name}</span><span className="text-rose-600">₹{(item.price * item.quantity).toFixed(2)}</span></div>))}
                       </div>
-                      <button className="w-full bg-white border-2 border-rose-200 text-rose-600 h-11 rounded-xl font-black text-[9px] uppercase active:scale-95 transition-all flex items-center justify-center gap-1.5"><Eye className="h-3.5 w-3.5" /> View Details</button>
                     </div>
                   )) : (
                     <div className="text-center py-20 opacity-30 flex flex-col items-center">
@@ -559,7 +558,7 @@ export default function BeautyDashboard() {
           {id:'payouts',label:'Payouts',icon:CircleDollarSign},
           {id:'account',label:'Profile',icon:UserCircle2}
         ].map(item => (
-          <button key={item.id} onClick={() => startTransition(() => setActiveMainTab(item.id as MainTab))} className="flex flex-col items-center gap-1 active:scale-90 transition-none">
+          <button key={item.id} onClick={() => startTransition(() => setActiveMainTab(item.id as MainTab))} className="flex flex-col items-center gap-1.5 active:scale-90 transition-none">
             <item.icon className={cn("h-5 w-5", activeMainTab === item.id ? "text-rose-500 scale-110" : "text-gray-500")} />
             <span className={cn("text-[9px] font-black uppercase tracking-widest", activeMainTab === item.id ? "text-white" : "text-gray-500")}>{item.label}</span>
           </button>

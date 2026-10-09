@@ -368,7 +368,6 @@ export default function MedicalDashboard() {
                           <div className="flex items-center gap-2 border-b border-white pb-2 mb-1"><User className="h-3.5 w-3.5 text-teal-600" /><span className="text-xs font-black uppercase italic">{o.customerName}</span></div>
                           {o.items?.filter((it:any) => String(it.vendorId) === String(user?.uid)).map((item:any, i:number) => (<div key={i} className="flex justify-between items-center text-xs font-bold"><span className="text-gray-700">{item.quantity}x {item.name}</span><span className="text-teal-600">₹{(item.price * item.quantity).toFixed(2)}</span></div>))}
                       </div>
-                      <button className="w-full bg-white border-2 border-teal-200 text-teal-600 h-11 rounded-xl font-black text-[9px] uppercase active:scale-95 transition-all flex items-center justify-center gap-1.5"><Eye className="h-3.5 w-3.5" /> View Details</button>
                     </div>
                   )) : (
                     <div className="text-center py-20 opacity-30 flex flex-col items-center">
@@ -439,10 +438,10 @@ export default function MedicalDashboard() {
                                    </div>
                                    <div className="space-y-2">
                                       {options.map((opt, idx) => (
-                                        <div key={idx} className="flex gap-2">
+                                        <div key={idx} className="flex gap-3">
                                            <Input placeholder="Unit (e.g. 10 Tabs)" value={opt.name} onChange={e => updateOption(idx, 'name', e.target.value)} className="h-10 rounded-xl bg-white border-none font-bold text-xs flex-[2]" />
                                            <Input type="number" placeholder="+₹" value={opt.price} onChange={e => updateOption(idx, 'price', e.target.value)} className="h-10 rounded-xl bg-white border-none font-black text-xs text-teal-600 flex-1" />
-                                           <button onClick={() => handleRemoveOption(index)} className="h-10 w-10 text-red-400"><Trash2 className="h-4 w-4" /></button>
+                                           <button onClick={() => handleRemoveOption(idx)} className="h-10 w-10 text-red-400"><Trash2 className="h-4 w-4" /></button>
                                         </div>
                                       ))}
                                       <button onClick={handleAddOption} className="w-full h-10 border-2 border-dashed border-teal-100 text-teal-600 rounded-xl font-black uppercase text-[8px] flex items-center justify-center gap-2">

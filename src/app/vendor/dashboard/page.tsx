@@ -340,7 +340,6 @@ export default function VendorDashboard() {
                             </div>
                           ))}
                       </div>
-                      <button onClick={() => router.push(`/order/track/?id=${o.id}`)} className="w-full bg-white border-2 border-primary/20 text-primary h-11 rounded-xl font-black text-[9px] uppercase active:scale-95 transition-all flex items-center justify-center gap-1.5"><Eye className="h-3.5 w-3.5" /> View Logistics</button>
                    </div>
                  )) : (
                    <div className="text-center py-20 opacity-30 flex flex-col items-center">
@@ -373,7 +372,7 @@ export default function VendorDashboard() {
                            
                            <div className="grid grid-cols-2 gap-4">
                               <Input type="number" placeholder="Price ₹" value={productForm.price} onChange={e => setProductForm({...productForm, price: e.target.value})} className="h-12 rounded-xl border-none bg-gray-50 font-black italic text-primary" />
-                              <Input type="number" placeholder="Prep Time (Min)" value={productForm.preparingTime} onChange={e => setPreparingTime(e.target.value)} className="h-12 rounded-xl border-none bg-primary/5 font-black text-center" />
+                              <Input type="number" placeholder="Prep Time (Min)" value={productForm.preparingTime} onChange={e => setProductForm({...productForm, preparingTime: e.target.value})} className="h-12 rounded-xl border-none bg-primary/5 font-black text-center" />
                            </div>
 
                            <div className="space-y-1">
