@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation';
 /**
  * @fileOverview Tawk.to visibility control with Deployed App Position Fix.
  * FORCE FIX: Set yOffset directly in script to ensure it clears the floating Bottom Nav.
+ * Updated: Lowered yOffset slightly as requested by user.
  */
 export function TawkChat() {
   const [mounted, setMounted] = useState(false);
@@ -59,11 +60,11 @@ export function TawkChat() {
       {`
         var Tawk_API = Tawk_API || {}, Tawk_LoadStart = new Date();
         
-        // FORCE POSITION BEFORE LOAD
+        // FORCE POSITION BEFORE LOAD - Optimized for Bottom Nav
         Tawk_API.customStyle = {
           visibility: {
             desktop: { xOffset: 20, yOffset: 40 },
-            mobile: { xOffset: 20, yOffset: 120 } 
+            mobile: { xOffset: 20, yOffset: 90 } 
           }
         };
 
