@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -567,7 +568,7 @@ export default function BeautyDashboard() {
 
       {/* FULL SCREEN KYC POPUP - AS REQUESTED */}
       <Dialog open={isKYCOpen} onOpenChange={setIsKYCOpen}>
-         <DialogContent className="inset-0 w-full h-full max-w-none rounded-none p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none flex flex-col z-[60000]">
+         <DialogContent className="fixed inset-0 w-full h-full max-w-none translate-x-0 translate-y-0 rounded-none p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none flex flex-col z-[2000005]">
             <div className="bg-primary h-1.5 w-full shrink-0" />
             <DialogHeader className="p-8 pb-4 shrink-0 relative">
                <button onClick={() => setIsKYCOpen(false)} className="absolute top-8 right-8 h-10 w-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 active:scale-90"><X className="h-5 w-5" /></button>
@@ -623,7 +624,7 @@ export default function BeautyDashboard() {
                         <Input 
                           placeholder="e.g. SBIN0001234" 
                           value={kycForm.ifscCode}
-                          onChange={e => setKycForm({...kycCode, ifscCode: e.target.value.toUpperCase()})}
+                          onChange={e => setKycForm({...kycForm, ifscCode: e.target.value.toUpperCase()})}
                           className="h-16 pl-12 rounded-[1.5rem] bg-gray-50 border-none font-black tracking-widest text-primary focus-visible:ring-1 focus-visible:ring-primary/20"
                         />
                      </div>
@@ -642,7 +643,7 @@ export default function BeautyDashboard() {
                <Button 
                 onClick={handleSaveKYC}
                 disabled={isSavingKYC}
-                className="w-full h-20 bg-[#0B0B0B] hover:bg-primary text-white rounded-[2.5rem] font-black uppercase italic shadow-2xl text-xl transition-all active:scale-95"
+                className="w-full h-20 bg-[#0B0B0B] hover:bg-primary text-white rounded-[2.5rem] font-black uppercase italic shadow-2xl text-xl transition-all active:scale-95 flex items-center justify-center"
                >
                  {isSavingKYC ? <Loader2 className="h-8 w-8 animate-spin" /> : "AUTHENTICATE & SAVE"}
                </Button>

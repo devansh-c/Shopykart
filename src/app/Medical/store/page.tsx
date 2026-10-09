@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -441,7 +442,7 @@ export default function MedicalDashboard() {
                                         <div key={idx} className="flex gap-2">
                                            <Input placeholder="Unit (e.g. 10 Tabs)" value={opt.name} onChange={e => updateOption(idx, 'name', e.target.value)} className="h-10 rounded-xl bg-white border-none font-bold text-xs flex-[2]" />
                                            <Input type="number" placeholder="+₹" value={opt.price} onChange={e => updateOption(idx, 'price', e.target.value)} className="h-10 rounded-xl bg-white border-none font-black text-xs text-teal-600 flex-1" />
-                                           <button onClick={() => handleRemoveOption(idx)} className="h-10 w-10 text-red-400"><Trash2 className="h-4 w-4" /></button>
+                                           <button onClick={() => handleRemoveOption(index)} className="h-10 w-10 text-red-400"><Trash2 className="h-4 w-4" /></button>
                                         </div>
                                       ))}
                                       <button onClick={handleAddOption} className="w-full h-10 border-2 border-dashed border-teal-100 text-teal-600 rounded-xl font-black uppercase text-[8px] flex items-center justify-center gap-2">
@@ -574,7 +575,7 @@ export default function MedicalDashboard() {
 
       {/* FULL SCREEN KYC POPUP - AS REQUESTED */}
       <Dialog open={isKYCOpen} onOpenChange={setIsKYCOpen}>
-         <DialogContent className="inset-0 w-full h-full max-w-none rounded-none p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none flex flex-col z-[60000]">
+         <DialogContent className="fixed inset-0 w-full h-full max-w-none translate-x-0 translate-y-0 rounded-none p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none flex flex-col z-[2000005]">
             <div className="bg-primary h-1.5 w-full shrink-0" />
             <DialogHeader className="p-8 pb-4 shrink-0 relative">
                <button onClick={() => setIsKYCOpen(false)} className="absolute top-8 right-8 h-10 w-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 active:scale-90"><X className="h-5 w-5" /></button>
@@ -649,7 +650,7 @@ export default function MedicalDashboard() {
                <Button 
                 onClick={handleSaveKYC}
                 disabled={isSavingKYC}
-                className="w-full h-20 bg-[#0B0B0B] hover:bg-primary text-white rounded-[2.5rem] font-black uppercase italic shadow-2xl text-xl transition-all active:scale-95"
+                className="w-full h-20 bg-[#0B0B0B] hover:bg-primary text-white rounded-[2.5rem] font-black uppercase italic shadow-2xl text-xl transition-all active:scale-95 flex items-center justify-center"
                >
                  {isSavingKYC ? <Loader2 className="h-8 w-8 animate-spin" /> : "AUTHENTICATE & SAVE"}
                </Button>
