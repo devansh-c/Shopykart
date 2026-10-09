@@ -16,6 +16,7 @@ import { useJsApiLoader } from '@react-google-maps/api';
 import BrandingLoader from '@/components/shared/BrandingLoader';
 import TelegramNotifier from '@/components/shared/TelegramNotifier';
 import NotificationHandler from '@/components/shared/NotificationHandler';
+import CustomerNotificationHandler from '@/components/shared/CustomerNotificationHandler';
 import WelcomeBonusOverlay from '@/components/auth/WelcomeBonusOverlay';
 import LocationRequest from '@/components/shared/LocationRequest';
 import BottomNav from '@/components/shared/BottomNav';
@@ -78,7 +79,7 @@ export function ClientLayout({ children }: { children: ReactNode }) {
         if (typeof window !== "undefined") {
           const currentPath = window.location.pathname;
           if (currentPath === "/" || currentPath === "") {
-            Capacitorconsole.log("Back on home");
+            console.log("Back on home");
           } else {
             window.history.back();
           }
@@ -118,6 +119,7 @@ export function ClientLayout({ children }: { children: ReactNode }) {
               <main className={cn("flex-1", !isExcludedPath && "pb-24")}>
                 {!isExcludedPath && <LocationRequest />}
                 <NotificationHandler />
+                <CustomerNotificationHandler />
                 <TelegramNotifier />
                 <WelcomeBonusOverlay />
                 
