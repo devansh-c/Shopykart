@@ -1,39 +1,44 @@
+'use client';
 
-"use client";
+import { useEffect } from 'react';
+import { PushNotifications } from '@capacitor/push-notifications';
+import { Geolocation } from '@capacitor/geolocation';
+import { Capacitor } from '@capacitor/core';
 
-import { useEffect } from "react";
-import { requestPushToken } from "@/firebase/messaging";
-import { useUser } from "@/firebase";
-
-/**
- * @fileOverview PermissionManager - Requests system permissions and registers FCM tokens.
- */
 export default function PermissionManager() {
-  const { user, loading } = useUser();
-
   useEffect(() => {
-    if (loading) return;
+    // Only execute natively on Android/iOS app
+    if (!Capacitor.isNativePlatform()) return;
 
-    const setupPermissions = async () => {
+    const requestAppPermissions = async () => {
       try {
-        if (typeof window === "undefined") return;
-        
-        // Delay slightly to ensure page stability before showing native prompt
-        const timer = setTimeout(async () => {
-          // Pass user ID to save the token in Firestore for real Cloud Notifications
-          const token = await requestPushToken(user?.uid);
-          if (token) {
-            console.log("FCM Cloud Messenger Active.");
-          }
-        }, 3000);
+        // 1. Request Notification Permission
+        let pushPerm = await PushNotifications.checkPermissions();
+        if (pushPerm.receive !== 'granted') {
+          pushPerm = await PushNotifications.requestPermissions();
+        }
 
-        return () => clearTimeout(timer);
-      } catch (e) {
-        console.warn("Permission Error:", e);
+        if (pushPerm.receive === 'granted') {
+          await PushNotifications.register();
+        }
+
+        // 2. Request Location Permission right after
+        let locPerm = await Geolocation.checkPermissions();
+        if (locPerm.location !== 'granted') {
+          await Geolocation.requestPermissions();
+        }
+      } catch (err) {
+        console.warn('Permission request error:', err);
       }
     };
-    setupPermissions();
-  }, [user, loading]);
+
+    // Trigger 800ms after splash screen/initial mount
+    const timer = setTimeout(() => {
+      requestAppPermissions();
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   return null;
 }

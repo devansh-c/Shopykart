@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "78698058459",
+    "project_id": "studio-4644410857-c7ed7",
+    "storage_bucket": "studio-4644410857-c7ed7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:78698058459:android:aa65d66a394971f5ed32fe",
+        "android_client_info": {
+          "package_name": "co.in.shopykart.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "78698058459-5lsve802ugru4ou1rfftkkrv3hgdlsoq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCD3AVRiMCvn8KUStHq4eDtdp0Po_kE7Ww"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "78698058459-5lsve802ugru4ou1rfftkkrv3hgdlsoq.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
