@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo, useEffect, memo } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Search, X, Clock, MapPin, Loader2, Store, Plus, Heart } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -17,14 +17,13 @@ import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 
 /**
  * @fileOverview Product Horizontal Item for Menu Page.
- * Matches the requested screenshot style with pink savings line and popular badge.
  */
 const ProductHorizontalItem = memo(({ product, isOffline }: any) => {
   const { cart } = useCart();
   const quantity = cart.find(c => String(c.id) === String(product.id) && !c.selectedOption)?.quantity || 0;
   const displayPrice = Number(product.price) || 0;
   const mrp = Number(product.mrp) || displayPrice + 15;
-  const discount = Math.round(((mrp - displayPrice) / mrp) * 100);
+  const discount = Math.round(((mrp - displayPrice) / (mrp || 1)) * 100);
 
   return (
     <div className={cn("min-w-[160px] max-w-[160px] flex flex-col group/item transition-all animate-in fade-in zoom-in duration-300", isOffline && "opacity-60")}>
@@ -64,7 +63,8 @@ ProductHorizontalItem.displayName = "ProductHorizontalItem";
 
 export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
   const params = useParams();
-  const rawSlug = forcedSlug || (params?.slug as string);
+  const searchParams = useSearchParams();
+  const rawSlug = forcedSlug || (params?.slug as string) || searchParams.get('id');
   const router = useRouter();
   
   const [searchQuery, setSearchQuery] = useState('');
@@ -86,12 +86,22 @@ export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
 
   useEffect(() => {
     async function resolveVendor() {
-      if (!firestore || !rawSlug || rawSlug === 'default') {
+      if (!firestore || !rawSlug) {
         setVendorLoading(false);
         return;
       }
       setVendorLoading(true);
       try {
+        // 1. Try Document ID Match (Fastest)
+        const idRef = doc(firestore, 'vendors', rawSlug);
+        const idSnap = await getDoc(idRef);
+        if (idSnap.exists()) {
+          setVendorProfile({ id: idSnap.id, ...idSnap.data() });
+          setVendorLoading(false);
+          return;
+        }
+
+        // 2. Try SEO Slug Match
         const slugQ = query(collection(firestore, 'vendors'), where('slug', '==', rawSlug), limit(1));
         const slugSnap = await getDocs(slugQ);
 
@@ -101,22 +111,11 @@ export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
           return;
         }
 
-        const idRef = doc(firestore, 'vendors', rawSlug);
-        const idSnap = await getDoc(idRef);
-        if (idSnap.exists()) {
-          setVendorProfile({ id: idSnap.id, ...idSnap.data() });
-          setVendorLoading(false);
-          return;
-        }
-
-        const allVendorsSnap = await getDocs(collection(firestore, 'vendors'));
-        const matchedVendor = allVendorsSnap.docs.find(d => {
-          const data = d.data();
-          return slugify(data.storeName || '') === rawSlug;
-        });
-
-        if (matchedVendor) {
-          setVendorProfile({ id: matchedVendor.id, ...matchedVendor.data() });
+        // 3. Search by Store ID
+        const sidQ = query(collection(firestore, 'vendors'), where('storeId', '==', rawSlug.toLowerCase()), limit(1));
+        const sidSnap = await getDocs(sidQ);
+        if (!sidSnap.empty) {
+          setVendorProfile({ id: sidSnap.docs[0].id, ...sidSnap.docs[0].data() });
           setVendorLoading(false);
           return;
         }
@@ -166,19 +165,19 @@ export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
     return (
       <div className="h-screen bg-white flex flex-col items-center justify-center gap-4">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Resolving Store Hub...</p>
+        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Opening Store Hub...</p>
       </div>
     );
   }
 
-  if (!vendorProfile && rawSlug !== 'default') {
+  if (!vendorProfile) {
     return (
       <div className="h-screen bg-white flex flex-col items-center justify-center p-8 text-center">
         <div className="bg-muted/30 h-24 w-24 rounded-full flex items-center justify-center mb-6">
            <Store className="h-12 w-12 text-muted-foreground/30" />
         </div>
         <h2 className="text-xl font-black italic uppercase text-gray-800">Store Not Found</h2>
-        <p className="text-xs font-bold text-muted-foreground uppercase mt-2">The link you followed might be broken or expired.</p>
+        <p className="text-xs font-bold text-muted-foreground uppercase mt-2">The hub you are looking for is currently offline.</p>
         <Button onClick={() => router.push('/')} className="mt-8 bg-black rounded-xl font-black uppercase italic shadow-xl">Back to Explore</Button>
       </div>
     );

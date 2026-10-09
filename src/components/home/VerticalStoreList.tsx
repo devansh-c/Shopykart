@@ -15,6 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 /**
  * @fileOverview Product Strip Item for fast horizontal scrolling.
+ * Fixed: Added stopPropagation to prevent parent card navigation.
  */
 const ProductStripItem = memo(({ product, isOffline }: any) => {
   const { cart } = useCart();
@@ -24,7 +25,10 @@ const ProductStripItem = memo(({ product, isOffline }: any) => {
   const discount = Math.round(((mrp - displayPrice) / (mrp || 1)) * 100);
 
   return (
-    <div className={cn("min-w-[140px] max-w-[140px] flex flex-col group/item transition-all animate-in fade-in zoom-in duration-300", isOffline && "opacity-60")}>
+    <div 
+      onClick={(e) => e.stopPropagation()} 
+      className={cn("min-w-[140px] max-w-[140px] flex flex-col group/item transition-all animate-in fade-in zoom-in duration-300", isOffline && "opacity-60")}
+    >
        <div className="relative aspect-square w-full rounded-2xl overflow-hidden bg-muted mb-2 border border-black/[0.03]">
           <Image src={product.imageUrl} alt={product.name} fill className="object-cover group-hover/item:scale-105 transition-transform duration-500" unoptimized />
           
@@ -33,13 +37,16 @@ const ProductStripItem = memo(({ product, isOffline }: any) => {
           </div>
 
           <ProductQuickView product={product} vendorScheduleOpen={!isOffline}>
-             <button className="absolute bottom-2 right-2 h-8 w-8 bg-white text-primary rounded-full flex items-center justify-center shadow-xl active:scale-75 transition-transform z-20">
+             <button 
+              onClick={(e) => e.stopPropagation()}
+              className="absolute bottom-2 right-2 h-8 w-8 bg-white text-primary rounded-full flex items-center justify-center shadow-xl active:scale-75 transition-transform z-20"
+             >
                 {quantity > 0 ? <span className="text-[10px] font-black text-primary">{quantity}</span> : <Plus className="h-4 w-4 stroke-[4]" />}
              </button>
           </ProductQuickView>
        </div>
 
-       <div className="space-y-0.5 px-1">
+       <div className="space-y-0.5 px-1 text-left">
           <p className="text-[9px] font-black text-gray-400 uppercase truncate leading-none italic">{product.restaurantName || 'ShopyKart'}</p>
           <div className="flex items-center gap-1 mb-1">
              <div className="h-2.5 w-2.5 border border-green-600 rounded-sm flex items-center justify-center p-0.5 shrink-0"><div className="h-full w-full bg-green-600 rounded-full" /></div>
@@ -61,7 +68,8 @@ const ProductStripItem = memo(({ product, isOffline }: any) => {
 ProductStripItem.displayName = "ProductStripItem";
 
 /**
- * @fileOverview Super-Optimized VerticalStoreList with Shimmer Effects.
+ * @fileOverview Super-Optimized VerticalStoreList.
+ * FIXED: Removed button-inside-button conflict. Cards are now <div> with precise click handling.
  */
 export const VerticalStoreList = memo(({ 
   searchQuery = '', 
@@ -105,7 +113,6 @@ export const VerticalStoreList = memo(({
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // Limit increased to 100 for stable production, but reasonable for dev performance
     return query(collection(firestore, 'vendors'), limit(100));
   }, [firestore]);
   const { data: dbVendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery, 'home_vstores_v11', initialData);
@@ -115,7 +122,7 @@ export const VerticalStoreList = memo(({
     return query(
       collection(firestore, 'products'), 
       where('isDeleted', '==', false),
-      limit(200) // Lowered from 1000 for dev stability, 200 is enough for a rich preview
+      limit(200)
     );
   }, [firestore]);
   const { data: allProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_strip_products_v11');
@@ -159,6 +166,12 @@ export const VerticalStoreList = memo(({
     });
   }, [dbVendors, initialData, activeZoneId, searchQuery, activeMode, currentTimeMins]);
 
+  const navigateToStore = (store: any) => {
+    const storeSlug = store.slug || slugify(store.storeName) || store.id;
+    // STABLE PATH FOR APK: Using view route to ensure no reloads on dynamic content
+    router.push(`/store/view?id=${store.id}&slug=${storeSlug}`);
+  };
+
   return (
     <div className="px-4 py-6 bg-white min-h-[500px] content-visibility-auto">
       <div className="flex items-center justify-between mb-8 px-2">
@@ -195,17 +208,16 @@ export const VerticalStoreList = memo(({
             const displayImage = store.bannerUrl || store.imageUrl || `https://picsum.photos/seed/${store.id}/800/400`;
             const isOpen = isStoreScheduleOpen(store, currentTimeMins);
             const isOffline = store.isOnline === false || !isOpen;
-            const storeSlug = store.slug || slugify(store.storeName) || store.id;
             const isBestRated = Number(store.rating) >= 4.5;
-
             const storeProducts = allProducts?.filter(p => String(p.vendorId) === String(store.id)).slice(0, 10) || [];
 
             return (
               <div key={store.id} className="flex flex-col space-y-4 animate-in fade-in duration-500">
-                <button 
-                  onClick={() => router.push(`/store/${storeSlug}/`)}
+                {/* STORE HEADER CARD - DIV with onClick to prevent button nesting glitch */}
+                <div 
+                  onClick={() => navigateToStore(store)}
                   className={cn(
-                    "w-full text-left bg-white transition-all active:scale-[0.98] group relative",
+                    "w-full text-left bg-white transition-all active:scale-[0.98] group relative cursor-pointer",
                     isOffline && "opacity-75 grayscale-[0.3]"
                   )}
                 >
@@ -269,7 +281,7 @@ export const VerticalStoreList = memo(({
                       </div>
                     </div>
                   </div>
-                </button>
+                </div>
 
                 <div className="px-1 overflow-hidden">
                   <div className="flex overflow-x-auto space-x-4 no-scrollbar pb-4 pt-2">

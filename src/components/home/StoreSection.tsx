@@ -16,6 +16,7 @@ import { isStoreScheduleOpen } from "./PopularProducts"
 
 /**
  * @fileOverview StoreSection memoized to prevent lag during homepage scrolls.
+ * Fixed: Stable navigation for static export.
  */
 export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] }: { activeMode?: string, initialData?: any[] }) => {
   const firestore = useFirestore();
@@ -74,7 +75,7 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
         <h2 className="text-xl font-black tracking-tighter uppercase italic text-gray-900 leading-none">
           Explore <span className="text-primary">Hub</span>
         </h2>
-        <button onClick={() => router.push('/stores/')} className="text-[10px] font-black uppercase text-primary tracking-widest flex items-center gap-1 active:scale-95 transition-all">VIEW ALL <ArrowRight className="h-3 w-3" /></button>
+        <button onClick={() => router.push('/stores')} className="text-[10px] font-black uppercase text-primary tracking-widest flex items-center gap-1 active:scale-95 transition-all">VIEW ALL <ArrowRight className="h-3 w-3" /></button>
       </div>
 
       <Carousel className="w-full" opts={{ loop: true, align: 'center' }}>
@@ -84,7 +85,8 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
               <button 
                 onClick={() => {
                   const storeSlug = store.slug || slugify(store.storeName) || store.id;
-                  router.push(`/store/${storeSlug}/`);
+                  // Use stable view path for APK
+                  router.push(`/store/view?id=${store.id}&slug=${storeSlug}`);
                 }}
                 className="block text-left w-full rounded-[1.5rem] overflow-hidden shadow-xl group border border-white/10 relative transform-gpu active:scale-95 transition-all"
               >
