@@ -15,22 +15,12 @@ const nextConfig: NextConfig = {
   trailingSlash: false,
   staticPageGenerationTimeout: 1200,
   
-  // In Next.js 15, this is a top-level option, not under experimental
+  // In Next.js 15, this is a top-level option
   serverExternalPackages: ['archiver', 'jszip'],
 
-  // Optimization for faster dev compilation in Next.js 15
-  experimental: {
-    // Kept empty as we moved external packages to top level
-  },
-
-  // Turbopack rules for stable and fast preview
-  turbopack: {
-    rules: {
-      '*.svg': {
-        loaders: ['@svgr/webpack'],
-        as: '*.js',
-      },
-    },
+  // Optimization for workstation environment
+  devIndicators: {
+    buildActivity: false,
   },
 };
 

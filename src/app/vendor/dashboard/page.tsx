@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -100,13 +99,12 @@ export default function VendorDashboard() {
   }, [firestore, user]);
   const { data: vendorProfile, loading: profileLoading } = useDoc<any>(vendorRef);
 
-  // DYNAMIC CATEGORIES FETCH: Based on Vendor's Service Type
   const categoriesQuery = useMemoFirebase(() => {
     if (!firestore || !vendorProfile) return null;
     const type = vendorProfile.category || 'Food';
     return query(collection(firestore, 'categories'), where('serviceType', '==', type));
   }, [firestore, vendorProfile]);
-  const { data: foodCategories } = useCollection<any>(categoriesQuery);
+  const { data: foodCategories, loading: catsLoading } = useCollection<any>(categoriesQuery, `vendor_cats_${vendorProfile?.category}`);
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -359,7 +357,7 @@ export default function VendorDashboard() {
                <h2 className="text-xl font-black italic uppercase">Inventory</h2>
                <Dialog open={isProductModalOpen} onOpenChange={(val) => { setIsProductModalOpen(val); if(!val) resetForm(); }}>
                   <DialogTrigger asChild><Button className="bg-primary text-white rounded-xl h-10 font-black uppercase text-[10px]"><Plus className="h-4 w-4 mr-1" /> ADD ITEM</Button></DialogTrigger>
-                  <DialogContent className="rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl max-h-[85vh] flex flex-col">
+                  <DialogContent className="rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl max-h-[85vh] flex flex-col z-[1000001]">
                      <DialogHeader className="p-8 pb-2 shrink-0">
                         <DialogTitle className="font-black italic uppercase text-center text-xl">New Product</DialogTitle>
                      </DialogHeader>
@@ -374,21 +372,23 @@ export default function VendorDashboard() {
                            
                            <div className="grid grid-cols-2 gap-4">
                               <Input type="number" placeholder="Price ₹" value={productForm.price} onChange={e => setProductForm({...productForm, price: e.target.value})} className="h-12 rounded-xl border-none bg-gray-50 font-black italic text-primary" />
-                              <Input type="number" placeholder="Prep Time (Min)" value={productForm.preparingTime} onChange={e => setProductForm({...productForm, preparingTime: e.target.value})} className="h-12 rounded-xl border-none bg-primary/5 font-black text-center" />
+                              <Input type="number" placeholder="Prep Time (Min)" value={productForm.preparingTime} onChange={e => setPreparingTime(e.target.value)} className="h-12 rounded-xl border-none bg-primary/5 font-black text-center" />
                            </div>
 
                            <div className="space-y-1">
                               <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Select Category</label>
                               <Select value={productForm.category} onValueChange={v => setProductForm({...productForm, category: v})}>
                                 <SelectTrigger className="h-12 rounded-xl bg-gray-50 border-none font-bold">
-                                  <SelectValue placeholder={foodCategories && foodCategories.length > 0 ? "Pick Category" : "Loading categories..."} />
+                                  <SelectValue placeholder={catsLoading ? "Loading categories..." : foodCategories && foodCategories.length > 0 ? "Pick Category" : "No categories found"} />
                                 </SelectTrigger>
-                                <SelectContent className="rounded-2xl">
-                                  {foodCategories?.map((c: any) => (
+                                <SelectContent className="rounded-2xl max-h-[250px]">
+                                  {foodCategories && foodCategories.length > 0 ? foodCategories.map((c: any) => (
                                     <SelectItem key={c.id} value={c.name.toLowerCase()} className="font-bold py-3 uppercase text-xs">
                                       {c.name}
                                     </SelectItem>
-                                  ))}
+                                  )) : (
+                                    <div className="p-4 text-center text-[9px] font-black uppercase opacity-50 italic">No categories available</div>
+                                  )}
                                 </SelectContent>
                               </Select>
                            </div>
