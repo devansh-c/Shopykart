@@ -1,17 +1,22 @@
 'use client';
 
 import { useEffect } from 'react';
-import { PushNotifications } from '@capacitor/push-notifications';
-import { Geolocation } from '@capacitor/geolocation';
-import { Capacitor } from '@capacitor/core';
 
+/**
+ * @fileOverview SSR-Safe Permission Manager.
+ * Capacitor modules are imported dynamically to prevent server-side crashes.
+ */
 export default function PermissionManager() {
   useEffect(() => {
-    // Only execute natively on Android/iOS app
-    if (!Capacitor.isNativePlatform()) return;
-
     const requestAppPermissions = async () => {
       try {
+        // Dynamic imports to ensure browser-only execution
+        const { Capacitor } = await import('@capacitor/core');
+        if (!Capacitor.isNativePlatform()) return;
+
+        const { PushNotifications } = await import('@capacitor/push-notifications');
+        const { Geolocation } = await import('@capacitor/geolocation');
+
         // 1. Request Notification Permission
         let pushPerm = await PushNotifications.checkPermissions();
         if (pushPerm.receive !== 'granted') {
@@ -22,7 +27,7 @@ export default function PermissionManager() {
           await PushNotifications.register();
         }
 
-        // 2. Request Location Permission right after
+        // 2. Request Location Permission
         let locPerm = await Geolocation.checkPermissions();
         if (locPerm.location !== 'granted') {
           await Geolocation.requestPermissions();
@@ -32,10 +37,10 @@ export default function PermissionManager() {
       }
     };
 
-    // Trigger 800ms after splash screen/initial mount
+    // Trigger after initial mount
     const timer = setTimeout(() => {
       requestAppPermissions();
-    }, 800);
+    }, 1500);
 
     return () => clearTimeout(timer);
   }, []);

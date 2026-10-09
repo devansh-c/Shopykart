@@ -1,5 +1,4 @@
 "use client";
-import { App as CapacitorApp } from "@capacitor/app";
 
 import { CartProvider } from '@/components/cart/CartProvider';
 import { useUser } from '@/firebase';
@@ -73,25 +72,28 @@ export function ClientLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    let handler: any;
-    const setupListener = async () => {
-      handler = await CapacitorApp.addListener("backButton", () => {
-        if (typeof window !== "undefined") {
-          const currentPath = window.location.pathname;
-          if (currentPath === "/" || currentPath === "") {
-            console.log("Back on home");
-          } else {
-            window.history.back();
+    // Dynamic import to avoid SSR crash with Capacitor
+    const setupBackButton = async () => {
+      try {
+        const { App: CapacitorApp } = await import("@capacitor/app");
+        await CapacitorApp.addListener("backButton", () => {
+          if (typeof window !== "undefined") {
+            const currentPath = window.location.pathname;
+            if (currentPath === "/" || currentPath === "") {
+              console.log("Back on home");
+            } else {
+              window.history.back();
+            }
           }
-        }
-      });
+        });
+      } catch (e) {
+        console.debug("Capacitor App module not available");
+      }
     };
-    setupListener();
-
-    return () => {
-      if (handler) handler.remove();
-    };
+    
+    setupBackButton();
   }, []);
+
   const pathname = usePathname();
 
   const { isLoaded } = useJsApiLoader({
