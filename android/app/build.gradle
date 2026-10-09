@@ -66,3 +66,10 @@ try {
 } catch(Exception e) {
     logger.info("google-services.json not applied")
 }
+
+
+configurations.all {
+    resolutionStrategy {
+        force "org.bouncycastle:bcprov-jdk15to18:1.78"
+    }
+}
