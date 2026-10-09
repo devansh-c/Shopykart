@@ -1,4 +1,4 @@
-name: Build Android App (Customer)
+name: Build Customer Android App
 
 on:
   push:
@@ -7,10 +7,11 @@ on:
 
 jobs:
   build:
+    name: Build Customer APK
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Setup Node.js
@@ -37,22 +38,15 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
-      - name: Build Android App (APK & AAB)
+      - name: Build Android Debug APK
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug bundleDebug --stacktrace
+          ./gradlew assembleDebug --stacktrace
 
-      - name: Rename Artifacts
-        run: |
-          mv android/app/build/outputs/apk/debug/app-debug.apk Shopykart_customer.apk
-          mv android/app/build/outputs/bundle/debug/app-debug.aab shopykart_customer.aab
-
-      - name: Upload Build Artifacts
+      - name: Upload Customer APK
         uses: actions/upload-artifact@v4
         with:
-          name: shopykart-customer-builds
-          path: |
-            Shopykart_customer.apk
-            shopykart_customer.aab
-          if-no-files-found: warn
+          name: shopykart-customer-app
+          path: android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
