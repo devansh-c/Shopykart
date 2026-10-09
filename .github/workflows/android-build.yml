@@ -35,6 +35,10 @@ jobs:
           distribution: 'zulu'
           java-version: '21'
 
+      - name: Upgrade Gradle Wrapper to 8.5
+        run: |
+          sed -i 's/gradle-.*-all.zip/gradle-8.5-all.zip/g' android/gradle/wrapper/gradle-wrapper.properties
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
