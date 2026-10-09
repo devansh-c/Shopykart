@@ -1,7 +1,7 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
-  // Use export only for static builds, standalone for server-side
+  // Next.js 15 Standard Config
   output: process.env.NEXT_PUBLIC_STATIC_EXPORT === 'true' ? 'export' : undefined,
   images: {
     unoptimized: true,
@@ -15,7 +15,7 @@ const nextConfig: NextConfig = {
   trailingSlash: false,
   staticPageGenerationTimeout: 1200,
   
-  // In Next.js 15, this is a top-level option
+  // Use standard serverExternalPackages for Next.js 15
   serverExternalPackages: ['archiver', 'jszip'],
 };
 

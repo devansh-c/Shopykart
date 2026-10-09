@@ -17,15 +17,17 @@ export default function PermissionManager() {
         const { PushNotifications } = await import('@capacitor/push-notifications');
         const { Geolocation } = await import('@capacitor/geolocation');
 
-        // 1. Request Notification Permission
-        let pushPerm = await PushNotifications.checkPermissions();
-        if (pushPerm.receive !== 'granted') {
-          pushPerm = await PushNotifications.requestPermissions();
-        }
+        // 1. Request Notification Permission (Delayed for better UX)
+        setTimeout(async () => {
+          let pushPerm = await PushNotifications.checkPermissions();
+          if (pushPerm.receive !== 'granted') {
+            pushPerm = await PushNotifications.requestPermissions();
+          }
 
-        if (pushPerm.receive === 'granted') {
-          await PushNotifications.register();
-        }
+          if (pushPerm.receive === 'granted') {
+            await PushNotifications.register();
+          }
+        }, 2500);
 
         // 2. Request Location Permission
         let locPerm = await Geolocation.checkPermissions();
