@@ -6,78 +6,64 @@ export default function PermissionManager() {
   useEffect(() => {
     let isMounted = true;
 
-    const setupPermissionsAndFCM = async () => {
+    const setupFCM = async () => {
       try {
         const { Capacitor } = await import('@capacitor/core');
         if (!Capacitor.isNativePlatform()) return;
 
         const { PushNotifications } = await import('@capacitor/push-notifications');
-        const { Geolocation } = await import('@capacitor/geolocation');
 
-        // 1. Android Notification Channel (Order alerts ke liye zaroori)
+        // Android 8+ Mandatory Default Channel
         try {
           await PushNotifications.createChannel({
-            id: 'shopykart_orders',
-            name: 'Order Updates',
-            description: 'Alerts for order confirmation and delivery status',
+            id: 'fcm_default_channel',
+            name: 'General Notifications',
+            description: 'Order and promotional alerts',
             importance: 5,
             visibility: 1,
             vibration: true,
             sound: 'default'
           });
         } catch (e) {
-          console.warn('Channel creation error:', e);
+          console.error('Channel error:', e);
         }
 
-        // 2. Token listeners
+        // Listener lagayein taaki token console/alert par dikhe
         await PushNotifications.removeAllListeners();
 
         PushNotifications.addListener('registration', (token) => {
+          console.log('=== YOUR FCM DEVICE TOKEN ===', token.value);
           localStorage.setItem('shopykart_fcm_token', token.value);
-          localStorage.setItem('fcm_token', token.value);
         });
 
         PushNotifications.addListener('registrationError', (err) => {
-          console.error('FCM Registration Error:', err);
+          console.error('FCM Error:', err);
         });
 
+        // Foreground alert
         PushNotifications.addListener('pushNotificationReceived', (notification) => {
-          console.log('Push received in foreground:', notification);
+          alert('Notification: ' + notification.title + '\n' + notification.body);
         });
 
-        // 3. Pehle Notification Permission mangien
-        let pushPerm = await PushNotifications.checkPermissions();
-        if (pushPerm.receive !== 'granted') {
-          pushPerm = await PushNotifications.requestPermissions();
+        // Request Push Permission
+        let perm = await PushNotifications.checkPermissions();
+        if (perm.receive !== 'granted') {
+          perm = await PushNotifications.requestPermissions();
         }
 
-        if (pushPerm.receive === 'granted') {
+        if (perm.receive === 'granted') {
           await PushNotifications.register();
         }
 
-        // 4. Notification ke 800ms baad Location Permission mangien
-        setTimeout(async () => {
-          if (!isMounted) return;
-          try {
-            let locPerm = await Geolocation.checkPermissions();
-            if (locPerm.location !== 'granted') {
-              await Geolocation.requestPermissions();
-            }
-          } catch (e) {
-            console.warn('Location prompt error:', e);
-          }
-        }, 800);
-
       } catch (err) {
-        console.warn('PermissionManager setup error:', err);
+        console.error('Push setup failed:', err);
       }
     };
 
-    const timer = setTimeout(setupPermissionsAndFCM, 600);
+    setTimeout(setupFCM, 500);
 
     return () => {
       isMounted = false;
-      clearTimeout(timer);
     };
   }, []);
 
