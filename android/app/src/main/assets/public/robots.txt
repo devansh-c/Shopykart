@@ -1,0 +1,16 @@
+User-Agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /vendor/
+Disallow: /delivery/
+Disallow: /api/
+Disallow: /cart/
+Disallow: /wishlist/
+
+User-Agent: Googlebot
+Allow: /
+Disallow: /admin/
+Disallow: /vendor/
+Disallow: /delivery/
+
+Sitemap: https://shopykart.co.in/sitemap.xml
