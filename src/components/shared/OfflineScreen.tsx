@@ -1,101 +1,129 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
-import { WifiOff, RefreshCw, Radio } from "lucide-react";
+import React, { useEffect, useState } from 'react';
+import { WifiOff, RefreshCw, ShoppingBag } from 'lucide-react';
 
 export default function OfflineScreen() {
-  const [isOnline, setIsOnline] = useState<boolean>(true);
-  const [isRetrying, setIsRetrying] = useState<boolean>(false);
+  const [isOffline, setIsOffline] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      setIsOnline(navigator.onLine);
-
-      const handleOnline = () => setIsOnline(true);
-      const handleOffline = () => setIsOnline(false);
-
-      window.addEventListener("online", handleOnline);
-      window.addEventListener("offline", handleOffline);
-
-      return () => {
-        window.removeEventListener("online", handleOnline);
-        window.removeEventListener("offline", handleOffline);
-      };
+    // Initial check
+    if (typeof window !== "undefined" && !navigator.onLine) {
+      setIsOffline(true);
     }
+
+    const testConnection = async () => {
+      if (typeof window === "undefined") return;
+      if (!navigator.onLine) {
+        setIsOffline(true);
+        return;
+      }
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 1800);
+
+      try {
+        await fetch('https://www.google.com/favicon.ico', {
+          mode: 'no-cors',
+          cache: 'no-store',
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        setIsOffline(false);
+      } catch (err) {
+        clearTimeout(timeoutId);
+        setIsOffline(true);
+      }
+    };
+
+    const handleOffline = () => setIsOffline(true);
+    const handleOnline = () => {
+      testConnection();
+    };
+
+    window.addEventListener('offline', handleOffline);
+    window.addEventListener('online', handleOnline);
+
+    testConnection();
+    const interval = setInterval(testConnection, 3000);
+
+    return () => {
+      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('online', handleOnline);
+      clearInterval(interval);
+    };
   }, []);
 
-  const handleRetry = () => {
+  const handleRetry = async () => {
     setIsRetrying(true);
-    setTimeout(() => {
-      if (navigator.onLine) {
-        setIsOnline(true);
-        window.location.reload();
-      } else {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 1800);
+
+    try {
+      await fetch('https://www.google.com/favicon.ico', {
+        mode: 'no-cors',
+        cache: 'no-store',
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      setIsOffline(false);
+      window.location.reload();
+    } catch {
+      clearTimeout(timeoutId);
+      setTimeout(() => {
         setIsRetrying(false);
-      }
-    }, 1200);
+      }, 500);
+    }
   };
 
-  if (isOnline) return null;
+  if (!isOffline) return null;
 
   return (
-    <div className="fixed inset-0 z-[999999] flex flex-col items-center justify-between bg-gradient-to-b from-white via-orange-50/30 to-white px-6 py-12 text-center select-none backdrop-blur-md">
-      {/* Top Signal Status Pill */}
-      <div className="flex items-center gap-2 rounded-full border border-orange-200/60 bg-white/80 px-4 py-1.5 shadow-sm backdrop-blur-md">
-        <span className="relative flex h-2 w-2">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75"></span>
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500"></span>
-        </span>
-        <span className="text-xs font-semibold uppercase tracking-wider text-gray-600">
-          Disconnected
-        </span>
-      </div>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 2147483647 }} className="flex flex-col items-center justify-center bg-gray-900/40 p-6 text-center select-none backdrop-blur-sm">
+      <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl p-8 border border-gray-100 flex flex-col items-center animate-in fade-in zoom-in-95 duration-200">
+        
+        <div className="flex items-center gap-2 mb-8">
+          <div className="w-10 h-10 rounded-xl bg-orange-600 flex items-center justify-center text-white shadow-md shadow-orange-200">
+            <ShoppingBag className="w-5 h-5" />
+          </div>
+          <span className="text-xl font-bold tracking-tight text-gray-900">Shopykart</span>
+        </div>
 
-      {/* Main VFX Icon Hub */}
-      <div className="flex flex-col items-center">
-        <div className="relative mb-8 flex items-center justify-center">
-          {/* Radar VFX Rings */}
-          <div className="absolute h-36 w-36 animate-ping rounded-full bg-orange-400/20 duration-1000"></div>
-          <div className="absolute h-28 w-28 animate-pulse rounded-full bg-orange-300/30"></div>
-
-          {/* Core Floating Container */}
-          <div className="relative flex h-24 w-24 items-center justify-center rounded-3xl bg-gradient-to-tr from-orange-500 to-amber-400 text-white shadow-xl shadow-orange-500/30 transition-transform duration-700 hover:scale-105">
-            <WifiOff size={44} className="animate-bounce drop-shadow" />
+        <div className="relative mb-6">
+          <div className="w-24 h-24 bg-red-50 rounded-full flex items-center justify-center text-red-500 shadow-inner">
+            <WifiOff className="w-12 h-12 animate-pulse" />
+          </div>
+          <div className="absolute -bottom-1 -right-1 bg-red-100 text-red-700 text-xs px-2.5 py-0.5 rounded-full font-medium border border-red-200">
+            No Connection
           </div>
         </div>
 
-        <h2 className="text-2xl font-black tracking-tight text-gray-900 sm:text-3xl">
-          No Internet Connection
-        </h2>
-
-        <p className="mt-3 max-w-xs text-sm leading-relaxed text-gray-500">
-          We can&apos;t reach the Shopykart cloud. Please check your cellular data or Wi-Fi to resume your order.
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">
+          Oops! You&apos;re Offline
+        </h1>
+        <p className="text-gray-500 text-sm mb-8 leading-relaxed">
+          It looks like you&apos;ve lost your internet connection. Check your Wi-Fi or mobile data to continue shopping.
         </p>
 
-        {/* Retry Button with Glow Effect */}
         <button
           onClick={handleRetry}
           disabled={isRetrying}
-          className="group relative mt-8 flex items-center justify-center gap-2.5 overflow-hidden rounded-2xl bg-orange-600 px-8 py-3.5 text-sm font-bold text-white shadow-lg shadow-orange-600/30 transition-all duration-300 active:scale-95 disabled:opacity-70 hover:bg-orange-700"
+          className="w-full py-3.5 px-6 bg-orange-600 hover:bg-orange-700 active:scale-95 transition-all duration-200 text-white font-semibold rounded-2xl shadow-lg shadow-orange-600/25 flex items-center justify-center gap-2 disabled:opacity-70"
         >
-          <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700 group-hover:translate-x-full"></span>
-          <RefreshCw
-            size={18}
-            className={`transition-transform duration-500 ${isRetrying ? "animate-spin" : "group-hover:rotate-180"}`}
-          />
-          <span>{isRetrying ? "Reconnecting..." : "Retry Connection"}</span>
+          <RefreshCw className={`w-5 h-5 ${isRetrying ? 'animate-spin' : ''}`} />
+          {isRetrying ? 'Checking Connection...' : 'Retry'}
         </button>
-      </div>
 
-      {/* Footer Branding with subtle glow */}
-      <div className="flex flex-col items-center text-xs">
-        <div className="flex items-center gap-1.5 font-semibold text-gray-700">
-          <Radio size={14} className="animate-pulse text-orange-500" />
-          <span>Shopykart delivery network</span>
-        </div>
-        <p className="mt-1 text-[11px] font-medium tracking-wide text-gray-400">
-          Handicrafted by Devansh
+        <p className="text-xs text-gray-400 mt-6">
+          We&apos;ll automatically reconnect once your network is back.
         </p>
+
+        <div className="mt-8 pt-6 border-t border-gray-100 w-full flex flex-col items-center text-xs">
+          <p className="font-semibold text-gray-700">Shopykart delivery network</p>
+          <p className="text-gray-400 text-[11px] mt-0.5">Handicrafted by Devansh</p>
+        </div>
+
       </div>
     </div>
   );

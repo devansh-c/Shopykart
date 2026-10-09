@@ -1,3 +1,4 @@
+import OfflineScreen from "@/components/shared/OfflineScreen";
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { ClientLayout } from '@/components/layout/ClientLayout';
@@ -66,6 +67,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.variable} suppressHydrationWarning>
       <body className="antialiased bg-white text-foreground overflow-x-hidden" suppressHydrationWarning>
+        <OfflineScreen />
         <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
