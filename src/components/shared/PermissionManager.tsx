@@ -1,14 +1,12 @@
 'use client';
 
 import { useEffect } from 'react';
-import { db, auth } from '@/lib/firebase';
-import { doc, setDoc } from 'firebase/firestore';
 
 export default function PermissionManager() {
   useEffect(() => {
     let isMounted = true;
 
-    const initPermissionsAndNotifications = async () => {
+    const setupPermissionsAndFCM = async () => {
       try {
         const { Capacitor } = await import('@capacitor/core');
         if (!Capacitor.isNativePlatform()) return;
@@ -16,7 +14,7 @@ export default function PermissionManager() {
         const { PushNotifications } = await import('@capacitor/push-notifications');
         const { Geolocation } = await import('@capacitor/geolocation');
 
-        // 1. Android Notification Channel (Order Updates ke liye zaroori)
+        // 1. Android Notification Channel (Order alerts ke liye zaroori)
         try {
           await PushNotifications.createChannel({
             id: 'shopykart_orders',
@@ -31,37 +29,23 @@ export default function PermissionManager() {
           console.warn('Channel creation error:', e);
         }
 
-        // 2. Token listeners register karein
+        // 2. Token listeners
         await PushNotifications.removeAllListeners();
 
-        PushNotifications.addListener('registration', async (token) => {
-          console.log('FCM Token received:', token.value);
+        PushNotifications.addListener('registration', (token) => {
           localStorage.setItem('shopykart_fcm_token', token.value);
-
-          // Save token to logged in user doc
-          const user = auth.currentUser;
-          if (user) {
-            try {
-              await setDoc(doc(db, 'users', user.uid), {
-                fcmToken: token.value,
-                updatedAt: new Date().toISOString()
-              }, { merge: true });
-            } catch (err) {
-              console.error('Error saving FCM token to user:', err);
-            }
-          }
+          localStorage.setItem('fcm_token', token.value);
         });
 
         PushNotifications.addListener('registrationError', (err) => {
           console.error('FCM Registration Error:', err);
         });
 
-        // Foreground notification display listener
         PushNotifications.addListener('pushNotificationReceived', (notification) => {
           console.log('Push received in foreground:', notification);
         });
 
-        // 3. Pehle Notification Permission prompt karein
+        // 3. Pehle Notification Permission mangien
         let pushPerm = await PushNotifications.checkPermissions();
         if (pushPerm.receive !== 'granted') {
           pushPerm = await PushNotifications.requestPermissions();
@@ -71,7 +55,7 @@ export default function PermissionManager() {
           await PushNotifications.register();
         }
 
-        // 4. Notification prompt ke 800ms baad Location Permission mangien
+        // 4. Notification ke 800ms baad Location Permission mangien
         setTimeout(async () => {
           if (!isMounted) return;
           try {
@@ -89,7 +73,7 @@ export default function PermissionManager() {
       }
     };
 
-    const timer = setTimeout(initPermissionsAndNotifications, 600);
+    const timer = setTimeout(setupPermissionsAndFCM, 600);
 
     return () => {
       isMounted = false;
