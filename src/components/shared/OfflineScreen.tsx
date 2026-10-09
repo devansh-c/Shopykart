@@ -1,80 +1,81 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { WifiOff, RefreshCw, ShoppingBag } from 'lucide-react';
 
 export default function OfflineScreen() {
   const [isOffline, setIsOffline] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
+  const wasOffline = useRef(false);
 
   useEffect(() => {
-    // Initial check
-    if (typeof window !== "undefined" && !navigator.onLine) {
-      setIsOffline(true);
-    }
+    // Avoid false offline detection during first 2 seconds of app initialization
+    let mounted = true;
 
     const testConnection = async () => {
-      if (typeof window === "undefined") return;
-      if (!navigator.onLine) {
-        setIsOffline(true);
+      if (typeof window === "undefined" || !mounted) return;
+
+      // Agar native browser keh raha hai online hai, pehle direct trust karo
+      if (navigator.onLine) {
+        if (wasOffline.current) {
+          wasOffline.current = false;
+          setIsOffline(false);
+          window.location.reload(); // Fresh data load stores restore karne ke liye
+          return;
+        }
+        setIsOffline(false);
         return;
       }
-      
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 1800);
 
-      try {
-        await fetch('https://www.google.com/favicon.ico', {
-          mode: 'no-cors',
-          cache: 'no-store',
-          signal: controller.signal
-        });
-        clearTimeout(timeoutId);
-        setIsOffline(false);
-      } catch (err) {
-        clearTimeout(timeoutId);
-        setIsOffline(true);
-      }
+      // Agar network cut hai tabhi offline dikhao
+      wasOffline.current = true;
+      setIsOffline(true);
     };
 
-    const handleOffline = () => setIsOffline(true);
+    const handleOffline = () => {
+      wasOffline.current = true;
+      setIsOffline(true);
+    };
+
     const handleOnline = () => {
-      testConnection();
+      // Internet aate hi automatic reload taaki "0 STORES" ka glitch na aaye
+      setIsOffline(false);
+      window.location.reload();
     };
 
     window.addEventListener('offline', handleOffline);
     window.addEventListener('online', handleOnline);
 
-    testConnection();
-    const interval = setInterval(testConnection, 3000);
+    // Initial silent check
+    const timer = setTimeout(() => {
+      testConnection();
+    }, 1500);
+
+    const interval = setInterval(() => {
+      if (!navigator.onLine) {
+        handleOffline();
+      }
+    }, 3000);
 
     return () => {
+      mounted = false;
+      clearTimeout(timer);
+      clearInterval(interval);
       window.removeEventListener('offline', handleOffline);
       window.removeEventListener('online', handleOnline);
-      clearInterval(interval);
     };
   }, []);
 
-  const handleRetry = async () => {
+  const handleRetry = () => {
     setIsRetrying(true);
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 1800);
-
-    try {
-      await fetch('https://www.google.com/favicon.ico', {
-        mode: 'no-cors',
-        cache: 'no-store',
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
-      setIsOffline(false);
-      window.location.reload();
-    } catch {
-      clearTimeout(timeoutId);
-      setTimeout(() => {
+    setTimeout(() => {
+      if (navigator.onLine) {
+        setIsOffline(false);
+        window.location.reload();
+      } else {
         setIsRetrying(false);
-      }, 500);
-    }
+      }
+    }, 1000);
   };
 
   if (!isOffline) return null;
