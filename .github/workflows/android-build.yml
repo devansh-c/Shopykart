@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
+        fail-fast: false
         app-type: [customer, admin, biz, tow]
     env:
       GRADLE_OPTS: -Xmx2048m
