@@ -1,9 +1,9 @@
+
 'use client';
 
 import { useEffect, useRef } from 'react';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, query, where, onSnapshot, doc, addDoc, serverTimestamp } from 'firebase/firestore';
-import { useToast } from '@/hooks/use-toast';
+import { collection, query, where, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
 
 const statusMessages: Record<string, { title: string; body: string }> = {
   'Placed': {
@@ -33,18 +33,18 @@ const statusMessages: Record<string, { title: string; body: string }> = {
 };
 
 /**
- * @fileOverview Listens to customer's orders and triggers UI notifications on status change.
+ * @fileOverview Listens to customer's orders and triggers System Cloud Notifications.
+ * UI Toasts have been removed as per user request to provide a cleaner system feel.
  */
 export default function CustomerNotificationHandler() {
   const { user } = useUser();
   const firestore = useFirestore();
-  const { toast } = useToast();
   const lastKnownStatuses = useRef<Record<string, string>>({});
 
   useEffect(() => {
     if (!firestore || !user) return;
 
-    // Listen to orders for the current user
+    // Listen to orders for the current user in real-time
     const q = query(
       collection(firestore, 'orders'),
       where('userId', '==', user.uid)
@@ -57,23 +57,29 @@ export default function CustomerNotificationHandler() {
           const orderId = change.doc.id;
           const currentStatus = order.status;
 
-          // Only notify if status has actually changed
+          // Only notify if status has actually changed to prevent duplicate alerts
           if (lastKnownStatuses.current[orderId] !== currentStatus) {
             const msg = statusMessages[currentStatus];
             
             if (msg) {
-              // 1. Show UI Toast
-              toast({
-                title: msg.title,
-                description: msg.body,
-              });
-
-              // 2. Trigger Browser Notification (if permission granted)
+              // 1. TRIGGER SYSTEM NOTIFICATION (Drawer Alert)
               if ("Notification" in window && Notification.permission === "granted") {
-                new Notification(msg.title, { body: msg.body, icon: '/favicon.ico' });
+                const notification = new Notification(msg.title, { 
+                  body: msg.body, 
+                  icon: '/logo.png', // Fallback to logo
+                  tag: orderId, // Group notifications by order
+                  badge: '/logo.png',
+                  silent: false
+                });
+
+                // Play system chime if supported
+                notification.onclick = () => {
+                  window.focus();
+                  window.location.href = `/order/track/#${order.customerOrderNumber}`;
+                };
               }
 
-              // 3. Save to user notifications sub-collection for in-app history
+              // 2. LOG TO USER IN-APP HISTORY
               addDoc(collection(firestore, 'users', user.uid, 'notifications'), {
                 title: msg.title,
                 message: msg.body,
@@ -91,7 +97,7 @@ export default function CustomerNotificationHandler() {
     });
 
     return () => unsubscribe();
-  }, [user, firestore, toast]);
+  }, [user, firestore]);
 
   return null;
 }
