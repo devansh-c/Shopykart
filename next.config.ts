@@ -17,11 +17,6 @@ const nextConfig: NextConfig = {
   
   // In Next.js 15, this is a top-level option
   serverExternalPackages: ['archiver', 'jszip'],
-
-  // Optimization for workstation environment
-  devIndicators: {
-    buildActivity: false,
-  },
 };
 
 export default nextConfig;
