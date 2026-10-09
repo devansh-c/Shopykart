@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 
 /**
  * @fileOverview Tawk.to visibility control with Deployed App Position Fix.
- * FORCE FIX: Set yOffset to 140px to ensure it clears Bottom Nav in all mobile environments.
+ * FORCE FIX: Set yOffset to 240px to ensure it clears Bottom Nav in all mobile environments.
  */
 export function TawkChat() {
   const [mounted, setMounted] = useState(false);
@@ -19,10 +19,11 @@ export function TawkChat() {
     (window as any).onTawkLoadSignal = () => {
       if ((window as any).Tawk_API) {
         // LIFT CHAT: Ensuring it doesn't overlap navigation buttons
+        // Set to 240px to clear the bottom navigation completely on mobile
         (window as any).Tawk_API.customStyle = {
           visibility: {
             desktop: { xOffset: 20, yOffset: 120 },
-            mobile: { xOffset: 20, yOffset: 140 }
+            mobile: { xOffset: 20, yOffset: 240 }
           }
         };
       }
