@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 
 /**
  * @fileOverview Tawk.to visibility control with Deployed App Position Fix.
- * FORCE FIX: Set yOffset to 360px for mobile to ensure it clears the floating Bottom Nav.
+ * FORCE FIX: Set yOffset directly in script to ensure it clears the floating Bottom Nav.
  */
 export function TawkChat() {
   const [mounted, setMounted] = useState(false);
@@ -17,16 +17,6 @@ export function TawkChat() {
   useEffect(() => {
     setMounted(true);
     (window as any).onTawkLoadSignal = () => {
-      if ((window as any).Tawk_API) {
-        // LIFT CHAT: Significant increase to clear the high-floating navigation bar
-        // 360px ensures it floats well above the bottom navigation area on mobile
-        (window as any).Tawk_API.customStyle = {
-          visibility: {
-            desktop: { xOffset: 20, yOffset: 120 },
-            mobile: { xOffset: 20, yOffset: 360 }
-          }
-        };
-      }
       setIsTawkReady(true);
     };
     return () => { delete (window as any).onTawkLoadSignal; };
@@ -68,9 +58,19 @@ export function TawkChat() {
     <Script id="tawk-setup" strategy="afterInteractive">
       {`
         var Tawk_API = Tawk_API || {}, Tawk_LoadStart = new Date();
+        
+        // FORCE POSITION BEFORE LOAD
+        Tawk_API.customStyle = {
+          visibility: {
+            desktop: { xOffset: 20, yOffset: 40 },
+            mobile: { xOffset: 20, yOffset: 120 } 
+          }
+        };
+
         Tawk_API.onLoad = function() {
           if (window.onTawkLoadSignal) window.onTawkLoadSignal();
         };
+
         (function() {
           var s1 = document.createElement("script"),
               s0 = document.getElementsByTagName("script")[0];
