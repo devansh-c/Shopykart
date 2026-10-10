@@ -1,20 +1,32 @@
+
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import { useUser, useFirestore } from '@/firebase';
+import { requestPushToken, syncTokenToFirestore } from '@/firebase/messaging';
 
+/**
+ * @fileOverview Permission Manager - Manages Notifications & FCM registration.
+ * Coordinates between Web Push and Native Capacitor.
+ */
 export default function PermissionManager() {
+  const { user } = useUser();
+  const firestore = useFirestore();
+  const registrationDone = useRef(false);
+
   useEffect(() => {
     let isMounted = true;
 
-    const setupFCM = async () => {
+    const setupNotifications = async () => {
+      if (!isMounted) return;
+
       try {
         const { Capacitor } = await import('@capacitor/core');
-        if (!Capacitor.isNativePlatform()) return;
+        
+        // 1. NATIVE ANDROID SETUP
+        if (Capacitor.isNativePlatform()) {
+          const { PushNotifications } = await import('@capacitor/push-notifications');
 
-        const { PushNotifications } = await import('@capacitor/push-notifications');
-
-        // Android 8+ Mandatory Default Channel
-        try {
           await PushNotifications.createChannel({
             id: 'fcm_default_channel',
             name: 'General Notifications',
@@ -24,48 +36,44 @@ export default function PermissionManager() {
             vibration: true,
             sound: 'default'
           });
-        } catch (e) {
-          console.error('Channel error:', e);
-        }
 
-        // Listener lagayein taaki token console/alert par dikhe
-        await PushNotifications.removeAllListeners();
+          PushNotifications.addListener('registration', async (token) => {
+            console.log('=== NATIVE FCM TOKEN ===', token.value);
+            localStorage.setItem('shopykart_fcm_token', token.value);
+            if (user?.uid) {
+              await syncTokenToFirestore(user.uid, token.value);
+            }
+          });
 
-        PushNotifications.addListener('registration', (token) => {
-          console.log('=== YOUR FCM DEVICE TOKEN ===', token.value);
-          localStorage.setItem('shopykart_fcm_token', token.value);
-        });
+          let perm = await PushNotifications.checkPermissions();
+          if (perm.receive !== 'granted') {
+            perm = await PushNotifications.requestPermissions();
+          }
 
-        PushNotifications.addListener('registrationError', (err) => {
-          console.error('FCM Error:', err);
-        });
-
-        // Foreground alert
-        PushNotifications.addListener('pushNotificationReceived', (notification) => {
-          alert('Notification: ' + notification.title + '\n' + notification.body);
-        });
-
-        // Request Push Permission
-        let perm = await PushNotifications.checkPermissions();
-        if (perm.receive !== 'granted') {
-          perm = await PushNotifications.requestPermissions();
-        }
-
-        if (perm.receive === 'granted') {
-          await PushNotifications.register();
+          if (perm.receive === 'granted') {
+            await PushNotifications.register();
+          }
+        } 
+        
+        // 2. WEB BROWSER SETUP (Always try for fallback)
+        if (!registrationDone.current) {
+          const token = await requestPushToken(user?.uid);
+          if (token) registrationDone.current = true;
         }
 
       } catch (err) {
-        console.error('Push setup failed:', err);
+        console.error('Notification setup failed:', err);
       }
     };
 
-    setTimeout(setupFCM, 500);
+    // Delay to prevent blocking initial render
+    const timer = setTimeout(setupNotifications, 3000);
 
     return () => {
       isMounted = false;
+      clearTimeout(timer);
     };
-  }, []);
+  }, [user, firestore]);
 
   return null;
 }

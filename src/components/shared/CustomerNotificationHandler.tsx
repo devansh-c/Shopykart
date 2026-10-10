@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useRef } from 'react';
@@ -6,15 +7,23 @@ import { collection, query, where, onSnapshot, addDoc, serverTimestamp } from 'f
 
 const statusMessages: Record<string, { title: string; body: string }> = {
   'Placed': {
-    title: '🎉 Order Placed Successfully!',
-    body: 'Your order has been received by Shopykart and is being prepared.'
+    title: '🎉 Order Confirmed!',
+    body: 'Thank you for ordering with Shopykart. Your order has been placed and sent to the store.'
   },
-  'Confirmed': {
-    title: '✅ Order Confirmed!',
-    body: 'Store has accepted your order and packing is underway.'
+  'Accepted': {
+    title: '✅ Order Accepted!',
+    body: 'The store has accepted your order and will start packing it shortly.'
   },
-  'On The Way': {
-    title: '🛵 Order On The Way!',
+  'Preparing': {
+    title: '🥘 Preparing Your Order...',
+    body: 'Your items are being freshly prepared and carefully packed by the store.'
+  },
+  'Ready for Pickup': {
+    title: '📦 Order Ready For Pickup!',
+    body: 'Your order is packed and waiting for the Shopykart delivery partner to pick it up.'
+  },
+  'Out for Delivery': {
+    title: '🛵 Out for Delivery!',
     body: 'Your Shopykart rider is on the way with your order. Keep your phone handy!'
   },
   'Delivered': {
@@ -23,6 +32,10 @@ const statusMessages: Record<string, { title: string; body: string }> = {
   }
 };
 
+/**
+ * @fileOverview Foreground Notification Handler for Customers.
+ * Listens for order changes and triggers system alerts when app is open.
+ */
 export default function CustomerNotificationHandler() {
   const { user } = useUser();
   const firestore = useFirestore();
@@ -37,19 +50,34 @@ export default function CustomerNotificationHandler() {
       where('userId', '==', user.uid)
     );
 
-    const unsubscribe = onSnapshot(q, async (snapshot) => {
-      for (const change of snapshot.docChanges()) {
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      snapshot.docChanges().forEach(async (change) => {
         if (change.type === 'modified' || change.type === 'added') {
           const order = change.doc.data();
           const orderId = change.doc.id;
           const currentStatus = order.status;
 
-          // Only trigger if status has changed
-          if (lastKnownStatuses.current[orderId] && lastKnownStatuses.current[orderId] !== currentStatus) {
+          // Sync status locally to prevent repeat notifications
+          const prevStatus = lastKnownStatuses.current[orderId];
+          
+          if (prevStatus && prevStatus !== currentStatus) {
             const msg = statusMessages[currentStatus];
 
             if (msg) {
-              // 1. Native Android Status Bar Notification
+              // 1. Trigger System Notification (Foreground)
+              try {
+                if ('Notification' in window && Notification.permission === 'granted') {
+                   new Notification(msg.title, {
+                    body: msg.body,
+                    icon: '/logo.png',
+                    tag: orderId, // Prevent duplicate alerts for same order
+                  });
+                }
+              } catch (e) {
+                console.debug("Browser Notification failed, likely native.");
+              }
+
+              // 2. Capacitor Native Alert (if on Android)
               try {
                 const { LocalNotifications } = await import('@capacitor/local-notifications');
                 await LocalNotifications.schedule({
@@ -58,25 +86,15 @@ export default function CustomerNotificationHandler() {
                       title: msg.title,
                       body: msg.body,
                       id: Math.floor(Math.random() * 100000),
-                      schedule: { at: new Date(Date.now() + 100) },
-                      sound: undefined,
-                      channelId: 'shopykart_orders',
-                      actionTypeId: '',
-                      extra: {
-                        orderId: orderId,
-                        url: `/order/track/#${order.customerOrderNumber || orderId}`
-                      }
+                      extra: { orderId: orderId }
                     }
                   ]
                 });
               } catch (e) {
-                // Fallback for Web Browser
-                if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-                  new Notification(msg.title, { body: msg.body, icon: '/logo.png' });
-                }
+                console.debug("Capacitor local notification skipped (web).");
               }
 
-              // 2. In-App Notification History in Firestore
+              // 3. Add to In-App History
               try {
                 await addDoc(collection(firestore, 'users', user.uid, 'notifications'), {
                   title: msg.title,
@@ -86,15 +104,13 @@ export default function CustomerNotificationHandler() {
                   timestamp: serverTimestamp(),
                   read: false
                 });
-              } catch (err) {
-                console.error('History save error:', err);
-              }
+              } catch (err) {}
             }
           }
 
           lastKnownStatuses.current[orderId] = currentStatus;
         }
-      }
+      });
     });
 
     return () => unsubscribe();
