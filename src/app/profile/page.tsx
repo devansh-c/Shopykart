@@ -152,7 +152,7 @@ function ProfileContent() {
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] pb-40 transform-gpu">
-      <div className="bg-primary h-48 relative">
+      <div className="bg-primary h-56 relative">
         <div className="absolute bottom-0 w-full h-10 bg-[#F9FAFB] rounded-t-[3rem]" />
       </div>
 

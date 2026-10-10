@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useMemo, useEffect, memo } from 'react';
@@ -185,10 +186,10 @@ export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
 
   return (
     <div className="min-h-screen bg-white pb-40">
-      <div className="relative h-64 w-full">
+      <div className="relative h-72 w-full">
         <img src={vendorProfile?.bannerUrl || vendorProfile?.imageUrl || 'https://picsum.photos/seed/store/800/400'} className="w-full h-full object-cover" alt="Banner" />
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent flex flex-col justify-end p-6">
-          <Link href="/" className="absolute top-6 left-6 h-10 w-10 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20 active:scale-90 transition-transform"><X className="h-5 w-5" /></Link>
+          <Link href="/" className="absolute top-12 left-6 h-10 w-10 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20 active:scale-90 transition-transform"><X className="h-5 w-5" /></Link>
           <div className="flex items-end gap-4">
             <div className="h-20 w-20 rounded-2xl overflow-hidden border-2 border-primary shadow-xl shrink-0 bg-white">
               <img src={vendorProfile?.imageUrl} className="h-full w-full object-cover" alt="Logo" />

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { CartProvider } from '@/components/cart/CartProvider';
@@ -117,7 +118,10 @@ export function ClientLayout({ children }: { children: ReactNode }) {
           <PermissionManager />
           
           <AuthGuard>
-            <div className="relative min-h-screen flex flex-col max-w-lg mx-auto w-full bg-white shadow-2xl border-x border-gray-100 overflow-y-auto no-scrollbar">
+            <div className={cn(
+              "relative min-h-screen flex flex-col max-w-lg mx-auto w-full bg-white shadow-2xl border-x border-gray-100 overflow-y-auto no-scrollbar",
+              !isExcludedPath && "pt-10" // STATUS BAR CLEARANCE
+            )}>
               <main className={cn("flex-1", !isExcludedPath && "pb-24")}>
                 {!isExcludedPath && <LocationRequest />}
                 <NotificationHandler />

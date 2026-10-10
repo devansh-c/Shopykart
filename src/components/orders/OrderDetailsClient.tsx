@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -248,7 +249,7 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
       />
 
       <div className={cn("relative w-full shrink-0 transition-all duration-700 z-0", isMapExpanded ? "h-screen" : "h-[48vh]")}>
-        <header className="absolute top-0 left-0 right-0 z-[100] px-4 py-4 flex items-center justify-between pointer-events-none">
+        <header className="absolute top-10 left-0 right-0 z-[100] px-4 py-4 flex items-center justify-between pointer-events-none">
           <button onClick={() => router.push('/orders')} className="h-10 w-10 bg-white rounded-full flex items-center justify-center text-gray-900 shadow-lg border border-black/5 active:scale-90 transition-transform pointer-events-auto">
             <ChevronLeft className="h-6 w-6" />
           </button>

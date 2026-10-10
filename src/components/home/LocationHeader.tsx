@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -19,7 +20,7 @@ import { requestPushToken } from '@/firebase/messaging';
 import { cn } from '@/lib/utils';
 
 /**
- * @fileOverview Simplified LocationHeader - All modes hidden for clean Food-only UI.
+ * @fileOverview Simplified LocationHeader - Spacing adjusted for status bar clearance.
  */
 export function LocationHeader({
   searchValue,
@@ -70,7 +71,7 @@ export function LocationHeader({
   };
 
   return (
-    <div className="w-full bg-white pb-6 pt-3 px-4 space-y-4 rounded-b-[2.5rem] shadow-sm relative z-50 overflow-hidden transform-gpu">
+    <div className="w-full bg-white pb-6 pt-6 px-4 space-y-4 rounded-b-[2.5rem] shadow-sm relative z-50 overflow-hidden transform-gpu">
       <div className="flex items-center justify-between relative z-10">
         <button onClick={handleOpenPicker} className="flex items-center gap-1.5 active:scale-95 transition-all text-left w-full">
           <div className="h-8 w-8 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">
