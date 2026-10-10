@@ -1,9 +1,8 @@
-
 'use client';
 
 import { getMessaging, Messaging, isSupported, getToken, onMessage } from 'firebase/messaging';
 import { initializeFirebase } from './index';
-import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 
 let messagingInstance: Messaging | null = null;
 
@@ -53,34 +52,43 @@ export async function syncTokenToFirestore(userId: string, token: string) {
  * Requests FCM token and handles initial setup.
  */
 export async function requestPushToken(userId?: string) {
+  if (typeof window === 'undefined') return null;
+
   try {
     const { firestore } = initializeFirebase();
     if (!firestore) return null;
 
     // 1. Check Permissions
-    if (typeof window !== 'undefined' && 'Notification' in window) {
+    if ('Notification' in window) {
       const permission = await Notification.requestPermission();
-      if (permission !== 'granted') return null;
+      if (permission !== 'granted') {
+        console.warn("Notification permission denied by user.");
+        return null;
+      }
     }
 
     const messaging = await getFirebaseMessaging();
     if (!messaging) return null;
 
     // 2. Get VAPID Key from Firestore or use default
-    const brandingSnap = await getDoc(doc(firestore, 'app_settings', 'branding'));
-    const vapidKey = brandingSnap.data()?.vapidKey || 'BC5Gx8VDwyRgNuv-SzJPZnqkcCCDzrhZnJ4SsGfK65Z9_SkQRYjSSfZraLlUpxIwGenba0GpsQAnnatRwSQ-VKo';
+    // Using a robust fallback VAPID key
+    const vapidKey = 'BC5Gx8VDwyRgNuv-SzJPZnqkcCCDzrhZnJ4SsGfK65Z9_SkQRYjSSfZraLlUpxIwGenba0GpsQAnnatRwSQ-VKo';
 
     // 3. Get Token
-    const token = await getToken(messaging, { vapidKey });
+    const token = await getToken(messaging, { 
+      vapidKey,
+      serviceWorkerRegistration: await navigator.serviceWorker.register('/firebase-messaging-sw.js')
+    });
     
     if (token) {
       localStorage.setItem('shopykart_fcm_token', token);
       if (userId) {
         await syncTokenToFirestore(userId, token);
       }
+      return token;
     }
     
-    return token;
+    return null;
   } catch (err) {
     console.error("FCM Token Registration Error:", err);
     return null;

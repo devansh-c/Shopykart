@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useRef } from 'react';
@@ -7,7 +6,6 @@ import { requestPushToken, syncTokenToFirestore } from '@/firebase/messaging';
 
 /**
  * @fileOverview Permission Manager - Manages Notifications & FCM registration.
- * Coordinates between Web Push and Native Capacitor.
  */
 export default function PermissionManager() {
   const { user } = useUser();
@@ -24,18 +22,8 @@ export default function PermissionManager() {
         const { Capacitor } = await import('@capacitor/core');
         
         // 1. NATIVE ANDROID SETUP
-        if (Capacitor.isNativePlatform()) {
+        if (Capacitor && Capacitor.isNativePlatform()) {
           const { PushNotifications } = await import('@capacitor/push-notifications');
-
-          await PushNotifications.createChannel({
-            id: 'fcm_default_channel',
-            name: 'General Notifications',
-            description: 'Order and promotional alerts',
-            importance: 5,
-            visibility: 1,
-            vibration: true,
-            sound: 'default'
-          });
 
           PushNotifications.addListener('registration', async (token) => {
             console.log('=== NATIVE FCM TOKEN ===', token.value);
@@ -55,10 +43,13 @@ export default function PermissionManager() {
           }
         } 
         
-        // 2. WEB BROWSER SETUP (Always try for fallback)
-        if (!registrationDone.current) {
-          const token = await requestPushToken(user?.uid);
-          if (token) registrationDone.current = true;
+        // 2. WEB/PWA FALLBACK
+        if (!registrationDone.current && typeof window !== 'undefined') {
+          // Add a small delay to ensure SW is ready
+          setTimeout(async () => {
+            const token = await requestPushToken(user?.uid || undefined);
+            if (token) registrationDone.current = true;
+          }, 3000);
         }
 
       } catch (err) {
@@ -66,12 +57,10 @@ export default function PermissionManager() {
       }
     };
 
-    // Delay to prevent blocking initial render
-    const timer = setTimeout(setupNotifications, 3000);
+    setupNotifications();
 
     return () => {
       isMounted = false;
-      clearTimeout(timer);
     };
   }, [user, firestore]);
 
