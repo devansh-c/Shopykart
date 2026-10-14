@@ -1,3 +1,4 @@
+
 name: Build ShopyKart Android Apps
 
 on:
@@ -33,11 +34,13 @@ jobs:
       - name: Build Web Assets (Customer)
         run: npm run build:static
       
-      - name: Set Customer Package Identity
+      - name: Prepare Customer Config
         run: |
           sed -i 's/appId: "co.in.shopykart.admin"/appId: "co.in.shopykart.app"/' capacitor.config.ts
+          sed -i 's/appName: "ShopyKart Admin"/appName: "ShopyKart"/' capacitor.config.ts
+          # Manifest Updates
           sed -i 's/package_name">co.in.shopykart.admin/package_name">co.in.shopykart.app/' android/app/src/main/res/values/strings.xml
-          sed -i 's/package co.in.shopykart.admin/package co.in.shopykart.app/' android/app/src/main/java/co/in/shopykart/admin/MainActivity.java
+          sed -i 's/app_name">ShopyKart Admin/app_name">ShopyKart/' android/app/src/main/res/values/strings.xml
       
       - name: Sync Capacitor (Customer)
         run: npx cap sync android
@@ -46,7 +49,7 @@ jobs:
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug bundleRelease --stacktrace -Dorg.gradle.jvmargs="-Xmx4096m"
+          ./gradlew assembleDebug bundleRelease --stacktrace
 
       - name: Prepare Customer Artifacts
         run: |
@@ -57,11 +60,13 @@ jobs:
       - name: Build Web Assets (Admin)
         run: npm run build:admin
       
-      - name: Set Admin Package Identity
+      - name: Prepare Admin Config
         run: |
           sed -i 's/appId: "co.in.shopykart.app"/appId: "co.in.shopykart.admin"/' capacitor.config.ts
+          sed -i 's/appName: "ShopyKart"/appName: "ShopyKart Admin"/' capacitor.config.ts
+          # Manifest Updates
           sed -i 's/package_name">co.in.shopykart.app/package_name">co.in.shopykart.admin/' android/app/src/main/res/values/strings.xml
-          sed -i 's/package co.in.shopykart.app/package co.in.shopykart.admin/' android/app/src/main/java/co/in/shopykart/admin/MainActivity.java
+          sed -i 's/app_name">ShopyKart/app_name">ShopyKart Admin/' android/app/src/main/res/values/strings.xml
       
       - name: Sync Capacitor (Admin)
         run: npx cap sync android
@@ -70,7 +75,7 @@ jobs:
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug bundleRelease --stacktrace -Dorg.gradle.jvmargs="-Xmx4096m"
+          ./gradlew assembleDebug bundleRelease --stacktrace
 
       - name: Prepare Admin Artifacts
         run: |
@@ -78,20 +83,13 @@ jobs:
           cp android/app/build/outputs/bundle/release/app-release.aab admin.shopykart.aab
 
       # UPLOAD ALL ARTIFACTS
-      - name: Upload APKs
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ShopyKart-APKs
+          name: ShopyKart-Builds
           path: |
             app.shopykart.apk
-            admin.shopykart.apk
-          if-no-files-found: error
-
-      - name: Upload AABs (App Bundles)
-        uses: actions/upload-artifact@v4
-        with:
-          name: ShopyKart-Bundles
-          path: |
             app.shopykart.aab
+            admin.shopykart.apk
             admin.shopykart.aab
           if-no-files-found: error

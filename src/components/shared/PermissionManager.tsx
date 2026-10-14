@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useRef } from 'react';
@@ -6,7 +7,7 @@ import { requestPushToken, syncTokenToFirestore } from '@/firebase/messaging';
 
 /**
  * @fileOverview Permission Manager - Manages Notifications & FCM registration.
- * Added: High-importance "new_order_channel" for Admin Loud Alerts.
+ * Includes "new_order_channel" with High importance for Admin Loud Alerts.
  */
 export default function PermissionManager() {
   const { user } = useUser();
