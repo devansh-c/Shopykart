@@ -29,13 +29,15 @@ jobs:
           distribution: 'zulu'
           java-version: '21'
 
-      - name: Upgrade Gradle Wrapper to 8.5
-        run: |
-          sed -i 's/gradle-.*-all.zip/gradle-8.5-all.zip/g' android/gradle/wrapper/gradle-wrapper.properties
-
-      # BUILD 1: CUSTOMER APP
+      # BUILD 1: CUSTOMER APP (co.in.shopykart.app)
       - name: Build Web Assets (Customer)
         run: npm run build:static
+      
+      - name: Set Customer Package Identity
+        run: |
+          sed -i 's/appId: "co.in.shopykart.admin"/appId: "co.in.shopykart.app"/' capacitor.config.ts
+          sed -i 's/package_name">co.in.shopykart.admin/package_name">co.in.shopykart.app/' android/app/src/main/res/values/strings.xml
+          sed -i 's/package co.in.shopykart.admin/package co.in.shopykart.app/' android/app/src/main/java/co/in/shopykart/admin/MainActivity.java
       
       - name: Sync Capacitor (Customer)
         run: npx cap sync android
@@ -51,9 +53,15 @@ jobs:
           cp android/app/build/outputs/apk/debug/app-debug.apk app.shopykart.apk
           cp android/app/build/outputs/bundle/release/app-release.aab app.shopykart.aab
 
-      # BUILD 2: ADMIN APP
+      # BUILD 2: ADMIN APP (co.in.shopykart.admin)
       - name: Build Web Assets (Admin)
         run: npm run build:admin
+      
+      - name: Set Admin Package Identity
+        run: |
+          sed -i 's/appId: "co.in.shopykart.app"/appId: "co.in.shopykart.admin"/' capacitor.config.ts
+          sed -i 's/package_name">co.in.shopykart.app/package_name">co.in.shopykart.admin/' android/app/src/main/res/values/strings.xml
+          sed -i 's/package co.in.shopykart.app/package co.in.shopykart.admin/' android/app/src/main/java/co/in/shopykart/admin/MainActivity.java
       
       - name: Sync Capacitor (Admin)
         run: npx cap sync android

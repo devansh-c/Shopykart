@@ -2,8 +2,8 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'co.in.shopykart.app',
-  appName: 'ShopyKart',
+  appId: 'co.in.shopykart.admin',
+  appName: 'ShopyKart Admin',
   webDir: 'out',
   server: {
     androidScheme: 'https',
