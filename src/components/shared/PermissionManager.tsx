@@ -6,6 +6,7 @@ import { requestPushToken, syncTokenToFirestore } from '@/firebase/messaging';
 
 /**
  * @fileOverview Permission Manager - Manages Notifications & FCM registration.
+ * Added: High-importance "new_order_channel" for Admin Loud Alerts.
  */
 export default function PermissionManager() {
   const { user } = useUser();
@@ -24,6 +25,22 @@ export default function PermissionManager() {
         // 1. NATIVE ANDROID SETUP
         if (Capacitor && Capacitor.isNativePlatform()) {
           const { PushNotifications } = await import('@capacitor/push-notifications');
+
+          // CREATE HIGH IMPORTANCE CHANNEL FOR ADMIN
+          try {
+            await PushNotifications.createChannel({
+              id: 'new_order_channel',
+              name: 'New Order Alerts',
+              description: 'Loud alerts for incoming orders',
+              sound: 'order_alert', // References res/raw/order_alert.mp3
+              importance: 5, // High Importance (Heads-up)
+              visibility: 1,
+              vibration: true,
+            });
+            console.log('FCM Channel Created: new_order_channel');
+          } catch (channelErr) {
+            console.error('Channel creation failed', channelErr);
+          }
 
           PushNotifications.addListener('registration', async (token) => {
             console.log('=== NATIVE FCM TOKEN ===', token.value);
@@ -45,7 +62,6 @@ export default function PermissionManager() {
         
         // 2. WEB/PWA FALLBACK
         if (!registrationDone.current && typeof window !== 'undefined') {
-          // Add a small delay to ensure SW is ready
           setTimeout(async () => {
             const token = await requestPushToken(user?.uid || undefined);
             if (token) registrationDone.current = true;

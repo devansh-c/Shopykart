@@ -43,9 +43,10 @@
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
     
+        <!-- DEFAULT NOTIFICATION CHANNEL FOR ADMIN LOUD ALERTS -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
-            android:value="fcm_default_channel" />
+            android:value="new_order_channel" />
     </application>
 
     <!-- ESSENTIAL PERMISSIONS FOR PLAY STORE -->
