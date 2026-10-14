@@ -1,4 +1,4 @@
-name: Build Customer Android App
+name: Build ShopyKart Android Apps
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    name: Build Signed Bundle & APK
+    name: Build Customer & Admin Apps
     runs-on: ubuntu-latest
 
     steps:
@@ -23,12 +23,6 @@ jobs:
       - name: Install Dependencies
         run: npm ci || npm install --legacy-peer-deps
 
-      - name: Build Web Assets
-        run: npm run build
-
-      - name: Sync Capacitor Android
-        run: npx cap sync android
-
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
@@ -39,18 +33,57 @@ jobs:
         run: |
           sed -i 's/gradle-.*-all.zip/gradle-8.5-all.zip/g' android/gradle/wrapper/gradle-wrapper.properties
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
+      # BUILD 1: CUSTOMER APP
+      - name: Build Web Assets (Customer)
+        run: npm run build:static
+      
+      - name: Sync Capacitor (Customer)
+        run: npx cap sync android
 
-      - name: Build Signed AAB (Play Store)
+      - name: Build Android (Customer)
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew bundleRelease --stacktrace -Dorg.gradle.jvmargs="-Xmx4096m"
+          ./gradlew assembleDebug bundleRelease --stacktrace -Dorg.gradle.jvmargs="-Xmx4096m"
 
-      - name: Upload Signed AAB Artifact
+      - name: Prepare Customer Artifacts
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk app.shopykart.apk
+          cp android/app/build/outputs/bundle/release/app-release.aab app.shopykart.aab
+
+      # BUILD 2: ADMIN APP
+      - name: Build Web Assets (Admin)
+        run: npm run build:admin
+      
+      - name: Sync Capacitor (Admin)
+        run: npx cap sync android
+
+      - name: Build Android (Admin)
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug bundleRelease --stacktrace -Dorg.gradle.jvmargs="-Xmx4096m"
+
+      - name: Prepare Admin Artifacts
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk admin.shopykart.apk
+          cp android/app/build/outputs/bundle/release/app-release.aab admin.shopykart.aab
+
+      # UPLOAD ALL ARTIFACTS
+      - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
-          name: shopykart-release-bundle
-          path: android/app/build/outputs/bundle/release/*.aab
+          name: ShopyKart-APKs
+          path: |
+            app.shopykart.apk
+            admin.shopykart.apk
+          if-no-files-found: error
+
+      - name: Upload AABs (App Bundles)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ShopyKart-Bundles
+          path: |
+            app.shopykart.aab
+            admin.shopykart.aab
           if-no-files-found: error
