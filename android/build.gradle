@@ -1,3 +1,5 @@
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+
 buildscript {
     repositories {
         google()
@@ -5,7 +7,7 @@ buildscript {
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:8.2.1'
-        classpath 'com.google.gms:google-services:4.4.0'
+        classpath 'com.google.gms:google-services:4.4.1'
     }
 }
 
@@ -14,15 +16,6 @@ allprojects {
         google()
         mavenCentral()
     }
-}
-
-task clean(type: Delete) {
-    delete rootProject.buildDir
-}
-
-allprojects { configurations.all { resolutionStrategy { force "org.bouncycastle:bcprov-jdk15to18:1.78" } } }
-
-allprojects {
     configurations.all {
         resolutionStrategy {
             force 'org.bouncycastle:bcprov-jdk18on:1.78.1'
@@ -30,3 +23,5 @@ allprojects {
         }
     }
 }
+
+apply from: "variables.gradle"
