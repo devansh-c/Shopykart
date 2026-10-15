@@ -1,5 +1,5 @@
 
-name: Build ShopyKart Android Apps
+name: Build ShopyKart Dual Apps
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    name: Build Customer & Admin Apps
+    name: Generate Customer and Admin APKs
     runs-on: ubuntu-latest
 
     steps:
@@ -34,16 +34,13 @@ jobs:
       - name: Build Web Assets (Customer)
         run: npm run build:static
       
-      - name: Prepare Customer Config
+      - name: Configure Customer Identity
         run: |
-          sed -i 's/appId: "co.in.shopykart.admin"/appId: "co.in.shopykart.app"/' capacitor.config.ts
-          sed -i 's/appName: "ShopyKart Admin"/appName: "ShopyKart"/' capacitor.config.ts
-          # Manifest Updates
-          sed -i 's/package_name">co.in.shopykart.admin/package_name">co.in.shopykart.app/' android/app/src/main/res/values/strings.xml
-          sed -i 's/app_name">ShopyKart Admin/app_name">ShopyKart/' android/app/src/main/res/values/strings.xml
-      
-      - name: Sync Capacitor (Customer)
-        run: npx cap sync android
+          sed -i 's/appId: ".*"/appId: "co.in.shopykart.app"/' capacitor.config.ts
+          sed -i 's/appName: ".*"/appName: "ShopyKart"/' capacitor.config.ts
+          sed -i 's/package_name">.*<\/string>/package_name">co.in.shopykart.app<\/string>/' android/app/src/main/res/values/strings.xml
+          sed -i 's/app_name">.*<\/string>/app_name">ShopyKart<\/string>/' android/app/src/main/res/values/strings.xml
+          npx cap sync android
 
       - name: Build Android (Customer)
         working-directory: android
@@ -60,16 +57,13 @@ jobs:
       - name: Build Web Assets (Admin)
         run: npm run build:admin
       
-      - name: Prepare Admin Config
+      - name: Configure Admin Identity
         run: |
-          sed -i 's/appId: "co.in.shopykart.app"/appId: "co.in.shopykart.admin"/' capacitor.config.ts
-          sed -i 's/appName: "ShopyKart"/appName: "ShopyKart Admin"/' capacitor.config.ts
-          # Manifest Updates
-          sed -i 's/package_name">co.in.shopykart.app/package_name">co.in.shopykart.admin/' android/app/src/main/res/values/strings.xml
-          sed -i 's/app_name">ShopyKart/app_name">ShopyKart Admin/' android/app/src/main/res/values/strings.xml
-      
-      - name: Sync Capacitor (Admin)
-        run: npx cap sync android
+          sed -i 's/appId: ".*"/appId: "co.in.shopykart.admin"/' capacitor.config.ts
+          sed -i 's/appName: ".*"/appName: "ShopyKart Admin"/' capacitor.config.ts
+          sed -i 's/package_name">.*<\/string>/package_name">co.in.shopykart.admin<\/string>/' android/app/src/main/res/values/strings.xml
+          sed -i 's/app_name">.*<\/string>/app_name">ShopyKart Admin<\/string>/' android/app/src/main/res/values/strings.xml
+          npx cap sync android
 
       - name: Build Android (Admin)
         working-directory: android
