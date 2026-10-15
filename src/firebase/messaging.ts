@@ -1,3 +1,4 @@
+
 'use client';
 
 import { getMessaging, Messaging, isSupported, getToken, onMessage } from 'firebase/messaging';
@@ -37,12 +38,18 @@ export async function syncTokenToFirestore(userId: string, token: string) {
     if (!firestore || !userId || !token) return;
 
     const userRef = doc(firestore, 'users', userId);
-    await updateDoc(userRef, {
-      fcmToken: token,
-      notificationsEnabled: true,
-      lastTokenSync: serverTimestamp()
-    });
-    console.log("FCM Token synced to user profile:", userId);
+    const userSnap = await getDoc(userRef);
+    
+    if (userSnap.exists()) {
+      await updateDoc(userRef, {
+        fcmToken: token,
+        notificationsEnabled: true,
+        lastTokenSync: serverTimestamp()
+      });
+    } else {
+      // For new users or if doc doesn't exist yet
+      console.log("User doc not ready for sync yet");
+    }
   } catch (err) {
     console.error("Token Sync Error:", err);
   }
@@ -62,7 +69,6 @@ export async function requestPushToken(userId?: string) {
     if ('Notification' in window) {
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') {
-        console.warn("Notification permission denied by user.");
         return null;
       }
     }
@@ -70,8 +76,7 @@ export async function requestPushToken(userId?: string) {
     const messaging = await getFirebaseMessaging();
     if (!messaging) return null;
 
-    // 2. Get VAPID Key from Firestore or use default
-    // Using a robust fallback VAPID key
+    // 2. Get VAPID Key
     const vapidKey = 'BC5Gx8VDwyRgNuv-SzJPZnqkcCCDzrhZnJ4SsGfK65Z9_SkQRYjSSfZraLlUpxIwGenba0GpsQAnnatRwSQ-VKo';
 
     // 3. Get Token

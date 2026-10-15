@@ -7,12 +7,22 @@ import { requestPushToken, syncTokenToFirestore } from '@/firebase/messaging';
 
 /**
  * @fileOverview Permission Manager - Manages Notifications & FCM registration.
- * Includes "new_order_channel" with High importance for Admin Loud Alerts.
+ * Fixed: Added aggressive token syncing on user login change.
  */
 export default function PermissionManager() {
   const { user } = useUser();
   const firestore = useFirestore();
   const registrationDone = useRef(false);
+
+  // 1. WATCH FOR USER LOGIN TO SYNC TOKEN
+  useEffect(() => {
+    if (user?.uid) {
+      const savedToken = localStorage.getItem('shopykart_fcm_token');
+      if (savedToken) {
+        syncTokenToFirestore(user.uid, savedToken);
+      }
+    }
+  }, [user]);
 
   useEffect(() => {
     let isMounted = true;
