@@ -36,10 +36,13 @@ jobs:
       
       - name: Configure Customer Identity
         run: |
-          sed -i 's/appId: ".*"/appId: "co.in.shopykart.app"/' capacitor.config.ts
-          sed -i 's/appName: ".*"/appName: "ShopyKart"/' capacitor.config.ts
+          sed -i "s/appId: [\"'].*[\"']/appId: \"co.in.shopykart.app\"/" capacitor.config.ts
+          sed -i "s/appName: [\"'].*[\"']/appName: \"ShopyKart\"/" capacitor.config.ts
           sed -i 's/package_name">.*<\/string>/package_name">co.in.shopykart.app<\/string>/' android/app/src/main/res/values/strings.xml
           sed -i 's/app_name">.*<\/string>/app_name">ShopyKart<\/string>/' android/app/src/main/res/values/strings.xml
+          # Fix Java Package
+          find android/app/src/main/java -name "MainActivity.java" -exec sed -i "s/package co.in.shopykart.admin/package co.in.shopykart.app/" {} +
+          find android/app/src/main/java -name "MainActivity.java" -exec sed -i "s/package co.in.shopykart.app/package co.in.shopykart.app/" {} +
           npx cap sync android
 
       - name: Build Android (Customer)
@@ -59,10 +62,12 @@ jobs:
       
       - name: Configure Admin Identity
         run: |
-          sed -i 's/appId: ".*"/appId: "co.in.shopykart.admin"/' capacitor.config.ts
-          sed -i 's/appName: ".*"/appName: "ShopyKart Admin"/' capacitor.config.ts
+          sed -i "s/appId: [\"'].*[\"']/appId: \"co.in.shopykart.admin\"/" capacitor.config.ts
+          sed -i "s/appName: [\"'].*[\"']/appName: \"ShopyKart Admin\"/" capacitor.config.ts
           sed -i 's/package_name">.*<\/string>/package_name">co.in.shopykart.admin<\/string>/' android/app/src/main/res/values/strings.xml
           sed -i 's/app_name">.*<\/string>/app_name">ShopyKart Admin<\/string>/' android/app/src/main/res/values/strings.xml
+          # Fix Java Package
+          find android/app/src/main/java -name "MainActivity.java" -exec sed -i "s/package co.in.shopykart.app/package co.in.shopykart.admin/" {} +
           npx cap sync android
 
       - name: Build Android (Admin)

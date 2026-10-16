@@ -1,3 +1,4 @@
+
 package co.in.shopykart.app;
 
 import com.getcapacitor.BridgeActivity;
