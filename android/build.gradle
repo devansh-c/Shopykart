@@ -4,10 +4,7 @@ buildscript {
         mavenCentral()
     }
     configurations.all {
-        resolutionStrategy {
-            force 'org.bouncycastle:bcprov-jdk18on:1.78.1'
-            force 'org.bouncycastle:bcpkix-jdk18on:1.78.1'
-        }
+        resolutionStrategy.force 'org.bouncycastle:bcprov-jdk18on:1.78.1', 'org.bouncycastle:bcpkix-jdk18on:1.78.1'
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:8.2.1'
@@ -24,6 +21,11 @@ allprojects {
         resolutionStrategy {
             force 'org.bouncycastle:bcprov-jdk18on:1.78.1'
             force 'org.bouncycastle:bcpkix-jdk18on:1.78.1'
+            eachDependency { DependencyResolveDetails details ->
+                if (details.requested.group == 'org.bouncycastle') {
+                    details.useVersion '1.78.1'
+                }
+            }
         }
     }
 }
