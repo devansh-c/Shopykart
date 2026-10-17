@@ -1,5 +1,5 @@
 
-name: Build ShopyKart Dual Apps
+name: Build ShopyKart Quad Apps
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    name: Generate Customer and Admin APKs
+    name: Generate Quad App APKs
     runs-on: ubuntu-latest
 
     steps:
@@ -31,7 +31,7 @@ jobs:
           java-version: '17'
 
       # BUILD 1: CUSTOMER APP (co.in.shopykart.app)
-      - name: Build Web Assets (Customer)
+      - name: Build Web (Customer)
         run: npm run build:static
       
       - name: Configure Customer Identity
@@ -40,24 +40,20 @@ jobs:
           sed -i "s/appName: [\"'].*[\"']/appName: \"ShopyKart\"/" capacitor.config.ts
           sed -i 's/package_name">.*<\/string>/package_name">co.in.shopykart.app<\/string>/' android/app/src/main/res/values/strings.xml
           sed -i 's/app_name">.*<\/string>/app_name">ShopyKart<\/string>/' android/app/src/main/res/values/strings.xml
-          # Fix Java Package
-          find android/app/src/main/java -name "MainActivity.java" -exec sed -i "s/package co.in.shopykart.admin/package co.in.shopykart.app/" {} +
-          find android/app/src/main/java -name "MainActivity.java" -exec sed -i "s/package co.in.shopykart.app/package co.in.shopykart.app/" {} +
+          find android/app/src/main/java -name "MainActivity.java" -exec sed -i "s/package co.in.shopykart.*/package co.in.shopykart.app;/" {} +
           npx cap sync android
 
       - name: Build Android (Customer)
         working-directory: android
-        run: |
-          chmod +x gradlew
-          ./gradlew assembleDebug bundleRelease --stacktrace
+        run: chmod +x gradlew && ./gradlew assembleDebug bundleRelease
 
-      - name: Prepare Customer Artifacts
+      - name: Archive Customer
         run: |
           cp android/app/build/outputs/apk/debug/app-debug.apk app.shopykart.apk
           cp android/app/build/outputs/bundle/release/app-release.aab app.shopykart.aab
 
       # BUILD 2: ADMIN APP (co.in.shopykart.admin)
-      - name: Build Web Assets (Admin)
+      - name: Build Web (Admin)
         run: npm run build:admin
       
       - name: Configure Admin Identity
@@ -66,29 +62,74 @@ jobs:
           sed -i "s/appName: [\"'].*[\"']/appName: \"ShopyKart Admin\"/" capacitor.config.ts
           sed -i 's/package_name">.*<\/string>/package_name">co.in.shopykart.admin<\/string>/' android/app/src/main/res/values/strings.xml
           sed -i 's/app_name">.*<\/string>/app_name">ShopyKart Admin<\/string>/' android/app/src/main/res/values/strings.xml
-          # Fix Java Package
-          find android/app/src/main/java -name "MainActivity.java" -exec sed -i "s/package co.in.shopykart.app/package co.in.shopykart.admin/" {} +
+          find android/app/src/main/java -name "MainActivity.java" -exec sed -i "s/package co.in.shopykart.*/package co.in.shopykart.admin;/" {} +
           npx cap sync android
 
       - name: Build Android (Admin)
         working-directory: android
-        run: |
-          chmod +x gradlew
-          ./gradlew assembleDebug bundleRelease --stacktrace
+        run: ./gradlew assembleDebug bundleRelease
 
-      - name: Prepare Admin Artifacts
+      - name: Archive Admin
         run: |
           cp android/app/build/outputs/apk/debug/app-debug.apk admin.shopykart.apk
           cp android/app/build/outputs/bundle/release/app-release.aab admin.shopykart.aab
 
-      # UPLOAD ALL ARTIFACTS
+      # BUILD 3: BIZ APP (co.in.shopykart.biz)
+      - name: Build Web (Biz)
+        run: npm run build:biz
+      
+      - name: Configure Biz Identity
+        run: |
+          sed -i "s/appId: [\"'].*[\"']/appId: \"co.in.shopykart.biz\"/" capacitor.config.ts
+          sed -i "s/appName: [\"'].*[\"']/appName: \"ShopyKart Store\"/" capacitor.config.ts
+          sed -i 's/package_name">.*<\/string>/package_name">co.in.shopykart.biz<\/string>/' android/app/src/main/res/values/strings.xml
+          sed -i 's/app_name">.*<\/string>/app_name">ShopyKart Store<\/string>/' android/app/src/main/res/values/strings.xml
+          find android/app/src/main/java -name "MainActivity.java" -exec sed -i "s/package co.in.shopykart.*/package co.in.shopykart.biz;/" {} +
+          npx cap sync android
+
+      - name: Build Android (Biz)
+        working-directory: android
+        run: ./gradlew assembleDebug bundleRelease
+
+      - name: Archive Biz
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk biz.shopykart.apk
+          cp android/app/build/outputs/bundle/release/app-release.aab biz.shopykart.aab
+
+      # BUILD 4: TOW APP (co.in.shopykart.tow)
+      - name: Build Web (Tow)
+        run: npm run build:tow
+      
+      - name: Configure Tow Identity
+        run: |
+          sed -i "s/appId: [\"'].*[\"']/appId: \"co.in.shopykart.tow\"/" capacitor.config.ts
+          sed -i "s/appName: [\"'].*[\"']/appName: \"ShopyKart Fleet\"/" capacitor.config.ts
+          sed -i 's/package_name">.*<\/string>/package_name">co.in.shopykart.tow<\/string>/' android/app/src/main/res/values/strings.xml
+          sed -i 's/app_name">.*<\/string>/app_name">ShopyKart Fleet<\/string>/' android/app/src/main/res/values/strings.xml
+          find android/app/src/main/java -name "MainActivity.java" -exec sed -i "s/package co.in.shopykart.*/package co.in.shopykart.tow;/" {} +
+          npx cap sync android
+
+      - name: Build Android (Tow)
+        working-directory: android
+        run: ./gradlew assembleDebug bundleRelease
+
+      - name: Archive Tow
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk tow.shopykart.apk
+          cp android/app/build/outputs/bundle/release/app-release.aab tow.shopykart.aab
+
+      # UPLOAD ALL 8 ARTIFACTS
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ShopyKart-Builds
+          name: ShopyKart-All-Apps
           path: |
             app.shopykart.apk
             app.shopykart.aab
             admin.shopykart.apk
             admin.shopykart.aab
+            biz.shopykart.apk
+            biz.shopykart.aab
+            tow.shopykart.apk
+            tow.shopykart.aab
           if-no-files-found: error

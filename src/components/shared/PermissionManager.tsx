@@ -6,15 +6,13 @@ import { useUser, useFirestore } from '@/firebase';
 import { requestPushToken, syncTokenToFirestore } from '@/firebase/messaging';
 
 /**
- * @fileOverview Permission Manager - Manages Notifications & FCM registration.
- * Fixed: Added aggressive token syncing on user login change.
+ * @fileOverview Permission Manager - Manages Notifications & FCM registration for all 4 Apps.
  */
 export default function PermissionManager() {
   const { user } = useUser();
   const firestore = useFirestore();
   const registrationDone = useRef(false);
 
-  // 1. WATCH FOR USER LOGIN TO SYNC TOKEN
   useEffect(() => {
     if (user?.uid) {
       const savedToken = localStorage.getItem('shopykart_fcm_token');
@@ -33,28 +31,31 @@ export default function PermissionManager() {
       try {
         const { Capacitor } = await import('@capacitor/core');
         
-        // 1. NATIVE ANDROID SETUP
         if (Capacitor && Capacitor.isNativePlatform()) {
           const { PushNotifications } = await import('@capacitor/push-notifications');
 
-          // CREATE HIGH IMPORTANCE CHANNEL FOR ADMIN
-          try {
-            await PushNotifications.createChannel({
-              id: 'new_order_channel',
-              name: 'New Order Alerts',
-              description: 'Loud alerts for incoming orders',
-              sound: 'order_alert', // References res/raw/order_alert.mp3
-              importance: 5, // High Importance (Heads-up)
-              visibility: 1,
-              vibration: true,
-            });
-            console.log('FCM Channel Created: new_order_channel');
-          } catch (channelErr) {
-            console.error('Channel creation failed', channelErr);
+          // DETECT ROLE-BASED APPS FOR LOUD CHANNEL
+          const isAdmin = process.env.NEXT_PUBLIC_ADMIN_APP === 'true';
+          const isBiz = process.env.NEXT_PUBLIC_BIZ_APP === 'true';
+          const isTow = process.env.NEXT_PUBLIC_TOW_APP === 'true';
+
+          // CREATE LOUD CHANNEL FOR BUSINESS APPS
+          if (isAdmin || isBiz || isTow) {
+            try {
+              await PushNotifications.createChannel({
+                id: 'new_order_channel',
+                name: 'Order Alerts',
+                description: 'Loud alerts for orders',
+                sound: 'order_alert', // res/raw/order_alert.mp3
+                importance: 5,
+                visibility: 1,
+                vibration: true,
+              });
+              console.log('FCM Loud Channel Set for Business App');
+            } catch (err) {}
           }
 
           PushNotifications.addListener('registration', async (token) => {
-            console.log('=== NATIVE FCM TOKEN ===', token.value);
             localStorage.setItem('shopykart_fcm_token', token.value);
             if (user?.uid) {
               await syncTokenToFirestore(user.uid, token.value);
@@ -71,7 +72,6 @@ export default function PermissionManager() {
           }
         } 
         
-        // 2. WEB/PWA FALLBACK
         if (!registrationDone.current && typeof window !== 'undefined') {
           setTimeout(async () => {
             const token = await requestPushToken(user?.uid || undefined);
@@ -79,17 +79,12 @@ export default function PermissionManager() {
           }, 3000);
         }
 
-      } catch (err) {
-        console.error('Notification setup failed:', err);
-      }
+      } catch (err) {}
     };
 
     setupNotifications();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [user, firestore]);
+    return () => { isMounted = false; };
+  }, [user]);
 
   return null;
 }
