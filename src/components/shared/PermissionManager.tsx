@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useRef } from 'react';
@@ -49,7 +48,7 @@ export default function PermissionManager() {
                 id: 'new_order_channel',
                 name: 'Loud Order Alerts',
                 description: 'Critical loud alerts for incoming orders',
-                sound: 'order_alert', // References res/raw/order_alert.mp3
+                sound: 'order_alert', // References res/raw/order_alert.mp3 without extension
                 importance: 5, 
                 visibility: 1, 
                 vibration: true,
@@ -60,7 +59,7 @@ export default function PermissionManager() {
                 id: 'new_order_channel',
                 name: 'Loud Order Alerts',
                 description: 'Critical loud alerts for incoming orders',
-                sound: 'order_alert.mp3',
+                sound: 'order_alert.mp3', // Extension usually needed for local
                 importance: 5,
                 visibility: 1,
                 vibration: true,
