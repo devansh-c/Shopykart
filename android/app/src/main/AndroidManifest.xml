@@ -1,3 +1,4 @@
+
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
@@ -43,13 +44,18 @@
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
     
-        <!-- DEFAULT NOTIFICATION CHANNEL FOR ADMIN LOUD ALERTS -->
+        <!-- DEFAULT NOTIFICATION CHANNEL FOR ADMIN LOUD ALERTS (LEVEL 5) -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
             android:value="new_order_channel" />
+            
+        <!-- NOTIFICATION PRIORITY METADATA -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_stat_notification" />
     </application>
 
-    <!-- ESSENTIAL PERMISSIONS FOR PLAY STORE -->
+    <!-- ESSENTIAL PERMISSIONS FOR PLAY STORE & BACKGROUND ALERTS -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />

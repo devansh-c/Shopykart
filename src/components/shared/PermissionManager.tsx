@@ -7,7 +7,7 @@ import { requestPushToken, syncTokenToFirestore } from '@/firebase/messaging';
 
 /**
  * @fileOverview Permission Manager - Manages Notifications & FCM registration for all 4 Apps.
- * Optimized for LOUD Background Ringing using Delayed Local Notifications.
+ * Optimized for LOUD Background Ringing using MAX Importance Channels (Level 5).
  */
 export default function PermissionManager() {
   const { user } = useUser();
@@ -44,20 +44,21 @@ export default function PermissionManager() {
           // CREATE LOUD CHANNEL FOR BUSINESS APPS (ADMIN, BIZ, TOW)
           if (isAdmin || isBiz || isTow) {
             try {
-              // Ensure channel exists with custom sound
+              // REGISTER HIGH IMPORTANCE CHANNEL (LEVEL 5)
+              // This is critical for heads-up and background sound on Android 8+
               await PushNotifications.createChannel({
                 id: 'new_order_channel',
-                name: 'Urgent Order Alerts',
+                name: 'Loud Order Alerts',
                 description: 'Critical loud alerts for incoming orders',
-                sound: 'order_alert', // Targets res/raw/order_alert.mp3 (without extension)
-                importance: 5, // MAX IMPORTANCE for Heads-up & Sound
-                visibility: 1,
+                sound: 'order_alert', // Targets res/raw/order_alert.mp3
+                importance: 5, // MAX IMPORTANCE (Heads-up + Sound)
+                visibility: 1, // Public on lockscreen
                 vibration: true,
               });
               
               await LocalNotifications.createChannel({
                 id: 'new_order_channel',
-                name: 'Urgent Order Alerts',
+                name: 'Loud Order Alerts',
                 description: 'Critical loud alerts for incoming orders',
                 sound: 'order_alert.mp3',
                 importance: 5,
@@ -65,24 +66,29 @@ export default function PermissionManager() {
                 vibration: true,
               });
               
-              console.log('LOUD Notification Channels Registered');
+              console.log('LOUD MAX-IMPORTANCE Channels Registered');
             } catch (err) {
               console.error('Channel creation error:', err);
             }
 
-            // ADD LISTENER TO HANDLE HEADS-UP WHEN IN BACKGROUND
+            // BACKGROUND / FOREGROUND HEADS-UP BRIDGE
+            // If a notification is received while in background, this ensures a heads-up alert triggers
             PushNotifications.addListener('pushNotificationReceived', async (notification) => {
-              // Force show as local notification to ensure sound in background
+              console.log('Push received:', notification);
+              
+              // Force show as local notification if channel is set but OS is being lazy
+              // This bypasses many background restrictions on modern Android
               await LocalNotifications.schedule({
                 notifications: [
                   {
                     title: notification.title || 'New Order Alert!',
                     body: notification.body || 'Open app to accept.',
                     id: Math.floor(Math.random() * 10000),
-                    schedule: { at: new Date(Date.now() + 100) },
+                    schedule: { at: new Date(Date.now() + 50) },
                     channelId: 'new_order_channel',
                     smallIcon: 'ic_stat_notification',
-                    sound: 'order_alert.mp3'
+                    sound: 'order_alert.mp3', // Extension is needed for local notifications plugin
+                    extra: notification.data
                   }
                 ]
               });
@@ -113,7 +119,9 @@ export default function PermissionManager() {
           }, 3000);
         }
 
-      } catch (err) {}
+      } catch (err) {
+        console.error("Notification setup error:", err);
+      }
     };
 
     setupNotifications();
@@ -125,6 +133,7 @@ export default function PermissionManager() {
 
 /**
  * Utility to test background ringing. Schedules an alert for 10 seconds later.
+ * Uses MAX IMPORTANCE channel to verify visibility.
  */
 export async function scheduleTestNotification() {
   try {
@@ -133,8 +142,8 @@ export async function scheduleTestNotification() {
     await LocalNotifications.schedule({
       notifications: [
         {
-          title: "🚨 LOUD ALERT TEST",
-          body: "Verification: Background ringing is working!",
+          title: "🚨 MAX PRIORITY ALERT TEST",
+          body: "Verification: Background ringing (Level 5) is working!",
           id: 9999,
           schedule: { at: new Date(Date.now() + 10000) }, // Fired after 10 seconds
           channelId: 'new_order_channel',
