@@ -44,41 +44,41 @@ export default function PermissionManager() {
           // CREATE LOUD CHANNEL FOR BUSINESS APPS (ADMIN, BIZ, TOW)
           if (isAdmin || isBiz || isTow) {
             try {
-              // 1. CREATE CHANNEL FOR PUSH NOTIFICATIONS
+              // 1. CREATE CHANNEL FOR PUSH NOTIFICATIONS (Importance 5 = LOUD + BANNER)
               await PushNotifications.createChannel({
                 id: 'new_order_channel',
                 name: 'Loud Order Alerts',
                 description: 'Critical loud alerts for incoming orders',
-                sound: 'order_alert', // Targets res/raw/order_alert.mp3 (No extension here)
-                importance: 5, // MAX IMPORTANCE (Heads-up + Sound)
-                visibility: 1, // Public on lockscreen
+                sound: 'order_alert', // References res/raw/order_alert.mp3
+                importance: 5, 
+                visibility: 1, 
                 vibration: true,
               });
               
-              // 2. CREATE CHANNEL FOR LOCAL NOTIFICATIONS (BRIDGE)
+              // 2. CREATE CHANNEL FOR LOCAL NOTIFICATIONS BRIDGE
               await LocalNotifications.createChannel({
                 id: 'new_order_channel',
                 name: 'Loud Order Alerts',
                 description: 'Critical loud alerts for incoming orders',
-                sound: 'order_alert.mp3', // Extension needed for local plugin
+                sound: 'order_alert.mp3',
                 importance: 5,
                 visibility: 1,
                 vibration: true,
               });
               
-              console.log('LOUD MAX-IMPORTANCE Channels Registered');
+              console.log('MAX-IMPORTANCE Channels Registered for Business App');
 
-              // 3. BACKGROUND HEADS-UP BRIDGE
-              // Force-trigger a local notification when push is received in background
+              // 3. BACKGROUND FORCE-RINGING BRIDGE
+              // When push is received in background, force a local notification to play sound
               PushNotifications.addListener('pushNotificationReceived', async (notification) => {
-                console.log('Push received in background:', notification);
+                console.log('Push captured in background:', notification);
                 
                 await LocalNotifications.schedule({
                   notifications: [
                     {
-                      title: notification.title || '🚨 NEW ORDER ALERT!',
-                      body: notification.body || 'Open dashboard to take action.',
-                      id: Math.floor(Math.random() * 10000),
+                      title: notification.title || '🚨 NEW ORDER RECEIVED!',
+                      body: notification.body || 'Check dashboard immediately.',
+                      id: Date.now() % 100000,
                       schedule: { at: new Date(Date.now() + 100) },
                       channelId: 'new_order_channel',
                       smallIcon: 'ic_stat_notification',
@@ -89,7 +89,7 @@ export default function PermissionManager() {
                 });
               });
             } catch (err) {
-              console.error('Channel creation error:', err);
+              console.error('Loud channel creation failed:', err);
             }
           }
 
@@ -118,7 +118,7 @@ export default function PermissionManager() {
         }
 
       } catch (err) {
-        console.error("Notification setup error:", err);
+        console.error("Native setup failed:", err);
       }
     };
 
@@ -130,8 +130,8 @@ export default function PermissionManager() {
 }
 
 /**
- * Utility to test background ringing. Schedules an alert for 10 seconds later.
- * Uses MAX IMPORTANCE channel to verify visibility even if app is closed.
+ * Utility to test background ringing. 
+ * Schedules a Level-5 importance alert with a 10s delay.
  */
 export async function scheduleTestNotification() {
   try {
@@ -142,8 +142,8 @@ export async function scheduleTestNotification() {
         {
           title: "🚨 LOUD ALERT TEST",
           body: "Verification: Background ringing (Level 5) is active!",
-          id: 9999,
-          schedule: { at: new Date(Date.now() + 10000) }, // Fired after 10 seconds
+          id: 8888,
+          schedule: { at: new Date(Date.now() + 10000) },
           channelId: 'new_order_channel',
           sound: 'order_alert.mp3',
           extra: { test: true }
@@ -152,7 +152,7 @@ export async function scheduleTestNotification() {
     });
     return true;
   } catch (e) {
-    console.error("Test notification failed", e);
+    console.error("Local schedule failed", e);
     return false;
   }
 }
