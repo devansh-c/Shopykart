@@ -44,7 +44,7 @@
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
     
-        <!-- DEFAULT NOTIFICATION CHANNEL FOR ADMIN LOUD ALERTS (LEVEL 5) -->
+        <!-- DEFAULT NOTIFICATION CHANNEL FOR ADMIN/BIZ/TOW LOUD ALERTS (LEVEL 5) -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
             android:value="new_order_channel" />
