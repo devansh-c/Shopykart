@@ -17,19 +17,16 @@ import {
   CircleDollarSign,
   UserCircle2,
   KeyRound,
-  ShoppingBasket,
   QrCode,
   CreditCard,
   Banknote,
   CheckCircle2,
   X,
-  Map as MapIcon,
-  Compass,
-  ExternalLink,
   ChevronRight,
   Bike,
   ShieldAlert,
-  ListTree
+  ListTree,
+  AlertCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -44,37 +41,40 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
-const OrderCard = memo(({ order, onUpdate, type, userData }: any) => {
+const OrderCard = memo(({ order, onUpdate, type, userData, onPass }: any) => {
   const [enteredCode, setEnteredCode] = useState('');
+  const [pickupCode, setPickupCode] = useState('');
   const [collectionMethod, setCollectionMethod] = useState<'Online' | 'Cash' | null>(null);
   const [showQr, setShowQr] = useState(false);
 
+  const isPreparing = order.status === 'Preparing';
   const isReadyForPickup = order.status === 'Ready for Pickup';
   const isOutForDelivery = order.status === 'Out for Delivery';
   const isPickedUp = order.status === 'Picked Up';
 
   const handleAction = () => {
-    if (isReadyForPickup) {
-      onUpdate(order.id, 'Picked Up', null, userData);
+    if (isPreparing) {
+      onUpdate(order.id, 'Accepted Task', null, userData);
+    } else if (isReadyForPickup) {
+      if (pickupCode === order.pickupOTP) {
+        onUpdate(order.id, 'Picked Up', null, userData);
+        setPickupCode('');
+      } else {
+        alert("Invalid Pickup OTP! Ask store for the 4-digit code.");
+      }
     } else if (isPickedUp) {
       onUpdate(order.id, 'Out for Delivery');
     } else if (isOutForDelivery) {
       if (!collectionMethod) {
-        alert("Please select payment collection method (Online/Cash) first.");
+        alert("Select payment collection mode first.");
         return;
       }
       if (enteredCode === order.deliveryOTP) {
         onUpdate(order.id, 'Delivered', collectionMethod);
         setEnteredCode('');
       } else {
-        alert("Invalid Delivery OTP! Ask the customer for the 6-digit code.");
+        alert("Invalid Delivery OTP! Ask customer for 6-digit code.");
       }
-    }
-  };
-
-  const handleCall = () => {
-    if (order.customerPhone) {
-      window.open(`tel:${order.customerPhone}`);
     }
   };
 
@@ -82,15 +82,18 @@ const OrderCard = memo(({ order, onUpdate, type, userData }: any) => {
     <div className="bg-white p-6 rounded-[2.5rem] border border-border/50 shadow-sm relative overflow-hidden group transform-gpu transition-all hover:shadow-xl">
        <div className="flex justify-between items-start mb-6">
           <div>
-             <Badge className={cn("border-none uppercase text-[8px] font-black px-3 py-1 rounded-full mb-3", order.status === 'Cancelled' ? "bg-red-50 text-red-600" : order.status === 'Delivered' ? "bg-green-50 text-green-600" : "bg-primary/10 text-primary")}>
+             <Badge className={cn("border-none uppercase text-[8px] font-black px-3 py-1 rounded-full mb-3", 
+                order.status === 'Cancelled' ? "bg-red-50 text-red-600" : 
+                order.status === 'Delivered' ? "bg-green-50 text-green-600" : 
+                "bg-primary/10 text-primary")}>
                {order.status}
              </Badge>
-             <h3 className="text-2xl font-black italic tracking-tighter leading-none">Order #{order.customerOrderNumber || 'N/A'}</h3>
-             <div className="flex items-center gap-1.5 text-[9px] font-black text-gray-400 uppercase mt-1.5"><Clock className="h-3 w-3" />{format(new Date(order.createdAt?.seconds * 1000 || Date.now()), 'MMM d, h:mm a')}</div>
+             <h3 className="text-3xl font-black italic tracking-tighter leading-none">Order #{order.customerOrderNumber}</h3>
+             <div className="flex items-center gap-1.5 text-[9px] font-black text-gray-400 uppercase mt-2"><Clock className="h-3 w-3" />{format(new Date(order.createdAt?.seconds * 1000 || Date.now()), 'MMM d, h:mm a')}</div>
           </div>
           <div className="flex gap-2">
-            {!isReadyForPickup && (
-              <button onClick={handleCall} className="h-12 w-12 bg-green-500 rounded-xl flex items-center justify-center text-white active:scale-90 transition-all shadow-lg shadow-green-100">
+            {!isPreparing && (
+              <button onClick={() => window.open(`tel:${order.customerPhone}`)} className="h-12 w-12 bg-green-500 rounded-xl flex items-center justify-center text-white active:scale-90 transition-all shadow-lg shadow-green-100">
                 <PhoneCall className="h-5 w-5" />
               </button>
             )}
@@ -106,135 +109,72 @@ const OrderCard = memo(({ order, onUpdate, type, userData }: any) => {
           <div className="space-y-3 pt-1">
              <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block px-1">Packing List</span>
              {order.items?.map((item: any, i: number) => (
-                <div key={i} className="bg-white/50 p-3 rounded-2xl border border-white/50">
-                   <div className="flex justify-between items-center text-[11px] font-black uppercase italic">
-                      <span className="text-gray-800"><span className="text-primary">{item.quantity}x</span> {item.name}</span>
-                   </div>
-                   {item.selectedOption && (
-                     <div className="flex items-center gap-1.5 mt-1">
-                        <ListTree className="h-2.5 w-2.5 text-primary" />
-                        <span className="text-[8px] font-black uppercase text-primary tracking-widest">VARIETY: {item.selectedOption.name}</span>
-                     </div>
-                   )}
+                <div key={i} className="flex justify-between items-center text-[11px] font-black uppercase italic">
+                   <span className="text-gray-800"><span className="text-primary">{item.quantity}x</span> {item.name}</span>
                 </div>
              ))}
           </div>
           
-          {!isReadyForPickup && (
-            <div className="flex items-start gap-4 pt-1">
-              <div className="bg-white p-2 rounded-xl shadow-sm text-primary shrink-0"><MapPin className="h-5 w-5" /></div>
-              <span className="text-[11px] font-bold text-gray-600 leading-tight">{order.address}</span>
-            </div>
-          )}
-          
-          <div className="pt-3 border-t border-white/50 space-y-2">
-             <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black uppercase text-gray-400">Total Collection</span>
-                <span className="text-base font-black italic text-gray-900">₹{order.total?.toFixed(0)}</span>
-             </div>
+          <div className="flex items-start gap-4 pt-1">
+            <div className="bg-white p-2 rounded-xl shadow-sm text-blue-500 shrink-0"><MapPin className="h-5 w-5" /></div>
+            <span className="text-[11px] font-bold text-gray-600 leading-tight uppercase italic">{order.address}</span>
           </div>
        </div>
 
-       {isPickedUp && (
-         <div className="mb-6 animate-in slide-in-from-bottom-2">
-            <Button 
-              onClick={handleAction} 
-              className="w-full bg-primary h-16 rounded-[1.5rem] font-black uppercase text-sm tracking-widest shadow-xl active:scale-95 transition-all"
-            >
-              DISPATCH ORDER
-            </Button>
+       {isPreparing && (
+         <div className="grid grid-cols-2 gap-3 mb-2 animate-in slide-in-from-bottom-2">
+            <Button onClick={() => onPass(order.id)} variant="outline" className="h-16 rounded-[1.5rem] font-black uppercase text-[10px] tracking-widest text-red-500 border-red-100">PASS TASK</Button>
+            <Button onClick={handleAction} className="h-16 bg-green-600 rounded-[1.5rem] font-black uppercase text-[10px] tracking-widest shadow-xl text-white">ACCEPT TASK</Button>
          </div>
        )}
 
        {isReadyForPickup && (
-         <div className="mb-2 animate-in slide-in-from-bottom-2">
-            <Button 
-              onClick={handleAction} 
-              className="w-full bg-green-600 h-16 rounded-[1.5rem] font-black uppercase text-sm tracking-widest shadow-xl active:scale-95 transition-all border-b-4 border-green-800"
-            >
-              <CheckCircle2 className="h-5 w-5 mr-2" /> ACCEPT PICKUP TASK
-            </Button>
+         <div className="mb-2 space-y-4 animate-in slide-in-from-bottom-2">
+            <div className="space-y-2">
+               <label className="text-[9px] font-black text-primary uppercase ml-1 flex items-center gap-1.5"><KeyRound className="h-3 w-3" /> Enter Store Pickup OTP</label>
+               <Input 
+                 type="tel"
+                 placeholder="0 0 0 0" 
+                 maxLength={4}
+                 value={pickupCode}
+                 onChange={e => setPickupCode(e.target.value.replace(/\D/g,''))}
+                 className="h-16 rounded-2xl bg-gray-50 border-none text-center font-black text-3xl tracking-[0.5em]"
+               />
+            </div>
+            <Button onClick={handleAction} disabled={pickupCode.length !== 4} className="w-full bg-black h-16 rounded-[1.5rem] font-black uppercase text-sm tracking-widest shadow-xl">CONFIRM PICKUP</Button>
          </div>
        )}
 
-       {isOutForDelivery && (
+       {(isPickedUp || isOutForDelivery) && (
          <div className="mb-6 space-y-6 animate-in slide-in-from-bottom-2">
-            <Button 
-              onClick={() => setShowQr(true)}
-              className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic text-[10px] tracking-widest flex items-center justify-center gap-2 shadow-xl"
-            >
-              <QrCode className="h-4 w-4" /> SHOW PAYMENT QR
-            </Button>
-
-            <div className="space-y-3">
-              <span className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Collection Mode</span>
-              <div className="grid grid-cols-2 gap-3">
-                 <button 
-                  onClick={() => setCollectionMethod('Online')}
-                  className={cn(
-                    "h-14 rounded-2xl border-2 flex flex-col items-center justify-center gap-1 transition-all active:scale-95",
-                    collectionMethod === 'Online' ? "bg-primary/5 border-primary text-primary shadow-inner" : "bg-gray-50 border-transparent text-gray-400"
-                  )}
-                 >
-                    <CreditCard className="h-4 w-4" />
-                    <span className="text-[9px] font-black uppercase">Online Paid</span>
-                 </button>
-                 <button 
-                  onClick={() => setCollectionMethod('Cash')}
-                  className={cn(
-                    "h-14 rounded-2xl border-2 flex flex-col items-center justify-center gap-1 transition-all active:scale-95",
-                    collectionMethod === 'Cash' ? "bg-amber-50 border-amber-500 text-amber-700 shadow-inner" : "bg-gray-50 border-transparent text-gray-400"
-                  )}
-                 >
-                    <Banknote className="h-4 w-4" />
-                    <span className="text-[9px] font-black uppercase">Cash Paid</span>
-                 </button>
-              </div>
-            </div>
-
-            {collectionMethod && (
-              <div className="space-y-3 animate-in fade-in duration-300">
-                <div className="flex items-center gap-2 text-primary">
-                   <KeyRound className="h-4 w-4" />
-                   <span className="text-[10px] font-black uppercase">Enter 6-Digit Delivery OTP</span>
+            {isPickedUp ? (
+              <Button onClick={handleAction} className="w-full bg-primary h-16 rounded-[1.5rem] font-black uppercase text-sm tracking-widest shadow-xl">START DELIVERY</Button>
+            ) : (
+              <>
+                <Button onClick={() => setShowQr(true)} className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic text-[10px] flex items-center justify-center gap-2 shadow-xl"><QrCode className="h-4 w-4" /> SHOW PAYMENT QR</Button>
+                <div className="grid grid-cols-2 gap-3">
+                   <button onClick={() => setCollectionMethod('Online')} className={cn("h-14 rounded-2xl border-2 flex flex-col items-center justify-center gap-1", collectionMethod === 'Online' ? "bg-primary/5 border-primary text-primary" : "bg-gray-50 border-transparent text-gray-400")}><CreditCard className="h-4 w-4" /><span className="text-[9px] font-black uppercase">Online</span></button>
+                   <button onClick={() => setCollectionMethod('Cash')} className={cn("h-14 rounded-2xl border-2 flex flex-col items-center justify-center gap-1", collectionMethod === 'Cash' ? "bg-amber-50 border-amber-500 text-amber-700" : "bg-gray-50 border-transparent text-gray-400")}><Banknote className="h-4 w-4" /><span className="text-[9px] font-black uppercase">Cash</span></button>
                 </div>
-                <Input 
-                  type="tel"
-                  placeholder="0 0 0 0 0 0" 
-                  maxLength={6}
-                  value={enteredCode}
-                  onChange={e => setEnteredCode(e.target.value.replace(/\D/g,''))}
-                  className="h-14 rounded-2xl bg-gray-50 border-none text-center font-black text-2xl tracking-[0.5em]"
-                />
-                <Button 
-                  onClick={handleAction} 
-                  disabled={enteredCode.length !== 6 || !collectionMethod}
-                  className="w-full h-16 bg-green-600 rounded-[1.5rem] font-black uppercase text-sm tracking-widest shadow-xl active:scale-95 transition-all mt-4"
-                >
-                  VERIFY & DELIVER
-                </Button>
-              </div>
+                {collectionMethod && (
+                  <div className="space-y-3">
+                    <Input type="tel" placeholder="CUSTOMER 6-DIGIT OTP" maxLength={6} value={enteredCode} onChange={e => setEnteredCode(e.target.value.replace(/\D/g,''))} className="h-14 rounded-2xl bg-gray-50 border-none text-center font-black text-2xl tracking-[0.3em]" />
+                    <Button onClick={handleAction} disabled={enteredCode.length !== 6} className="w-full h-16 bg-green-600 rounded-[1.5rem] font-black uppercase text-sm tracking-widest shadow-xl text-white">VERIFY & DELIVER</Button>
+                  </div>
+                )}
+              </>
             )}
          </div>
        )}
 
        <Dialog open={showQr} onOpenChange={setShowQr}>
-          <DialogContent className="rounded-[3rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none">
-             <div className="h-2 w-full bg-primary" />
-             <div className="p-8 space-y-8 flex flex-col items-center text-center">
-                <DialogHeader>
-                   <DialogTitle className="font-black italic uppercase text-2xl tracking-tighter">Scan to Pay</DialogTitle>
-                </DialogHeader>
-                <div className="bg-white p-8 rounded-[2.5rem] border-2 border-dashed border-gray-200 shadow-inner relative flex flex-col items-center">
-                   <img 
-                     src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`upi://pay?pa=9450355709@axl&pn=ShopyKart&am=${order.total?.toFixed(2)}&cu=INR`)}`} 
-                     className="h-56 w-56 mx-auto block" 
-                     alt="UPI QR" 
-                   />
-                   <p className="mt-4 text-2xl font-black italic tracking-tighter text-gray-900">₹{order.total?.toFixed(2)}</p>
-                </div>
-                <Button onClick={() => setShowQr(false)} className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic">CLOSE QR</Button>
+          <DialogContent className="rounded-[3rem] max-w-sm p-8 text-center space-y-6 bg-white border-none shadow-2xl">
+             <DialogHeader><DialogTitle className="font-black italic uppercase text-2xl tracking-tighter">Scan to Pay</DialogTitle></DialogHeader>
+             <div className="bg-gray-50 p-6 rounded-[2rem] border-2 border-dashed border-gray-200">
+                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`upi://pay?pa=9450355709@axl&pn=ShopyKart&am=${order.total}&cu=INR`)}`} className="h-48 w-48 mx-auto" alt="QR" />
+                <p className="mt-4 text-2xl font-black italic">₹{order.total?.toFixed(0)}</p>
              </div>
+             <Button onClick={() => setShowQr(false)} className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic">CLOSE</Button>
           </DialogContent>
        </Dialog>
     </div>
@@ -249,52 +189,51 @@ export default function DeliveryDashboard() {
   const { toast } = useToast();
   const router = useRouter();
   
-  const [activeTab, setActiveTab] = useState<'tasks' | 'history' | 'payout' | 'profile'>('tasks');
+  const [activeTab, setActiveTab] = useState<'tasks' | 'history' | 'profile'>('tasks');
   const [isMounted, setIsMounted] = useState(false);
+  const [dismissedTasks, setDismissedTasks] = useState<string[]>([]);
 
-  useEffect(() => { setIsMounted(true); }, []);
+  useEffect(() => { 
+    setIsMounted(true); 
+    const saved = localStorage.getItem('fleet_dismissed_tasks');
+    if (saved) setDismissedTasks(JSON.parse(saved));
+  }, []);
 
-  const partnerRef = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return doc(firestore, 'delivery_partners', user.uid);
-  }, [firestore, user]);
-  
+  const partnerRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'delivery_partners', user.uid) : null, [firestore, user]);
   const { data: partnerProfile, loading: profileLoading } = useDoc<any>(partnerRef);
 
   useEffect(() => {
     if (!isMounted || authLoading || profileLoading) return;
     const sessionActive = localStorage.getItem('delivery_session_active') === 'true';
-    if (!user && !authLoading) {
-      if (!sessionActive) router.replace('/delivery/login');
-    }
+    if (!user && !sessionActive) router.replace('/delivery/login');
   }, [user, authLoading, profileLoading, router, isMounted]);
 
-  const ordersQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return query(collection(firestore, 'orders'), orderBy('createdAt', 'desc'));
-  }, [firestore]);
+  const ordersQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'orders'), orderBy('createdAt', 'desc')) : null, [firestore]);
   const { data: allOrders } = useCollection<any>(ordersQuery);
 
   const taskOrders = useMemo(() => {
     if (!allOrders || !partnerProfile || !user) return [];
     return allOrders.filter(order => {
-      const isMarketplaceTask = order.status === 'Ready for Pickup' && !order.deliveryPartnerId && 
-        (order.pincode === partnerProfile.assignedPincode || order.zoneId === partnerProfile.zoneId || !partnerProfile.assignedPincode);
-      const isMyCurrentTask = order.deliveryPartnerId === user.uid && ['Picked Up', 'Out for Delivery'].includes(order.status);
-      return isMarketplaceTask || isMyCurrentTask;
+      if (dismissedTasks.includes(order.id)) return false;
+      const isInMyZone = order.zoneId === partnerProfile.zoneId || !partnerProfile.zoneId;
+      const isAvailable = (order.status === 'Preparing' || order.status === 'Ready for Pickup') && !order.deliveryPartnerId;
+      const isMyTask = order.deliveryPartnerId === user.uid && order.status !== 'Delivered' && order.status !== 'Cancelled';
+      return (isInMyZone && isAvailable) || isMyTask;
     });
-  }, [allOrders, partnerProfile, user]);
+  }, [allOrders, partnerProfile, user, dismissedTasks]);
 
-  const historyOrders = useMemo(() => {
-    if (!allOrders || !user) return [];
-    return allOrders.filter(o => o.deliveryPartnerId === user.uid && ['Delivered', 'Cancelled'].includes(o.status));
-  }, [allOrders, user]);
+  const handlePass = (id: string) => {
+    const next = [...dismissedTasks, id];
+    setDismissedTasks(next);
+    localStorage.setItem('fleet_dismissed_tasks', JSON.stringify(next));
+    toast({ title: "Task Dismissed", description: "Ringing stopped for this order." });
+  };
 
   const updateDelivery = async (orderId: string, status: string, collectionMethod?: string | null, partnerData?: any) => {
     if (!firestore || !user) return;
     try {
       const updateData: any = { status, updatedAt: serverTimestamp() };
-      if (status === 'Picked Up') {
+      if (status === 'Accepted Task') {
         updateData.deliveryPartnerId = user.uid;
         updateData.deliveryPartnerName = partnerData?.fullName || 'Partner';
         updateData.deliveryPartnerPhone = partnerData?.phone || '';
@@ -306,7 +245,7 @@ export default function DeliveryDashboard() {
   };
 
   if (!isMounted || authLoading || profileLoading || (!user && !authLoading)) {
-    return <div className="min-h-screen bg-white flex flex-col items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
+    return <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-4"><Loader2 className="h-10 w-10 animate-spin text-primary" /><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">AUTHENTICATING Fleet...</p></div>;
   }
 
   return (
@@ -322,41 +261,40 @@ export default function DeliveryDashboard() {
       <main className="flex-1 pb-32">
          {activeTab === 'tasks' && (
            <div className="p-4 space-y-6 animate-in fade-in duration-500">
-              <h2 className="text-xl font-black italic uppercase tracking-tighter">Current Tasks</h2>
-              <div className="space-y-4">
+              <h2 className="text-2xl font-black italic uppercase tracking-tighter ml-2">Fleet Tasks</h2>
+              <div className="space-y-6">
                 {taskOrders.length > 0 ? taskOrders.map((order) => (
-                  <OrderCard key={order.id} order={order} onUpdate={updateDelivery} userData={partnerProfile} />
+                  <OrderCard key={order.id} order={order} onUpdate={updateDelivery} userData={partnerProfile} onPass={handlePass} />
                 )) : (
-                  <div className="text-center py-20 opacity-30 flex flex-col items-center">
-                    <Bike className="h-16 w-16 mb-6" />
-                    <p className="font-black italic uppercase text-xs">Waiting for tasks in your zone...</p>
+                  <div className="text-center py-24 opacity-20 flex flex-col items-center">
+                    <Bike className="h-20 w-20 mb-6" />
+                    <p className="font-black italic uppercase text-xs tracking-[0.3em]">No tasks in your zone right now</p>
                   </div>
                 )}
               </div>
            </div>
          )}
-
          {activeTab === 'profile' && (
             <div className="p-8 space-y-8 animate-in fade-in duration-500">
                <div className="flex flex-col items-center text-center">
-                  <div className="h-32 w-32 rounded-[3rem] overflow-hidden border-4 border-white shadow-2xl mb-4">
+                  <div className="h-32 w-32 rounded-[3.5rem] overflow-hidden border-4 border-white shadow-2xl mb-6">
                      <img src={partnerProfile?.photoUrl} className="h-full w-full object-cover" alt="" />
                   </div>
-                  <h2 className="text-2xl font-black italic uppercase tracking-tighter">{partnerProfile?.fullName}</h2>
+                  <h2 className="text-3xl font-black italic uppercase tracking-tighter">{partnerProfile?.fullName}</h2>
+                  <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.3em] mt-2">Partner ID: {partnerProfile?.uid?.slice(-6).toUpperCase()}</p>
                </div>
-               <Button onClick={() => { localStorage.removeItem('delivery_session_active'); signOut(auth!); router.replace('/'); }} variant="ghost" className="w-full h-14 text-red-500 font-black uppercase italic text-xs tracking-widest"><LogOut className="h-4 w-4 mr-2" /> DISCONNECT</Button>
+               <Button onClick={() => { localStorage.removeItem('delivery_session_active'); signOut(auth!); router.replace('/'); }} variant="ghost" className="w-full h-16 text-red-500 font-black uppercase italic text-xs tracking-[0.3em] border border-red-100 rounded-3xl"><LogOut className="h-5 w-5 mr-3" /> DISCONNECT PORTAL</Button>
             </div>
          )}
       </main>
 
-      <nav className="fixed bottom-0 max-w-lg mx-auto w-full bg-[#0F172A] pt-4 pb-8 px-6 flex justify-around border-t border-white/5 z-50 rounded-t-[2.5rem]">
+      <nav className="fixed bottom-0 max-w-lg mx-auto w-full bg-[#0F172A] pt-4 pb-8 px-6 flex justify-around border-t border-white/5 z-50 rounded-t-[2.5rem] shadow-2xl">
         {[
           {id:'tasks',label:'Tasks',icon:LayoutDashboard},
           {id:'history',label:'History',icon:History},
-          {id:'payout',label:'Earnings',icon:CircleDollarSign},
           {id:'profile',label:'Profile',icon:UserCircle2}
         ].map(item => (
-          <button key={item.id} onClick={() => setActiveTab(item.id as any)} className="flex flex-col items-center gap-1.5 active:scale-90 transition-none">
+          <button key={item.id} onClick={() => setActiveTab(item.id as any)} className="flex flex-col items-center gap-1.5 active:scale-90 transition-all">
             <item.icon className={cn("h-5 w-5", activeTab === item.id ? "text-primary scale-110" : "text-gray-500")} />
             <span className={cn("text-[9px] font-black uppercase tracking-widest", activeTab === item.id ? "text-white" : "text-gray-500")}>{item.label}</span>
           </button>
