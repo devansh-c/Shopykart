@@ -3,7 +3,7 @@
 
 import { useState, useMemo, useEffect, memo } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { Search, X, Clock, MapPin, Loader2, Store, Plus, Heart } from 'lucide-react';
+import { Search, X, Clock, MapPin, Loader2, Store, Plus, Heart, Megaphone, Tag } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +15,7 @@ import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, limit, doc, getDoc, getDocs } from 'firebase/firestore';
 import { ProductQuickView } from '@/components/product/ProductQuickView';
 import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
+import { useToast } from '@/hooks/use-toast';
 
 /**
  * @fileOverview Product Horizontal Item for Menu Page.
@@ -67,6 +68,7 @@ export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
   const searchParams = useSearchParams();
   const rawSlug = forcedSlug || (params?.slug as string) || searchParams.get('id');
   const router = useRouter();
+  const { toast } = useToast();
   
   const [searchQuery, setSearchQuery] = useState('');
   const [currentMinutes, setCurrentMinutes] = useState<number | null>(null);
@@ -93,7 +95,6 @@ export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
       }
       setVendorLoading(true);
       try {
-        // 1. Try Document ID Match (Fastest)
         const idRef = doc(firestore, 'vendors', rawSlug);
         const idSnap = await getDoc(idRef);
         if (idSnap.exists()) {
@@ -102,17 +103,14 @@ export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
           return;
         }
 
-        // 2. Try SEO Slug Match
         const slugQ = query(collection(firestore, 'vendors'), where('slug', '==', rawSlug), limit(1));
         const slugSnap = await getDocs(slugQ);
-
         if (!slugSnap.empty) {
           setVendorProfile({ id: slugSnap.docs[0].id, ...slugSnap.docs[0].data() });
           setVendorLoading(false);
           return;
         }
 
-        // 3. Search by Store ID
         const sidQ = query(collection(firestore, 'vendors'), where('storeId', '==', rawSlug.toLowerCase()), limit(1));
         const sidSnap = await getDocs(sidQ);
         if (!sidSnap.empty) {
@@ -134,8 +132,13 @@ export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
     if (!firestore || !vendorProfile) return null;
     return query(collection(firestore, 'products'), where('vendorId', '==', vendorProfile.id));
   }, [firestore, vendorProfile]);
-  
   const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, `menu_${vendorProfile?.id}`);
+
+  const storeCouponsQuery = useMemoFirebase(() => {
+    if (!firestore || !vendorProfile) return null;
+    return query(collection(firestore, 'coupons'), where('vendorId', '==', vendorProfile.id));
+  }, [firestore, vendorProfile]);
+  const { data: storeCoupons } = useCollection<any>(storeCouponsQuery);
 
   const categoriesWithProducts = useMemo(() => {
     if (!dbProducts) return [];
@@ -178,7 +181,6 @@ export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
            <Store className="h-12 w-12 text-muted-foreground/30" />
         </div>
         <h2 className="text-xl font-black italic uppercase text-gray-800">Store Not Found</h2>
-        <p className="text-xs font-bold text-muted-foreground uppercase mt-2">The hub you are looking for is currently offline.</p>
         <Button onClick={() => router.push('/')} className="mt-8 bg-black rounded-xl font-black uppercase italic shadow-xl">Back to Explore</Button>
       </div>
     );
@@ -205,11 +207,38 @@ export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
         </div>
       </div>
 
-      <div className="px-6 pt-12 pb-4 text-left">
-        <div className="flex items-center justify-between mb-1">
-           <h1 className="text-4xl font-black italic uppercase tracking-tighter">Premium Menu</h1>
+      {/* TOP ANNOUNCEMENT */}
+      {vendorProfile.isAnnouncementActive && vendorProfile.storeAnnouncement && (
+        <div className="px-6 py-4 animate-in fade-in duration-500">
+           <div className="bg-amber-50 border-2 border-amber-400 p-5 rounded-[2rem] shadow-xl flex items-start gap-4">
+              <div className="bg-amber-400 p-2 rounded-xl text-white shadow-sm shrink-0"><Megaphone className="h-5 w-5 animate-pulse" /></div>
+              <p className="text-xs font-black italic text-amber-900 leading-tight uppercase">"{vendorProfile.storeAnnouncement}"</p>
+           </div>
         </div>
-        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest italic">Curated from {vendorProfile?.storeName || 'Partner Store'}</p>
+      )}
+
+      {/* STORE COUPONS */}
+      {storeCoupons && storeCoupons.length > 0 && (
+        <div className="px-6 py-4 flex overflow-x-auto space-x-4 no-scrollbar">
+           {storeCoupons.map((c: any) => (
+             <button 
+              key={c.id} 
+              onClick={() => { navigator.clipboard.writeText(c.code); toast({title: "Coupon Copied!"}); }}
+              className="min-w-[200px] h-16 bg-primary/5 rounded-2xl border-2 border-dashed border-primary/20 p-4 flex items-center gap-3 active:scale-95 transition-all"
+             >
+                <Tag className="h-5 w-5 text-primary" />
+                <div className="text-left">
+                   <p className="text-[10px] font-black text-gray-900 leading-none mb-1">{c.code}</p>
+                   <p className="text-[8px] font-bold text-primary uppercase">GET {c.discountValue}{c.discountType === 'percentage' ? '%' : '₹'} OFF</p>
+                </div>
+             </button>
+           ))}
+        </div>
+      )}
+
+      <div className="px-6 pt-12 pb-4 text-left">
+        <h1 className="text-4xl font-black italic uppercase tracking-tighter">Premium Menu</h1>
+        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest italic">Best quality ingredients guaranteed.</p>
       </div>
 
       <div className="px-6 mb-8">
@@ -225,47 +254,36 @@ export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
       </div>
 
       <div className="space-y-12">
-        {productsLoading ? (
-           <div className="px-6 space-y-10">
-             {[1, 2].map(i => (
-               <div key={i} className="space-y-4">
-                 <div className="h-6 w-32 bg-gray-100 rounded-full animate-pulse" />
-                 <div className="flex gap-4 overflow-hidden">
-                    <div className="h-40 w-40 bg-gray-50 rounded-2xl shrink-0" />
-                    <div className="h-40 w-40 bg-gray-50 rounded-2xl shrink-0" />
-                 </div>
-               </div>
-             ))}
-           </div>
-        ) : categoriesWithProducts.length > 0 ? (
-          categoriesWithProducts.map((category) => (
-            <div key={category.name} className="animate-in fade-in duration-700">
-               <div className="px-6 mb-4 flex items-center justify-between">
-                  <h2 className="text-xl font-black italic uppercase tracking-tighter text-gray-900 border-l-4 border-primary pl-3">{category.name}</h2>
-                  <Badge variant="outline" className="rounded-full border-gray-100 text-gray-400 font-black uppercase text-[8px]">{category.items.length} ITEMS</Badge>
-               </div>
-               
-               <div className="px-6 overflow-x-auto no-scrollbar">
-                  <div className="flex space-x-5 pb-4">
-                     {category.items.map((product) => (
-                       <ProductHorizontalItem 
-                        key={product.id} 
-                        product={{...product, restaurantName: vendorProfile.storeName}} 
-                        isOffline={isOffline} 
-                       />
-                     ))}
-                     <div className="min-w-[10px]" />
-                  </div>
-               </div>
-            </div>
-          ))
-        ) : (
-          <div className="px-6 text-center py-20 bg-gray-50 rounded-[3rem] border-2 border-dashed mx-6">
-             <Store className="h-12 w-12 mx-auto text-muted-foreground/20 mb-4" />
-             <p className="text-muted-foreground font-black italic uppercase tracking-widest text-sm">No items found matching your search</p>
+        {categoriesWithProducts.map((category) => (
+          <div key={category.name} className="animate-in fade-in duration-700">
+             <div className="px-6 mb-4 flex items-center justify-between">
+                <h2 className="text-xl font-black italic uppercase tracking-tighter text-gray-900 border-l-4 border-primary pl-3">{category.name}</h2>
+                <Badge variant="outline" className="rounded-full border-gray-100 text-gray-400 font-black uppercase text-[8px]">{category.items.length} ITEMS</Badge>
+             </div>
+             
+             <div className="px-6 overflow-x-auto no-scrollbar">
+                <div className="flex space-x-5 pb-4">
+                   {category.items.map((product) => (
+                     <ProductHorizontalItem 
+                      key={product.id} 
+                      product={{...product, restaurantName: vendorProfile.storeName}} 
+                      isOffline={isOffline} 
+                     />
+                   ))}
+                </div>
+             </div>
           </div>
-        )}
+        ))}
       </div>
+
+      {/* BOTTOM ANNOUNCEMENT */}
+      {vendorProfile.isAnnouncementActive && vendorProfile.storeAnnouncement && (
+        <div className="px-6 py-12 text-center border-t border-dashed border-gray-100 mt-10">
+           <Megaphone className="h-10 w-10 text-primary/10 mx-auto mb-4" />
+           <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-4">NOTICE FROM STORE</p>
+           <h4 className="text-xl font-black italic uppercase text-gray-700 leading-tight px-10">"{vendorProfile.storeAnnouncement}"</h4>
+        </div>
+      )}
     </div>
   );
 }

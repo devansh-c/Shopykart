@@ -42,20 +42,22 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 const OrderCard = memo(({ order, onUpdate, type, userData, onPass }: any) => {
-  const [enteredCode, setEnteredCode] = useState('');
   const [pickupCode, setPickupCode] = useState('');
+  const [enteredCode, setEnteredCode] = useState('');
   const [collectionMethod, setCollectionMethod] = useState<'Online' | 'Cash' | null>(null);
   const [showQr, setShowQr] = useState(false);
 
-  const isPreparing = order.status === 'Preparing';
   const isReadyForPickup = order.status === 'Ready for Pickup';
-  const isOutForDelivery = order.status === 'Out for Delivery';
   const isPickedUp = order.status === 'Picked Up';
+  const isOutForDelivery = order.status === 'Out for Delivery';
 
   const handleAction = () => {
-    if (isPreparing) {
-      onUpdate(order.id, 'Accepted Task', null, userData);
-    } else if (isReadyForPickup) {
+    if (order.status === 'Ready for Pickup' && !order.deliveryPartnerId) {
+       onUpdate(order.id, 'Accepted Task', null, userData);
+       return;
+    }
+
+    if (isReadyForPickup && order.deliveryPartnerId === userData.uid) {
       if (pickupCode === order.pickupOTP) {
         onUpdate(order.id, 'Picked Up', null, userData);
         setPickupCode('');
@@ -78,8 +80,10 @@ const OrderCard = memo(({ order, onUpdate, type, userData, onPass }: any) => {
     }
   };
 
+  const isMyTask = order.deliveryPartnerId === userData?.uid;
+
   return (
-    <div className="bg-white p-6 rounded-[2.5rem] border border-border/50 shadow-sm relative overflow-hidden group transform-gpu transition-all hover:shadow-xl">
+    <div className="bg-white p-6 rounded-[2.5rem] border border-border/50 shadow-sm relative overflow-hidden transform-gpu transition-all hover:shadow-xl">
        <div className="flex justify-between items-start mb-6">
           <div>
              <Badge className={cn("border-none uppercase text-[8px] font-black px-3 py-1 rounded-full mb-3", 
@@ -89,80 +93,62 @@ const OrderCard = memo(({ order, onUpdate, type, userData, onPass }: any) => {
                {order.status}
              </Badge>
              <h3 className="text-3xl font-black italic tracking-tighter leading-none">Order #{order.customerOrderNumber}</h3>
-             <div className="flex items-center gap-1.5 text-[9px] font-black text-gray-400 uppercase mt-2"><Clock className="h-3 w-3" />{format(new Date(order.createdAt?.seconds * 1000 || Date.now()), 'MMM d, h:mm a')}</div>
           </div>
-          <div className="flex gap-2">
-            {!isPreparing && (
-              <button onClick={() => window.open(`tel:${order.customerPhone}`)} className="h-12 w-12 bg-green-500 rounded-xl flex items-center justify-center text-white active:scale-90 transition-all shadow-lg shadow-green-100">
-                <PhoneCall className="h-5 w-5" />
-              </button>
-            )}
-          </div>
+          {!isReadyForPickup && isMyTask && (
+            <button onClick={() => window.open(`tel:${order.customerPhone}`)} className="h-12 w-12 bg-green-500 rounded-xl flex items-center justify-center text-white active:scale-90 shadow-lg shadow-green-100">
+              <PhoneCall className="h-5 w-5" />
+            </button>
+          )}
        </div>
 
        <div className="bg-muted/30 rounded-[2rem] p-5 mb-6 space-y-4">
           <div className="flex items-center gap-4">
-            <div className="bg-white p-2 rounded-xl shadow-sm text-primary"><Bike className="h-5 w-5" /></div>
-            <span className="text-sm font-black uppercase italic tracking-tighter text-gray-800">{order.restaurantName || 'ShopyKart Hub'}</span>
+            <Bike className="h-5 w-5 text-primary" />
+            <span className="text-sm font-black uppercase italic text-gray-800">{order.restaurantName}</span>
           </div>
-
-          <div className="space-y-3 pt-1">
-             <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block px-1">Packing List</span>
-             {order.items?.map((item: any, i: number) => (
-                <div key={i} className="flex justify-between items-center text-[11px] font-black uppercase italic">
-                   <span className="text-gray-800"><span className="text-primary">{item.quantity}x</span> {item.name}</span>
-                </div>
-             ))}
-          </div>
-          
-          <div className="flex items-start gap-4 pt-1">
-            <div className="bg-white p-2 rounded-xl shadow-sm text-blue-500 shrink-0"><MapPin className="h-5 w-5" /></div>
+          <div className="flex items-start gap-4">
+            <MapPin className="h-5 w-5 text-blue-500 shrink-0" />
             <span className="text-[11px] font-bold text-gray-600 leading-tight uppercase italic">{order.address}</span>
           </div>
        </div>
 
-       {isPreparing && (
-         <div className="grid grid-cols-2 gap-3 mb-2 animate-in slide-in-from-bottom-2">
-            <Button onClick={() => onPass(order.id)} variant="outline" className="h-16 rounded-[1.5rem] font-black uppercase text-[10px] tracking-widest text-red-500 border-red-100">PASS TASK</Button>
-            <Button onClick={handleAction} className="h-16 bg-green-600 rounded-[1.5rem] font-black uppercase text-[10px] tracking-widest shadow-xl text-white">ACCEPT TASK</Button>
+       {isReadyForPickup && !order.deliveryPartnerId && (
+         <div className="grid grid-cols-2 gap-3">
+            <Button onClick={() => onPass(order.id)} variant="outline" className="h-16 rounded-[1.5rem] font-black uppercase text-[10px] text-red-500 border-red-100">PASS TASK</Button>
+            <Button onClick={handleAction} className="h-16 bg-green-600 rounded-[1.5rem] font-black uppercase text-[10px] text-white shadow-xl">ACCEPT TASK</Button>
          </div>
        )}
 
-       {isReadyForPickup && (
-         <div className="mb-2 space-y-4 animate-in slide-in-from-bottom-2">
+       {isReadyForPickup && isMyTask && (
+         <div className="space-y-4">
             <div className="space-y-2">
                <label className="text-[9px] font-black text-primary uppercase ml-1 flex items-center gap-1.5"><KeyRound className="h-3 w-3" /> Enter Store Pickup OTP</label>
                <Input 
-                 type="tel"
-                 placeholder="0 0 0 0" 
-                 maxLength={4}
-                 value={pickupCode}
-                 onChange={e => setPickupCode(e.target.value.replace(/\D/g,''))}
+                 type="tel" placeholder="0 0 0 0" maxLength={4}
+                 value={pickupCode} onChange={e => setPickupCode(e.target.value.replace(/\D/g,''))}
                  className="h-16 rounded-2xl bg-gray-50 border-none text-center font-black text-3xl tracking-[0.5em]"
                />
             </div>
-            <Button onClick={handleAction} disabled={pickupCode.length !== 4} className="w-full bg-black h-16 rounded-[1.5rem] font-black uppercase text-sm tracking-widest shadow-xl">CONFIRM PICKUP</Button>
+            <Button onClick={handleAction} disabled={pickupCode.length !== 4} className="w-full bg-black h-16 rounded-[1.5rem] font-black uppercase text-sm shadow-xl">CONFIRM PICKUP</Button>
          </div>
        )}
 
-       {(isPickedUp || isOutForDelivery) && (
-         <div className="mb-6 space-y-6 animate-in slide-in-from-bottom-2">
-            {isPickedUp ? (
-              <Button onClick={handleAction} className="w-full bg-primary h-16 rounded-[1.5rem] font-black uppercase text-sm tracking-widest shadow-xl">START DELIVERY</Button>
-            ) : (
-              <>
-                <Button onClick={() => setShowQr(true)} className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic text-[10px] flex items-center justify-center gap-2 shadow-xl"><QrCode className="h-4 w-4" /> SHOW PAYMENT QR</Button>
-                <div className="grid grid-cols-2 gap-3">
-                   <button onClick={() => setCollectionMethod('Online')} className={cn("h-14 rounded-2xl border-2 flex flex-col items-center justify-center gap-1", collectionMethod === 'Online' ? "bg-primary/5 border-primary text-primary" : "bg-gray-50 border-transparent text-gray-400")}><CreditCard className="h-4 w-4" /><span className="text-[9px] font-black uppercase">Online</span></button>
-                   <button onClick={() => setCollectionMethod('Cash')} className={cn("h-14 rounded-2xl border-2 flex flex-col items-center justify-center gap-1", collectionMethod === 'Cash' ? "bg-amber-50 border-amber-500 text-amber-700" : "bg-gray-50 border-transparent text-gray-400")}><Banknote className="h-4 w-4" /><span className="text-[9px] font-black uppercase">Cash</span></button>
-                </div>
-                {collectionMethod && (
-                  <div className="space-y-3">
-                    <Input type="tel" placeholder="CUSTOMER 6-DIGIT OTP" maxLength={6} value={enteredCode} onChange={e => setEnteredCode(e.target.value.replace(/\D/g,''))} className="h-14 rounded-2xl bg-gray-50 border-none text-center font-black text-2xl tracking-[0.3em]" />
-                    <Button onClick={handleAction} disabled={enteredCode.length !== 6} className="w-full h-16 bg-green-600 rounded-[1.5rem] font-black uppercase text-sm tracking-widest shadow-xl text-white">VERIFY & DELIVER</Button>
-                  </div>
-                )}
-              </>
+       {isPickedUp && isMyTask && (
+         <Button onClick={handleAction} className="w-full bg-primary h-16 rounded-[1.5rem] font-black uppercase text-sm shadow-xl">START DELIVERY</Button>
+       )}
+
+       {isOutForDelivery && isMyTask && (
+         <div className="space-y-6">
+            <Button onClick={() => setShowQr(true)} className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic text-[10px] flex items-center justify-center gap-2 shadow-xl"><QrCode className="h-4 w-4" /> SHOW QR</Button>
+            <div className="grid grid-cols-2 gap-3">
+               <button onClick={() => setCollectionMethod('Online')} className={cn("h-14 rounded-2xl border-2 flex flex-col items-center justify-center gap-1", collectionMethod === 'Online' ? "bg-primary/5 border-primary text-primary" : "bg-gray-50 border-transparent text-gray-400")}><CreditCard className="h-4 w-4" /><span className="text-[9px] font-black uppercase">Online</span></button>
+               <button onClick={() => setCollectionMethod('Cash')} className={cn("h-14 rounded-2xl border-2 flex flex-col items-center justify-center gap-1", collectionMethod === 'Cash' ? "bg-amber-50 border-amber-500 text-amber-700" : "bg-gray-50 border-transparent text-gray-400")}><Banknote className="h-4 w-4" /><span className="text-[9px] font-black uppercase">Cash</span></button>
+            </div>
+            {collectionMethod && (
+              <div className="space-y-3">
+                <Input type="tel" placeholder="CUSTOMER 6-DIGIT OTP" maxLength={6} value={enteredCode} onChange={e => setEnteredCode(e.target.value.replace(/\D/g,''))} className="h-14 rounded-2xl bg-gray-50 border-none text-center font-black text-2xl" />
+                <Button onClick={handleAction} disabled={enteredCode.length !== 6} className="w-full h-16 bg-green-600 rounded-[1.5rem] font-black uppercase text-sm text-white">VERIFY & DELIVER</Button>
+              </div>
             )}
          </div>
        )}
@@ -172,7 +158,7 @@ const OrderCard = memo(({ order, onUpdate, type, userData, onPass }: any) => {
              <DialogHeader><DialogTitle className="font-black italic uppercase text-2xl tracking-tighter">Scan to Pay</DialogTitle></DialogHeader>
              <div className="bg-gray-50 p-6 rounded-[2rem] border-2 border-dashed border-gray-200">
                 <img src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`upi://pay?pa=9450355709@axl&pn=ShopyKart&am=${order.total}&cu=INR`)}`} className="h-48 w-48 mx-auto" alt="QR" />
-                <p className="mt-4 text-2xl font-black italic">₹{order.total?.toFixed(0)}</p>
+                <p className="mt-4 text-2xl font-black italic text-gray-900">₹{order.total?.toFixed(0)}</p>
              </div>
              <Button onClick={() => setShowQr(false)} className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic">CLOSE</Button>
           </DialogContent>
@@ -215,19 +201,11 @@ export default function DeliveryDashboard() {
     if (!allOrders || !partnerProfile || !user) return [];
     return allOrders.filter(order => {
       if (dismissedTasks.includes(order.id)) return false;
-      const isInMyZone = order.zoneId === partnerProfile.zoneId || !partnerProfile.zoneId;
-      const isAvailable = (order.status === 'Preparing' || order.status === 'Ready for Pickup') && !order.deliveryPartnerId;
-      const isMyTask = order.deliveryPartnerId === user.uid && order.status !== 'Delivered' && order.status !== 'Cancelled';
-      return (isInMyZone && isAvailable) || isMyTask;
+      const isAvailable = order.status === 'Ready for Pickup' && !order.deliveryPartnerId;
+      const isMyTask = order.deliveryPartnerId === user.uid && !['Delivered', 'Cancelled'].includes(order.status);
+      return isAvailable || isMyTask;
     });
   }, [allOrders, partnerProfile, user, dismissedTasks]);
-
-  const handlePass = (id: string) => {
-    const next = [...dismissedTasks, id];
-    setDismissedTasks(next);
-    localStorage.setItem('fleet_dismissed_tasks', JSON.stringify(next));
-    toast({ title: "Task Dismissed", description: "Ringing stopped for this order." });
-  };
 
   const updateDelivery = async (orderId: string, status: string, collectionMethod?: string | null, partnerData?: any) => {
     if (!firestore || !user) return;
@@ -240,8 +218,15 @@ export default function DeliveryDashboard() {
       }
       if (collectionMethod) updateData.paymentCollectionMethod = collectionMethod;
       await updateDoc(doc(firestore, 'orders', orderId), updateData);
-      toast({ title: `Order ${status}!` });
+      toast({ title: `Task ${status}!` });
     } catch (e) { toast({ variant: "destructive", title: "Update Failed" }); }
+  };
+
+  const handlePass = (id: string) => {
+    const next = [...dismissedTasks, id];
+    setDismissedTasks(next);
+    localStorage.setItem('fleet_dismissed_tasks', JSON.stringify(next));
+    toast({ title: "Task Dismissed" });
   };
 
   if (!isMounted || authLoading || profileLoading || (!user && !authLoading)) {
@@ -258,32 +243,27 @@ export default function DeliveryDashboard() {
         <Switch checked={partnerProfile?.isOnline === true} onCheckedChange={async (o) => { if(firestore && user) await updateDoc(doc(firestore, 'delivery_partners', user.uid), { isOnline: o }); }} className="data-[state=checked]:bg-green-500" />
       </header>
 
-      <main className="flex-1 pb-32">
+      <main className="flex-1 pb-32 overflow-y-auto no-scrollbar">
          {activeTab === 'tasks' && (
-           <div className="p-4 space-y-6 animate-in fade-in duration-500">
-              <h2 className="text-2xl font-black italic uppercase tracking-tighter ml-2">Fleet Tasks</h2>
+           <div className="p-4 space-y-6">
+              <h2 className="text-2xl font-black italic uppercase tracking-tighter">Live Tasks</h2>
               <div className="space-y-6">
                 {taskOrders.length > 0 ? taskOrders.map((order) => (
                   <OrderCard key={order.id} order={order} onUpdate={updateDelivery} userData={partnerProfile} onPass={handlePass} />
                 )) : (
                   <div className="text-center py-24 opacity-20 flex flex-col items-center">
                     <Bike className="h-20 w-20 mb-6" />
-                    <p className="font-black italic uppercase text-xs tracking-[0.3em]">No tasks in your zone right now</p>
+                    <p className="font-black italic uppercase text-xs tracking-widest">No orders ready for pickup</p>
                   </div>
                 )}
               </div>
            </div>
          )}
          {activeTab === 'profile' && (
-            <div className="p-8 space-y-8 animate-in fade-in duration-500">
-               <div className="flex flex-col items-center text-center">
-                  <div className="h-32 w-32 rounded-[3.5rem] overflow-hidden border-4 border-white shadow-2xl mb-6">
-                     <img src={partnerProfile?.photoUrl} className="h-full w-full object-cover" alt="" />
-                  </div>
-                  <h2 className="text-3xl font-black italic uppercase tracking-tighter">{partnerProfile?.fullName}</h2>
-                  <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.3em] mt-2">Partner ID: {partnerProfile?.uid?.slice(-6).toUpperCase()}</p>
-               </div>
-               <Button onClick={() => { localStorage.removeItem('delivery_session_active'); signOut(auth!); router.replace('/'); }} variant="ghost" className="w-full h-16 text-red-500 font-black uppercase italic text-xs tracking-[0.3em] border border-red-100 rounded-3xl"><LogOut className="h-5 w-5 mr-3" /> DISCONNECT PORTAL</Button>
+            <div className="p-8 space-y-8 animate-in fade-in duration-500 text-center">
+               <div className="h-32 w-32 rounded-[3.5rem] overflow-hidden border-4 border-white shadow-2xl mx-auto mb-6"><img src={partnerProfile?.photoUrl} className="h-full w-full object-cover" alt="" /></div>
+               <h2 className="text-3xl font-black italic uppercase tracking-tighter">{partnerProfile?.fullName}</h2>
+               <Button onClick={() => { localStorage.removeItem('delivery_session_active'); signOut(auth!); router.replace('/'); }} variant="ghost" className="w-full h-16 text-red-500 font-black uppercase italic text-xs border border-red-100 rounded-3xl"><LogOut className="h-5 w-5 mr-3" /> DISCONNECT</Button>
             </div>
          )}
       </main>

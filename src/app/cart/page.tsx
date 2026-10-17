@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -121,6 +122,14 @@ export default function CartPage() {
         if (totalPrice < (data.minOrderValue || 0)) {
           toast({ variant: "destructive", title: "Min Order Not Met" });
         } else {
+          // If store specific, check if at least one item from that store is in cart
+          if (data.vendorId) {
+            const hasStoreItem = cart.some(item => item.vendorId === data.vendorId);
+            if (!hasStoreItem) {
+               toast({ variant: "destructive", title: "Coupon Not Valid", description: `This offer is only for ${data.vendorName} items.` });
+               return;
+            }
+          }
           setAppliedCoupon({ id: snap.docs[0].id, ...data });
           toast({ title: "Coupon Applied!" });
         }
@@ -134,11 +143,20 @@ export default function CartPage() {
 
   const couponDiscount = useMemo(() => {
     if (!appliedCoupon) return 0;
-    if (appliedCoupon.discountType === 'percentage') {
-      return (totalPrice * appliedCoupon.discountValue) / 100;
+    
+    let applicableTotal = totalPrice;
+    // If store specific, only apply discount to products from that vendor
+    if (appliedCoupon.vendorId) {
+       applicableTotal = cart
+         .filter(item => item.vendorId === appliedCoupon.vendorId)
+         .reduce((acc, item) => acc + (item.price * item.quantity), 0);
     }
-    return appliedCoupon.discountValue;
-  }, [appliedCoupon, totalPrice]);
+
+    if (appliedCoupon.discountType === 'percentage') {
+      return (applicableTotal * appliedCoupon.discountValue) / 100;
+    }
+    return Math.min(applicableTotal, appliedCoupon.discountValue);
+  }, [appliedCoupon, totalPrice, cart]);
 
   const totalPayable = useMemo(() => {
     return Math.max(0, totalPrice + deliveryFee + deliveryTip + packingFee - coinDiscount - couponDiscount);
@@ -164,7 +182,6 @@ export default function CartPage() {
     }
     if (!recipientForm.name || recipientForm.phone.length !== 10 || !recipientForm.address) {
       setIsAddressModalOpen(true); 
-      toast({ title: "Address Required", description: "Please complete your delivery profile." });
       return;
     }
 
@@ -182,7 +199,6 @@ export default function CartPage() {
         restaurantName: cart[0]?.restaurantName || 'ShopyKart Select',
         deliveryOTP: Math.floor(100000 + Math.random() * 900000).toString(),
         deliveryFee,
-        deliveryTip,
         packingFee,
         coinDiscount,
         couponDiscount,
@@ -254,11 +270,9 @@ export default function CartPage() {
                   <div key={idx} className={cn("flex gap-4 items-center relative", item.isClosed && "opacity-40 grayscale")}>
                      <div className="h-16 w-16 rounded-[1.25rem] overflow-hidden bg-muted border border-black/5 relative shrink-0">
                         <Image src={item.imageUrl} alt={item.name} fill className="object-cover" unoptimized />
-                        {item.isClosed && <div className="absolute inset-0 bg-red-600/60 flex items-center justify-center text-[7px] font-black text-white px-1 text-center">CLOSED</div>}
                      </div>
                      <div className="flex-1 min-w-0">
                         <h4 className="text-[11px] font-black uppercase truncate text-gray-900 leading-tight">{item.name}</h4>
-                        {item.selectedOption && <p className="text-[7px] font-black uppercase text-primary tracking-widest mt-1 italic">VARIETY: {item.selectedOption.name}</p>}
                         <div className="flex items-center mt-2 bg-gray-50 w-fit rounded-xl p-0.5 border border-gray-100">
                            <button onClick={() => removeFromCart(item.id)} className="h-7 w-7 flex items-center justify-center text-gray-500 active:scale-90"><Minus className="h-3.5 w-3.5" /></button>
                            <span className="mx-2 text-[10px] font-black">{item.quantity}</span>
@@ -359,29 +373,16 @@ export default function CartPage() {
         </div>
 
         <div className="pt-4 pb-32">
-           <div className="space-y-4">
-              <div className={cn(
-                "w-full h-24 rounded-[3rem] p-4 flex items-center justify-between transition-all duration-300 transform-gpu z-[2000] border shadow-2xl", 
-                (hasClosedItems || !isMinOrderMet || cart.length === 0) ? "bg-gray-100 opacity-60" : "bg-white border-primary/20"
-              )}>
-                  <div className="flex flex-col pl-4">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-primary italic">Total</span>
-                    <div className="text-3xl font-black italic text-gray-900 tracking-tighter leading-none mt-1">₹{totalPayable.toFixed(0)}</div>
-                  </div>
-                  
-                  <Button 
-                    onClick={finalizeOrder}
-                    disabled={isPlacing || hasClosedItems || !isMinOrderMet || cart.length === 0}
-                    className="h-16 px-10 bg-[#0B0B0B] hover:bg-primary text-white rounded-[2rem] font-black uppercase italic text-lg shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"
-                  >
-                    {isPlacing ? <Loader2 className="h-6 w-6 animate-spin" /> : <>PLACE ORDER <ArrowRight className="h-5 w-5" /></>}
-                  </Button>
-              </div>
-              
-              {(!isMinOrderMet && cart.length > 0) && (
-                <p className="text-center text-red-500 text-[10px] font-black uppercase animate-pulse">Min order ₹{minOrderValue} required</p>
-              )}
-           </div>
+           <Button 
+             onClick={finalizeOrder}
+             disabled={isPlacing || hasClosedItems || !isMinOrderMet || cart.length === 0}
+             className="w-full h-20 bg-[#0B0B0B] hover:bg-primary text-white rounded-[2.5rem] font-black uppercase italic text-xl shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"
+           >
+             {isPlacing ? <Loader2 className="h-8 w-8 animate-spin" /> : <>PLACE ORDER <ArrowRight className="h-6 w-6" /></>}
+           </Button>
+           {!isMinOrderMet && cart.length > 0 && (
+             <p className="text-center text-red-500 text-[10px] font-black uppercase mt-4 animate-pulse">Min order ₹{minOrderValue} required</p>
+           )}
         </div>
       </main>
 

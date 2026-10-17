@@ -9,7 +9,7 @@ import { Loader2, BellRing, PackageSearch, CheckCircle2 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
 /**
- * @fileOverview Global Notification Handler - Updated for Fleet Ringing on 'Preparing' status.
+ * @fileOverview Global Notification Handler - Updated for Fleet Ringing on 'Ready for Pickup' status.
  */
 export default function NotificationHandler() {
   const { user } = useUser();
@@ -35,9 +35,9 @@ export default function NotificationHandler() {
       return () => unsub();
     }
 
-    // 2. RING FOR FLEET: When Order is 'Preparing'
+    // 2. RING FOR FLEET: When Order is 'Ready for Pickup' (as requested)
     if (isFleetApp) {
-      const q = query(collection(firestore, 'orders'), where('status', '==', 'Preparing'));
+      const q = query(collection(firestore, 'orders'), where('status', '==', 'Ready for Pickup'));
       const unsub = onSnapshot(q, (snapshot) => {
         const active = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
         
@@ -90,7 +90,7 @@ export default function NotificationHandler() {
           {isStoreApp ? 'NEW ORDER!' : 'PICKUP ALERT!'}
         </h2>
         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-10 italic leading-relaxed">
-          {isStoreApp ? 'CUSTOMER IS WAITING. ACCEPT NOW.' : 'A NEW TASK IS AVAILABLE IN YOUR ZONE.'}
+          {isStoreApp ? 'CUSTOMER IS WAITING. ACCEPT NOW.' : 'A NEW TASK IS READY FOR PICKUP IN YOUR ZONE.'}
         </p>
         
         <div className="w-full space-y-4">
