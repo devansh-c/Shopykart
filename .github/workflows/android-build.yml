@@ -40,7 +40,6 @@ jobs:
           sed -i "s/appName: [\"'].*[\"']/appName: \"ShopyKart\"/" capacitor.config.ts
           sed -i 's/package_name">.*<\/string>/package_name">co.in.shopykart.app<\/string>/' android/app/src/main/res/values/strings.xml
           sed -i 's/app_name">.*<\/string>/app_name">ShopyKart<\/string>/' android/app/src/main/res/values/strings.xml
-          find android/app/src/main/java -name "MainActivity.java" -exec sed -i "s/package co.in.shopykart.*/package co.in.shopykart.app;/" {} +
           npx cap sync android
 
       - name: Build Android (Customer)
@@ -62,12 +61,11 @@ jobs:
           sed -i "s/appName: [\"'].*[\"']/appName: \"ShopyKart Admin\"/" capacitor.config.ts
           sed -i 's/package_name">.*<\/string>/package_name">co.in.shopykart.admin<\/string>/' android/app/src/main/res/values/strings.xml
           sed -i 's/app_name">.*<\/string>/app_name">ShopyKart Admin<\/string>/' android/app/src/main/res/values/strings.xml
-          find android/app/src/main/java -name "MainActivity.java" -exec sed -i "s/package co.in.shopykart.*/package co.in.shopykart.admin;/" {} +
           npx cap sync android
 
       - name: Build Android (Admin)
         working-directory: android
-        run: ./gradlew assembleDebug bundleRelease
+        run: chmod +x gradlew && ./gradlew assembleDebug bundleRelease
 
       - name: Archive Admin
         run: |
@@ -84,12 +82,11 @@ jobs:
           sed -i "s/appName: [\"'].*[\"']/appName: \"ShopyKart Store\"/" capacitor.config.ts
           sed -i 's/package_name">.*<\/string>/package_name">co.in.shopykart.biz<\/string>/' android/app/src/main/res/values/strings.xml
           sed -i 's/app_name">.*<\/string>/app_name">ShopyKart Store<\/string>/' android/app/src/main/res/values/strings.xml
-          find android/app/src/main/java -name "MainActivity.java" -exec sed -i "s/package co.in.shopykart.*/package co.in.shopykart.biz;/" {} +
           npx cap sync android
 
       - name: Build Android (Biz)
         working-directory: android
-        run: ./gradlew assembleDebug bundleRelease
+        run: chmod +x gradlew && ./gradlew assembleDebug bundleRelease
 
       - name: Archive Biz
         run: |
@@ -106,12 +103,11 @@ jobs:
           sed -i "s/appName: [\"'].*[\"']/appName: \"ShopyKart Fleet\"/" capacitor.config.ts
           sed -i 's/package_name">.*<\/string>/package_name">co.in.shopykart.tow<\/string>/' android/app/src/main/res/values/strings.xml
           sed -i 's/app_name">.*<\/string>/app_name">ShopyKart Fleet<\/string>/' android/app/src/main/res/values/strings.xml
-          find android/app/src/main/java -name "MainActivity.java" -exec sed -i "s/package co.in.shopykart.*/package co.in.shopykart.tow;/" {} +
           npx cap sync android
 
       - name: Build Android (Tow)
         working-directory: android
-        run: ./gradlew assembleDebug bundleRelease
+        run: chmod +x gradlew && ./gradlew assembleDebug bundleRelease
 
       - name: Archive Tow
         run: |
@@ -122,7 +118,7 @@ jobs:
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ShopyKart-All-Apps
+          name: ShopyKart-Quad-Apps
           path: |
             app.shopykart.apk
             app.shopykart.aab
