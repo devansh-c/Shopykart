@@ -3,7 +3,7 @@
 
 import { useMemo, useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { IndianRupee, Users, ShoppingBag, Globe, Loader2, RefreshCw, Trash2, TrendingUp } from 'lucide-react';
+import { IndianRupee, Users, ShoppingBag, Globe, Loader2, RefreshCw, Trash2, TrendingUp, BellRing, Smartphone, Zap } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, serverTimestamp, getDocs, writeBatch } from 'firebase/firestore';
@@ -18,12 +18,14 @@ import {
 } from 'recharts';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
+import { scheduleTestNotification } from '@/components/shared/PermissionManager';
 
 export default function AdminOverview() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isMounted, setIsMounted] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -53,6 +55,20 @@ export default function AdminOverview() {
       { label: 'Network Status', value: 'Live', icon: Globe, color: 'text-amber-600', bg: 'bg-amber-100' },
     ];
   }, [orders, users]);
+
+  const handleTestAlert = async () => {
+    setIsTesting(true);
+    toast({ 
+      title: "Test Started! ⏱️", 
+      description: "Close or minimize the app now. Alert will fire in 10 seconds." 
+    });
+    
+    const success = await scheduleTestNotification();
+    if (!success) {
+      toast({ variant: "destructive", title: "Test Failed", description: "Capacitor is only supported in APK." });
+    }
+    setTimeout(() => setIsTesting(false), 5000);
+  };
 
   const handleResetAllRewards = async () => {
     if (!firestore || isResetting) return;
@@ -125,6 +141,32 @@ export default function AdminOverview() {
 
   return (
     <div className="space-y-8 pb-20 animate-in fade-in duration-700">
+      
+      {/* TEST BACKGROUND ALERTS CARD */}
+      <div className="bg-[#0B0B0B] p-8 rounded-[3rem] border border-white/10 shadow-2xl relative overflow-hidden text-white mb-6">
+         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="flex items-center gap-5">
+               <div className="h-16 w-16 bg-primary/20 rounded-[1.5rem] flex items-center justify-center text-primary border border-primary/20">
+                  <BellRing className="h-8 w-8 animate-ring" />
+               </div>
+               <div>
+                  <h2 className="text-2xl font-black italic uppercase tracking-tighter">Alert Debugger</h2>
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Test if phone rings when app is closed</p>
+               </div>
+            </div>
+            
+            <Button 
+              onClick={handleTestAlert}
+              disabled={isTesting}
+              className="h-16 px-10 bg-primary hover:bg-white hover:text-black text-white rounded-2xl font-black uppercase italic text-sm shadow-xl active:scale-95 transition-all"
+            >
+              {isTesting ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Zap className="h-5 w-5 mr-2" />}
+              TEST LOUD ALERT (10s DELAY)
+            </Button>
+         </div>
+         <div className="absolute top-0 right-0 h-full w-44 bg-primary/5 -skew-x-12 translate-x-12" />
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
          <Card className="col-span-1 md:col-span-2 border-primary/20 bg-white shadow-xl rounded-[2.5rem] overflow-hidden">
             <div className="bg-[#0B0B0B] p-6 text-white">

@@ -7,7 +7,7 @@ import { requestPushToken, syncTokenToFirestore } from '@/firebase/messaging';
 
 /**
  * @fileOverview Permission Manager - Manages Notifications & FCM registration for all 4 Apps.
- * Optimized for LOUD Background Ringing.
+ * Optimized for LOUD Background Ringing using Delayed Local Notifications.
  */
 export default function PermissionManager() {
   const { user } = useUser();
@@ -44,29 +44,40 @@ export default function PermissionManager() {
           // CREATE LOUD CHANNEL FOR BUSINESS APPS (ADMIN, BIZ, TOW)
           if (isAdmin || isBiz || isTow) {
             try {
-              // Standard channel for background ringing
+              // Ensure channel exists with custom sound
               await PushNotifications.createChannel({
                 id: 'new_order_channel',
                 name: 'Urgent Order Alerts',
                 description: 'Critical loud alerts for incoming orders',
-                sound: 'order_alert', // Targets res/raw/order_alert.mp3
+                sound: 'order_alert', // Targets res/raw/order_alert.mp3 (without extension)
                 importance: 5, // MAX IMPORTANCE for Heads-up & Sound
                 visibility: 1,
                 vibration: true,
               });
-              console.log('LOUD Background Channel Created');
+              
+              await LocalNotifications.createChannel({
+                id: 'new_order_channel',
+                name: 'Urgent Order Alerts',
+                description: 'Critical loud alerts for incoming orders',
+                sound: 'order_alert.mp3',
+                importance: 5,
+                visibility: 1,
+                vibration: true,
+              });
+              
+              console.log('LOUD Notification Channels Registered');
             } catch (err) {
               console.error('Channel creation error:', err);
             }
 
             // ADD LISTENER TO HANDLE HEADS-UP WHEN IN BACKGROUND
             PushNotifications.addListener('pushNotificationReceived', async (notification) => {
-              // Force show as local notification if needed to ensure sound
+              // Force show as local notification to ensure sound in background
               await LocalNotifications.schedule({
                 notifications: [
                   {
                     title: notification.title || 'New Order Alert!',
-                    body: notification.body || 'Check dashboard now.',
+                    body: notification.body || 'Open app to accept.',
                     id: Math.floor(Math.random() * 10000),
                     schedule: { at: new Date(Date.now() + 100) },
                     channelId: 'new_order_channel',
@@ -110,4 +121,31 @@ export default function PermissionManager() {
   }, [user]);
 
   return null;
+}
+
+/**
+ * Utility to test background ringing. Schedules an alert for 10 seconds later.
+ */
+export async function scheduleTestNotification() {
+  try {
+    const { LocalNotifications } = await import('@capacitor/local-notifications');
+    
+    await LocalNotifications.schedule({
+      notifications: [
+        {
+          title: "🚨 LOUD ALERT TEST",
+          body: "Verification: Background ringing is working!",
+          id: 9999,
+          schedule: { at: new Date(Date.now() + 10000) }, // Fired after 10 seconds
+          channelId: 'new_order_channel',
+          sound: 'order_alert.mp3',
+          extra: { test: true }
+        }
+      ]
+    });
+    return true;
+  } catch (e) {
+    console.error("Test notification failed", e);
+    return false;
+  }
 }
