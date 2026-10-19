@@ -6,7 +6,7 @@ import { requestPushToken, syncTokenToFirestore } from '@/firebase/messaging';
 
 /**
  * @fileOverview Permission Manager - Manages Notifications & FCM registration for all 4 Apps.
- * Optimized for LOUD Background Ringing using MAX Importance Channels (Level 5).
+ * FORCE FIX: Implements a Native Bridge to ensure sound plays in both Foreground and Background.
  */
 export default function PermissionManager() {
   const { user } = useUser();
@@ -43,42 +43,39 @@ export default function PermissionManager() {
           // CREATE LOUD CHANNEL FOR BUSINESS APPS (ADMIN, BIZ, TOW)
           if (isAdmin || isBiz || isTow) {
             try {
-              // 1. CREATE CHANNEL FOR PUSH NOTIFICATIONS (Importance 5 = LOUD + BANNER)
-              await PushNotifications.createChannel({
+              // 1. REGISTER CHANNEL ON BOTH PLUGINS (MAX IMPORTANCE)
+              const channelConfig = {
                 id: 'new_order_channel',
-                name: 'Loud Order Alerts',
-                description: 'Critical loud alerts for incoming orders',
-                sound: 'order_alert', // References res/raw/order_alert.mp3 without extension
-                importance: 5, 
-                visibility: 1, 
-                vibration: true,
-              });
-              
-              // 2. CREATE CHANNEL FOR LOCAL NOTIFICATIONS BRIDGE
-              await LocalNotifications.createChannel({
-                id: 'new_order_channel',
-                name: 'Loud Order Alerts',
-                description: 'Critical loud alerts for incoming orders',
-                sound: 'order_alert.mp3', // Extension usually needed for local
+                name: 'Order Alerts (Loud)',
+                description: 'Critical alerts for new orders',
+                sound: 'order_alert', // For Push (res/raw/order_alert.mp3)
                 importance: 5,
                 visibility: 1,
                 vibration: true,
+              };
+
+              await PushNotifications.createChannel(channelConfig);
+              
+              // LocalNotifications needs the .mp3 extension in some versions
+              await LocalNotifications.createChannel({
+                ...channelConfig,
+                sound: 'order_alert.mp3'
               });
               
-              console.log('MAX-IMPORTANCE Channels Registered for Business App');
+              console.log('Notification Channels Primed (Level 5)');
 
-              // 3. BACKGROUND FORCE-RINGING BRIDGE
-              // When push is received in background, force a local notification to play sound
-              PushNotifications.addListener('pushNotificationReceived', async (notification) => {
-                console.log('Push captured in background:', notification);
+              // 2. THE BRIDGE: INTERCEPT PUSH AND FORCE LOCAL ALERT (Ensures sound in Foreground & Background)
+              await PushNotifications.addListener('pushNotificationReceived', async (notification) => {
+                console.log('Intercepting Push:', notification);
                 
+                // Force a local notification which is much more reliable for sound playback
                 await LocalNotifications.schedule({
                   notifications: [
                     {
                       title: notification.title || '🚨 NEW ORDER RECEIVED!',
-                      body: notification.body || 'Check dashboard immediately.',
-                      id: Date.now() % 100000,
-                      schedule: { at: new Date(Date.now() + 100) },
+                      body: notification.body || 'Check your dashboard now.',
+                      id: Math.floor(Date.now() % 100000),
+                      schedule: { at: new Date(Date.now() + 50) },
                       channelId: 'new_order_channel',
                       smallIcon: 'ic_stat_notification',
                       sound: 'order_alert.mp3',
@@ -87,8 +84,14 @@ export default function PermissionManager() {
                   ]
                 });
               });
+
+              // Also handle action (click on notification)
+              await PushNotifications.addListener('pushNotificationActionPerformed', (notification) => {
+                console.log('Notification tapped:', notification);
+              });
+
             } catch (err) {
-              console.error('Loud channel creation failed:', err);
+              console.error('Loud channel bridge failed:', err);
             }
           }
 
@@ -129,7 +132,7 @@ export default function PermissionManager() {
 }
 
 /**
- * Utility to test background ringing. 
+ * Utility to test background/foreground ringing. 
  * Schedules a Level-5 importance alert with a 10s delay.
  */
 export async function scheduleTestNotification() {
@@ -140,7 +143,7 @@ export async function scheduleTestNotification() {
       notifications: [
         {
           title: "🚨 LOUD ALERT TEST",
-          body: "Verification: Background ringing (Level 5) is active!",
+          body: "Verification: Manual Bridge ringing (Level 5) is active!",
           id: 8888,
           schedule: { at: new Date(Date.now() + 10000) },
           channelId: 'new_order_channel',
