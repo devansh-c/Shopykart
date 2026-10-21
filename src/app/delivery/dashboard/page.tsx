@@ -195,7 +195,9 @@ export default function DeliveryDashboard() {
   useEffect(() => {
     if (!isMounted || authLoading || profileLoading) return;
     const sessionActive = localStorage.getItem('delivery_session_active') === 'true';
-    if (!user && !sessionActive) router.replace('/delivery/login');
+    if (!user && !authLoading) {
+      if (!sessionActive) router.replace('/delivery/login');
+    }
   }, [user, authLoading, profileLoading, router, isMounted]);
 
   const ordersQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'orders'), orderBy('createdAt', 'desc')) : null, [firestore]);
@@ -264,7 +266,6 @@ export default function DeliveryDashboard() {
       <main className="flex-1 pb-32 overflow-y-auto no-scrollbar">
          {activeTab === 'tasks' && (
            <div className="p-4 space-y-6">
-              {/* ALERT DEBUGGER FOR FLEET */}
               <div className="bg-[#0B0B0B] p-6 rounded-[2.5rem] border border-white/10 shadow-2xl relative overflow-hidden text-white mb-2">
                  <div className="relative z-10 flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3">

@@ -6,7 +6,8 @@ import { useUser, useFirestore } from '@/firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 
 /**
- * @fileOverview Global Notification Handler - Handles FOREGROUND ringing for Store/Admin/Fleet.
+ * @fileOverview Global Notification Handler - Handles targeted ringing for Store and Fleet.
+ * Rings until the specific condition (Acceptance/Processing) is met.
  */
 export default function NotificationHandler() {
   const { user } = useUser();
@@ -19,44 +20,49 @@ export default function NotificationHandler() {
   const isFleetApp = process.env.NEXT_PUBLIC_TOW_APP === 'true';
 
   useEffect(() => {
-    if (!firestore) return;
+    if (!firestore || !user) return;
 
-    // 1. RING FOR STORES: When Order is 'Placed'
+    let q;
     if (isStoreApp) {
-      const q = query(collection(firestore, 'orders'), where('status', '==', 'Placed'));
-      const unsub = onSnapshot(q, (snapshot) => {
-        const active = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-        handleRinging(active);
-      });
-      return () => unsub();
+      // Listen for orders placed for THIS specific vendor
+      q = query(collection(firestore, 'orders'), where('status', '==', 'Placed'));
+    } else if (isFleetApp) {
+      // Listen for orders ready for pickup that haven't been assigned yet
+      q = query(collection(firestore, 'orders'), where('status', '==', 'Ready for Pickup'));
+    } else {
+      return;
     }
 
-    // 2. RING FOR FLEET: When Order is 'Ready for Pickup'
-    if (isFleetApp) {
-      const q = query(collection(firestore, 'orders'), where('status', '==', 'Ready for Pickup'));
-      const unsub = onSnapshot(q, (snapshot) => {
-        const active = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-        
-        // Filter out locally dismissed tasks and already assigned ones
+    const unsub = onSnapshot(q, (snapshot) => {
+      const active = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      
+      let filteredActive = [];
+      
+      if (isStoreApp) {
+        // Filter: Ring only if the order belongs to THIS vendor
+        filteredActive = active.filter(o => String(o.vendorId) === String(user.uid) || (Array.isArray(o.vendorIds) && o.vendorIds.includes(user.uid)));
+      } else if (isFleetApp) {
+        // Filter: Ring if order is unassigned and not dismissed locally
         const dismissed = JSON.parse(localStorage.getItem('fleet_dismissed_tasks') || '[]');
-        const actualActive = active.filter(o => !dismissed.includes(o.id) && !o.deliveryPartnerId);
-        
-        handleRinging(actualActive);
-      });
-      return () => unsub();
-    }
-  }, [firestore, isStoreApp, isFleetApp]);
+        filteredActive = active.filter(o => !o.deliveryPartnerId && !dismissed.includes(o.id));
+      }
+
+      handleRinging(filteredActive);
+    });
+
+    return () => unsub();
+  }, [firestore, user, isStoreApp, isFleetApp]);
 
   const handleRinging = (active: any[]) => {
     setRingingOrders(active);
     if (active.length > 0) {
       if (!audioRef.current) {
-        // High quality order alert sound
+        // High quality continuous loop sound
         audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/1356/1356-preview.mp3');
         audioRef.current.loop = true;
       }
       audioRef.current.play().catch(() => {
-        console.log("Audio playback requires user interaction first.");
+        console.log("Interaction required for audio.");
       });
     } else if (audioRef.current) {
       audioRef.current.pause();
@@ -98,7 +104,7 @@ export default function NotificationHandler() {
           {isStoreApp ? 'NEW ORDER!' : 'PICKUP ALERT!'}
         </h2>
         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-10 italic leading-relaxed">
-          {isStoreApp ? 'CUSTOMER IS WAITING. ACCEPT NOW.' : 'A NEW TASK IS READY FOR PICKUP IN YOUR ZONE.'}
+          {isStoreApp ? 'ACTION REQUIRED: PLEASE ACCEPT THE ORDER NOW.' : 'A NEW TASK IS WAITING FOR PICKUP IN YOUR ZONE.'}
         </p>
         
         <div className="w-full space-y-4">
@@ -106,14 +112,14 @@ export default function NotificationHandler() {
             onClick={() => handleDismissAlert()}
             className="w-full h-20 bg-green-600 hover:bg-green-700 text-white rounded-[1.5rem] font-black uppercase text-xl shadow-xl shadow-green-100 active:scale-95 transition-all flex items-center justify-center"
           >
-            VIEW DASHBOARD
+            OPEN DASHBOARD
           </button>
           
           <button 
             onClick={() => handleDismissAlert(ringingOrders[0].id)}
             className="text-[9px] font-black text-gray-400 uppercase tracking-widest hover:text-red-500 transition-colors"
           >
-            {isFleetApp ? 'Ignore Task' : 'Close Alert'}
+            {isFleetApp ? 'Pass Task' : 'Close Alert'}
           </button>
         </div>
       </div>

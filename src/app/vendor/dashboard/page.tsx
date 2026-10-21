@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -99,8 +100,8 @@ export default function VendorDashboard() {
   useEffect(() => {
     if (!isMounted || authLoading) return;
     const sessionActive = localStorage.getItem('shopykart_session_active') === 'true';
-    if (!user && !sessionActive) {
-      router.replace('/vendor/login');
+    if (!user && !authLoading) {
+      if (!sessionActive) router.replace('/vendor/login');
     }
   }, [user, authLoading, router, isMounted]);
 
@@ -534,7 +535,7 @@ export default function VendorDashboard() {
                         </div>
                       </div>
                     </div>
-                    <button onClick={async () => { if(confirm("Remove product?")) await updateDoc(doc(firestore!, 'products', p.id), { isDeleted: true }); }} className="h-10 w-10 text-red-500 hover:bg-red-50 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={async () => { if(confirm("Remove product?")) await updateDoc(doc(firestore!, 'products', p.id), { isDeleted: true, updatedAt: serverTimestamp() }); toast({title: 'Removed Permanently'}); }} className="h-10 w-10 text-red-500 hover:bg-red-50 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
