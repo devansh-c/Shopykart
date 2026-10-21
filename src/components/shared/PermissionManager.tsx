@@ -7,6 +7,7 @@ import { requestPushToken, syncTokenToFirestore } from '@/firebase/messaging';
 /**
  * @fileOverview Permission Manager - Manages Notifications & FCM registration.
  * FINAL FIX: Uses 'order_alert' (no extension) for Android resource matching.
+ * High Importance Level 5 to bypass silent modes.
  */
 export default function PermissionManager() {
   const { user } = useUser();
@@ -44,32 +45,31 @@ export default function PermissionManager() {
               // CREATE LOUD CHANNEL (Standard Android Name Mapping)
               const channelConfig = {
                 id: 'new_order_channel',
-                name: 'Critical Order Alerts',
-                description: 'Loud sound for new orders',
+                name: 'Loud Business Alerts',
+                description: 'Critical sound for new orders',
                 sound: 'order_alert', // Strictly matching res/raw/order_alert.mp3
-                importance: 5,
-                visibility: 1,
+                importance: 5, // MAX importance for sound override
+                visibility: 1, // Visible on lockscreen
                 vibration: true,
               };
 
+              // Register on both modules
               await PushNotifications.createChannel(channelConfig);
               await LocalNotifications.createChannel(channelConfig);
               
-              console.log('High Importance Channel Active');
+              console.log('Loud Channel Ready');
 
-              // THE BRIDGE: Intercept Foreground Push and Play Sound
+              // Intercept and Force Ringing
               await PushNotifications.addListener('pushNotificationReceived', async (notification) => {
-                console.log('Loud Alert Triggered:', notification);
-                
                 await LocalNotifications.schedule({
                   notifications: [
                     {
                       title: notification.title || '🚨 NEW ORDER!',
-                      body: notification.body || 'Check your dashboard now.',
+                      body: notification.body || 'Open dashboard now.',
                       id: Math.floor(Date.now() % 100000),
                       channelId: 'new_order_channel',
                       smallIcon: 'ic_stat_notification',
-                      sound: 'order_alert', // No extension for Android
+                      sound: 'order_alert',
                       extra: notification.data
                     }
                   ]
@@ -77,7 +77,7 @@ export default function PermissionManager() {
               });
 
             } catch (err) {
-              console.error('Channel creation error:', err);
+              console.error('Channel error:', err);
             }
           }
 
@@ -124,11 +124,11 @@ export async function scheduleTestNotification() {
       notifications: [
         {
           title: "🚨 LOUD ALERT TEST",
-          body: "Verification: Ringing is active!",
+          body: "Verification: Ringing should be active!",
           id: 8888,
           schedule: { at: new Date(Date.now() + 10000) },
           channelId: 'new_order_channel',
-          sound: 'order_alert', // Correct resource name
+          sound: 'order_alert',
           extra: { test: true }
         }
       ]

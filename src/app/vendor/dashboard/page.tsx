@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -40,7 +39,9 @@ import {
   Percent,
   Ticket,
   BellRing,
-  Zap
+  Zap,
+  Camera,
+  History
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -58,6 +59,8 @@ import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 import { compressImage } from '@/lib/image-utils';
 import { scheduleTestNotification } from '@/components/shared/PermissionManager';
 
+type MainTab = 'orders' | 'catalog' | 'coupons' | 'payouts' | 'account';
+
 export default function VendorDashboard() {
   const firestore = useFirestore();
   const auth = useAuth();
@@ -65,9 +68,10 @@ export default function VendorDashboard() {
   const { toast } = useToast();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const storeImageInputRef = useRef<HTMLInputElement>(null);
   const [isPending, startTransition] = useTransition();
   
-  const [activeMainTab, setActiveMainTab] = useState<'orders' | 'catalog' | 'coupons' | 'account'>('orders');
+  const [activeMainTab, setActiveMainTab] = useState<MainTab>('orders');
   const [isMounted, setIsMounted] = useState(false);
   const [isSavingProduct, setIsSavingProduct] = useState(false);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
@@ -77,14 +81,7 @@ export default function VendorDashboard() {
     name: '', price: '', mrp: '', description: '', category: '', imageUrl: '', preparingTime: ''
   });
 
-  const [isKYCOpen, setIsKYCOpen] = useState(false);
-  const [isSavingKYC, setIsSavingKYC] = useState(false);
-  const [kycForm, setKycForm] = useState({
-    accountHolderName: '',
-    accountNumber: '',
-    confirmAccountNumber: '',
-    ifscCode: ''
-  });
+  const [isUpdatingStoreImage, setIsUpdatingStoreImage] = useState(false);
 
   // Announcement State
   const [announcement, setAnnouncement] = useState('');
@@ -138,6 +135,12 @@ export default function VendorDashboard() {
     return query(collection(firestore, 'products'), where('vendorId', '==', user.uid));
   }, [firestore, user]);
   const { data: myProducts } = useCollection<any>(productsQuery);
+
+  const payoutHistoryQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, 'vendors', user.uid, 'payout_history'), orderBy('date', 'desc'), limit(50));
+  }, [firestore, user]);
+  const { data: payoutHistory } = useCollection<any>(payoutHistoryQuery);
 
   const ordersQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -212,11 +215,109 @@ export default function VendorDashboard() {
     }
   };
 
+  const handleStoreImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      setIsUpdatingStoreImage(true);
+      try {
+        const compressed = await compressImage(reader.result as string, 600, 600);
+        if (firestore && user) {
+          await updateDoc(doc(firestore, 'vendors', user.uid), { 
+            imageUrl: compressed,
+            updatedAt: serverTimestamp()
+          });
+          toast({ title: "Store Logo Updated!" });
+        }
+      } catch (err) {
+        toast({ variant: "destructive", title: "Update Failed" });
+      } finally {
+        setIsUpdatingStoreImage(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleProductImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const compressed = await compressImage(reader.result as string, 600, 600);
+      setProductForm(prev => ({ ...prev, imageUrl: compressed }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleAddOption = () => {
+    setOptions([...options, { name: '', price: 0 }]);
+  };
+
+  const handleRemoveOption = (index: number) => {
+    setOptions(options.filter((_, i) => i !== index));
+  };
+
+  const updateOption = (index: number, field: string, value: any) => {
+    const newOptions = [...options];
+    (newOptions[index] as any)[field] = field === 'price' ? parseFloat(value) || 0 : value;
+    setOptions(newOptions);
+  };
+
+  const handleSaveProduct = async () => {
+    if (!firestore || !user || !productForm.name || !productForm.price || !productForm.category) {
+      toast({ variant: "destructive", title: "Missing Information" });
+      return;
+    }
+
+    setIsSavingProduct(true);
+    const pData = {
+      name: productForm.name.trim(),
+      price: parseFloat(productForm.price),
+      mrp: parseFloat(productForm.mrp) || parseFloat(productForm.price),
+      description: productForm.description.trim(),
+      category: productForm.category.toLowerCase().trim(),
+      preparingTime: parseInt(productForm.preparingTime) || 15,
+      vendorId: user.uid,
+      restaurantName: vendorProfile?.storeName || 'Store',
+      serviceMode: vendorProfile?.category || 'Food',
+      zoneId: vendorProfile?.zoneId || null,
+      town: vendorProfile?.town || 'Local',
+      imageUrl: productForm.imageUrl || 'https://picsum.photos/seed/product/400/400',
+      isAvailable: true,
+      options: options.filter(opt => opt.name.trim() !== ''),
+      isVarietyRequired: isVarietyRequired,
+      isVeg: true, 
+      updatedAt: serverTimestamp(),
+      isDeleted: false,
+    };
+
+    try {
+      const newRef = doc(collection(firestore, 'products'));
+      await setDoc(newRef, { ...pData, id: newRef.id, createdAt: serverTimestamp() });
+      await setDoc(doc(firestore, 'vendors', user.uid, 'products', newRef.id), { ...pData, id: newRef.id, createdAt: serverTimestamp() });
+      
+      setIsProductModalOpen(false);
+      resetProductForm();
+      toast({ title: "Product Added!" });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Save Failed" });
+    } finally {
+      setIsSavingProduct(false);
+    }
+  };
+
+  const resetProductForm = () => {
+    setProductForm({ name: '', price: '', mrp: '', description: '', category: '', imageUrl: '', preparingTime: '' });
+    setOptions([]);
+    setIsVarietyRequired(false);
+  };
+
   const handleTestAlert = async () => {
     setIsTesting(true);
     toast({ 
-      title: "Alert Check! ⏱️", 
-      description: "Minimize app now. Sound will play in 10s." 
+      title: "Sound Test! 🔊", 
+      description: "App band kardo, 10s baad ghanti bajegi." 
     });
     
     const success = await scheduleTestNotification();
@@ -260,7 +361,6 @@ export default function VendorDashboard() {
       <main className={cn("flex-1 overflow-y-auto no-scrollbar pb-32 transition-opacity", isPending ? "opacity-50" : "opacity-100")}>
         {activeMainTab === 'orders' && (
            <div className="p-4 space-y-4">
-              {/* ALERT DEBUGGER FOR VENDORS */}
               <div className="bg-[#0B0B0B] p-6 rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden text-white mb-2">
                  <div className="relative z-10 flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
@@ -362,6 +462,87 @@ export default function VendorDashboard() {
            </div>
         )}
 
+        {activeMainTab === 'catalog' && (
+          <div className="p-4 space-y-4">
+             <div className="flex items-center justify-between mb-2">
+                <h2 className="text-xl font-black italic uppercase tracking-tighter">My Inventory</h2>
+                <Dialog open={isProductModalOpen} onOpenChange={(val) => { setIsProductModalOpen(val); if(!val) resetProductForm(); }}>
+                   <DialogTrigger asChild>
+                     <Button className="bg-primary rounded-xl h-10 font-black uppercase text-[10px] tracking-widest"><Plus className="h-3.5 w-3.5 mr-1" /> ADD ITEM</Button>
+                   </DialogTrigger>
+                   <DialogContent className="rounded-[2.5rem] max-w-md max-h-[85vh] overflow-y-auto no-scrollbar focus:outline-none p-0">
+                      <DialogHeader className="p-6 border-b"><DialogTitle className="font-black italic uppercase text-center">New Product Entry</DialogTitle></DialogHeader>
+                      <div className="p-8 space-y-6">
+                         <div onClick={() => fileInputRef.current?.click()} className="h-40 border-2 border-dashed rounded-[2rem] flex flex-col items-center justify-center bg-muted/20 cursor-pointer overflow-hidden group">
+                            {productForm.imageUrl ? <img src={productForm.imageUrl} className="h-full w-full object-cover" /> : <div className="flex flex-col items-center gap-2"><ImageIcon className="h-8 w-8 opacity-20" /><span className="text-[10px] font-black uppercase text-muted-foreground">Product Photo</span></div>}
+                         </div>
+                         <input type="file" ref={fileInputRef} className="hidden" onChange={handleProductImageSelect} />
+                         
+                         <div className="space-y-4">
+                            <Input placeholder="Product Name" value={productForm.name} onChange={e => setProductForm({...productForm, name: e.target.value})} className="h-12 rounded-xl font-bold bg-muted/20 border-none" />
+                            <div className="grid grid-cols-2 gap-4">
+                              <Input placeholder="MRP ₹" type="number" value={productForm.mrp} onChange={e => setProductForm({...productForm, mrp: e.target.value})} className="h-12 rounded-xl bg-muted/20 border-none" />
+                              <Input placeholder="Selling Price ₹" type="number" value={productForm.price} onChange={e => setProductForm({...productForm, price: e.target.value})} className="h-12 rounded-xl border-primary/40 font-bold" />
+                            </div>
+                            <Textarea placeholder="Description / Features" value={productForm.description} onChange={e => setProductForm({...productForm, description: e.target.value})} className="rounded-xl h-24 bg-muted/20 border-none p-4" />
+                            
+                            <div className="grid grid-cols-2 gap-4">
+                               <div className="space-y-1">
+                                  <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Category</label>
+                                  <Select value={productForm.category} onValueChange={(val) => setProductForm({...productForm, category: val})}>
+                                    <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold">
+                                      <SelectValue placeholder="Select" />
+                                    </SelectTrigger>
+                                    <SelectContent className="rounded-2xl">
+                                      {foodCategories?.map((cat: any) => (
+                                        <SelectItem key={cat.id} value={cat.name.toLowerCase()} className="font-bold py-3 uppercase text-xs">
+                                          {cat.name}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                               </div>
+                               <div className="space-y-1">
+                                  <label className="text-[9px] font-black uppercase text-primary ml-1">Prep Time (Min)</label>
+                                  <div className="relative">
+                                     <Timer className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/40" />
+                                     <Input type="number" placeholder="15" value={productForm.preparingTime} onChange={e => setProductForm({...productForm, preparingTime: e.target.value})} className="h-12 rounded-xl bg-primary/5 border-none pl-9 font-bold" />
+                                  </div>
+                               </div>
+                            </div>
+                         </div>
+                         <Button onClick={handleSaveProduct} disabled={isSavingProduct} className="w-full h-16 bg-primary text-white rounded-[2rem] font-black uppercase italic shadow-xl">
+                           {isSavingProduct ? <Loader2 className="h-5 w-5 animate-spin" /> : 'PUBLISH ITEM'}
+                         </Button>
+                      </div>
+                   </DialogContent>
+                </Dialog>
+             </div>
+             
+             <div className="grid grid-cols-1 gap-4">
+                {myProducts?.filter(p => !p.isDeleted)?.map(p => (
+                  <div key={p.id} className="bg-white p-4 rounded-3xl border border-border/50 flex items-center justify-between shadow-sm group">
+                    <div className="flex items-center gap-4">
+                      <img src={p.imageUrl} className="h-16 w-16 rounded-xl object-cover bg-muted" alt="" />
+                      <div>
+                        <h4 className="font-black text-sm uppercase italic leading-none mb-1">{p.name}</h4>
+                        <div className="flex items-center gap-2">
+                           <p className="text-xs font-black text-primary italic">₹{p.price}</p>
+                           <Badge className="bg-gray-100 text-gray-500 text-[7px] font-black border-none uppercase px-1.5">
+                             <Timer className="h-2 w-2 mr-1" />{p.preparingTime || 15}m
+                           </Badge>
+                        </div>
+                      </div>
+                    </div>
+                    <button onClick={async () => { if(confirm("Remove product?")) await updateDoc(doc(firestore!, 'products', p.id), { isDeleted: true }); }} className="h-10 w-10 text-red-500 hover:bg-red-50 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+             </div>
+          </div>
+        )}
+
         {activeMainTab === 'coupons' && (
            <div className="p-4 space-y-6">
               <div className="flex items-center justify-between mb-2">
@@ -390,18 +571,119 @@ export default function VendorDashboard() {
               </div>
            </div>
         )}
+
+        {activeMainTab === 'payouts' && (
+           <div className="p-4 space-y-6 animate-in fade-in duration-500">
+              <h2 className="text-xl font-black italic uppercase ml-2 mt-2">Earnings & Payouts</h2>
+              
+              <div className="bg-[#0B0B0B] p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden">
+                 <div className="relative z-10 space-y-6">
+                    <div>
+                       <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">Current Balance</span>
+                       <div className="text-5xl font-black italic tracking-tighter text-primary mt-1">₹{vendorProfile?.walletBalance?.toFixed(2) || '0.00'}</div>
+                    </div>
+                    <div className="bg-white/5 p-4 rounded-2xl border border-white/10 flex items-center gap-3">
+                       <ShieldCheck className="h-5 w-5 text-green-500" />
+                       <p className="text-[9px] font-bold text-gray-400 uppercase leading-tight">
+                         Settlements are processed automatically to your linked bank account every Monday.
+                       </p>
+                    </div>
+                 </div>
+                 <div className="absolute top-0 right-0 h-full w-40 bg-white/5 -skew-x-12 translate-x-12 pointer-events-none" />
+              </div>
+
+              <div className="space-y-4">
+                 <h3 className="text-[10px] font-black uppercase text-muted-foreground ml-2 tracking-widest">Payout History</h3>
+                 {payoutHistory && payoutHistory.length > 0 ? payoutHistory.map((p: any) => (
+                   <div key={p.id} className="bg-white p-5 rounded-3xl border border-border/50 shadow-sm flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                         <div className="h-12 w-12 bg-green-50 rounded-2xl flex items-center justify-center text-green-600"><Banknote className="h-6 w-6" /></div>
+                         <div>
+                            <h4 className="font-black text-sm uppercase italic leading-none mb-1">₹{p.amount?.toFixed(2)}</h4>
+                            <p className="text-[8px] font-bold text-muted-foreground uppercase">{format(new Date(p.date?.seconds * 1000 || Date.now()), 'MMM d, h:mm a')}</p>
+                         </div>
+                      </div>
+                      <Badge className="bg-green-100 text-green-700 border-none font-black text-[7px] uppercase px-2">{p.status || 'Success'}</Badge>
+                   </div>
+                 )) : (
+                   <div className="text-center py-20 opacity-20 flex flex-col items-center">
+                      <History className="h-10 w-10 mb-2" />
+                      <p className="font-black uppercase text-[10px]">No payout records yet.</p>
+                   </div>
+                 )}
+              </div>
+           </div>
+        )}
+
+        {activeMainTab === 'account' && (
+          <div className="p-4 pt-0 space-y-6 animate-in fade-in duration-500">
+              <div className="flex flex-col items-center py-8">
+                <div className="relative group">
+                  <div className="h-32 w-32 rounded-[2.5rem] border-4 border-white shadow-2xl overflow-hidden bg-muted flex items-center justify-center relative">
+                    {vendorProfile?.imageUrl ? (
+                      <img src={vendorProfile.imageUrl} className="h-full w-full object-cover" alt="" />
+                    ) : (
+                      <Store className="h-12 w-12 text-gray-300" />
+                    )}
+                    {isUpdatingStoreImage && (
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                        <Loader2 className="h-6 w-6 animate-spin text-white" />
+                      </div>
+                    )}
+                  </div>
+                  <button 
+                    onClick={() => storeImageInputRef.current?.click()}
+                    className="absolute bottom-[-10px] right-[-10px] bg-white p-3 rounded-2xl shadow-xl border border-border text-primary active:scale-90 transition-all"
+                  >
+                    <Camera className="h-5 w-5" />
+                  </button>
+                  <input 
+                    type="file" 
+                    ref={storeImageInputRef} 
+                    className="hidden" 
+                    accept="image/*" 
+                    onChange={handleStoreImageSelect} 
+                  />
+                </div>
+                <h2 className="text-2xl font-black italic mt-6 uppercase tracking-tighter">{vendorProfile?.storeName}</h2>
+                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">{vendorProfile?.category} Partner • {vendorProfile?.town}</p>
+              </div>
+              
+              <div className="bg-white p-8 rounded-[2.5rem] border border-border/50 shadow-sm space-y-5">
+                 <div className="space-y-4">
+                    <div className="flex items-center gap-4 pb-4 border-b border-gray-50">
+                       <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary"><User className="h-5 w-5" /></div>
+                       <div>
+                          <p className="text-[7px] font-black text-gray-400 uppercase tracking-widest">Store Manager</p>
+                          <p className="text-sm font-black uppercase italic">{vendorProfile?.fullName}</p>
+                       </div>
+                    </div>
+                    <div className="flex items-center gap-4 pb-4 border-b border-gray-50">
+                       <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary"><CreditCard className="h-5 w-5" /></div>
+                       <div>
+                          <p className="text-[7px] font-black text-gray-400 uppercase tracking-widest">Vendor ID</p>
+                          <p className="text-sm font-black uppercase">{vendorProfile?.storeId}</p>
+                       </div>
+                    </div>
+                 </div>
+
+                 <Button onClick={() => { localStorage.removeItem('shopykart_session_active'); signOut(auth!); router.push('/'); }} variant="ghost" className="w-full h-14 text-red-500 font-black uppercase text-[10px] tracking-widest border border-red-50 rounded-2xl hover:bg-red-50 mt-4"><LogOut className="h-4 w-4 mr-2" /> DISCONNECT</Button>
+              </div>
+          </div>
+        )}
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto w-full bg-[#0F172A] pt-4 pb-8 px-6 flex justify-around border-t border-white/5 z-50 rounded-t-[2.5rem] shadow-2xl">
+      <nav className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto w-full bg-[#0F172A] pt-4 pb-8 px-4 flex justify-around border-t border-white/5 z-50 rounded-t-[2.5rem] shadow-2xl">
         {[
           {id:'orders',label:'Orders',icon:LayoutDashboard},
           {id:'catalog',label:'Catalog',icon:Layers},
           {id:'coupons',label:'Offers',icon:Tag},
+          {id:'payouts',label:'Payouts',icon:CircleDollarSign},
           {id:'account',label:'Profile',icon:UserCircle2}
         ].map(item => (
-          <button key={item.id} onClick={() => setActiveMainTab(item.id as any)} className="flex flex-col items-center gap-1.5 active:scale-90 transition-none">
+          <button key={item.id} onClick={() => setActiveMainTab(item.id as MainTab)} className="flex flex-col items-center gap-1.5 active:scale-90 transition-none">
             <item.icon className={cn("h-5 w-5", activeMainTab === item.id ? "text-primary scale-110" : "text-gray-500")} />
-            <span className={cn("text-[9px] font-black uppercase tracking-widest", activeMainTab === item.id ? "text-white" : "text-gray-500")}>{item.label}</span>
+            <span className={cn("text-[8px] font-black uppercase tracking-widest", activeMainTab === item.id ? "text-white" : "text-gray-500")}>{item.label}</span>
           </button>
         ))}
       </nav>
