@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useRef } from 'react';
@@ -5,9 +6,8 @@ import { useUser, useFirestore } from '@/firebase';
 import { requestPushToken, syncTokenToFirestore } from '@/firebase/messaging';
 
 /**
- * @fileOverview Permission Manager - Manages Notifications & FCM registration.
- * FINAL FIX: Uses 'order_alert' (no extension) for Android resource matching.
- * High Importance Level 5 to bypass silent modes.
+ * @fileOverview Permission Manager - Handles Native Ringing via System Notifications.
+ * Ensures the 'order_alert' sound plays through the system alert tray.
  */
 export default function PermissionManager() {
   const { user } = useUser();
@@ -36,50 +36,36 @@ export default function PermissionManager() {
           const { PushNotifications } = await import('@capacitor/push-notifications');
           const { LocalNotifications } = await import('@capacitor/local-notifications');
 
-          const isAdmin = process.env.NEXT_PUBLIC_ADMIN_APP === 'true';
-          const isBiz = process.env.NEXT_PUBLIC_BIZ_APP === 'true';
-          const isTow = process.env.NEXT_PUBLIC_TOW_APP === 'true';
+          // CREATE LOUD CHANNEL (Bypasses system quiet modes)
+          const channelConfig = {
+            id: 'new_order_channel',
+            name: 'High Priority Alerts',
+            description: 'Sound for store and fleet orders',
+            sound: 'order_alert', // Must exist in res/raw/order_alert.mp3
+            importance: 5,
+            visibility: 1,
+            vibration: true,
+          };
 
-          if (isAdmin || isBiz || isTow) {
-            try {
-              // CREATE LOUD CHANNEL (Standard Android Name Mapping)
-              const channelConfig = {
-                id: 'new_order_channel',
-                name: 'Loud Business Alerts',
-                description: 'Critical sound for new orders',
-                sound: 'order_alert', // Strictly matching res/raw/order_alert.mp3
-                importance: 5, // MAX importance for sound override
-                visibility: 1, // Visible on lockscreen
-                vibration: true,
-              };
+          await PushNotifications.createChannel(channelConfig);
+          await LocalNotifications.createChannel(channelConfig);
 
-              // Register on both modules
-              await PushNotifications.createChannel(channelConfig);
-              await LocalNotifications.createChannel(channelConfig);
-              
-              console.log('Loud Channel Ready');
-
-              // Intercept and Force Ringing
-              await PushNotifications.addListener('pushNotificationReceived', async (notification) => {
-                await LocalNotifications.schedule({
-                  notifications: [
-                    {
-                      title: notification.title || '🚨 NEW ORDER!',
-                      body: notification.body || 'Open dashboard now.',
-                      id: Math.floor(Date.now() % 100000),
-                      channelId: 'new_order_channel',
-                      smallIcon: 'ic_stat_notification',
-                      sound: 'order_alert',
-                      extra: notification.data
-                    }
-                  ]
-                });
-              });
-
-            } catch (err) {
-              console.error('Channel error:', err);
-            }
-          }
+          // FORWARD PUSH TO SYSTEM TRAY WITH SOUND
+          await PushNotifications.addListener('pushNotificationReceived', async (notification) => {
+            await LocalNotifications.schedule({
+              notifications: [
+                {
+                  title: notification.title || '🚨 SHOPYKART ALERT',
+                  body: notification.body || 'Check your dashboard now.',
+                  id: Math.floor(Date.now() % 100000),
+                  channelId: 'new_order_channel',
+                  smallIcon: 'ic_stat_notification',
+                  sound: 'order_alert',
+                  extra: notification.data
+                }
+              ]
+            });
+          });
 
           PushNotifications.addListener('registration', async (token) => {
             localStorage.setItem('shopykart_fcm_token', token.value);
@@ -106,7 +92,7 @@ export default function PermissionManager() {
         }
 
       } catch (err) {
-        console.error("Native setup failed:", err);
+        console.error("Native notification setup failed:", err);
       }
     };
 
@@ -123,8 +109,8 @@ export async function scheduleTestNotification() {
     await LocalNotifications.schedule({
       notifications: [
         {
-          title: "🚨 LOUD ALERT TEST",
-          body: "Verification: Ringing should be active!",
+          title: "🚨 LOUD SYSTEM ALERT",
+          body: "This sound comes from the System Tray!",
           id: 8888,
           schedule: { at: new Date(Date.now() + 10000) },
           channelId: 'new_order_channel',

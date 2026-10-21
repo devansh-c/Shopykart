@@ -1,20 +1,19 @@
 
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useUser, useFirestore } from '@/firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 
 /**
- * @fileOverview Global Notification Handler - Handles targeted ringing for Store and Fleet.
- * Rings until the specific condition (Acceptance/Processing) is met.
+ * @fileOverview Visual Notification Handler.
+ * Only handles the UI overlay. Audio ringing is handled by Native Push Notifications.
  */
 export default function NotificationHandler() {
   const { user } = useUser();
   const firestore = useFirestore();
   
   const [ringingOrders, setRingingOrders] = useState<any[]>([]);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const isStoreApp = process.env.NEXT_PUBLIC_BIZ_APP === 'true' || process.env.NEXT_PUBLIC_ADMIN_APP === 'true';
   const isFleetApp = process.env.NEXT_PUBLIC_TOW_APP === 'true';
@@ -24,10 +23,8 @@ export default function NotificationHandler() {
 
     let q;
     if (isStoreApp) {
-      // Listen for orders placed for THIS specific vendor
       q = query(collection(firestore, 'orders'), where('status', '==', 'Placed'));
     } else if (isFleetApp) {
-      // Listen for orders ready for pickup that haven't been assigned yet
       q = query(collection(firestore, 'orders'), where('status', '==', 'Ready for Pickup'));
     } else {
       return;
@@ -39,36 +36,17 @@ export default function NotificationHandler() {
       let filteredActive = [];
       
       if (isStoreApp) {
-        // Filter: Ring only if the order belongs to THIS vendor
         filteredActive = active.filter(o => String(o.vendorId) === String(user.uid) || (Array.isArray(o.vendorIds) && o.vendorIds.includes(user.uid)));
       } else if (isFleetApp) {
-        // Filter: Ring if order is unassigned and not dismissed locally
         const dismissed = JSON.parse(localStorage.getItem('fleet_dismissed_tasks') || '[]');
         filteredActive = active.filter(o => !o.deliveryPartnerId && !dismissed.includes(o.id));
       }
 
-      handleRinging(filteredActive);
+      setRingingOrders(filteredActive);
     });
 
     return () => unsub();
   }, [firestore, user, isStoreApp, isFleetApp]);
-
-  const handleRinging = (active: any[]) => {
-    setRingingOrders(active);
-    if (active.length > 0) {
-      if (!audioRef.current) {
-        // High quality continuous loop sound
-        audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/1356/1356-preview.mp3');
-        audioRef.current.loop = true;
-      }
-      audioRef.current.play().catch(() => {
-        console.log("Interaction required for audio.");
-      });
-    } else if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-    }
-  };
 
   const handleDismissAlert = (orderId?: string) => {
     if (isFleetApp && orderId) {
@@ -76,10 +54,6 @@ export default function NotificationHandler() {
       localStorage.setItem('fleet_dismissed_tasks', JSON.stringify([...dismissed, orderId]));
     }
     setRingingOrders([]);
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-    }
   };
 
   if (ringingOrders.length === 0) return null;
