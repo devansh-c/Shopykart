@@ -6,21 +6,15 @@ import { usePathname } from 'next/navigation';
 
 /**
  * @fileOverview Tawk.to visibility control with Deployed App Position Fix.
- * FORCE FIX: Set yOffset directly in script to ensure it clears the floating Bottom Nav.
- * Updated: Lowered yOffset slightly as requested by user.
+ * Fixed: Resolved [Tawk/Logger] errors by streamlining initialization.
  */
 export function TawkChat() {
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
   const [isTawkReady, setIsTawkReady] = useState(false);
-  const lastStateRef = useRef<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
-    (window as any).onTawkLoadSignal = () => {
-      setIsTawkReady(true);
-    };
-    return () => { delete (window as any).onTawkLoadSignal; };
   }, []);
 
   useEffect(() => {
@@ -41,47 +35,49 @@ export function TawkChat() {
 
     const locationSet = localStorage.getItem('user_location_set') === 'true';
     const shouldShow = !isRestrictedRoute && locationSet;
-    const newState = shouldShow ? 'show' : 'hide';
 
-    if (lastStateRef.current !== newState) {
-      const timer = setTimeout(() => {
-        try {
-          if (shouldShow) tawk.show();
-          else tawk.hide();
-          lastStateRef.current = newState;
-        } catch (e) {}
-      }, 500); 
-      return () => clearTimeout(timer);
-    }
+    // Use a small timeout to ensure the widget is ready to accept commands
+    const timer = setTimeout(() => {
+      try {
+        if (shouldShow) {
+          tawk.show();
+        } else {
+          tawk.hide();
+        }
+      } catch (e) {}
+    }, 1000);
+
+    return () => clearTimeout(timer);
   }, [pathname, mounted, isTawkReady]);
 
+  if (!mounted) return null;
+
   return (
-    <Script id="tawk-setup" strategy="afterInteractive">
-      {`
-        var Tawk_API = Tawk_API || {}, Tawk_LoadStart = new Date();
-        
-        // FORCE POSITION BEFORE LOAD - Optimized for Bottom Nav
-        Tawk_API.customStyle = {
-          visibility: {
-            desktop: { xOffset: 20, yOffset: 40 },
-            mobile: { xOffset: 20, yOffset: 90 } 
-          }
-        };
-
-        Tawk_API.onLoad = function() {
-          if (window.onTawkLoadSignal) window.onTawkLoadSignal();
-        };
-
-        (function() {
-          var s1 = document.createElement("script"),
-              s0 = document.getElementsByTagName("script")[0];
-          s1.async = true;
-          s1.src = 'https://embed.tawk.to/6a32055016fcef1d436f9f9d/default';
-          s1.charset = 'UTF-8';
-          s1.setAttribute('crossorigin', '*');
-          s0.parentNode.insertBefore(s1, s0);
-        })();
-      `}
-    </Script>
+    <>
+      <Script
+        id="tawk-init"
+        strategy="afterInteractive"
+        dangerouslySetInnerHTML={{
+          __html: `
+            var Tawk_API = Tawk_API || {};
+            Tawk_LoadStart = new Date();
+            Tawk_API.customStyle = {
+              visibility: {
+                desktop: { xOffset: 20, yOffset: 40 },
+                mobile: { xOffset: 20, yOffset: 90 }
+              }
+            };
+          `,
+        }}
+      />
+      <Script
+        id="tawk-script"
+        strategy="afterInteractive"
+        src="https://embed.tawk.to/6a32055016fcef1d436f9f9d/default"
+        onLoad={() => {
+          setIsTawkReady(true);
+        }}
+      />
+    </>
   );
 }
