@@ -25,6 +25,7 @@ import {
   Save,
   ShieldCheck,
   CreditCard,
+  Banknote,
   Timer,
   ListTree,
   StickyNote,
@@ -37,7 +38,9 @@ import {
   Megaphone,
   Tag,
   Percent,
-  Ticket
+  Ticket,
+  BellRing,
+  Zap
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -53,6 +56,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { format } from 'date-fns';
 import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 import { compressImage } from '@/lib/image-utils';
+import { scheduleTestNotification } from '@/components/shared/PermissionManager';
 
 export default function VendorDashboard() {
   const firestore = useFirestore();
@@ -91,6 +95,7 @@ export default function VendorDashboard() {
   const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
   const [couponForm, setCouponForm] = useState({ code: '', value: '', type: 'percentage', minOrder: '0' });
   const [isSavingCoupon, setIsSavingCoupon] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
 
   useEffect(() => { setIsMounted(true); }, []);
 
@@ -207,6 +212,20 @@ export default function VendorDashboard() {
     }
   };
 
+  const handleTestAlert = async () => {
+    setIsTesting(true);
+    toast({ 
+      title: "Alert Check! ⏱️", 
+      description: "Minimize app now. Sound will play in 10s." 
+    });
+    
+    const success = await scheduleTestNotification();
+    if (!success) {
+      toast({ variant: "destructive", title: "Test Failed", description: "Capacitor needed." });
+    }
+    setTimeout(() => setIsTesting(false), 5000);
+  };
+
   if (!isMounted || authLoading || (profileLoading && !vendorProfile) || (!user && !authLoading)) {
     return (
       <div className="h-screen bg-white flex flex-col items-center justify-center gap-4">
@@ -241,6 +260,28 @@ export default function VendorDashboard() {
       <main className={cn("flex-1 overflow-y-auto no-scrollbar pb-32 transition-opacity", isPending ? "opacity-50" : "opacity-100")}>
         {activeMainTab === 'orders' && (
            <div className="p-4 space-y-4">
+              {/* ALERT DEBUGGER FOR VENDORS */}
+              <div className="bg-[#0B0B0B] p-6 rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden text-white mb-2">
+                 <div className="relative z-10 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                       <div className="h-12 w-12 bg-primary/20 rounded-xl flex items-center justify-center text-primary border border-primary/20">
+                          <BellRing className="h-6 w-6 animate-ring" />
+                       </div>
+                       <div>
+                          <h2 className="text-sm font-black italic uppercase">Sound Check</h2>
+                          <p className="text-[7px] font-bold text-gray-500 uppercase tracking-widest">Test if phone rings when app is closed</p>
+                       </div>
+                    </div>
+                    <Button 
+                      onClick={handleTestAlert}
+                      disabled={isTesting}
+                      className="h-10 px-4 bg-primary hover:bg-white hover:text-black text-white rounded-xl font-black uppercase italic text-[8px] tracking-widest shadow-xl active:scale-95 transition-all"
+                    >
+                      {isTesting ? "Wait 10s" : "TEST ALERT"}
+                    </Button>
+                 </div>
+              </div>
+
               <div className="bg-white p-6 rounded-[2rem] border border-border shadow-sm space-y-4">
                  <div className="flex items-center gap-3">
                     <Megaphone className="h-5 w-5 text-primary" />

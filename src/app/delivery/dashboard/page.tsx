@@ -26,7 +26,9 @@ import {
   Bike,
   ShieldAlert,
   ListTree,
-  AlertCircle
+  AlertCircle,
+  BellRing,
+  Zap
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -40,6 +42,7 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { scheduleTestNotification } from '@/components/shared/PermissionManager';
 
 const OrderCard = memo(({ order, onUpdate, type, userData, onPass }: any) => {
   const [pickupCode, setPickupCode] = useState('');
@@ -178,6 +181,7 @@ export default function DeliveryDashboard() {
   const [activeTab, setActiveTab] = useState<'tasks' | 'history' | 'profile'>('tasks');
   const [isMounted, setIsMounted] = useState(false);
   const [dismissedTasks, setDismissedTasks] = useState<string[]>([]);
+  const [isTesting, setIsTesting] = useState(false);
 
   useEffect(() => { 
     setIsMounted(true); 
@@ -229,6 +233,20 @@ export default function DeliveryDashboard() {
     toast({ title: "Task Dismissed" });
   };
 
+  const handleTestAlert = async () => {
+    setIsTesting(true);
+    toast({ 
+      title: "Ringing Check! 📱", 
+      description: "App band kardo. Ghanti 10s me bajegi." 
+    });
+    
+    const success = await scheduleTestNotification();
+    if (!success) {
+      toast({ variant: "destructive", title: "Setup Needed", description: "Grant permissions first." });
+    }
+    setTimeout(() => setIsTesting(false), 5000);
+  };
+
   if (!isMounted || authLoading || profileLoading || (!user && !authLoading)) {
     return <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-4"><Loader2 className="h-10 w-10 animate-spin text-primary" /><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">AUTHENTICATING Fleet...</p></div>;
   }
@@ -246,6 +264,28 @@ export default function DeliveryDashboard() {
       <main className="flex-1 pb-32 overflow-y-auto no-scrollbar">
          {activeTab === 'tasks' && (
            <div className="p-4 space-y-6">
+              {/* ALERT DEBUGGER FOR FLEET */}
+              <div className="bg-[#0B0B0B] p-6 rounded-[2.5rem] border border-white/10 shadow-2xl relative overflow-hidden text-white mb-2">
+                 <div className="relative z-10 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                       <div className="h-12 w-12 bg-primary/20 rounded-xl flex items-center justify-center text-primary border border-primary/20">
+                          <BellRing className="h-6 w-6 animate-ring" />
+                       </div>
+                       <div>
+                          <h2 className="text-sm font-black italic uppercase">Ringer Test</h2>
+                          <p className="text-[7px] font-bold text-gray-500 uppercase tracking-widest">Enable loud alerts for new tasks</p>
+                       </div>
+                    </div>
+                    <Button 
+                      onClick={handleTestAlert}
+                      disabled={isTesting}
+                      className="h-10 px-4 bg-primary hover:bg-white hover:text-black text-white rounded-xl font-black uppercase italic text-[8px] tracking-widest shadow-xl active:scale-95 transition-all"
+                    >
+                      {isTesting ? "Wait..." : "TEST LOUD"}
+                    </Button>
+                 </div>
+              </div>
+
               <h2 className="text-2xl font-black italic uppercase tracking-tighter">Live Tasks</h2>
               <div className="space-y-6">
                 {taskOrders.length > 0 ? taskOrders.map((order) => (
