@@ -1,19 +1,20 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useUser, useFirestore } from '@/firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 
 /**
- * @fileOverview Visual Notification Handler.
- * Only handles the UI overlay. Audio ringing is handled by Native Push Notifications.
+ * @fileOverview Visual & Audio Notification Handler.
+ * Bridges Firestore events to Native System Notifications for loud ringing.
  */
 export default function NotificationHandler() {
   const { user } = useUser();
   const firestore = useFirestore();
-  
   const [ringingOrders, setRingingOrders] = useState<any[]>([]);
+  const lastProcessedOrderIds = useRef<Set<string>>(new Set());
+  const isInitialLoad = useRef(true);
 
   const isStoreApp = process.env.NEXT_PUBLIC_BIZ_APP === 'true' || process.env.NEXT_PUBLIC_ADMIN_APP === 'true';
   const isFleetApp = process.env.NEXT_PUBLIC_TOW_APP === 'true';
@@ -30,7 +31,7 @@ export default function NotificationHandler() {
       return;
     }
 
-    const unsub = onSnapshot(q, (snapshot) => {
+    const unsub = onSnapshot(q, async (snapshot) => {
       const active = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
       
       let filteredActive = [];
@@ -40,6 +41,39 @@ export default function NotificationHandler() {
       } else if (isFleetApp) {
         const dismissed = JSON.parse(localStorage.getItem('fleet_dismissed_tasks') || '[]');
         filteredActive = active.filter(o => !o.deliveryPartnerId && !dismissed.includes(o.id));
+      }
+
+      // CRITICAL: Prevent ringing for orders that were already there when app opened
+      if (isInitialLoad.current) {
+        filteredActive.forEach(o => lastProcessedOrderIds.current.add(o.id));
+        isInitialLoad.current = false;
+        return;
+      }
+
+      // Detect TRULY NEW orders to trigger LOUD system sound
+      for (const order of filteredActive) {
+        if (!lastProcessedOrderIds.current.has(order.id)) {
+          lastProcessedOrderIds.current.add(order.id);
+          
+          // TRIGGER SYSTEM NOTIFICATION WITH LOUD SOUND
+          try {
+            const { LocalNotifications } = await import('@capacitor/local-notifications');
+            await LocalNotifications.schedule({
+              notifications: [
+                {
+                  title: isStoreApp ? "🚨 NEW ORDER RECEIVED!" : "🛵 NEW PICKUP READY!",
+                  body: isStoreApp ? `Order #${order.customerOrderNumber} needs your attention.` : `New task available in your zone.`,
+                  id: Math.floor(Date.now() % 100000),
+                  channelId: 'new_order_channel',
+                  sound: 'order_alert', // Strictly matches res/raw/order_alert
+                  extra: { orderId: order.id }
+                }
+              ]
+            });
+          } catch (e) {
+            console.debug("Local Notification bridge skipped (Web Mode)");
+          }
+        }
       }
 
       setRingingOrders(filteredActive);
