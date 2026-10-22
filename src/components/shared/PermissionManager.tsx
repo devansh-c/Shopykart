@@ -40,13 +40,14 @@ export default function PermissionManager() {
           const channelConfig = {
             id: 'new_order_channel',
             name: 'High Priority Alerts',
-            description: 'Sound for store and fleet orders',
+            description: 'Loud sound for new orders and fleet tasks',
             sound: 'order_alert', // Must exist in res/raw/order_alert.mp3
-            importance: 5,
+            importance: 5, // MAX IMPORTANCE
             visibility: 1,
             vibration: true,
           };
 
+          // Reinforce channel every time to ensure sound is linked
           await PushNotifications.createChannel(channelConfig);
           await LocalNotifications.createChannel(channelConfig);
 
@@ -106,13 +107,24 @@ export default function PermissionManager() {
 export async function scheduleTestNotification() {
   try {
     const { LocalNotifications } = await import('@capacitor/local-notifications');
+    
+    // First, make sure channel exists
+    await LocalNotifications.createChannel({
+      id: 'new_order_channel',
+      name: 'High Priority Alerts',
+      sound: 'order_alert',
+      importance: 5,
+      visibility: 1,
+      vibration: true,
+    });
+
     await LocalNotifications.schedule({
       notifications: [
         {
           title: "🚨 LOUD SYSTEM ALERT",
-          body: "This sound comes from the System Tray!",
+          body: "Aapka phone background mein baj raha hai!",
           id: 8888,
-          schedule: { at: new Date(Date.now() + 10000) },
+          schedule: { at: new Date(Date.now() + 10000) }, // 10s delay
           channelId: 'new_order_channel',
           sound: 'order_alert',
           extra: { test: true }
