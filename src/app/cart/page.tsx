@@ -122,7 +122,6 @@ export default function CartPage() {
         if (totalPrice < (data.minOrderValue || 0)) {
           toast({ variant: "destructive", title: "Min Order Not Met" });
         } else {
-          // If store specific, check if at least one item from that store is in cart
           if (data.vendorId) {
             const hasStoreItem = cart.some(item => item.vendorId === data.vendorId);
             if (!hasStoreItem) {
@@ -145,7 +144,6 @@ export default function CartPage() {
     if (!appliedCoupon) return 0;
     
     let applicableTotal = totalPrice;
-    // If store specific, only apply discount to products from that vendor
     if (appliedCoupon.vendorId) {
        applicableTotal = cart
          .filter(item => item.vendorId === appliedCoupon.vendorId)
@@ -187,6 +185,9 @@ export default function CartPage() {
 
     setIsPlacing(true);
     try {
+      // CRITICAL: Extract all vendor IDs for the Notification System
+      const allVendorIds = Array.from(new Set(cart.map(item => String(item.vendorId)).filter(Boolean)));
+
       const orderData = {
         userId: user?.uid || 'guest_user',
         customerName: recipientForm.name,
@@ -196,6 +197,9 @@ export default function CartPage() {
         total: totalPayable,
         status: 'Placed',
         createdAt: serverTimestamp(),
+        // CRITICAL DATA FOR TARGETED RINGING:
+        vendorId: allVendorIds[0] || null,
+        vendorIds: allVendorIds,
         restaurantName: cart[0]?.restaurantName || 'ShopyKart Select',
         deliveryOTP: Math.floor(100000 + Math.random() * 900000).toString(),
         deliveryFee,

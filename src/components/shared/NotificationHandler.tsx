@@ -8,7 +8,7 @@ import { collection, query, where, onSnapshot } from 'firebase/firestore';
 /**
  * @fileOverview Visual & Audio Notification Handler.
  * Bridges Firestore events to Native System Notifications for loud ringing.
- * Fixed: Directly schedules Native Notifications to match Test Alert behavior.
+ * Fixed: Robust data-matching for vendorIds and refined initial load logic.
  */
 export default function NotificationHandler() {
   const { user } = useUser();
@@ -23,7 +23,7 @@ export default function NotificationHandler() {
   useEffect(() => {
     if (!firestore || !user) return;
 
-    // 1. Define targeted query
+    // 1. Define targeted query based on app type
     let q;
     if (isStoreApp) {
       q = query(collection(firestore, 'orders'), where('status', '==', 'Placed'));
@@ -37,32 +37,44 @@ export default function NotificationHandler() {
     const unsub = onSnapshot(q, async (snapshot) => {
       const active = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
       
-      let filteredActive = [];
+      let filteredActive: any[] = [];
       
       if (isStoreApp) {
+        // MATCH: Check top-level vendorId or the vendorIds array
         filteredActive = active.filter(o => 
           String(o.vendorId) === String(user.uid) || 
-          (Array.isArray(o.vendorIds) && o.vendorIds.includes(user.uid))
+          (Array.isArray(o.vendorIds) && o.vendorIds.includes(user.uid)) ||
+          // Backup check inside items if legacy
+          o.items?.some((it: any) => String(it.vendorId) === String(user.uid))
         );
       } else if (isFleetApp) {
         const dismissed = JSON.parse(localStorage.getItem('fleet_dismissed_tasks') || '[]');
         filteredActive = active.filter(o => !o.deliveryPartnerId && !dismissed.includes(o.id));
       }
 
-      // CRITICAL: Initialize on first load to prevent ringing for existing orders
+      // CRITICAL: Prevent ringing for orders that already existed when app started
+      // UNLESS they were created in the last 60 seconds (re-ringing protection)
       if (isInitialLoad.current) {
-        filteredActive.forEach(o => lastProcessedOrderIds.current.add(o.id));
+        filteredActive.forEach(o => {
+          const createdAt = o.createdAt?.seconds ? o.createdAt.seconds * 1000 : Date.now();
+          const ageSeconds = (Date.now() - createdAt) / 1000;
+          if (ageSeconds > 60) {
+            lastProcessedOrderIds.current.add(o.id);
+          }
+        });
         isInitialLoad.current = false;
-        return;
       }
 
-      // 3. Detect NEW orders and trigger SYSTEM NOTIFICATION (Just like Test Alert)
+      // 3. Detect NEW orders and trigger SYSTEM NOTIFICATION
+      let didTriggerNew = false;
+
       for (const order of filteredActive) {
         if (!lastProcessedOrderIds.current.has(order.id)) {
           lastProcessedOrderIds.current.add(order.id);
+          didTriggerNew = true;
           
           try {
-            // TRIGGER SYSTEM NOTIFICATION - THIS PLAYS THE LOUD SOUND
+            // TRIGGER SYSTEM NOTIFICATION - THIS PLAYS THE LOUD SOUND RESOURCE 'order_alert'
             const { LocalNotifications } = await import('@capacitor/local-notifications');
             
             await LocalNotifications.schedule({
@@ -70,11 +82,11 @@ export default function NotificationHandler() {
                 {
                   title: isStoreApp ? "🚨 NEW ORDER RECEIVED!" : "🛵 NEW PICKUP READY!",
                   body: isStoreApp 
-                    ? `Order #${order.customerOrderNumber} received from ${order.customerName}.` 
-                    : `Order #${order.customerOrderNumber} is ready for pickup.`,
+                    ? `Order #${order.customerOrderNumber} from ${order.customerName}.` 
+                    : `Order #${order.customerOrderNumber} is ready for pickup in your zone.`,
                   id: Math.floor(Date.now() % 100000),
-                  channelId: 'new_order_channel', // Matches high importance channel
-                  sound: 'order_alert', // Strictly matches res/raw/order_alert.mp3
+                  channelId: 'new_order_channel', // High importance channel from PermissionManager
+                  sound: 'order_alert', // Strictly matches res/raw/order_alert.mp3 resource
                   extra: { orderId: order.id },
                   actionTypeId: 'OPEN_DASHBOARD'
                 }
@@ -86,6 +98,7 @@ export default function NotificationHandler() {
         }
       }
 
+      // Update local state to show visual popup ONLY IF there are active orders
       setRingingOrders(filteredActive);
     });
 
