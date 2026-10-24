@@ -71,9 +71,9 @@ AuthGuard.displayName = "AuthGuard";
 
 export function ClientLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
-    // Dynamic import to avoid SSR crash with Capacitor
     const setupBackButton = async () => {
       try {
         const { App: CapacitorApp } = await import("@capacitor/app");
@@ -95,8 +95,6 @@ export function ClientLayout({ children }: { children: ReactNode }) {
     setupBackButton();
   }, []);
 
-  const pathname = usePathname();
-
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script-global',
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
@@ -109,6 +107,12 @@ export function ClientLayout({ children }: { children: ReactNode }) {
     return p.startsWith('/admin') || p.startsWith('/vendor') || p.startsWith('/delivery');
   }, [pathname]);
 
+  // APP ROLE DETECTION
+  const isAdminApp = process.env.NEXT_PUBLIC_ADMIN_APP === 'true';
+  const isStoreApp = process.env.NEXT_PUBLIC_BIZ_APP === 'true';
+  const isFleetApp = process.env.NEXT_PUBLIC_TOW_APP === 'true';
+  const isBusinessApp = isAdminApp || isStoreApp || isFleetApp;
+
   return (
     <FirebaseClientProvider>
       <CartProvider>
@@ -117,15 +121,16 @@ export function ClientLayout({ children }: { children: ReactNode }) {
           <FirebaseErrorListener />
           <PermissionManager />
           
+          {/* HANDLER ROUTING: Ensure messages go to the right person */}
+          {isBusinessApp ? <NotificationHandler /> : <CustomerNotificationHandler />}
+          
           <AuthGuard>
             <div className={cn(
               "relative min-h-screen flex flex-col max-w-lg mx-auto w-full bg-white shadow-2xl border-x border-gray-100 overflow-y-auto no-scrollbar",
-              !isExcludedPath && "pt-10" // STATUS BAR CLEARANCE
+              !isExcludedPath && "pt-10"
             )}>
               <main className={cn("flex-1", !isExcludedPath && "pb-24")}>
                 {!isExcludedPath && <LocationRequest />}
-                <NotificationHandler />
-                <CustomerNotificationHandler />
                 <TelegramNotifier />
                 <WelcomeBonusOverlay />
                 

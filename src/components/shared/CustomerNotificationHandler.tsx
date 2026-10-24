@@ -4,12 +4,9 @@
 import { useEffect, useRef } from 'react';
 import { useUser, useFirestore } from '@/firebase';
 import { collection, query, where, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
 
 const statusMessages: Record<string, { title: string; body: string }> = {
-  'Placed': {
-    title: '🎉 Order Confirmed!',
-    body: 'Thank you for ordering with Shopykart. Your order has been placed and sent to the store.'
-  },
   'Accepted': {
     title: '✅ Order Accepted!',
     body: 'The store has accepted your order and will start packing it shortly.'
@@ -19,8 +16,8 @@ const statusMessages: Record<string, { title: string; body: string }> = {
     body: 'Your items are being freshly prepared and carefully packed by the store.'
   },
   'Ready for Pickup': {
-    title: '📦 Order Ready For Pickup!',
-    body: 'Your order is packed and waiting for the Shopykart delivery partner to pick it up.'
+    title: '📦 Order Ready!',
+    body: 'Your order is packed and waiting for the Shopykart rider.'
   },
   'Out for Delivery': {
     title: '🛵 Out for Delivery!',
@@ -33,18 +30,19 @@ const statusMessages: Record<string, { title: string; body: string }> = {
 };
 
 /**
- * @fileOverview Foreground Notification Handler for Customers.
- * Listens for order changes and triggers system alerts when app is open.
+ * @fileOverview STATUS UPDATE HANDLER (For Customers Only).
+ * Triggers notifications when the Store updates an order.
  */
 export default function CustomerNotificationHandler() {
   const { user } = useUser();
   const firestore = useFirestore();
+  const { toast } = useToast();
   const lastKnownStatuses = useRef<Record<string, string>>({});
 
   useEffect(() => {
     if (!firestore || !user) return;
 
-    // Listen to orders for the current user in real-time
+    // Listen only to orders WHERE THIS USER is the customer
     const q = query(
       collection(firestore, 'orders'),
       where('userId', '==', user.uid)
@@ -52,32 +50,22 @@ export default function CustomerNotificationHandler() {
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       snapshot.docChanges().forEach(async (change) => {
-        if (change.type === 'modified' || change.type === 'added') {
+        if (change.type === 'modified') {
           const order = change.doc.data();
           const orderId = change.doc.id;
           const currentStatus = order.status;
 
-          // Sync status locally to prevent repeat notifications
           const prevStatus = lastKnownStatuses.current[orderId];
           
+          // Only notify if status has actually changed
           if (prevStatus && prevStatus !== currentStatus) {
             const msg = statusMessages[currentStatus];
 
             if (msg) {
-              // 1. Trigger System Notification (Foreground)
-              try {
-                if ('Notification' in window && Notification.permission === 'granted') {
-                   new Notification(msg.title, {
-                    body: msg.body,
-                    icon: '/logo.png',
-                    tag: orderId, // Prevent duplicate alerts for same order
-                  });
-                }
-              } catch (e) {
-                console.debug("Browser Notification failed, likely native.");
-              }
+              // 1. Show UI Toast for foreground visibility
+              toast({ title: msg.title, description: msg.body });
 
-              // 2. Capacitor Native Alert (if on Android)
+              // 2. Trigger System Notification (Standard priority)
               try {
                 const { LocalNotifications } = await import('@capacitor/local-notifications');
                 await LocalNotifications.schedule({
@@ -91,7 +79,7 @@ export default function CustomerNotificationHandler() {
                   ]
                 });
               } catch (e) {
-                console.debug("Capacitor local notification skipped (web).");
+                console.debug("Standard notification skipped in browser");
               }
 
               // 3. Add to In-App History
@@ -109,12 +97,15 @@ export default function CustomerNotificationHandler() {
           }
 
           lastKnownStatuses.current[orderId] = currentStatus;
+        } else if (change.type === 'added') {
+          // Store initial status on load to prevent notifications for old orders
+          lastKnownStatuses.current[change.doc.id] = change.doc.data().status;
         }
       });
     });
 
     return () => unsubscribe();
-  }, [user, firestore]);
+  }, [user, firestore, toast]);
 
   return null;
 }

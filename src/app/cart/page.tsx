@@ -185,7 +185,7 @@ export default function CartPage() {
 
     setIsPlacing(true);
     try {
-      // CRITICAL: Extract all vendor IDs for the Notification System
+      // DATA LINK: Get all unique Store IDs from the cart
       const allVendorIds = Array.from(new Set(cart.map(item => String(item.vendorId)).filter(Boolean)));
 
       const orderData = {
@@ -197,7 +197,7 @@ export default function CartPage() {
         total: totalPayable,
         status: 'Placed',
         createdAt: serverTimestamp(),
-        // CRITICAL DATA FOR TARGETED RINGING:
+        // LOUD ALERT TARGETS:
         vendorId: allVendorIds[0] || null,
         vendorIds: allVendorIds,
         restaurantName: cart[0]?.restaurantName || 'ShopyKart Select',
