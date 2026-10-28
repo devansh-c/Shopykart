@@ -30,12 +30,22 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
+      # BACKUP ORIGINAL ASSETS
+      - name: Backup Original Assets
+        run: |
+          cp assets/icon.png assets/icon-default.png || true
+          if [ -f "assets/splash.png" ]; then cp assets/splash.png assets/splash-default.png; fi
+
       # BUILD 1: CUSTOMER APP (co.in.shopykart.app)
       - name: Build Web (Customer)
         run: npm run build:static
       
       - name: Configure Customer Identity
         run: |
+          # Reset to default icon
+          cp assets/icon-default.png assets/icon.png
+          npx @capacitor/assets generate --android --assetPath assets
+          
           sed -i "s/appId: [\"'].*[\"']/appId: \"co.in.shopykart.app\"/" capacitor.config.ts
           sed -i "s/appName: [\"'].*[\"']/appName: \"ShopyKart\"/" capacitor.config.ts
           sed -i 's/package_name">.*<\/string>/package_name">co.in.shopykart.app<\/string>/' android/app/src/main/res/values/strings.xml
@@ -59,6 +69,15 @@ jobs:
       
       - name: Configure Admin Identity
         run: |
+          # Use Admin Icon if exists
+          if [ -f "assets/icon-admin.png" ]; then
+            cp assets/icon-admin.png assets/icon.png
+            npx @capacitor/assets generate --android --assetPath assets
+          else
+            cp assets/icon-default.png assets/icon.png
+            npx @capacitor/assets generate --android --assetPath assets
+          fi
+          
           sed -i "s/appId: [\"'].*[\"']/appId: \"co.in.shopykart.admin\"/" capacitor.config.ts
           sed -i "s/appName: [\"'].*[\"']/appName: \"ShopyKart Admin\"/" capacitor.config.ts
           sed -i 's/package_name">.*<\/string>/package_name">co.in.shopykart.admin<\/string>/' android/app/src/main/res/values/strings.xml
@@ -82,6 +101,15 @@ jobs:
       
       - name: Configure Biz Identity
         run: |
+          # Use Biz Icon if exists
+          if [ -f "assets/icon-biz.png" ]; then
+            cp assets/icon-biz.png assets/icon.png
+            npx @capacitor/assets generate --android --assetPath assets
+          else
+            cp assets/icon-default.png assets/icon.png
+            npx @capacitor/assets generate --android --assetPath assets
+          fi
+          
           sed -i "s/appId: [\"'].*[\"']/appId: \"co.in.shopykart.biz\"/" capacitor.config.ts
           sed -i "s/appName: [\"'].*[\"']/appName: \"ShopyKart Store\"/" capacitor.config.ts
           sed -i 's/package_name">.*<\/string>/package_name">co.in.shopykart.biz<\/string>/' android/app/src/main/res/values/strings.xml
@@ -105,6 +133,15 @@ jobs:
       
       - name: Configure Tow Identity
         run: |
+          # Use Tow Icon if exists
+          if [ -f "assets/icon-tow.png" ]; then
+            cp assets/icon-tow.png assets/icon.png
+            npx @capacitor/assets generate --android --assetPath assets
+          else
+            cp assets/icon-default.png assets/icon.png
+            npx @capacitor/assets generate --android --assetPath assets
+          fi
+          
           sed -i "s/appId: [\"'].*[\"']/appId: \"co.in.shopykart.tow\"/" capacitor.config.ts
           sed -i "s/appName: [\"'].*[\"']/appName: \"ShopyKart Fleet\"/" capacitor.config.ts
           sed -i 's/package_name">.*<\/string>/package_name">co.in.shopykart.tow<\/string>/' android/app/src/main/res/values/strings.xml
