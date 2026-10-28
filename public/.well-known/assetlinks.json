@@ -1,14 +1,16 @@
-
 [
   {
     "relation": [
-      "delegate_permission/common.handle_all_urls"
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.get_login_creds"
     ],
     "target": {
       "namespace": "android_app",
       "package_name": "co.in.shopykart.app",
       "sha256_cert_fingerprints": [
-        "REPLACE_WITH_YOUR_ACTUAL_SHA256_FINGERPRINT"
+        "C0:9E:3F:78:4A:3E:23:60:33:CE:A8:3C:AE:38:D8:4F:4C:71:D4:2B:3E:94:C9:AE:5E:D6:07:29:62:A2:EF",
+        "73:8D:B0:1C:0F:CE:04:F2:3D:44:D9:19:7F:2F:8B:C1:8F:C8:9F:26:C6:93:4D:87:56:34:9A:6D:29:50:42",
+        "EF:29:5A:81:33:5E:8B:CD:F1:A8:50:C3:C9:8E:EA:8E:7E:06:C2:91:A6:16:EA:82:DC:D4:93:CD:B1:57:3D"
       ]
     }
   }
