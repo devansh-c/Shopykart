@@ -16,7 +16,8 @@ import {
   Type,
   ExternalLink,
   KeyRound,
-  ShieldCheck
+  ShieldCheck,
+  Store
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,6 +35,7 @@ export default function BrandingManagement() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const logoInputRef = useRef<HTMLInputElement>(null);
+  const bizLogoInputRef = useRef<HTMLInputElement>(null);
   const faviconInputRef = useRef<HTMLInputElement>(null);
   const notifyInputRef = useRef<HTMLInputElement>(null);
 
@@ -48,6 +50,7 @@ export default function BrandingManagement() {
     siteTitle: '',
     siteDescription: '',
     logoUrl: '',
+    bizLogoUrl: '', // New field for Store App Logo
     faviconUrl: '',
     notificationLogoUrl: '',
     coinValue: '0.5',
@@ -66,6 +69,7 @@ export default function BrandingManagement() {
         siteTitle: settings.siteTitle || '',
         siteDescription: settings.siteDescription || '',
         logoUrl: settings.logoUrl || '',
+        bizLogoUrl: settings.bizLogoUrl || '',
         faviconUrl: settings.faviconUrl || '',
         notificationLogoUrl: settings.notificationLogoUrl || '',
         coinValue: settings.coinValue ? settings.coinValue.toString() : '0.5',
@@ -85,7 +89,7 @@ export default function BrandingManagement() {
     const reader = new FileReader();
     reader.onloadend = async () => {
       const base64 = reader.result as string;
-      const dimensions = field === 'logoUrl' ? 600 : 128;
+      const dimensions = field.toLowerCase().includes('logo') ? 600 : 128;
       const compressed = await compressImage(base64, dimensions, dimensions);
       setFormData(prev => ({ ...prev, [field]: compressed }));
       toast({ title: "Image Loaded", description: "Save changes to make it live." });
@@ -135,9 +139,10 @@ export default function BrandingManagement() {
               <h3 className="text-lg font-black italic uppercase">Visual Identity</h3>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+              {/* Customer App Logo */}
               <div className="space-y-2 relative group">
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Main App Logo</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Customer App Logo</label>
                 <div 
                   onClick={() => !formData.logoUrl && logoInputRef.current?.click()} 
                   className={cn(
@@ -160,8 +165,33 @@ export default function BrandingManagement() {
                 <input type="file" ref={logoInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'logoUrl')} />
               </div>
 
+              {/* Store App Logo (New) */}
               <div className="space-y-2 relative group">
-                <label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">Notification Icon</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1 flex items-center gap-1"><Store className="h-2.5 w-2.5" /> Store App Logo</label>
+                <div 
+                  onClick={() => !formData.bizLogoUrl && bizLogoInputRef.current?.click()} 
+                  className={cn(
+                    "h-32 border-2 border-dashed border-primary/20 rounded-3xl flex items-center justify-center bg-primary/5 overflow-hidden relative",
+                    !formData.bizLogoUrl && "cursor-pointer"
+                  )}
+                >
+                  {formData.bizLogoUrl ? (
+                    <>
+                      <img src={formData.bizLogoUrl} className="h-full w-full object-contain p-4" alt="Biz Logo" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                        <button onClick={(e) => { e.stopPropagation(); bizLogoInputRef.current?.click(); }} className="bg-white p-2 rounded-lg text-black hover:bg-gray-100"><ImageIcon className="h-4 w-4" /></button>
+                        <button onClick={(e) => { e.stopPropagation(); handleDeleteImage('bizLogoUrl'); }} className="bg-red-50 p-2 rounded-lg text-white hover:bg-red-600"><Trash2 className="h-4 w-4" /></button>
+                      </div>
+                    </>
+                  ) : (
+                    <Store className="h-8 w-8 text-primary opacity-20" />
+                  )}
+                </div>
+                <input type="file" ref={bizLogoInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'bizLogoUrl')} />
+              </div>
+
+              <div className="space-y-2 relative group">
+                <label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">Push Icon (Alerts)</label>
                 <div 
                   onClick={() => !formData.notificationLogoUrl && notifyInputRef.current?.click()} 
                   className={cn(

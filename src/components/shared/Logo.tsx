@@ -1,13 +1,15 @@
+
 "use client"
 
 import { cn } from "@/lib/utils";
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 
 /**
  * @fileOverview Logo component using dynamic branding or fallback placeholder.
+ * Supports Store-App specific branding via environment flags.
  */
 export function Logo({ className }: { className?: string }) {
   const [taps, setTaps] = useState(0);
@@ -21,6 +23,21 @@ export function Logo({ className }: { className?: string }) {
   }, [firestore]);
 
   const { data: branding } = useDoc<any>(brandingRef);
+
+  // LOGO DIFFERENTIATION LOGIC
+  const displayLogo = useMemo(() => {
+    if (!branding) return null;
+    
+    // Check if the current app is the Store (Biz) app
+    const isBizApp = process.env.NEXT_PUBLIC_BIZ_APP === 'true';
+    
+    // Priority: Store-Specific Logo (for Biz app) > Main Logo > Fallback Text
+    if (isBizApp && branding.bizLogoUrl) {
+      return branding.bizLogoUrl;
+    }
+    
+    return branding.logoUrl || null;
+  }, [branding]);
 
   const handleTap = () => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -44,16 +61,18 @@ export function Logo({ className }: { className?: string }) {
         className
       )}
     >
-      {branding?.logoUrl ? (
+      {displayLogo ? (
         <img 
-          src={branding.logoUrl} 
+          src={displayLogo} 
           alt="ShopyKart Logo" 
           className="h-8 w-auto object-contain" 
         />
       ) : (
         <div className="flex flex-col items-center">
            <span className="text-white font-black italic text-sm tracking-tighter leading-none">SHOPYKART</span>
-           <span className="text-[6px] font-black text-primary uppercase tracking-[0.3em]">Premium Delivery</span>
+           <span className="text-[6px] font-black text-primary uppercase tracking-[0.3em]">
+             {process.env.NEXT_PUBLIC_BIZ_APP === 'true' ? 'STORE PARTNER' : 'Premium Delivery'}
+           </span>
         </div>
       )}
     </div>
