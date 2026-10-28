@@ -55,11 +55,13 @@ const OrderCard = memo(({ order, onUpdate, type, userData, onPass }: any) => {
   const isOutForDelivery = order.status === 'Out for Delivery';
 
   const handleAction = () => {
+    // 1. Accept Task (Assigning to rider)
     if (order.status === 'Ready for Pickup' && !order.deliveryPartnerId) {
        onUpdate(order.id, 'Accepted Task', null, userData);
        return;
     }
 
+    // 2. Pickup Verification (Must match 4-digit Store OTP)
     if (isReadyForPickup && order.deliveryPartnerId === userData.uid) {
       if (pickupCode === order.pickupOTP) {
         onUpdate(order.id, 'Picked Up', null, userData);
@@ -67,9 +69,13 @@ const OrderCard = memo(({ order, onUpdate, type, userData, onPass }: any) => {
       } else {
         alert("Invalid Pickup OTP! Ask store for the 4-digit code.");
       }
-    } else if (isPickedUp) {
+    } 
+    // 3. Start Delivery
+    else if (isPickedUp) {
       onUpdate(order.id, 'Out for Delivery');
-    } else if (isOutForDelivery) {
+    } 
+    // 4. Final Delivery (Must match 6-digit Customer OTP)
+    else if (isOutForDelivery) {
       if (!collectionMethod) {
         alert("Select payment collection mode first.");
         return;
@@ -115,13 +121,15 @@ const OrderCard = memo(({ order, onUpdate, type, userData, onPass }: any) => {
           </div>
        </div>
 
+       {/* STAGE 0: NOT ASSIGNED */}
        {isReadyForPickup && !order.deliveryPartnerId && (
          <div className="grid grid-cols-2 gap-3">
-            <Button onClick={() => onPass(order.id)} variant="outline" className="h-16 rounded-[1.5rem] font-black uppercase text-[10px] text-red-500 border-red-100">PASS TASK</Button>
-            <Button onClick={handleAction} className="h-16 bg-green-600 rounded-[1.5rem] font-black uppercase text-[10px] text-white shadow-xl">ACCEPT TASK</Button>
+            <button onClick={() => onPass(order.id)} className="h-16 rounded-[1.5rem] font-black uppercase text-[10px] text-red-500 border border-red-100 bg-red-50/50">PASS TASK</button>
+            <button onClick={handleAction} className="h-16 bg-green-600 rounded-[1.5rem] font-black uppercase text-[10px] text-white shadow-xl">ACCEPT TASK</button>
          </div>
        )}
 
+       {/* STAGE 1: ASSIGNED - PICKUP OTP REQUIRED */}
        {isReadyForPickup && isMyTask && (
          <div className="space-y-4">
             <div className="space-y-2">
@@ -136,10 +144,12 @@ const OrderCard = memo(({ order, onUpdate, type, userData, onPass }: any) => {
          </div>
        )}
 
+       {/* STAGE 2: PICKED UP - OUT FOR DELIVERY TRIGGER */}
        {isPickedUp && isMyTask && (
          <Button onClick={handleAction} className="w-full bg-primary h-16 rounded-[1.5rem] font-black uppercase text-sm shadow-xl">START DELIVERY</Button>
        )}
 
+       {/* STAGE 3: OUT FOR DELIVERY - CUSTOMER OTP REQUIRED */}
        {isOutForDelivery && isMyTask && (
          <div className="space-y-6">
             <Button onClick={() => setShowQr(true)} className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic text-[10px] flex items-center justify-center gap-2 shadow-xl"><QrCode className="h-4 w-4" /> SHOW QR</Button>
@@ -149,7 +159,8 @@ const OrderCard = memo(({ order, onUpdate, type, userData, onPass }: any) => {
             </div>
             {collectionMethod && (
               <div className="space-y-3">
-                <Input type="tel" placeholder="CUSTOMER 6-DIGIT OTP" maxLength={6} value={enteredCode} onChange={e => setEnteredCode(e.target.value.replace(/\D/g,''))} className="h-14 rounded-2xl bg-gray-50 border-none text-center font-black text-2xl" />
+                <label className="text-[9px] font-black text-green-600 uppercase ml-1 flex items-center gap-1.5"><KeyRound className="h-3 w-3" /> Enter Customer Delivery OTP</label>
+                <Input type="tel" placeholder="0 0 0 0 0 0" maxLength={6} value={enteredCode} onChange={e => setEnteredCode(e.target.value.replace(/\D/g,''))} className="h-14 rounded-2xl bg-gray-50 border-none text-center font-black text-2xl tracking-[0.2em]" />
                 <Button onClick={handleAction} disabled={enteredCode.length !== 6} className="w-full h-16 bg-green-600 rounded-[1.5rem] font-black uppercase text-sm text-white">VERIFY & DELIVER</Button>
               </div>
             )}
@@ -324,3 +335,4 @@ export default function DeliveryDashboard() {
     </div>
   );
 }
+

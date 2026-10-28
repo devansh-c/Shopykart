@@ -315,6 +315,19 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
            </div>
          )}
 
+         {/* HIGHLIGHTED OTP BOX FOR CUSTOMER */}
+         {order.deliveryOTP && !isDelivered && !isCancelled && (
+           <div className="bg-[#0B0B0B] rounded-[2rem] p-6 mb-4 border-2 border-primary/30 shadow-2xl animate-in zoom-in duration-700 flex items-center justify-between">
+              <div>
+                 <span className="text-[8px] font-black text-primary uppercase tracking-[0.2em] mb-1 flex items-center gap-1.5"><KeyRound className="h-2.5 w-2.5" /> SECURE DELIVERY OTP</span>
+                 <h4 className="text-2xl font-black italic tracking-[0.2em] text-white">{order.deliveryOTP}</h4>
+              </div>
+              <div className="text-right">
+                 <p className="text-[7px] font-bold text-gray-500 uppercase leading-tight">Share this with rider<br/>only after receiving items</p>
+              </div>
+           </div>
+         )}
+
          {isDelivered && !order.isRated && (
            <div className="bg-gradient-to-br from-amber-400 to-orange-600 p-[2px] rounded-[2.5rem] mb-4 shadow-xl animate-in zoom-in duration-700">
              <div className="bg-white p-6 rounded-[2.4rem] space-y-4">
@@ -385,16 +398,8 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
       </div>
 
       <div className={cn("px-4 py-4 transition-all duration-500", isMapExpanded ? "opacity-0" : "opacity-100")}>
-         {order.deliveryOTP && !isDelivered && !isCancelled && (
-           <div className="flex justify-center -mb-5 relative z-[150] animate-in zoom-in duration-500">
-             <div className="bg-[#0B0B0B] text-white px-6 py-2.5 rounded-[1.25rem] shadow-2xl border-2 border-primary/30 flex flex-col items-center">
-                <span className="text-[7px] font-black uppercase tracking-[0.2em] opacity-60 flex items-center gap-1"><KeyRound className="h-2 w-2 text-primary" /> SECURE DELIVERY OTP</span>
-                <span className="text-sm font-black italic text-primary tracking-widest mt-0.5">{order.deliveryOTP}</span>
-             </div>
-           </div>
-         )}
          {order.deliveryPartnerId && (
-            <div className="bg-white rounded-[2.5rem] p-5 shadow-2xl border border-gray-50 flex items-center justify-between animate-in slide-in-from-bottom-4 duration-700 pt-8">
+            <div className="bg-white rounded-[2.5rem] p-5 shadow-2xl border border-gray-50 flex items-center justify-between animate-in slide-in-from-bottom-4 duration-700">
                <div className="flex items-center gap-5">
                   <div className="relative">
                      <div className="h-16 w-16 bg-primary/5 rounded-[1.5rem] flex items-center justify-center border border-primary/10 overflow-hidden shadow-inner">
@@ -429,3 +434,4 @@ export default function OrderDetailsClient({ forcedId }: { forcedId?: string }) 
     </Suspense>
   );
 }
+

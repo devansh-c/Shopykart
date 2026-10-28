@@ -165,6 +165,7 @@ export default function VendorDashboard() {
         updatedAt: serverTimestamp() 
       };
       
+      // LOGIC FIX: Generate 4-digit pickup OTP when status is Ready for Pickup
       if (newStatus === 'Ready for Pickup') {
         updateData.pickupOTP = Math.floor(1000 + Math.random() * 9000).toString();
       }
@@ -504,7 +505,7 @@ export default function VendorDashboard() {
                                   </Select>
                                </div>
                                <div className="space-y-1">
-                                  <label className="text-[9px] font-black uppercase text-primary ml-1">Prep Time (Min)</label>
+                                  <label className="text-[9px] font-black uppercase text-teal-600 ml-1 flex items-center gap-1"><Timer className="h-3 w-3" /> Prep Time (Min)</label>
                                   <div className="relative">
                                      <Timer className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/40" />
                                      <Input type="number" placeholder="15" value={productForm.preparingTime} onChange={e => setProductForm({...productForm, preparingTime: e.target.value})} className="h-12 rounded-xl bg-primary/5 border-none pl-9 font-bold" />
@@ -598,7 +599,7 @@ export default function VendorDashboard() {
                  {payoutHistory && payoutHistory.length > 0 ? payoutHistory.map((p: any) => (
                    <div key={p.id} className="bg-white p-5 rounded-3xl border border-border/50 shadow-sm flex items-center justify-between">
                       <div className="flex items-center gap-4">
-                         <div className="h-12 w-12 bg-green-50 rounded-2xl flex items-center justify-center text-green-600"><Banknote className="h-6 w-6" /></div>
+                         <div className="h-12 w-12 bg-green rounded-2xl flex items-center justify-center text-green-600"><Banknote className="h-6 w-6" /></div>
                          <div>
                             <h4 className="font-black text-sm uppercase italic leading-none mb-1">₹{p.amount?.toFixed(2)}</h4>
                             <p className="text-[8px] font-bold text-muted-foreground uppercase">{format(new Date(p.date?.seconds * 1000 || Date.now()), 'MMM d, h:mm a')}</p>
@@ -712,3 +713,4 @@ export default function VendorDashboard() {
     </div>
   );
 }
+
