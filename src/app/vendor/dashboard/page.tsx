@@ -165,7 +165,6 @@ export default function VendorDashboard() {
         updatedAt: serverTimestamp() 
       };
       
-      // LOGIC FIX: Generate 4-digit pickup OTP when status is Ready for Pickup
       if (newStatus === 'Ready for Pickup') {
         updateData.pickupOTP = Math.floor(1000 + Math.random() * 9000).toString();
       }
@@ -512,6 +511,58 @@ export default function VendorDashboard() {
                                   </div>
                                </div>
                             </div>
+
+                            {/* RESTORED VARIETIES SECTION */}
+                            <div className="space-y-4 p-6 bg-gray-50 rounded-[2rem] border-2 border-dashed border-gray-200">
+                                <div className="flex items-center justify-between">
+                                   <div className="flex items-center gap-2">
+                                      <div className="bg-primary/10 p-2 rounded-xl text-primary"><ListTree className="h-4 w-4" /></div>
+                                      <div>
+                                         <h4 className="text-[11px] font-black uppercase tracking-tight">Product Varieties / Sizes</h4>
+                                         <p className="text-[7px] font-bold text-muted-foreground uppercase">Add different versions of this product</p>
+                                      </div>
+                                   </div>
+                                   <div className="flex items-center gap-2">
+                                      <span className="text-[8px] font-black uppercase text-gray-400">Choice Required?</span>
+                                      <Switch checked={isVarietyRequired} onCheckedChange={setIsVarietyRequired} className="scale-75 data-[state=checked]:bg-primary" />
+                                   </div>
+                                </div>
+
+                                <div className="space-y-3">
+                                   {options.map((opt, idx) => (
+                                     <div key={idx} className="flex gap-3 animate-in slide-in-from-right-2 duration-300">
+                                        <Input 
+                                          placeholder="Variant Name (e.g. Full)" 
+                                          value={opt.name}
+                                          onChange={e => updateOption(idx, 'name', e.target.value)}
+                                          className="h-10 rounded-xl bg-white border-none font-bold text-xs uppercase flex-[2]"
+                                        />
+                                        <div className="relative flex-1">
+                                           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-primary">₹</span>
+                                           <Input 
+                                              type="number" 
+                                              placeholder="0" 
+                                              value={opt.price}
+                                              onChange={e => updateOption(idx, 'price', e.target.value)}
+                                              className="h-10 pl-6 rounded-xl bg-white border-none font-black text-xs text-primary"
+                                           />
+                                        </div>
+                                        <button 
+                                          onClick={() => handleRemoveOption(idx)}
+                                          className="h-10 w-10 bg-red-50 text-red-500 rounded-xl flex items-center justify-center active:scale-90 transition-all"
+                                        >
+                                           <Trash2 className="h-4 w-4" />
+                                        </button>
+                                     </div>
+                                   ))}
+                                   <button 
+                                      onClick={handleAddOption}
+                                      className="w-full h-10 border-2 border-dashed border-primary/20 text-primary rounded-xl font-black uppercase text-[8px] tracking-[0.2em] flex items-center justify-center gap-2 hover:bg-primary/5 transition-all"
+                                   >
+                                      <Plus className="h-3 w-3" /> ADD VARIETY OPTION
+                                   </button>
+                                </div>
+                            </div>
                          </div>
                          <Button onClick={handleSaveProduct} disabled={isSavingProduct} className="w-full h-16 bg-primary text-white rounded-[2rem] font-black uppercase italic shadow-xl">
                            {isSavingProduct ? <Loader2 className="h-5 w-5 animate-spin" /> : 'PUBLISH ITEM'}
@@ -713,4 +764,3 @@ export default function VendorDashboard() {
     </div>
   );
 }
-

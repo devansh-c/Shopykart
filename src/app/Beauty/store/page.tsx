@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -77,16 +78,6 @@ export default function BeautyDashboard() {
   const [isUpdatingStoreImage, setIsUpdatingStoreImage] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
 
-  // KYC States
-  const [isKYCOpen, setIsKYCOpen] = useState(false);
-  const [isSavingKYC, setIsSavingKYC] = useState(false);
-  const [kycForm, setKycForm] = useState({
-    accountHolderName: '',
-    accountNumber: '',
-    confirmAccountNumber: '',
-    ifscCode: ''
-  });
-
   useEffect(() => { setIsMounted(true); }, []);
 
   // AUTH GUARD
@@ -160,6 +151,20 @@ export default function BeautyDashboard() {
     } catch (e) { toast({ variant: "destructive", title: "Failed" }); }
   };
 
+  const handleAddOption = () => {
+    setOptions([...options, { name: '', price: 0 }]);
+  };
+
+  const handleRemoveOption = (index: number) => {
+    setOptions(options.filter((_, i) => i !== index));
+  };
+
+  const updateOption = (index: number, field: string, value: any) => {
+    const newOptions = [...options];
+    (newOptions[index] as any)[field] = field === 'price' ? parseFloat(value) || 0 : value;
+    setOptions(newOptions);
+  };
+
   const handleSaveProduct = async () => {
     if (!firestore || !user || !productForm.name || !productForm.price) return;
     setIsSavingProduct(true);
@@ -184,9 +189,27 @@ export default function BeautyDashboard() {
       await setDoc(newRef, { ...pData, id: newRef.id, createdAt: serverTimestamp() });
       await setDoc(doc(firestore, 'vendors', user.uid, 'products', newRef.id), { ...pData, id: newRef.id, createdAt: serverTimestamp() });
       setIsProductModalOpen(false);
+      resetProductForm();
       toast({ title: "Product Published!" });
     } catch (e) { toast({ variant: "destructive", title: "Save Error" }); }
     finally { setIsSavingProduct(false); }
+  };
+
+  const resetProductForm = () => {
+    setProductForm({ name: '', price: '', mrp: '', description: '', category: '', imageUrl: '', preparingTime: '' });
+    setOptions([]);
+    setIsVarietyRequired(false);
+  };
+
+  const handleProductImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const compressed = await compressImage(reader.result as string, 600, 600);
+      setProductForm(prev => ({ ...prev, imageUrl: compressed }));
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleTestAlert = async () => {
@@ -261,7 +284,84 @@ export default function BeautyDashboard() {
            <div className="p-4 space-y-4">
               <div className="flex items-center justify-between">
                  <h2 className="text-xl font-black italic uppercase">Cosmetics Catalog</h2>
-                 <Button onClick={() => setIsProductModalOpen(true)} className="bg-rose-600 rounded-xl h-10 font-black uppercase text-[10px]"><Plus className="h-4 w-4 mr-1" /> ADD SERVICE</Button>
+                 <Dialog open={isProductModalOpen} onOpenChange={(val) => { setIsProductModalOpen(val); if(!val) resetProductForm(); }}>
+                   <DialogTrigger asChild>
+                     <Button className="bg-rose-600 rounded-xl h-10 font-black uppercase text-[10px]"><Plus className="h-4 w-4 mr-1" /> ADD SERVICE</Button>
+                   </DialogTrigger>
+                   <DialogContent className="rounded-[2.5rem] max-w-md max-h-[85vh] overflow-y-auto no-scrollbar focus:outline-none p-0">
+                      <DialogHeader className="p-6 border-b"><DialogTitle className="font-black italic uppercase text-center">New Service Entry</DialogTitle></DialogHeader>
+                      <div className="p-8 space-y-6">
+                         <div onClick={() => fileInputRef.current?.click()} className="h-40 border-2 border-dashed rounded-[2rem] flex flex-col items-center justify-center bg-muted/20 cursor-pointer overflow-hidden group">
+                            {productForm.imageUrl ? <img src={productForm.imageUrl} className="h-full w-full object-cover" /> : <div className="flex flex-col items-center gap-2"><ImageIcon className="h-8 w-8 opacity-20" /><span className="text-[10px] font-black uppercase text-muted-foreground">Service Photo</span></div>}
+                         </div>
+                         <input type="file" ref={fileInputRef} className="hidden" onChange={handleProductImageSelect} />
+                         
+                         <div className="space-y-4">
+                            <Input placeholder="Service Name" value={productForm.name} onChange={e => setProductForm({...productForm, name: e.target.value})} className="h-12 rounded-xl font-bold bg-muted/20 border-none" />
+                            <div className="grid grid-cols-2 gap-4">
+                              <Input placeholder="MRP ₹" type="number" value={productForm.mrp} onChange={e => setProductForm({...productForm, mrp: e.target.value})} className="h-12 rounded-xl bg-muted/20 border-none" />
+                              <Input placeholder="Selling Price ₹" type="number" value={productForm.price} onChange={e => setProductForm({...productForm, price: e.target.value})} className="h-12 rounded-xl border-rose-400 font-bold" />
+                            </div>
+                            <Textarea placeholder="Details / Description" value={productForm.description} onChange={e => setProductForm({...productForm, description: e.target.value})} className="rounded-xl h-24 bg-muted/20 border-none p-4" />
+                            
+                            {/* RESTORED VARIETIES SECTION */}
+                            <div className="space-y-4 p-6 bg-gray-50 rounded-[2rem] border-2 border-dashed border-gray-200">
+                                <div className="flex items-center justify-between">
+                                   <div className="flex items-center gap-2">
+                                      <div className="bg-rose-50 p-2 rounded-xl text-rose-600"><ListTree className="h-4 w-4" /></div>
+                                      <div>
+                                         <h4 className="text-[11px] font-black uppercase tracking-tight">Variations</h4>
+                                         <p className="text-[7px] font-bold text-muted-foreground uppercase">Add different sizes or options</p>
+                                      </div>
+                                   </div>
+                                   <div className="flex items-center gap-2">
+                                      <span className="text-[8px] font-black uppercase text-gray-400">Choice Required?</span>
+                                      <Switch checked={isVarietyRequired} onCheckedChange={setIsVarietyRequired} className="scale-75 data-[state=checked]:bg-rose-600" />
+                                   </div>
+                                </div>
+
+                                <div className="space-y-3">
+                                   {options.map((opt, idx) => (
+                                     <div key={idx} className="flex gap-3 animate-in slide-in-from-right-2 duration-300">
+                                        <Input 
+                                          placeholder="Variant (e.g. Small)" 
+                                          value={opt.name}
+                                          onChange={e => updateOption(idx, 'name', e.target.value)}
+                                          className="h-10 rounded-xl bg-white border-none font-bold text-xs uppercase flex-[2]"
+                                        />
+                                        <div className="relative flex-1">
+                                           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-rose-600">₹</span>
+                                           <Input 
+                                              type="number" 
+                                              placeholder="0" 
+                                              value={opt.price}
+                                              onChange={e => updateOption(idx, 'price', e.target.value)}
+                                              className="h-10 pl-6 rounded-xl bg-white border-none font-black text-xs text-rose-600"
+                                           />
+                                        </div>
+                                        <button 
+                                          onClick={() => handleRemoveOption(idx)}
+                                          className="h-10 w-10 bg-red-50 text-red-500 rounded-xl flex items-center justify-center"
+                                        >
+                                           <Trash2 className="h-4 w-4" />
+                                        </button>
+                                     </div>
+                                   ))}
+                                   <button 
+                                      onClick={handleAddOption}
+                                      className="w-full h-10 border-2 border-dashed border-rose-200 text-rose-600 rounded-xl font-black uppercase text-[8px] tracking-[0.2em] flex items-center justify-center gap-2 hover:bg-rose-50"
+                                   >
+                                      <Plus className="h-3 w-3" /> ADD VARIETY
+                                   </button>
+                                </div>
+                            </div>
+                         </div>
+                         <Button onClick={handleSaveProduct} disabled={isSavingProduct} className="w-full h-16 bg-rose-600 text-white rounded-[2rem] font-black uppercase italic shadow-xl">
+                           {isSavingProduct ? <Loader2 className="h-5 w-5 animate-spin" /> : 'PUBLISH SERVICE'}
+                         </Button>
+                      </div>
+                   </DialogContent>
+                </Dialog>
               </div>
               <div className="grid grid-cols-1 gap-4">
                  {myProducts?.filter(p => !p.isDeleted).map(p => (
