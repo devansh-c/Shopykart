@@ -1,8 +1,8 @@
 
 "use client"
 
-import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
-import { collection, doc, updateDoc, query, where, orderBy, serverTimestamp, getDoc } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
+import { collection, doc, updateDoc, query, where, orderBy, serverTimestamp } from 'firebase/firestore';
 import { 
   Navigation, 
   Package, 
@@ -33,10 +33,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { useEffect, useState, useMemo, memo, useTransition } from 'react';
+import { useEffect, useState, useMemo, memo } from 'react';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
-import { useAuth } from '@/firebase';
 import { format } from 'date-fns';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
@@ -44,15 +43,17 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { scheduleTestNotification } from '@/components/shared/PermissionManager';
 
-const OrderCard = memo(({ order, onUpdate, type, userData, onPass }: any) => {
+const OrderCard = memo(({ order, onUpdate, userData, onPass }: any) => {
   const [pickupCode, setPickupCode] = useState('');
   const [enteredCode, setEnteredCode] = useState('');
   const [collectionMethod, setCollectionMethod] = useState<'Online' | 'Cash' | null>(null);
   const [showQr, setShowQr] = useState(false);
 
-  const isReadyForPickup = order.status === 'Ready for Pickup';
+  // LOGIC FIX: Pickup OTP should show for both "Ready" and "Accepted Task" states
+  const isReadyForPickup = order.status === 'Ready for Pickup' || order.status === 'Accepted Task';
   const isPickedUp = order.status === 'Picked Up';
   const isOutForDelivery = order.status === 'Out for Delivery';
+  const isMyTask = order.deliveryPartnerId === userData?.uid;
 
   const handleAction = () => {
     // 1. Accept Task (Assigning to rider)
@@ -62,7 +63,7 @@ const OrderCard = memo(({ order, onUpdate, type, userData, onPass }: any) => {
     }
 
     // 2. Pickup Verification (Must match 4-digit Store OTP)
-    if (isReadyForPickup && order.deliveryPartnerId === userData.uid) {
+    if (isReadyForPickup && isMyTask) {
       if (pickupCode === order.pickupOTP) {
         onUpdate(order.id, 'Picked Up', null, userData);
         setPickupCode('');
@@ -88,8 +89,6 @@ const OrderCard = memo(({ order, onUpdate, type, userData, onPass }: any) => {
       }
     }
   };
-
-  const isMyTask = order.deliveryPartnerId === userData?.uid;
 
   return (
     <div className="bg-white p-6 rounded-[2.5rem] border border-border/50 shadow-sm relative overflow-hidden transform-gpu transition-all hover:shadow-xl">
@@ -122,7 +121,7 @@ const OrderCard = memo(({ order, onUpdate, type, userData, onPass }: any) => {
        </div>
 
        {/* STAGE 0: NOT ASSIGNED */}
-       {isReadyForPickup && !order.deliveryPartnerId && (
+       {order.status === 'Ready for Pickup' && !order.deliveryPartnerId && (
          <div className="grid grid-cols-2 gap-3">
             <button onClick={() => onPass(order.id)} className="h-16 rounded-[1.5rem] font-black uppercase text-[10px] text-red-500 border border-red-100 bg-red-50/50">PASS TASK</button>
             <button onClick={handleAction} className="h-16 bg-green-600 rounded-[1.5rem] font-black uppercase text-[10px] text-white shadow-xl">ACCEPT TASK</button>
@@ -168,8 +167,11 @@ const OrderCard = memo(({ order, onUpdate, type, userData, onPass }: any) => {
        )}
 
        <Dialog open={showQr} onOpenChange={setShowQr}>
-          <DialogContent className="rounded-[3rem] max-w-sm p-8 text-center space-y-6 bg-white border-none shadow-2xl">
-             <DialogHeader><DialogTitle className="font-black italic uppercase text-2xl tracking-tighter">Scan to Pay</DialogTitle></DialogHeader>
+          <DialogContent className="rounded-[3rem] max-w-sm p-8 text-center space-y-6 bg-white border-none shadow-2xl focus:outline-none">
+             <DialogHeader>
+                <DialogTitle className="font-black italic uppercase text-2xl tracking-tighter">Scan to Pay</DialogTitle>
+                <DialogDescription className="sr-only">UPI QR Code for collection</DialogDescription>
+             </DialogHeader>
              <div className="bg-gray-50 p-6 rounded-[2rem] border-2 border-dashed border-gray-200">
                 <img src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`upi://pay?pa=9450355709@axl&pn=ShopyKart&am=${order.total}&cu=INR`)}`} className="h-48 w-48 mx-auto" alt="QR" />
                 <p className="mt-4 text-2xl font-black italic text-gray-900">₹{order.total?.toFixed(0)}</p>
@@ -218,7 +220,7 @@ export default function DeliveryDashboard() {
     if (!allOrders || !partnerProfile || !user) return [];
     return allOrders.filter(order => {
       if (dismissedTasks.includes(order.id)) return false;
-      const isAvailable = order.status === 'Ready for Pickup' && !order.deliveryPartnerId;
+      const isAvailable = (order.status === 'Ready for Pickup') && !order.deliveryPartnerId;
       const isMyTask = order.deliveryPartnerId === user.uid && !['Delivered', 'Cancelled'].includes(order.status);
       return isAvailable || isMyTask;
     });
@@ -235,8 +237,11 @@ export default function DeliveryDashboard() {
       }
       if (collectionMethod) updateData.paymentCollectionMethod = collectionMethod;
       await updateDoc(doc(firestore, 'orders', orderId), updateData);
-      toast({ title: `Task ${status}!` });
-    } catch (e) { toast({ variant: "destructive", title: "Update Failed" }); }
+      toast({ title: `Task Updated: ${status}` });
+    } catch (e) { 
+      console.error(e);
+      toast({ variant: "destructive", title: "Update Failed" }); 
+    }
   };
 
   const handlePass = (id: string) => {
@@ -260,7 +265,7 @@ export default function DeliveryDashboard() {
     setTimeout(() => setIsTesting(false), 5000);
   };
 
-  if (!isMounted || authLoading || profileLoading || (!user && !authLoading)) {
+  if (!isMounted || authLoading || (profileLoading && !partnerProfile)) {
     return <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-4"><Loader2 className="h-10 w-10 animate-spin text-primary" /><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">AUTHENTICATING Fleet...</p></div>;
   }
 
@@ -268,10 +273,26 @@ export default function DeliveryDashboard() {
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col max-w-lg mx-auto shadow-2xl relative transform-gpu">
       <header className="bg-white px-6 py-6 border-b sticky top-0 z-50 flex items-center justify-between">
         <div className="flex items-center gap-4">
-           <div className="h-12 w-12 rounded-2xl overflow-hidden border-2 border-primary/10 bg-muted"><img src={partnerProfile?.photoUrl} className="h-full w-full object-cover" alt="" /></div>
-           <div><h1 className="text-sm font-black italic uppercase leading-none mb-1">{partnerProfile?.fullName}</h1><div className="flex items-center gap-1.5"><div className={cn("h-1.5 w-1.5 rounded-full", partnerProfile?.isOnline ? "bg-green-500 animate-pulse" : "bg-red-500")} /><p className="text-[8px] font-black uppercase text-muted-foreground">{partnerProfile?.isOnline ? 'On Duty' : 'Off Duty'}</p></div></div>
+           <div className="h-12 w-12 bg-muted rounded-2xl overflow-hidden border-2 border-primary/10 shadow-inner">
+             {partnerProfile?.photoUrl ? (
+               <img src={partnerProfile.photoUrl} className="h-full w-full object-cover" alt="" />
+             ) : (
+               <User className="h-full w-full p-2 text-gray-400" />
+             )}
+           </div>
+           <div>
+             <h1 className="text-sm font-black italic uppercase leading-none mb-1 truncate max-w-[120px]">{partnerProfile?.fullName}</h1>
+             <div className="flex items-center gap-1.5">
+                <div className={cn("h-1.5 w-1.5 rounded-full", partnerProfile?.isOnline ? "bg-green-500 animate-pulse" : "bg-red-500")} />
+                <p className="text-[8px] font-black uppercase text-muted-foreground">{partnerProfile?.isOnline ? 'On Duty' : 'Off Duty'}</p>
+             </div>
+           </div>
         </div>
-        <Switch checked={partnerProfile?.isOnline === true} onCheckedChange={async (o) => { if(firestore && user) await updateDoc(doc(firestore, 'delivery_partners', user.uid), { isOnline: o }); }} className="data-[state=checked]:bg-green-500" />
+        <Switch 
+          checked={partnerProfile?.isOnline === true} 
+          onCheckedChange={async (o) => { if(firestore && user) await updateDoc(doc(firestore, 'delivery_partners', user.uid), { isOnline: o }); }} 
+          className="data-[state=checked]:bg-green-500" 
+        />
       </header>
 
       <main className="flex-1 pb-32 overflow-y-auto no-scrollbar">
@@ -311,11 +332,22 @@ export default function DeliveryDashboard() {
               </div>
            </div>
          )}
+
          {activeTab === 'profile' && (
             <div className="p-8 space-y-8 animate-in fade-in duration-500 text-center">
-               <div className="h-32 w-32 rounded-[3.5rem] overflow-hidden border-4 border-white shadow-2xl mx-auto mb-6"><img src={partnerProfile?.photoUrl} className="h-full w-full object-cover" alt="" /></div>
+               <div className="h-32 w-32 rounded-[3.5rem] overflow-hidden border-4 border-white shadow-2xl mx-auto mb-6 bg-muted">
+                 {partnerProfile?.photoUrl ? (
+                   <img src={partnerProfile.photoUrl} className="h-full w-full object-cover" alt="" />
+                 ) : (
+                   <User className="h-full w-full p-8 text-gray-300" />
+                 )}
+               </div>
                <h2 className="text-3xl font-black italic uppercase tracking-tighter">{partnerProfile?.fullName}</h2>
-               <Button onClick={() => { localStorage.removeItem('delivery_session_active'); signOut(auth!); router.replace('/'); }} variant="ghost" className="w-full h-16 text-red-500 font-black uppercase italic text-xs border border-red-100 rounded-3xl"><LogOut className="h-5 w-5 mr-3" /> DISCONNECT</Button>
+               <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] -mt-6">Fleet ID: {user?.uid.slice(-8)}</p>
+               
+               <Button onClick={() => { localStorage.removeItem('delivery_session_active'); signOut(auth!); router.replace('/'); }} variant="ghost" className="w-full h-16 text-red-500 font-black uppercase italic text-xs border border-red-100 rounded-3xl mt-10">
+                 <LogOut className="h-5 w-5 mr-3" /> DISCONNECT
+               </Button>
             </div>
          )}
       </main>
@@ -335,4 +367,3 @@ export default function DeliveryDashboard() {
     </div>
   );
 }
-
