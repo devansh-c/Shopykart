@@ -3,7 +3,7 @@
 
 import { getMessaging, Messaging, isSupported, getToken, onMessage } from 'firebase/messaging';
 import { initializeFirebase } from './index';
-import { doc, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 
 let messagingInstance: Messaging | null = null;
 
@@ -31,25 +31,35 @@ export async function getFirebaseMessaging() {
 
 /**
  * Syncs the FCM token to Firestore so the user can receive cloud pushes.
+ * Handles Customers, Vendors, and Delivery Partners safely.
  */
 export async function syncTokenToFirestore(userId: string, token: string) {
   try {
     const { firestore } = initializeFirebase();
     if (!firestore || !userId || !token) return;
 
-    const userRef = doc(firestore, 'users', userId);
-    const userSnap = await getDoc(userRef);
+    // List of collections where user data might reside
+    const collections = ['users', 'vendors', 'delivery_partners'];
     
-    if (userSnap.exists()) {
-      await updateDoc(userRef, {
-        fcmToken: token,
-        notificationsEnabled: true,
-        lastTokenSync: serverTimestamp()
-      });
-    } else {
-      // For new users or if doc doesn't exist yet
-      console.log("User doc not ready for sync yet");
+    for (const col of collections) {
+      const userRef = doc(firestore, col, userId);
+      const userSnap = await getDoc(userRef);
+      
+      if (userSnap.exists()) {
+        // Using setDoc with merge: true is safer than updateDoc 
+        // as it won't throw "No document to update" if there's a race condition
+        await setDoc(userRef, {
+          fcmToken: token,
+          notificationsEnabled: true,
+          lastTokenSync: serverTimestamp()
+        }, { merge: true });
+        
+        console.log(`FCM Token synced successfully for ${col}`);
+        return; // Success, no need to check other collections
+      }
     }
+    
+    console.log("No matching user/partner/vendor document found for token sync.");
   } catch (err) {
     console.error("Token Sync Error:", err);
   }
