@@ -15,7 +15,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 /**
  * @fileOverview Product Strip Item for fast horizontal scrolling.
- * Fixed: Added stopPropagation to prevent parent card navigation.
  */
 const ProductStripItem = memo(({ product, isOffline }: any) => {
   const { cart } = useCart();
@@ -69,7 +68,6 @@ ProductStripItem.displayName = "ProductStripItem";
 
 /**
  * @fileOverview Super-Optimized VerticalStoreList.
- * FIXED: Removed button-inside-button conflict. Cards are now <div> with precise click handling.
  */
 export const VerticalStoreList = memo(({ 
   searchQuery = '', 
@@ -128,9 +126,9 @@ export const VerticalStoreList = memo(({
   const { data: allProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_strip_products_v11');
 
   const filteredVendors = useMemo(() => {
-    if (!dbVendors && (!initialData || initialData.length === 0)) return null;
-    
     const list = dbVendors || initialData || [];
+    if (list.length === 0) return [];
+    
     const searchLower = searchQuery.toLowerCase().trim();
     const currentMode = activeMode.toLowerCase();
 
@@ -168,9 +166,11 @@ export const VerticalStoreList = memo(({
 
   const navigateToStore = (store: any) => {
     const storeSlug = store.slug || slugify(store.storeName) || store.id;
-    // STABLE PATH FOR APK: Using view route to ensure no reloads on dynamic content
     router.push(`/store/view?id=${store.id}&slug=${storeSlug}`);
   };
+
+  // DETERMINISTIC LOADING STATE: Only show empty state if loading is false
+  const isActuallyLoading = vendorsLoading && (!dbVendors || dbVendors.length === 0);
 
   return (
     <div className="px-4 py-6 bg-white min-h-[500px] content-visibility-auto">
@@ -179,12 +179,12 @@ export const VerticalStoreList = memo(({
            Best <span className="text-primary">Hubs</span>
         </h2>
         <Badge variant="outline" className="rounded-full border-gray-200 text-gray-400 font-black uppercase text-[10px]">
-          {filteredVendors === null ? '...' : `${filteredVendors.length} STORES`}
+          {isActuallyLoading ? '...' : `${filteredVendors.length} STORES`}
         </Badge>
       </div>
 
       <div className="space-y-16">
-        {filteredVendors === null ? (
+        {isActuallyLoading ? (
           <div className="space-y-16">
             {[1, 2, 3].map(i => (
               <div key={i} className="space-y-6">
@@ -213,7 +213,6 @@ export const VerticalStoreList = memo(({
 
             return (
               <div key={store.id} className="flex flex-col space-y-4 animate-in fade-in duration-500">
-                {/* STORE HEADER CARD - DIV with onClick to prevent button nesting glitch */}
                 <div 
                   onClick={() => navigateToStore(store)}
                   className={cn(
@@ -266,7 +265,7 @@ export const VerticalStoreList = memo(({
                           <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest italic">{store.category || 'Premium Store'}</p>
                           <span className="h-1 w-1 bg-gray-200 rounded-full" />
                           <div className="flex items-center gap-1 text-[11px] font-bold text-gray-400 italic uppercase">
-                            <MapPin className="h-3 w-3 text-primary" />
+                            <MapPin className="h-3.5 w-3.5 text-primary" />
                             {store.town || 'Local'}
                           </div>
                         </div>

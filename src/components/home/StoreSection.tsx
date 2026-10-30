@@ -13,10 +13,11 @@ import {
   CarouselItem,
 } from "@/components/ui/carousel"
 import { isStoreScheduleOpen } from "./PopularProducts"
+import { Skeleton } from "@/components/ui/skeleton"
 
 /**
  * @fileOverview StoreSection memoized to prevent lag during homepage scrolls.
- * Fixed: Stable navigation for static export.
+ * Fix: Added explicit loading shimmer state to prevent premature empty render.
  */
 export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] }: { activeMode?: string, initialData?: any[] }) => {
   const firestore = useFirestore();
@@ -48,10 +49,12 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
     return query(collection(firestore, 'vendors'), limit(50));
   }, [firestore]);
 
-  const { data: dbVendors } = useCollection<any>(vendorsQuery, 'home_vendors_v4_stable', initialData);
+  const { data: dbVendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery, 'home_vendors_v4_stable', initialData);
 
   const filteredVendors = React.useMemo(() => {
-    const list = (dbVendors && dbVendors.length > 0) ? dbVendors : (initialData || []);
+    const list = dbVendors || initialData || [];
+    if (list.length === 0) return [];
+
     return list.filter(v => {
       if (activeZoneId) {
         if (v.zoneId && v.zoneId !== activeZoneId && v.zoneId !== 'global') {
@@ -66,6 +69,20 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
       return (b.rating || 0) - (a.rating || 0);
     });
   }, [dbVendors, initialData, activeMode, activeZoneId, currentTimeMins]);
+
+  const isInitialLoading = vendorsLoading && (!dbVendors || dbVendors.length === 0);
+
+  if (isInitialLoading) {
+    return (
+      <div className="py-4 px-6 space-y-4">
+        <Skeleton className="h-6 w-32 rounded-full" />
+        <div className="flex gap-4 overflow-hidden">
+          <Skeleton className="h-48 w-[65%] shrink-0 rounded-[1.5rem]" />
+          <Skeleton className="h-48 w-[65%] shrink-0 rounded-[1.5rem]" />
+        </div>
+      </div>
+    );
+  }
 
   if (filteredVendors.length === 0) return null;
 
@@ -85,7 +102,6 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
               <button 
                 onClick={() => {
                   const storeSlug = store.slug || slugify(store.storeName) || store.id;
-                  // Use stable view path for APK
                   router.push(`/store/view?id=${store.id}&slug=${storeSlug}`);
                 }}
                 className="block text-left w-full rounded-[1.5rem] overflow-hidden shadow-xl group border border-white/10 relative transform-gpu active:scale-95 transition-all"
