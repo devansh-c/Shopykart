@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -31,7 +30,9 @@ import {
   Zap,
   ArrowUpRight,
   Wallet,
-  Phone
+  Phone,
+  IndianRupee,
+  Store
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
