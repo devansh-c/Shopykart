@@ -40,6 +40,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { OrderRatingDialog } from './OrderRatingDialog';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const LiveTrackingMap = dynamic(() => import('./LiveTrackingMap'), { 
   ssr: false,
@@ -226,9 +227,19 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
   };
 
   if (authLoading || (loading && !order)) return (
-    <div className="h-screen bg-white flex flex-col items-center justify-center gap-4">
-      <Loader2 className="h-10 w-10 animate-spin text-primary" />
-      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Connecting to Delivery Hub...</p>
+    <div className="h-screen bg-white">
+      <div className="relative h-[48vh] w-full overflow-hidden rounded-b-[4rem]">
+        <Skeleton className="h-full w-full" />
+        <div className="absolute top-10 left-6 right-6 flex justify-between z-10">
+           <Skeleton className="h-10 w-10 rounded-full" />
+           <Skeleton className="h-10 w-32 rounded-xl" />
+           <Skeleton className="h-10 w-10 rounded-full" />
+        </div>
+      </div>
+      <div className="p-8 space-y-6 -mt-20 relative z-20">
+         <Skeleton className="h-40 w-full rounded-[2.5rem]" />
+         <Skeleton className="h-64 w-full rounded-[2.5rem]" />
+      </div>
     </div>
   );
   
@@ -236,7 +247,7 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
     <div className="h-screen bg-white flex flex-col items-center justify-center p-8 text-center">
       <ShoppingBag className="h-12 w-12 text-muted-foreground/30 mb-4" />
       <h2 className="text-xl font-black italic uppercase text-gray-800">Order Not Found</h2>
-      <Button onClick={() => router.push('/')} className="mt-8 bg-black text-white rounded-xl">BACK TO EXPLORE</Button>
+      <Button onClick={() => router.push('/')} className="mt-8 bg-black text-white rounded-xl font-black uppercase italic">BACK TO EXPLORE</Button>
     </div>
   );
 
@@ -425,13 +436,15 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
 export default function OrderDetailsClient({ forcedId }: { forcedId?: string }) {
   return (
     <Suspense fallback={
-      <div className="h-screen bg-white flex flex-col items-center justify-center gap-4">
-        <Loader2 className="animate-spin text-primary h-10 w-10" />
-        <p className="text-[10px] font-black uppercase tracking-widest">Locating GPS...</p>
+      <div className="h-screen bg-white">
+        <div className="p-6 space-y-8">
+           <Skeleton className="h-[40vh] w-full rounded-[3rem]" />
+           <Skeleton className="h-40 w-full rounded-[2.5rem]" />
+           <Skeleton className="h-64 w-full rounded-[2.5rem]" />
+        </div>
       </div>
     }>
       <OrderDetailsInner forcedId={forcedId} />
     </Suspense>
   );
 }
-
