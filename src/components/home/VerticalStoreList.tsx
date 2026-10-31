@@ -99,7 +99,6 @@ export const VerticalStoreList = memo(({
       setCurrentTimeMins(d.getHours() * 60 + d.getMinutes());
     }, 60000);
 
-    // Initial stabilization delay
     setTimeout(() => setInitialSync(true), 800);
 
     return () => {

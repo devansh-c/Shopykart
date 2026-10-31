@@ -1,9 +1,9 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import HomeClient from '@/components/home/HomeClient';
-import { Loader2 } from 'lucide-react';
 import Loading from './loading';
 
 /**
@@ -50,12 +50,7 @@ export default function ShopyKartApp() {
   if (!appType) return <Loading />;
 
   if (appType !== 'customer') {
-    return (
-      <div className="h-screen bg-white flex flex-col items-center justify-center gap-4">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Launching Portal...</p>
-      </div>
-    );
+    return <Loading />;
   }
 
   return (

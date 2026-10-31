@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -15,16 +16,13 @@ import {
 import { isStoreScheduleOpen } from "./PopularProducts"
 import { Skeleton } from "@/components/ui/skeleton"
 
-/**
- * @fileOverview StoreSection memoized to prevent lag during homepage scrolls.
- * Fix: Added explicit loading shimmer state to prevent premature empty render.
- */
 export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] }: { activeMode?: string, initialData?: any[] }) => {
   const firestore = useFirestore();
   const router = useRouter();
   
   const [activeZoneId, setActiveZoneId] = React.useState<string | null>(null);
   const [currentTimeMins, setCurrentTimeMins] = React.useState<number | null>(null);
+  const [initialSync, setInitialSync] = React.useState(false);
 
   React.useEffect(() => {
     const updateZone = () => {
@@ -38,6 +36,8 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
       setCurrentTimeMins(now.getHours() * 60 + now.getMinutes());
     };
     syncTime();
+
+    setTimeout(() => setInitialSync(true), 800);
     
     return () => {
       window.removeEventListener('user-address-updated', updateZone);
@@ -70,7 +70,7 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
     });
   }, [dbVendors, initialData, activeMode, activeZoneId, currentTimeMins]);
 
-  const isInitialLoading = vendorsLoading && (!dbVendors || dbVendors.length === 0);
+  const isInitialLoading = (vendorsLoading || !initialSync) && (!dbVendors || dbVendors.length === 0);
 
   if (isInitialLoading) {
     return (

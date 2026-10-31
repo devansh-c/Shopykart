@@ -240,7 +240,6 @@ export default function DeliveryDashboard() {
       return;
     }
 
-    // AUTH GUARD: Improved to handle profile propagation delay
     if (!profileLoading && !partnerProfile && user) {
       const timer = setTimeout(() => {
         if (!partnerProfile) {
@@ -250,7 +249,7 @@ export default function DeliveryDashboard() {
             router.replace('/delivery/login');
           });
         }
-      }, 3000); // Increased grace period for Firestore writes
+      }, 3000);
       return () => clearTimeout(timer);
     }
   }, [isMounted, user, authLoading, profileLoading, partnerProfile, router, auth, toast]);
@@ -304,10 +303,9 @@ export default function DeliveryDashboard() {
     setTimeout(() => setIsTesting(false), 5000);
   };
 
-  // Loading Screen
   if (!isMounted || authLoading || (profileLoading && !partnerProfile)) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="h-screen bg-white">
         <div className="p-6 space-y-8">
            <div className="flex justify-between items-center">
               <Skeleton className="h-12 w-12 rounded-2xl" />
@@ -328,8 +326,8 @@ export default function DeliveryDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] flex flex-col max-w-lg mx-auto relative transform-gpu overflow-x-hidden">
-      <header className="bg-white px-6 py-6 border-b border-gray-50 sticky top-0 z-[500] shadow-sm">
+    <div className="h-screen bg-[#F9FAFB] flex flex-col max-w-lg mx-auto relative overflow-hidden">
+      <header className="bg-white px-6 py-6 border-b border-gray-50 shrink-0 z-[500] shadow-sm">
         <div className="flex items-center justify-between">
            <div className="flex items-center gap-4">
               <div className="h-14 w-14 rounded-2xl overflow-hidden border-2 border-primary/10 shadow-inner bg-gray-50 flex items-center justify-center">
@@ -358,7 +356,7 @@ export default function DeliveryDashboard() {
         </div>
       </header>
 
-      <main className="flex-1 pb-32 overflow-y-auto no-scrollbar">
+      <main className="flex-1 overflow-y-auto no-scrollbar pb-32">
          {activeTab === 'tasks' && (
            <div className="p-5 space-y-6">
               <div className="bg-[#0B0B0B] p-6 rounded-[2.5rem] shadow-2xl relative overflow-hidden text-white flex justify-between items-center border border-white/5">
@@ -494,7 +492,7 @@ export default function DeliveryDashboard() {
          )}
       </main>
 
-      <nav className="fixed bottom-4 left-1/2 -translate-x-1/2 w-[92%] max-w-[440px] bg-[#0F172A]/90 backdrop-blur-xl pt-4 pb-4 px-6 flex justify-around border border-white/10 z-[600] rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] transform-gpu">
+      <nav className="fixed bottom-4 left-1/2 -translate-x-1/2 w-[92%] max-w-[440px] bg-[#0F172A]/90 backdrop-blur-xl pt-4 pb-4 px-6 flex justify-around border border-white/10 z-[1000000] rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)]">
         {[
           {id:'tasks',label:'TASKS',icon:LayoutDashboard},
           {id:'history',label:'HISTORY',icon:History},
