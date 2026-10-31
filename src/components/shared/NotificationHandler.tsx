@@ -1,5 +1,4 @@
-
-'use client';
+"use client"
 
 import { useEffect, useState, useRef } from 'react';
 import { useUser, useFirestore } from '@/firebase';
@@ -111,7 +110,7 @@ export default function NotificationHandler() {
 
   return (
     <div className="fixed inset-0 z-[2000000] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
-      <div className="relative bg-white rounded-[3.5rem] p-10 w-full max-w-sm flex flex-col items-center text-center shadow-2xl animate-in zoom-in duration-500">
+      <div className="relative bg-white rounded-[3.5rem] p-10 w-full max-sm flex flex-col items-center text-center shadow-2xl animate-in zoom-in duration-500">
         <div className="bg-primary/10 h-24 w-24 rounded-[2.5rem] flex items-center justify-center text-primary mb-6 border-4 border-primary/20 animate-pulse">
            <svg className="h-10 w-10 animate-bounce" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" strokeLinecap="round" strokeLinejoin="round"/>

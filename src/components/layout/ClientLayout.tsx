@@ -134,7 +134,7 @@ export function ClientLayout({ children }: { children: ReactNode }) {
               "relative min-h-screen flex flex-col max-w-lg mx-auto w-full bg-white shadow-2xl border-x border-gray-100 overflow-y-auto no-scrollbar",
               showPaddingTop && "pt-10"
             )}>
-              <main className={cn("flex-1", showPaddingBottom && "pb-24")}>
+              <main className={cn("flex-1", showPaddingBottom && "pb-32")}>
                 {!isExcludedPath && <LocationRequest />}
                 <TelegramNotifier />
                 <WelcomeBonusOverlay />
