@@ -24,6 +24,7 @@ import {
   ChevronRight,
   Bike,
   ShieldAlert,
+  ShieldCheck,
   ListTree,
   AlertCircle,
   BellRing,
