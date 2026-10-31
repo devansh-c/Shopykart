@@ -115,13 +115,9 @@ export const VerticalStoreList = memo(({
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(
-      collection(firestore, 'products'), 
-      where('isDeleted', '==', false),
-      limit(500)
-    );
+    return query(collection(firestore, 'products'), limit(1000));
   }, [firestore]);
-  const { data: allProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_strip_products_v15');
+  const { data: allProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_strip_products_v16_resilient');
 
   const filteredVendors = useMemo(() => {
     const list = dbVendors || initialData || [];
@@ -211,7 +207,10 @@ export const VerticalStoreList = memo(({
             const isOffline = store.isOnline === false || !isOpen;
             const isBestRated = Number(store.rating) >= 4.5;
             
-            const storeProducts = allProducts?.filter(p => String(p.vendorId) === String(store.id)).slice(0, 10) || [];
+            const storeProducts = allProducts?.filter(p => 
+              String(p.vendorId) === String(store.id) && 
+              p.isDeleted !== true
+            ).slice(0, 10) || [];
 
             return (
               <div key={store.id} className="flex flex-col space-y-4 animate-in fade-in duration-500">
@@ -253,7 +252,7 @@ export const VerticalStoreList = memo(({
                             <Timer className="h-3.5 w-3.5 text-primary" />
                             <span className="text-[11px] font-black text-gray-900 uppercase italic tracking-tighter">{store.deliveryTime || '20 min'}</span>
                          </div>
-                      </div>
+                    </div>
                     )}
                   </div>
 
@@ -315,14 +314,14 @@ export const VerticalStoreList = memo(({
               </div>
             );
           })
-        ) : showEmptyState && (
+        ) : showEmptyState ? (
           <div className="text-center py-24 opacity-20 flex flex-col items-center">
              <StoreIcon className="h-16 w-16 mb-4" />
              <p className="font-black italic uppercase text-sm tracking-widest text-center">
                No stores found in your zone
              </p>
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );
