@@ -229,6 +229,22 @@ export default function DeliveryDashboard() {
   const partnerRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'delivery_partners', user.uid) : null, [firestore, user]);
   const { data: partnerProfile, loading: profileLoading } = useDoc<any>(partnerRef);
 
+  // AUTH GUARD: Strictly ensure only Delivery Partners can access this page
+  useEffect(() => {
+    if (!isMounted || authLoading) return;
+
+    if (!user) {
+      router.replace('/delivery/login');
+      return;
+    }
+
+    // If user is loaded but profile is not found in delivery_partners collection
+    if (!profileLoading && !partnerProfile && user) {
+      toast({ variant: "destructive", title: "Access Denied", description: "You are not registered as a Partner." });
+      signOut(auth!).then(() => router.replace('/delivery/login'));
+    }
+  }, [isMounted, user, authLoading, profileLoading, partnerProfile, router, auth, toast]);
+
   const ordersQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'orders'), orderBy('createdAt', 'desc'), limit(50)) : null, [firestore]);
   const { data: allOrders } = useCollection<any>(ordersQuery);
 
