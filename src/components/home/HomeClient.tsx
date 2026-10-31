@@ -7,7 +7,6 @@ import { cn } from '@/lib/utils';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 
 import { OfferSlider } from '@/components/home/OfferSlider';
-import { CategoryList } from '@/components/home/CategoryList';
 import { VerticalStoreList } from '@/components/home/VerticalStoreList';
 import OffersSection from '@/components/home/OffersSection';
 import AnnouncementBanner from '@/components/home/AnnouncementBanner';
@@ -15,6 +14,7 @@ import { Under49Products } from '@/components/home/Under49Products';
 
 /**
  * @fileOverview Home Page Orchestrator.
+ * SPEED OPTIMIZATION: CategoryList removed from home to reduce Firestore load.
  * Layout: Slider -> Announcement -> Under 49 -> Coupons -> Stores list.
  */
 export default function HomeClient() {
@@ -51,10 +51,6 @@ export default function HomeClient() {
     updateUrlParam('mode', mode);
   };
 
-  const handleCategoryChange = (cat: string) => {
-    updateUrlParam('cat', cat);
-  };
-
   return (
     <div className="min-h-screen bg-white transform-gpu">
       {/* HEADER SECTION */}
@@ -89,11 +85,7 @@ export default function HomeClient() {
                </div>
                <div className={cn("h-9 w-9 rounded-xl flex items-center justify-center border", activeMode === 'Medical' ? "bg-teal-50 text-teal-600 border-teal-100" : "bg-rose-50 text-rose-600 border-rose-100")}>{activeMode === 'Medical' ? <HeartPulse className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}</div>
             </div>
-            <CategoryList 
-              activeCategory={activeCategory} 
-              onCategoryChange={handleCategoryChange} 
-              serviceMode={activeMode}
-            />
+            {/* CategoryList hidden for speed as requested */}
             <VerticalStoreList 
               searchQuery={searchQuery}
               activeMode={activeMode}
@@ -111,14 +103,7 @@ export default function HomeClient() {
             )}
             
             <div className="bg-white">
-              {!searchQuery && (
-                <CategoryList 
-                  activeCategory={activeCategory} 
-                  onCategoryChange={handleCategoryChange} 
-                  serviceMode={activeMode}
-                />
-              )}
-              
+              {/* CategoryList removed from landing for speed boost */}
               <VerticalStoreList 
                 searchQuery={searchQuery}
                 activeMode={activeMode}

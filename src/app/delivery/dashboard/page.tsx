@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -280,6 +279,7 @@ export default function DeliveryDashboard() {
     }
 
     if (!profileLoading && !partnerProfile && user) {
+      // 3-second grace period to allow Firestore data to sync after registration
       const timer = setTimeout(() => {
         if (!partnerProfile) {
           toast({ variant: "destructive", title: "Access Denied", description: "Identity not recognized as Delivery Partner." });
@@ -472,7 +472,10 @@ export default function DeliveryDashboard() {
                         </div>
                      </div>
                      <div className="text-right">
-                        <span className="text-sm font-black text-gray-900 italic block">₹{order.total?.toFixed(0)}</span>
+                        <div className="flex items-center gap-1">
+                           <IndianRupee className="h-3 w-3 text-gray-400" />
+                           <span className="text-sm font-black text-gray-900 italic block">{order.total?.toFixed(0)}</span>
+                        </div>
                         <Badge className={cn(
                           "border-none text-[7px] font-black uppercase tracking-widest px-2",
                           order.status === 'Delivered' ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"

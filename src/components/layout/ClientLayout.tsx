@@ -1,4 +1,3 @@
-
 "use client";
 
 import { CartProvider } from '@/components/cart/CartProvider';
@@ -115,7 +114,7 @@ export function ClientLayout({ children }: { children: ReactNode }) {
   const isFleetApp = process.env.NEXT_PUBLIC_TOW_APP === 'true';
   const isBusinessApp = isAdminApp || isStoreApp || isFleetApp;
 
-  // Hydration Safety: Apply conditional classes only after mount
+  // Hydration Safety: Apply conditional styles/classes only after mount
   const showPaddingTop = mounted && !isExcludedPath;
   const showPaddingBottom = mounted && !isExcludedPath;
 
