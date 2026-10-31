@@ -120,7 +120,7 @@ export const VerticalStoreList = memo(({
       limit(500)
     );
   }, [firestore]);
-  const { data: allProducts } = useCollection<any>(productsQuery, 'home_strip_products_v15');
+  const { data: allProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_strip_products_v15');
 
   const filteredVendors = useMemo(() => {
     const list = dbVendors || initialData || [];
@@ -293,6 +293,14 @@ export const VerticalStoreList = memo(({
                           product={{...p, restaurantName: store.storeName}} 
                           isOffline={isOffline}
                         />
+                      ))
+                    ) : productsLoading ? (
+                      [1, 2, 3, 4].map(i => (
+                        <div key={i} className="min-w-[140px] space-y-3">
+                           <Skeleton className="w-full aspect-square rounded-2xl" />
+                           <Skeleton className="h-3 w-2/3 rounded-full" />
+                           <Skeleton className="h-2 w-1/2 rounded-full" />
+                        </div>
                       ))
                     ) : (
                       !isActuallyLoading && (
