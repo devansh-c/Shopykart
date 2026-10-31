@@ -1,6 +1,7 @@
+
 "use client"
 
-import { useState, useRef, Suspense } from 'react';
+import { useState, useRef, Suspense, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,15 +44,28 @@ function DeliveryRegistrationContent() {
     if (!file) return;
     const reader = new FileReader();
     reader.onloadend = async () => {
-      const compressed = await compressImage(reader.result as string, 400, 400);
-      setPhoto(compressed);
+      try {
+        const compressed = await compressImage(reader.result as string, 400, 400);
+        setPhoto(compressed);
+      } catch (err) {
+        toast({ variant: "destructive", title: "Image Error", description: "Could not process photo." });
+      }
     };
     reader.readAsDataURL(file);
   };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth || !firestore) return;
+    if (!auth || !firestore) {
+      toast({ variant: "destructive", title: "System Not Ready", description: "Please wait a second and try again." });
+      return;
+    }
+
+    // STRENGTHENED VALIDATION
+    if (formData.password.length < 6) {
+      toast({ variant: "destructive", title: "Weak Pin", description: "Pin must be at least 6 digits." });
+      return;
+    }
 
     if (formData.password !== formData.confirmPassword) {
       toast({ variant: "destructive", title: "Passwords Mismatch" });
@@ -68,17 +82,23 @@ function DeliveryRegistrationContent() {
       return;
     }
 
+    if (formData.phone.length !== 10) {
+      toast({ variant: "destructive", title: "Invalid Phone", description: "Enter 10-digit mobile number." });
+      return;
+    }
+
     setLoading(true);
     try {
+      // 1. Create Auth User
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email.trim().toLowerCase(), formData.password);
       const user = userCredential.user;
 
       const partnerData = {
         uid: user.uid,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        fullName: `${formData.firstName} ${formData.lastName}`,
-        phone: formData.phone,
+        firstName: formData.firstName.trim().toUpperCase(),
+        lastName: formData.lastName.trim().toUpperCase(),
+        fullName: `${formData.firstName.trim()} ${formData.lastName.trim()}`.toUpperCase(),
+        phone: formData.phone.trim(),
         email: formData.email.trim().toLowerCase(),
         assignedPincode: formData.assignedPincode,
         photoUrl: photo,
@@ -89,16 +109,23 @@ function DeliveryRegistrationContent() {
         updatedAt: serverTimestamp(),
       };
 
+      // 2. Save Profile (CRITICAL: Wait for completion)
       await setDoc(doc(firestore, 'delivery_partners', user.uid), partnerData);
       
+      // 3. Lock Session
       localStorage.setItem('delivery_session_active', 'true');
       toast({ title: "Registration Successful!", description: "Welcome to ShopyKart Fleet." });
       
+      // 4. Smooth Redirect
       setTimeout(() => {
         router.push('/delivery/dashboard');
-      }, 500);
+      }, 800);
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Registration Failed", description: err.message });
+      let msg = "Could not complete registration.";
+      if (err.code === 'auth/email-already-in-use') msg = "This email is already registered.";
+      if (err.code === 'auth/invalid-email') msg = "Invalid email format.";
+      
+      toast({ variant: "destructive", title: "Registration Failed", description: msg });
     } finally {
       setLoading(false);
     }
@@ -142,7 +169,7 @@ function DeliveryRegistrationContent() {
                 <Input 
                   placeholder="Rahul" 
                   value={formData.firstName}
-                  onChange={e => setFormData({...formData, firstName: e.target.value.toUpperCase()})}
+                  onChange={e => setFormData({...formData, firstName: e.target.value})}
                   className="bg-muted/20 border-none h-12 rounded-xl font-bold uppercase"
                   required
                 />
@@ -152,7 +179,7 @@ function DeliveryRegistrationContent() {
                 <Input 
                   placeholder="Singh" 
                   value={formData.lastName}
-                  onChange={e => setFormData({...formData, lastName: e.target.value.toUpperCase()})}
+                  onChange={e => setFormData({...formData, lastName: e.target.value})}
                   className="bg-muted/20 border-none h-12 rounded-xl font-bold uppercase"
                   required
                 />

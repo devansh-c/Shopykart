@@ -240,17 +240,17 @@ export default function DeliveryDashboard() {
       return;
     }
 
-    // AUTH GUARD FIX: Added 2-second grace period for profile propagation
+    // AUTH GUARD: Improved to handle profile propagation delay
     if (!profileLoading && !partnerProfile && user) {
       const timer = setTimeout(() => {
         if (!partnerProfile) {
-          toast({ variant: "destructive", title: "Access Denied", description: "You are not registered as a Partner." });
+          toast({ variant: "destructive", title: "Access Denied", description: "Identity not recognized as Delivery Partner." });
           signOut(auth!).then(() => {
             localStorage.removeItem('delivery_session_active');
             router.replace('/delivery/login');
           });
         }
-      }, 2000);
+      }, 3000); // Increased grace period for Firestore writes
       return () => clearTimeout(timer);
     }
   }, [isMounted, user, authLoading, profileLoading, partnerProfile, router, auth, toast]);
@@ -304,6 +304,7 @@ export default function DeliveryDashboard() {
     setTimeout(() => setIsTesting(false), 5000);
   };
 
+  // Loading Screen
   if (!isMounted || authLoading || (profileLoading && !partnerProfile)) {
     return (
       <div className="min-h-screen bg-white">
