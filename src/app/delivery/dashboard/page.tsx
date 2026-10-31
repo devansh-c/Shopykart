@@ -417,7 +417,7 @@ export default function DeliveryDashboard() {
               <h2 className="text-2xl font-black italic uppercase tracking-tighter px-2">Delivered Tasks</h2>
               <div className="space-y-4">
                 {historyOrders.length > 0 ? historyOrders.map((order) => (
-                  <div key={order.id} className="bg-white p-5 rounded-[2rem] border border-gray-100 shadow-sm flex items-center justify-between">
+                  <div key={order.id} className="bg-white p-5 rounded-[2.5rem] border border-gray-100 shadow-sm flex items-center justify-between">
                      <div className="flex items-center gap-4">
                         <div className="h-12 w-12 bg-green-50 rounded-2xl flex items-center justify-center text-green-600">
                            <CheckCircle2 className="h-6 w-6" />

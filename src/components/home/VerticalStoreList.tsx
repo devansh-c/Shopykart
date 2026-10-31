@@ -98,7 +98,6 @@ export const VerticalStoreList = memo(({
       setCurrentTimeMins(d.getHours() * 60 + d.getMinutes());
     }, 60000);
 
-    // Give a small buffer for Firestore to settle after mount
     setTimeout(() => setInitialSync(true), 1200);
 
     return () => {
@@ -118,10 +117,10 @@ export const VerticalStoreList = memo(({
     return query(
       collection(firestore, 'products'), 
       where('isDeleted', '==', false),
-      limit(200)
+      limit(500)
     );
   }, [firestore]);
-  const { data: allProducts } = useCollection<any>(productsQuery, 'home_strip_products_v12');
+  const { data: allProducts } = useCollection<any>(productsQuery, 'home_strip_products_v15');
 
   const filteredVendors = useMemo(() => {
     const list = dbVendors || initialData || [];
@@ -137,7 +136,6 @@ export const VerticalStoreList = memo(({
 
       const storeCat = (v.category || 'Food').toLowerCase();
       
-      // Robust mode checking
       if (currentMode === 'medical') {
         if (storeCat !== 'medical') return false;
       } else if (currentMode === 'beauty') {
@@ -145,7 +143,6 @@ export const VerticalStoreList = memo(({
       } else if (currentMode === 'grocery') {
         if (storeCat !== 'grocery') return false;
       } else {
-        // 'Food' mode is the default and catches everything not specifically restricted
         if (['medical', 'beauty', 'grocery'].includes(storeCat)) return false;
       }
 
@@ -172,9 +169,7 @@ export const VerticalStoreList = memo(({
     router.push(`/store/view?id=${store.id}&slug=${storeSlug}`);
   };
 
-  // STRICT LOADING GUARD: Skeletons show if vendorsLoading is true OR buffer timer not finished
   const isActuallyLoading = vendorsLoading || !initialSync;
-  // EMPTY STATE GUARD: Only show if loading is definitively finished AND list is empty
   const showEmptyState = !isActuallyLoading && filteredVendors.length === 0;
 
   return (
@@ -214,6 +209,8 @@ export const VerticalStoreList = memo(({
             const isOpen = isStoreScheduleOpen(store, currentTimeMins);
             const isOffline = store.isOnline === false || !isOpen;
             const isBestRated = Number(store.rating) >= 4.5;
+            
+            // Fetch at least 5-10 products for this store
             const storeProducts = allProducts?.filter(p => String(p.vendorId) === String(store.id)).slice(0, 10) || [];
 
             return (
@@ -297,10 +294,12 @@ export const VerticalStoreList = memo(({
                           isOffline={isOffline}
                         />
                       ))
-                    ) : !isActuallyLoading && (
-                      <div className="h-40 flex items-center justify-center w-full bg-gray-50 rounded-2xl border border-dashed">
-                        <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">No products listed</p>
-                      </div>
+                    ) : (
+                      !isActuallyLoading && (
+                        <div className="h-40 flex items-center justify-center w-full bg-gray-50 rounded-2xl border border-dashed">
+                          <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">No products listed</p>
+                        </div>
+                      )
                     )}
                     <div className="min-w-[1px] h-full" />
                   </div>
