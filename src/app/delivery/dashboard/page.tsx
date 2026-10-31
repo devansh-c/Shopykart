@@ -391,7 +391,9 @@ export default function DeliveryDashboard() {
 
               <div className="flex items-center justify-between px-2">
                  <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900">Live Queue</h2>
-                 <Badge variant="outline" className="rounded-full border-gray-200 text-gray-400 font-black uppercase text-[8px] px-3">{taskOrders.length} TASKS</Badge>
+                 <Badge variant="outline" className="rounded-full border-gray-200 text-gray-400 font-black uppercase text-[10px]">
+                   {taskOrders.length} TASKS
+                 </Badge>
               </div>
 
               <div className="space-y-4">
