@@ -1,17 +1,17 @@
 "use client"
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Bike, Mail, Lock, Loader2, ArrowRight, ChevronLeft } from 'lucide-react';
+import { Bike, Mail, Lock, Loader2, ArrowRight, ChevronLeft, ShieldCheck } from 'lucide-react';
 import { useAuth, useFirestore, useUser } from '@/firebase';
 import { signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 
-export default function DeliveryLoginPage() {
+function DeliveryLoginContent() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -23,7 +23,6 @@ export default function DeliveryLoginPage() {
   const firestore = useFirestore();
   const { user, loading: authLoading } = useUser();
 
-  // AUTO-REDIRECT: If already logged in, go to dashboard directly
   useEffect(() => {
     if (!authLoading && user) {
       localStorage.setItem('delivery_session_active', 'true');
@@ -87,104 +86,118 @@ export default function DeliveryLoginPage() {
   };
 
   if (authLoading) {
-    return <div className="min-h-screen bg-[#0B0B0B] flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
+    return <div className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
   }
 
   return (
-    <div className="min-h-screen bg-[#0B0B0B] flex items-center justify-center p-4">
-      <Card className="w-full max-w-md border-none shadow-2xl rounded-[2.5rem] overflow-hidden bg-white/5 backdrop-blur-xl border border-white/10">
-        <CardHeader className="text-center pt-10">
-          <div className="mx-auto bg-primary/20 w-16 h-16 rounded-2xl flex items-center justify-center mb-4 border border-primary/20">
-            <Bike className="h-8 w-8 text-primary" />
+    <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center p-4">
+      <Card className="w-full max-w-md border-none shadow-2xl rounded-[3rem] overflow-hidden bg-white">
+        <CardHeader className="text-center pt-12 pb-6">
+          <div className="mx-auto bg-primary/10 w-20 h-20 rounded-[1.75rem] flex items-center justify-center mb-4 border border-primary/20 shadow-inner">
+            <Bike className="h-10 w-10 text-primary" />
           </div>
-          <CardTitle className="text-2xl font-black italic uppercase tracking-tighter text-white">
-            {view === 'forgot' ? 'Reset Partner Pin' : 'Delivery Login'}
+          <CardTitle className="text-3xl font-black italic uppercase tracking-tighter text-gray-900">
+            {view === 'forgot' ? 'Reset Pin' : 'Partner Login'}
           </CardTitle>
-          <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">Partner Dashboard Access</p>
+          <p className="text-muted-foreground text-[10px] font-black uppercase tracking-[0.2em] mt-1">ShopyKart Fleet Console</p>
         </CardHeader>
-        <CardContent className="px-8 pb-10">
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">Email</label>
-              <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-                <Input 
-                  type="email" 
-                  placeholder="partner@shopykart.com" 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="pl-12 h-12 rounded-xl bg-white/5 border-white/10 text-white placeholder:text-gray-600"
-                  required
-                />
-              </div>
-            </div>
-            
-            {view === 'login' && (
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">Password</label>
-                <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+        <CardContent className="px-8 pb-12">
+          <div className="space-y-6">
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Work Email</label>
+                <div className="relative group">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-primary transition-colors" />
                   <Input 
-                    type="password" 
-                    placeholder="••••••••" 
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pl-12 h-12 rounded-xl bg-white/5 border-white/10 text-white placeholder:text-gray-600"
+                    type="email" 
+                    placeholder="partner@shopykart.co.in" 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="pl-12 h-14 rounded-2xl bg-muted/20 border-none font-bold text-gray-900 placeholder:text-gray-400 focus-visible:ring-1 focus-visible:ring-primary/20 transition-all"
                     required
                   />
                 </div>
-                <div className="flex justify-end px-1 mt-1">
-                  <button onClick={() => setView('forgot')} className="text-[9px] font-black uppercase text-primary tracking-[0.2em] hover:underline underline-offset-4">
-                    Forgot Pin?
-                  </button>
-                </div>
               </div>
-            )}
+              
+              {view === 'login' && (
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Access Key</label>
+                  <div className="relative group">
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-primary transition-colors" />
+                    <Input 
+                      type="password" 
+                      placeholder="••••••••" 
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="pl-12 h-14 rounded-2xl bg-muted/20 border-none font-bold text-gray-900 placeholder:text-gray-400 focus-visible:ring-1 focus-visible:ring-primary/20 transition-all"
+                      required
+                    />
+                  </div>
+                  <div className="flex justify-end px-1 mt-2">
+                    <button onClick={() => setView('forgot')} className="text-[10px] font-black uppercase text-primary tracking-widest hover:underline underline-offset-4">
+                      FORGOT PIN?
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
 
             <Button 
               onClick={view === 'forgot' ? handleResetPassword : handleLogin} 
-              className="w-full h-14 rounded-2xl bg-primary hover:bg-primary/90 font-black uppercase italic text-lg shadow-xl shadow-primary/20 mt-4"
+              className="w-full h-18 rounded-[2rem] bg-[#0B0B0B] hover:bg-primary text-white font-black uppercase italic text-lg shadow-xl transition-all active:scale-95 py-8"
               disabled={loading}
             >
-              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : (view === 'forgot' ? "SEND RESET LINK" : "ENTER HUB")}
+              {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : (view === 'forgot' ? "SEND RESET LINK" : "ENTER HUB")}
             </Button>
 
             {view === 'forgot' && (
-              <button onClick={() => setView('login')} className="w-full flex items-center justify-center gap-2 text-[10px] font-black uppercase text-gray-500 hover:text-white mt-2">
+              <button onClick={() => setView('login')} className="w-full flex items-center justify-center gap-2 text-[10px] font-black uppercase text-gray-400 hover:text-gray-900 transition-colors">
                 <ChevronLeft className="h-3 w-3" /> BACK TO LOGIN
               </button>
             )}
             
             {view === 'login' && (
               <>
-                <div className="relative py-2 pt-4">
-                  <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/5"></div></div>
-                  <div className="relative flex justify-center text-[10px] font-bold uppercase"><span className="bg-[#0B0B0B] px-2 text-gray-500">New Partner?</span></div>
+                <div className="relative py-4">
+                  <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-100"></div></div>
+                  <div className="relative flex justify-center text-[10px] font-bold uppercase"><span className="bg-white px-3 text-gray-400">Apply for duty</span></div>
                 </div>
 
                 <Button 
                   type="button" 
                   variant="outline"
-                  className="w-full h-12 rounded-xl border-white/10 text-white font-black uppercase italic tracking-tighter hover:bg-white/5"
+                  className="w-full h-14 rounded-2xl border-gray-100 text-gray-900 font-black uppercase italic tracking-tighter hover:bg-gray-50 active:scale-95 transition-all"
                   onClick={() => router.push('/delivery/register')}
                 >
                   BECOME A PARTNER
-                  <ArrowRight className="ml-2 h-4 w-4" />
+                  <ArrowRight className="ml-2 h-4 w-4 text-primary" />
                 </Button>
               </>
             )}
 
-            <Button 
+            <button 
               type="button" 
-              variant="ghost"
-              className="w-full h-12 text-gray-500 font-bold uppercase text-[10px] tracking-widest"
+              className="w-full h-10 text-gray-400 font-black uppercase text-[10px] tracking-[0.3em] hover:text-primary transition-colors mt-2"
               onClick={() => router.push('/')}
             >
               BACK TO HOME
-            </Button>
+            </button>
           </div>
         </CardContent>
       </Card>
+      
+      <div className="fixed bottom-10 left-0 right-0 flex justify-center items-center gap-2 opacity-30 pointer-events-none">
+         <ShieldCheck className="h-4 w-4" />
+         <span className="text-[8px] font-black uppercase tracking-[0.5em]">Logistics Secured</span>
+      </div>
     </div>
+  );
+}
+
+export default function DeliveryLoginPage() {
+  return (
+    <Suspense fallback={<div className="h-screen bg-white flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
+      <DeliveryLoginContent />
+    </Suspense>
   );
 }
