@@ -35,7 +35,7 @@ export default function StoresPage() {
     };
     syncTime();
     
-    setTimeout(() => setInitialSync(true), 800);
+    setTimeout(() => setInitialSync(true), 1200);
 
     return () => {
       window.removeEventListener('user-address-updated', updateZone);
@@ -47,7 +47,7 @@ export default function StoresPage() {
     return collection(firestore, 'vendors');
   }, [firestore]);
 
-  const { data: dbVendors, loading } = useCollection<any>(vendorsQuery, 'stores_list_v2');
+  const { data: dbVendors, loading } = useCollection<any>(vendorsQuery, 'stores_list_v3');
 
   const filteredVendors = useMemo(() => {
     if (!dbVendors) return [];
@@ -79,7 +79,9 @@ export default function StoresPage() {
     });
   }, [dbVendors, activeZoneId, searchQuery, currentTimeMins]);
 
-  const isActuallyLoading = (loading || !initialSync) && (!dbVendors || dbVendors.length === 0);
+  // Detereministic Loading State
+  const isActuallyLoading = loading || !initialSync;
+  const showEmptyState = !isActuallyLoading && filteredVendors.length === 0;
 
   return (
     <div className="min-h-screen bg-white pb-32">
@@ -103,7 +105,7 @@ export default function StoresPage() {
       </div>
 
       <div className="px-6 space-y-6">
-        {isActuallyLoading ? (
+        {isActuallyLoading && filteredVendors.length === 0 ? (
           <div className="space-y-6">
             {[1, 2, 3].map(i => (
               <div key={i} className="h-64 w-full bg-[#FFF9F5] rounded-3xl border-2 border-border/40 animate-pulse overflow-hidden relative">
@@ -172,7 +174,7 @@ export default function StoresPage() {
               </Link>
             );
           })
-        ) : (
+        ) : showEmptyState && (
           <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-muted/50">
             <Store className="h-16 w-16 mx-auto text-muted-foreground/10 mb-4" />
             <p className="text-muted-foreground font-black italic uppercase tracking-widest text-sm px-6">

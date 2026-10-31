@@ -44,7 +44,6 @@ const ProductStripItem = memo(({ product, isOffline }: any) => {
        </div>
 
        <div className="space-y-0.5 px-1 text-left">
-          <p className="text-[9px] font-black text-gray-400 uppercase truncate leading-none italic">{product.restaurantName || 'ShopyKart'}</p>
           <div className="flex items-center gap-1 mb-1">
              <div className="h-2.5 w-2.5 border border-green-600 rounded-sm flex items-center justify-center p-0.5 shrink-0"><div className="h-full w-full bg-green-600 rounded-full" /></div>
              <h4 className="text-[11px] font-black text-gray-800 uppercase italic truncate tracking-tight">{product.name}</h4>
@@ -99,7 +98,8 @@ export const VerticalStoreList = memo(({
       setCurrentTimeMins(d.getHours() * 60 + d.getMinutes());
     }, 60000);
 
-    setTimeout(() => setInitialSync(true), 800);
+    // Give a small buffer for Firestore to settle after mount
+    setTimeout(() => setInitialSync(true), 1200);
 
     return () => {
       window.removeEventListener('user-address-updated', updateZone);
@@ -111,7 +111,7 @@ export const VerticalStoreList = memo(({
     if (!firestore) return null;
     return query(collection(firestore, 'vendors'), limit(100));
   }, [firestore]);
-  const { data: dbVendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery, 'home_vstores_v11', initialData);
+  const { data: dbVendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery, 'home_vstores_v12', initialData);
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -121,7 +121,7 @@ export const VerticalStoreList = memo(({
       limit(200)
     );
   }, [firestore]);
-  const { data: allProducts } = useCollection<any>(productsQuery, 'home_strip_products_v11');
+  const { data: allProducts } = useCollection<any>(productsQuery, 'home_strip_products_v12');
 
   const filteredVendors = useMemo(() => {
     const list = dbVendors || initialData || [];
@@ -136,12 +136,17 @@ export const VerticalStoreList = memo(({
       }
 
       const storeCat = (v.category || 'Food').toLowerCase();
-      const isStoreFood = storeCat === 'food' || storeCat === 'restaurant' || storeCat === 'bakery';
-
-      if (currentMode === 'food') {
-        if (!isStoreFood) return false;
-      } else if (storeCat !== currentMode) {
-        return false;
+      
+      // Robust mode checking
+      if (currentMode === 'medical') {
+        if (storeCat !== 'medical') return false;
+      } else if (currentMode === 'beauty') {
+        if (storeCat !== 'beauty') return false;
+      } else if (currentMode === 'grocery') {
+        if (storeCat !== 'grocery') return false;
+      } else {
+        // 'Food' mode is the default and catches everything not specifically restricted
+        if (['medical', 'beauty', 'grocery'].includes(storeCat)) return false;
       }
 
       const matchesSearch = !searchLower || 
@@ -167,7 +172,10 @@ export const VerticalStoreList = memo(({
     router.push(`/store/view?id=${store.id}&slug=${storeSlug}`);
   };
 
-  const isActuallyLoading = (vendorsLoading || !initialSync) && (!dbVendors || dbVendors.length === 0);
+  // STRICT LOADING GUARD: Skeletons show if vendorsLoading is true OR buffer timer not finished
+  const isActuallyLoading = vendorsLoading || !initialSync;
+  // EMPTY STATE GUARD: Only show if loading is definitively finished AND list is empty
+  const showEmptyState = !isActuallyLoading && filteredVendors.length === 0;
 
   return (
     <div className="px-4 py-6 bg-white min-h-[500px] content-visibility-auto">
@@ -181,7 +189,7 @@ export const VerticalStoreList = memo(({
       </div>
 
       <div className="space-y-16">
-        {isActuallyLoading ? (
+        {isActuallyLoading && filteredVendors.length === 0 ? (
           <div className="space-y-16">
             {[1, 2, 3].map(i => (
               <div key={i} className="space-y-6">
@@ -289,7 +297,7 @@ export const VerticalStoreList = memo(({
                           isOffline={isOffline}
                         />
                       ))
-                    ) : (
+                    ) : !isActuallyLoading && (
                       <div className="h-40 flex items-center justify-center w-full bg-gray-50 rounded-2xl border border-dashed">
                         <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">No products listed</p>
                       </div>
@@ -300,7 +308,7 @@ export const VerticalStoreList = memo(({
               </div>
             );
           })
-        ) : (
+        ) : showEmptyState && (
           <div className="text-center py-24 opacity-20 flex flex-col items-center">
              <StoreIcon className="h-16 w-16 mb-4" />
              <p className="font-black italic uppercase text-sm tracking-widest text-center">

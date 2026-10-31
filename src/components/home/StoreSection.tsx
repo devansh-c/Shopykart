@@ -37,7 +37,7 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
     };
     syncTime();
 
-    setTimeout(() => setInitialSync(true), 800);
+    setTimeout(() => setInitialSync(true), 1200);
     
     return () => {
       window.removeEventListener('user-address-updated', updateZone);
@@ -49,11 +49,13 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
     return query(collection(firestore, 'vendors'), limit(50));
   }, [firestore]);
 
-  const { data: dbVendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery, 'home_vendors_v4_stable', initialData);
+  const { data: dbVendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery, 'home_vendors_v5_stable', initialData);
 
   const filteredVendors = React.useMemo(() => {
     const list = dbVendors || initialData || [];
     if (list.length === 0) return [];
+
+    const currentMode = activeMode.toLowerCase();
 
     return list.filter(v => {
       if (activeZoneId) {
@@ -61,7 +63,19 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
           return false;
         }
       }
-      return (v.category || 'Food').toLowerCase() === activeMode.toLowerCase();
+      
+      const storeCat = (v.category || 'Food').toLowerCase();
+      if (currentMode === 'medical') {
+        if (storeCat !== 'medical') return false;
+      } else if (currentMode === 'beauty') {
+        if (storeCat !== 'beauty') return false;
+      } else if (currentMode === 'grocery') {
+        if (storeCat !== 'grocery') return false;
+      } else {
+        if (['medical', 'beauty', 'grocery'].includes(storeCat)) return false;
+      }
+      
+      return true;
     }).sort((a, b) => {
       const onlineA = a.isOnline !== false && isStoreScheduleOpen(a, currentTimeMins) ? 1 : 0;
       const onlineB = b.isOnline !== false && isStoreScheduleOpen(b, currentTimeMins) ? 1 : 0;
@@ -70,9 +84,9 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
     });
   }, [dbVendors, initialData, activeMode, activeZoneId, currentTimeMins]);
 
-  const isInitialLoading = (vendorsLoading || !initialSync) && (!dbVendors || dbVendors.length === 0);
+  const isInitialLoading = vendorsLoading || !initialSync;
 
-  if (isInitialLoading) {
+  if (isInitialLoading && filteredVendors.length === 0) {
     return (
       <div className="py-4 px-6 space-y-4">
         <Skeleton className="h-6 w-32 rounded-full" />
