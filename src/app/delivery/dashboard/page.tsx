@@ -2,7 +2,7 @@
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
-import { collection, doc, updateDoc, query, where, orderBy, serverTimestamp, limit } from 'firebase/firestore';
+import { collection, doc, updateDoc, query, where, orderBy, serverTimestamp, limit, getDoc } from 'firebase/firestore';
 import { 
   Navigation, 
   Package, 
@@ -65,14 +65,13 @@ const TaskCard = memo(({ order, onUpdate, userData, onPass }: any) => {
   const isOutForDelivery = order.status === 'Out for Delivery';
   const isMyTask = order.deliveryPartnerId === userData?.uid;
 
-  // LIVE TIMER LOGIC
   useEffect(() => {
     if (!isMyTask || !order.readyForPickupAt || order.status === 'Delivered' || order.status === 'Cancelled') return;
 
     const interval = setInterval(() => {
       const startTime = order.readyForPickupAt?.seconds ? new Date(order.readyForPickupAt.seconds * 1000) : new Date();
       const elapsedSeconds = differenceInSeconds(new Date(), startTime);
-      const limitSeconds = 20 * 60; // 20 minutes
+      const limitSeconds = 20 * 60; 
       const remainingSeconds = limitSeconds - elapsedSeconds;
 
       if (remainingSeconds <= 0) {
@@ -115,7 +114,6 @@ const TaskCard = memo(({ order, onUpdate, userData, onPass }: any) => {
         return;
       }
       if (enteredCode === order.deliveryOTP) {
-        // FINAL STOP: Save duration on delivery
         onUpdate(order.id, 'Delivered', collectionMethod, userData);
         setEnteredCode('');
       } else {
@@ -326,7 +324,6 @@ export default function DeliveryDashboard() {
       }
       
       if (status === 'Delivered') {
-        // CALCULATION LOGIC: Find when it was ready for pickup
         const snap = await getDoc(orderRef);
         const data = snap.data();
         if (data?.readyForPickupAt) {
@@ -382,7 +379,7 @@ export default function DeliveryDashboard() {
   }
 
   return (
-    <div className="h-screen bg-[#F9FAFB] flex flex-col max-w-lg mx-auto relative overflow-hidden">
+    <div className="h-screen bg-[#F9FAFB] flex flex-col max-w-lg mx-auto relative overflow-hidden transform-gpu">
       <header className="bg-white px-6 py-6 border-b border-gray-50 shrink-0 z-[500] shadow-sm">
         <div className="flex items-center justify-between">
            <div className="flex items-center gap-4">

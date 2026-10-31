@@ -98,11 +98,12 @@ export const VerticalStoreList = memo(({
       setCurrentTimeMins(d.getHours() * 60 + d.getMinutes());
     }, 60000);
 
-    setTimeout(() => setInitialSync(true), 1200);
+    const timer = setTimeout(() => setInitialSync(true), 1200);
 
     return () => {
       window.removeEventListener('user-address-updated', updateZone);
       clearInterval(interval);
+      clearTimeout(timer);
     };
   }, []);
 
@@ -210,7 +211,6 @@ export const VerticalStoreList = memo(({
             const isOffline = store.isOnline === false || !isOpen;
             const isBestRated = Number(store.rating) >= 4.5;
             
-            // Fetch at least 5-10 products for this store
             const storeProducts = allProducts?.filter(p => String(p.vendorId) === String(store.id)).slice(0, 10) || [];
 
             return (

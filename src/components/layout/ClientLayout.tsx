@@ -72,8 +72,10 @@ AuthGuard.displayName = "AuthGuard";
 export function ClientLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const setupBackButton = async () => {
       try {
         const { App: CapacitorApp } = await import("@capacitor/app");
@@ -113,6 +115,10 @@ export function ClientLayout({ children }: { children: ReactNode }) {
   const isFleetApp = process.env.NEXT_PUBLIC_TOW_APP === 'true';
   const isBusinessApp = isAdminApp || isStoreApp || isFleetApp;
 
+  // Hydration Safety: Apply conditional classes only after mount
+  const showPaddingTop = mounted && !isExcludedPath;
+  const showPaddingBottom = mounted && !isExcludedPath;
+
   return (
     <FirebaseClientProvider>
       <CartProvider>
@@ -127,9 +133,9 @@ export function ClientLayout({ children }: { children: ReactNode }) {
           <AuthGuard>
             <div className={cn(
               "relative min-h-screen flex flex-col max-w-lg mx-auto w-full bg-white shadow-2xl border-x border-gray-100 overflow-y-auto no-scrollbar",
-              !isExcludedPath && "pt-10"
+              showPaddingTop && "pt-10"
             )}>
-              <main className={cn("flex-1", !isExcludedPath && "pb-24")}>
+              <main className={cn("flex-1", showPaddingBottom && "pb-24")}>
                 {!isExcludedPath && <LocationRequest />}
                 <TelegramNotifier />
                 <WelcomeBonusOverlay />
