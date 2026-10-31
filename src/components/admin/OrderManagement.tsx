@@ -24,7 +24,8 @@ import {
   Store,
   Calendar,
   ShoppingBag,
-  Timer
+  Timer,
+  AlertTriangle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -195,6 +196,25 @@ export default function OrderManagement() {
                  </div>
               </div>
 
+              {/* NEW: PREPARATION EFFICIENCY REPORT FOR ADMIN */}
+              {order.preparationMinutes && (
+                <div className="mb-6 px-2">
+                   <div className={cn(
+                     "p-4 rounded-2xl flex items-center gap-3 border",
+                     (order.preparationPenalty || 0) > 0 ? "bg-red-50 border-red-100" : "bg-green-50 border-green-100"
+                   )}>
+                      {(order.preparationPenalty || 0) > 0 ? <AlertTriangle className="h-5 w-5 text-red-600" /> : <ShieldCheck className="h-5 w-5 text-green-600" />}
+                      <div>
+                         <p className="text-[10px] font-black uppercase opacity-60">Preparation Efficiency</p>
+                         <h4 className="text-sm font-black uppercase italic">
+                           Ready in {order.preparationMinutes} mins 
+                           {(order.preparationPenalty || 0) > 0 && ` • ₹${order.preparationPenalty} Penalty Applied`}
+                         </h4>
+                      </div>
+                   </div>
+                </div>
+              )}
+
               <div className="bg-muted/30 rounded-[2rem] p-6 mb-6 space-y-5 border border-border/40">
                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white pb-4">
                     <div className="flex items-center gap-3">
@@ -287,7 +307,7 @@ export default function OrderManagement() {
       </div>
 
       <Dialog open={isNoteOpen} onOpenChange={setIsNoteOpen}>
-         <DialogContent className="rounded-[2.5rem] max-w-sm p-8 border-none shadow-2xl bg-white focus:outline-none">
+         <DialogContent className="rounded-[2.5rem] max-sm p-8 border-none shadow-2xl bg-white focus:outline-none">
             <div className="flex flex-col items-center text-center space-y-4">
                <div className="h-16 w-16 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-500 border border-amber-100 shadow-inner">
                   <StickyNote className="h-8 w-8" />

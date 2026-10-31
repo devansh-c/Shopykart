@@ -2,7 +2,7 @@
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
-import { collection, doc, query, where, setDoc, serverTimestamp, updateDoc, orderBy, limit, addDoc, deleteDoc } from 'firebase/firestore';
+import { collection, doc, query, where, setDoc, serverTimestamp, updateDoc, orderBy, limit, addDoc, deleteDoc, getDoc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { 
   ShoppingBag, 
@@ -42,7 +42,8 @@ import {
   BellRing,
   Zap,
   Camera,
-  History
+  History,
+  AlertTriangle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -55,12 +56,73 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { format } from 'date-fns';
+import { format, differenceInSeconds, differenceInMinutes } from 'date-fns';
 import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 import { compressImage } from '@/lib/image-utils';
 import { scheduleTestNotification } from '@/components/shared/PermissionManager';
 
 type MainTab = 'orders' | 'catalog' | 'coupons' | 'payouts' | 'account';
+
+// TIMER COMPONENT FOR VENDORS
+const PrepTimer = ({ order }: { order: any }) => {
+  const [timeLeft, setTimeLeft] = useState('10:00');
+  const [isOverdue, setIsOverdue] = useState(false);
+  const [penalty, setPenalty] = useState(0);
+
+  useEffect(() => {
+    if (!order.acceptedAt || order.status === 'Ready for Pickup' || order.status === 'Delivered') return;
+
+    const interval = setInterval(() => {
+      const acceptedTime = order.acceptedAt.seconds ? new Date(order.acceptedAt.seconds * 1000) : new Date();
+      const elapsedSecs = differenceInSeconds(new Date(), acceptedTime);
+      const limitSecs = 10 * 60; // 10 minutes
+      const remainingSecs = limitSecs - elapsedSecs;
+
+      if (remainingSecs <= 0) {
+        setIsOverdue(true);
+        const overdueSecs = Math.abs(remainingSecs);
+        const mm = Math.floor(overdueSecs / 60);
+        const ss = overdueSecs % 60;
+        setTimeLeft(`+${mm}:${String(ss).padStart(2, '0')}`);
+        
+        // Calculate estimated penalty for display
+        const overdueMins = Math.floor(overdueSecs / 60);
+        if (overdueMins >= 10) setPenalty(20);
+        else if (overdueMins >= 5) setPenalty(10);
+        else setPenalty(0);
+      } else {
+        setIsOverdue(false);
+        const mm = Math.floor(remainingSecs / 60);
+        const ss = remainingSecs % 60;
+        setTimeLeft(`${mm}:${String(ss).padStart(2, '0')}`);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [order.acceptedAt, order.status]);
+
+  if (!order.acceptedAt || ['Ready for Pickup', 'Delivered', 'Cancelled'].includes(order.status)) return null;
+
+  return (
+    <div className={cn(
+      "flex items-center justify-between p-4 rounded-2xl border-2 animate-pulse",
+      isOverdue ? "bg-red-50 border-red-200" : "bg-primary/5 border-primary/10"
+    )}>
+       <div className="flex items-center gap-3">
+          <Timer className={cn("h-5 w-5", isOverdue ? "text-red-600" : "text-primary")} />
+          <div>
+             <p className={cn("text-[9px] font-black uppercase tracking-widest", isOverdue ? "text-red-500" : "text-primary")}>
+               {isOverdue ? 'PREPARATION DELAY' : 'READY BY'}
+             </p>
+             <h4 className={cn("text-xl font-black tabular-nums", isOverdue ? "text-red-600" : "text-gray-900")}>{timeLeft}</h4>
+          </div>
+       </div>
+       {isOverdue && penalty > 0 && (
+         <Badge className="bg-red-600 text-white border-none font-black text-[10px] py-1">₹{penalty} PENALTY</Badge>
+       )}
+    </div>
+  );
+};
 
 export default function VendorDashboard() {
   const firestore = useFirestore();
@@ -160,18 +222,46 @@ export default function VendorDashboard() {
   const handleUpdateStatus = async (orderId: string, newStatus: string) => {
     if (!firestore) return;
     try {
+      const orderRef = doc(firestore, 'orders', orderId);
       const updateData: any = { 
         status: newStatus, 
         updatedAt: serverTimestamp() 
       };
       
+      if (newStatus === 'Accepted') {
+        // TRIGGER 10-MIN PREP TIMER
+        updateData.acceptedAt = serverTimestamp();
+      }
+
       if (newStatus === 'Ready for Pickup') {
+        const snap = await getDoc(orderRef);
+        const data = snap.data();
+        
+        if (data?.acceptedAt) {
+          const acceptedTime = data.acceptedAt.seconds ? new Date(data.acceptedAt.seconds * 1000) : new Date();
+          const minsTaken = differenceInMinutes(new Date(), acceptedTime);
+          
+          let penalty = 0;
+          if (minsTaken >= 20) penalty = 20; // 10 min base + 10 delay
+          else if (minsTaken >= 15) penalty = 10; // 10 min base + 5 delay
+          
+          updateData.preparationMinutes = minsTaken;
+          updateData.preparationPenalty = penalty;
+          
+          if (penalty > 0) {
+            toast({ 
+              variant: "destructive", 
+              title: "Penalty Applied ⚠️", 
+              description: `Delay charge: ₹${penalty}. Total prep time: ${minsTaken} mins.` 
+            });
+          }
+        }
+        
         updateData.pickupOTP = Math.floor(1000 + Math.random() * 9000).toString();
-        // TRIGGER TIMER: Start the clock for the delivery partner
         updateData.readyForPickupAt = serverTimestamp();
       }
 
-      await updateDoc(doc(firestore, 'orders', orderId), updateData);
+      await updateDoc(orderRef, updateData);
       toast({ title: `Order ${newStatus}!` });
     } catch (e) {
       toast({ variant: "destructive", title: "Update Failed" });
@@ -422,25 +512,29 @@ export default function VendorDashboard() {
                           <Badge className="bg-primary/10 text-primary border-none text-[8px] font-black uppercase px-3 py-1 rounded-full">{o.status}</Badge>
                       </div>
 
-                      <div className="bg-muted/30 rounded-[2rem] p-5 mb-6 space-y-4">
-                          <div className="flex items-center gap-3 border-b border-white pb-3 mb-1">
-                             <User className="h-4 w-4 text-primary" />
-                             <span className="text-sm font-black uppercase italic">{o.customerName}</span>
-                          </div>
-                          <div className="space-y-2">
-                             {o.items?.filter((it:any) => String(it.vendorId) === String(user?.uid)).map((item:any, i:number) => (
-                                <div key={i} className="flex justify-between items-center text-xs font-black uppercase italic">
-                                   <span className="text-gray-700">{item.quantity}x {item.name}</span>
-                                   <span className="text-primary">₹{(item.price * item.quantity).toFixed(0)}</span>
-                                </div>
-                             ))}
-                          </div>
-                          {o.pickupOTP && o.status === 'Ready for Pickup' && (
-                            <div className="bg-black p-4 rounded-2xl flex flex-col items-center justify-center text-center border-2 border-primary/30 shadow-xl">
-                               <span className="text-[7px] font-black text-primary uppercase tracking-[0.3em] mb-1">PICKUP OTP</span>
-                               <h4 className="text-2xl font-black italic tracking-[0.5em] text-white pl-2">{o.pickupOTP}</h4>
+                      <div className="space-y-4 mb-6">
+                        <PrepTimer order={o} />
+                        
+                        <div className="bg-muted/30 rounded-[2rem] p-5 space-y-4">
+                            <div className="flex items-center gap-3 border-b border-white pb-3 mb-1">
+                               <User className="h-4 w-4 text-primary" />
+                               <span className="text-sm font-black uppercase italic">{o.customerName}</span>
                             </div>
-                          )}
+                            <div className="space-y-2">
+                               {o.items?.filter((it:any) => String(it.vendorId) === String(user?.uid)).map((item:any, i:number) => (
+                                  <div key={i} className="flex justify-between items-center text-xs font-black uppercase italic">
+                                     <span className="text-gray-700">{item.quantity}x {item.name}</span>
+                                     <span className="text-primary">₹{(item.price * item.quantity).toFixed(0)}</span>
+                                  </div>
+                               ))}
+                            </div>
+                            {o.pickupOTP && o.status === 'Ready for Pickup' && (
+                              <div className="bg-black p-4 rounded-2xl flex flex-col items-center justify-center text-center border-2 border-primary/30 shadow-xl">
+                                 <span className="text-[7px] font-black text-primary uppercase tracking-[0.3em] mb-1">PICKUP OTP</span>
+                                 <h4 className="text-2xl font-black italic tracking-[0.5em] text-white pl-2">{o.pickupOTP}</h4>
+                              </div>
+                            )}
+                        </div>
                       </div>
 
                       <div className="flex flex-col gap-3">

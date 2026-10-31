@@ -54,10 +54,12 @@ export default function NotificationHandler() {
         filteredActive = active;
       }
 
-      // INITIAL LOAD: Sync already existing orders to prevent re-ringing
+      // INITIAL LOAD: Sync already existing orders to prevent re-ringing on page refresh
       if (isInitialLoad.current) {
         filteredActive.forEach(o => lastProcessedOrderIds.current.add(o.id));
         isInitialLoad.current = false;
+        // Even if initial, we set state so user can see what's pending
+        if (filteredActive.length > 0) setRingingOrders(filteredActive);
         return;
       }
 
@@ -79,7 +81,8 @@ export default function NotificationHandler() {
                     : `Order #${order.customerOrderNumber} is ready in your zone.`,
                   id: Math.floor(Date.now() % 100000),
                   channelId: 'new_order_channel',
-                  sound: 'order_alert',
+                  smallIcon: 'ic_stat_notification',
+                  sound: 'order_alert', // Must exist in android/app/src/main/res/raw/order_alert.mp3
                   extra: { orderId: order.id }
                 }
               ]
