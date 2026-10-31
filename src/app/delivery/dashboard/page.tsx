@@ -34,7 +34,8 @@ import {
   Wallet,
   Phone,
   IndianRupee,
-  Store
+  Store,
+  XCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -254,7 +255,7 @@ export default function DeliveryDashboard() {
     }
   }, [isMounted, user, authLoading, profileLoading, partnerProfile, router, auth, toast]);
 
-  const ordersQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'orders'), orderBy('createdAt', 'desc'), limit(50)) : null, [firestore]);
+  const ordersQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'orders'), orderBy('createdAt', 'desc'), limit(100)) : null, [firestore]);
   const { data: allOrders } = useCollection<any>(ordersQuery);
 
   const taskOrders = useMemo(() => {
@@ -359,23 +360,6 @@ export default function DeliveryDashboard() {
       <main className="flex-1 overflow-y-auto no-scrollbar pb-32">
          {activeTab === 'tasks' && (
            <div className="p-5 space-y-6">
-              <div className="bg-[#0B0B0B] p-6 rounded-[2.5rem] shadow-2xl relative overflow-hidden text-white flex justify-between items-center border border-white/5">
-                 <div className="relative z-10 space-y-1">
-                    <span className="text-[8px] font-black text-gray-500 uppercase tracking-[0.3em]">TODAY'S EARNINGS</span>
-                    <div className="flex items-center gap-1 text-3xl font-black italic text-primary tracking-tighter">
-                       <IndianRupee className="h-6 w-6" />
-                       <span>{(historyOrders.length * 30).toFixed(0)}</span>
-                    </div>
-                 </div>
-                 <div className="relative z-10 flex flex-col items-end">
-                    <span className="text-[8px] font-black text-green-500 uppercase tracking-widest bg-green-500/10 px-2 py-1 rounded-lg border border-green-500/20 mb-1">
-                       {historyOrders.length} DELIVERED
-                    </span>
-                    <p className="text-[7px] font-bold text-gray-500">Weekly Target: 80%</p>
-                 </div>
-                 <div className="absolute top-0 right-0 h-full w-44 bg-primary/5 -skew-x-12 translate-x-12" />
-              </div>
-
               <div className="bg-white p-5 rounded-[2rem] border border-gray-100 flex items-center justify-between shadow-sm">
                  <div className="flex items-center gap-3">
                     <div className="h-11 w-11 bg-primary/5 rounded-2xl flex items-center justify-center text-primary border border-primary/10">
@@ -405,7 +389,7 @@ export default function DeliveryDashboard() {
                        <Bike className="h-10 w-10 text-gray-400" />
                     </div>
                     <p className="font-black italic uppercase text-xs tracking-widest">No active tasks</p>
-                    <p className="text-[10px] font-bold mt-2">Check back in a few minutes</p>
+                    <p className="text-[10px] font-bold mt-2">Check back later</p>
                   </div>
                 )}
               </div>
@@ -414,13 +398,16 @@ export default function DeliveryDashboard() {
 
          {activeTab === 'history' && (
            <div className="p-5 space-y-6 animate-in fade-in duration-500">
-              <h2 className="text-2xl font-black italic uppercase tracking-tighter px-2">Delivered Tasks</h2>
+              <h2 className="text-2xl font-black italic uppercase tracking-tighter px-2">My Task History</h2>
               <div className="space-y-4">
                 {historyOrders.length > 0 ? historyOrders.map((order) => (
-                  <div key={order.id} className="bg-white p-5 rounded-[2.5rem] border border-gray-100 shadow-sm flex items-center justify-between">
+                  <div key={order.id} className="bg-white p-5 rounded-[2.5rem] border border-gray-100 shadow-sm flex items-center justify-between group">
                      <div className="flex items-center gap-4">
-                        <div className="h-12 w-12 bg-green-50 rounded-2xl flex items-center justify-center text-green-600">
-                           <CheckCircle2 className="h-6 w-6" />
+                        <div className={cn(
+                          "h-12 w-12 rounded-2xl flex items-center justify-center",
+                          order.status === 'Delivered' ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"
+                        )}>
+                           {order.status === 'Delivered' ? <CheckCircle2 className="h-6 w-6" /> : <XCircle className="h-6 w-6" />}
                         </div>
                         <div>
                            <h4 className="font-black italic uppercase text-sm leading-none mb-1">#{order.customerOrderNumber}</h4>
@@ -428,8 +415,13 @@ export default function DeliveryDashboard() {
                         </div>
                      </div>
                      <div className="text-right">
-                        <span className="text-sm font-black text-gray-900 italic block">₹30.00</span>
-                        <span className="text-[8px] font-black text-green-600 uppercase tracking-widest">EARNED</span>
+                        <span className="text-sm font-black text-gray-900 italic block">₹{order.total?.toFixed(0)}</span>
+                        <Badge className={cn(
+                          "border-none text-[7px] font-black uppercase tracking-widest px-2",
+                          order.status === 'Delivered' ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                        )}>
+                          {order.status}
+                        </Badge>
                      </div>
                   </div>
                 )) : (
