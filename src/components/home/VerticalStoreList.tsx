@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo, useState, useEffect, memo } from 'react';
@@ -13,9 +14,6 @@ import { ProductQuickView } from '@/components/product/ProductQuickView';
 import { useCart } from '@/components/cart/CartProvider';
 import { Skeleton } from '@/components/ui/skeleton';
 
-/**
- * @fileOverview Product Strip Item for fast horizontal scrolling.
- */
 const ProductStripItem = memo(({ product, isOffline }: any) => {
   const { cart } = useCart();
   const quantity = cart.find(c => String(c.id) === String(product.id) && !c.selectedOption)?.quantity || 0;
@@ -66,9 +64,6 @@ const ProductStripItem = memo(({ product, isOffline }: any) => {
 });
 ProductStripItem.displayName = "ProductStripItem";
 
-/**
- * @fileOverview Super-Optimized VerticalStoreList.
- */
 export const VerticalStoreList = memo(({ 
   searchQuery = '', 
   activeMode = 'Food', 
@@ -83,6 +78,7 @@ export const VerticalStoreList = memo(({
 
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
   const [currentTimeMins, setCurrentTimeMins] = useState<number | null>(null);
+  const [initialSync, setInitialSync] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -102,6 +98,9 @@ export const VerticalStoreList = memo(({
       const d = new Date();
       setCurrentTimeMins(d.getHours() * 60 + d.getMinutes());
     }, 60000);
+
+    // Initial stabilization delay
+    setTimeout(() => setInitialSync(true), 800);
 
     return () => {
       window.removeEventListener('user-address-updated', updateZone);
@@ -123,7 +122,7 @@ export const VerticalStoreList = memo(({
       limit(200)
     );
   }, [firestore]);
-  const { data: allProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_strip_products_v11');
+  const { data: allProducts } = useCollection<any>(productsQuery, 'home_strip_products_v11');
 
   const filteredVendors = useMemo(() => {
     const list = dbVendors || initialData || [];
@@ -169,8 +168,7 @@ export const VerticalStoreList = memo(({
     router.push(`/store/view?id=${store.id}&slug=${storeSlug}`);
   };
 
-  // DETERMINISTIC LOADING STATE: Only show empty state if loading is false
-  const isActuallyLoading = vendorsLoading && (!dbVendors || dbVendors.length === 0);
+  const isActuallyLoading = (vendorsLoading || !initialSync) && (!dbVendors || dbVendors.length === 0);
 
   return (
     <div className="px-4 py-6 bg-white min-h-[500px] content-visibility-auto">
@@ -291,14 +289,6 @@ export const VerticalStoreList = memo(({
                           product={{...p, restaurantName: store.storeName}} 
                           isOffline={isOffline}
                         />
-                      ))
-                    ) : productsLoading ? (
-                      [1, 2, 3].map(i => (
-                        <div key={i} className="min-w-[140px] space-y-3">
-                           <Skeleton className="aspect-square w-full rounded-2xl" />
-                           <Skeleton className="h-2 w-2/3" />
-                           <Skeleton className="h-3 w-full" />
-                        </div>
                       ))
                     ) : (
                       <div className="h-40 flex items-center justify-center w-full bg-gray-50 rounded-2xl border border-dashed">

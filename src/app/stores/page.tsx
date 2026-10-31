@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -9,14 +10,16 @@ import Image from 'next/image';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
+import { Skeleton } from '@/components/ui/skeleton';
 
 /**
- * @fileOverview StoresPage with hydration-safe schedule tracking and Strict Zone Filtering.
+ * @fileOverview StoresPage with deterministic shimmer loading.
  */
 export default function StoresPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
   const [currentTimeMins, setCurrentTimeMins] = useState<number | null>(null);
+  const [initialSync, setInitialSync] = useState(false);
   const firestore = useFirestore();
 
   useEffect(() => {
@@ -31,11 +34,11 @@ export default function StoresPage() {
       setCurrentTimeMins(now.getHours() * 60 + now.getMinutes());
     };
     syncTime();
-    const interval = setInterval(syncTime, 60000);
+    
+    setTimeout(() => setInitialSync(true), 800);
 
     return () => {
       window.removeEventListener('user-address-updated', updateZone);
-      clearInterval(interval);
     };
   }, []);
 
@@ -52,7 +55,6 @@ export default function StoresPage() {
     const searchLower = searchQuery.toLowerCase().trim();
 
     return dbVendors.filter(v => {
-      // STRICT ZONE FILTERING: Store must match active zone or be global
       if (activeZoneId) {
         if (v.zoneId && v.zoneId !== activeZoneId && v.zoneId !== 'global') {
           return false;
@@ -67,15 +69,17 @@ export default function StoresPage() {
       
       return matchesSearch && isApproved;
     }).sort((a, b) => {
-      const isOnlineA = a.isOnline !== false && isStoreScheduleOpen(a, currentTimeMins);
-      const isOnlineB = b.isOnline !== false && isStoreScheduleOpen(b, currentTimeMins);
+      const isOpenA = a.isOnline !== false && isStoreScheduleOpen(a, currentTimeMins);
+      const isOpenB = b.isOnline !== false && isStoreScheduleOpen(b, currentTimeMins);
 
-      if (isOnlineA !== isOnlineB) return isOnlineA ? -1 : 1;
+      if (isOpenA !== isOpenB) return isOpenA ? -1 : 1;
       const ratingA = Number(a.rating) || 0;
       const ratingB = Number(b.rating) || 0;
       return ratingB - ratingA;
     });
   }, [dbVendors, activeZoneId, searchQuery, currentTimeMins]);
+
+  const isActuallyLoading = (loading || !initialSync) && (!dbVendors || dbVendors.length === 0);
 
   return (
     <div className="min-h-screen bg-white pb-32">
@@ -99,10 +103,12 @@ export default function StoresPage() {
       </div>
 
       <div className="px-6 space-y-6">
-        {loading && !dbVendors ? (
+        {isActuallyLoading ? (
           <div className="space-y-6">
             {[1, 2, 3].map(i => (
-              <div key={i} className="h-64 w-full bg-white rounded-3xl border-2 border-border/40 animate-pulse" />
+              <div key={i} className="h-64 w-full bg-[#FFF9F5] rounded-3xl border-2 border-border/40 animate-pulse overflow-hidden relative">
+                 <Skeleton className="h-full w-full" />
+              </div>
             ))}
           </div>
         ) : filteredVendors.length > 0 ? (

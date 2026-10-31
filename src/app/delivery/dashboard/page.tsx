@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -130,7 +131,6 @@ const TaskCard = memo(({ order, onUpdate, userData, onPass }: any) => {
              </div>
           </div>
 
-          {/* DYNAMIC ACTIONS */}
           <div className="pt-4 mt-2">
              {!isMyTask ? (
                <div className="flex gap-3">
@@ -229,7 +229,6 @@ export default function DeliveryDashboard() {
   const partnerRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'delivery_partners', user.uid) : null, [firestore, user]);
   const { data: partnerProfile, loading: profileLoading } = useDoc<any>(partnerRef);
 
-  // AUTH GUARD: Strictly ensure only Delivery Partners can access this page
   useEffect(() => {
     if (!isMounted || authLoading) return;
 
@@ -238,7 +237,6 @@ export default function DeliveryDashboard() {
       return;
     }
 
-    // If user is loaded but profile is not found in delivery_partners collection
     if (!profileLoading && !partnerProfile && user) {
       toast({ variant: "destructive", title: "Access Denied", description: "You are not registered as a Partner." });
       signOut(auth!).then(() => router.replace('/delivery/login'));
@@ -318,7 +316,6 @@ export default function DeliveryDashboard() {
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col max-w-lg mx-auto relative transform-gpu overflow-x-hidden">
-      {/* PROFESSIONAL HEADER */}
       <header className="bg-white px-6 py-6 border-b border-gray-50 sticky top-0 z-[500] shadow-sm">
         <div className="flex items-center justify-between">
            <div className="flex items-center gap-4">
@@ -351,7 +348,6 @@ export default function DeliveryDashboard() {
       <main className="flex-1 pb-32 overflow-y-auto no-scrollbar">
          {activeTab === 'tasks' && (
            <div className="p-5 space-y-6">
-              {/* EARNINGS WIDGET */}
               <div className="bg-[#0B0B0B] p-6 rounded-[2.5rem] shadow-2xl relative overflow-hidden text-white flex justify-between items-center border border-white/5">
                  <div className="relative z-10 space-y-1">
                     <span className="text-[8px] font-black text-gray-500 uppercase tracking-[0.3em]">TODAY'S EARNINGS</span>
@@ -369,7 +365,6 @@ export default function DeliveryDashboard() {
                  <div className="absolute top-0 right-0 h-full w-44 bg-primary/5 -skew-x-12 translate-x-12" />
               </div>
 
-              {/* RINGER TEST */}
               <div className="bg-white p-5 rounded-[2rem] border border-gray-100 flex items-center justify-between shadow-sm">
                  <div className="flex items-center gap-3">
                     <div className="h-11 w-11 bg-primary/5 rounded-2xl flex items-center justify-center text-primary border border-primary/10">
