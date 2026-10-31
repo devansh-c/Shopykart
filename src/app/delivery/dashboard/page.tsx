@@ -233,13 +233,25 @@ export default function DeliveryDashboard() {
     if (!isMounted || authLoading) return;
 
     if (!user) {
-      router.replace('/delivery/login');
+      const hasActiveSession = localStorage.getItem('delivery_session_active') === 'true';
+      if (!hasActiveSession) {
+        router.replace('/delivery/login');
+      }
       return;
     }
 
+    // AUTH GUARD FIX: Added 2-second grace period for profile propagation
     if (!profileLoading && !partnerProfile && user) {
-      toast({ variant: "destructive", title: "Access Denied", description: "You are not registered as a Partner." });
-      signOut(auth!).then(() => router.replace('/delivery/login'));
+      const timer = setTimeout(() => {
+        if (!partnerProfile) {
+          toast({ variant: "destructive", title: "Access Denied", description: "You are not registered as a Partner." });
+          signOut(auth!).then(() => {
+            localStorage.removeItem('delivery_session_active');
+            router.replace('/delivery/login');
+          });
+        }
+      }, 2000);
+      return () => clearTimeout(timer);
     }
   }, [isMounted, user, authLoading, profileLoading, partnerProfile, router, auth, toast]);
 
