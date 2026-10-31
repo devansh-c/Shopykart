@@ -167,6 +167,8 @@ export default function VendorDashboard() {
       
       if (newStatus === 'Ready for Pickup') {
         updateData.pickupOTP = Math.floor(1000 + Math.random() * 9000).toString();
+        // TRIGGER TIMER: Start the clock for the delivery partner
+        updateData.readyForPickupAt = serverTimestamp();
       }
 
       await updateDoc(doc(firestore, 'orders', orderId), updateData);

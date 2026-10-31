@@ -35,7 +35,8 @@ import {
   Phone,
   IndianRupee,
   Store,
-  XCircle
+  XCircle,
+  Timer
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -43,7 +44,7 @@ import { cn } from '@/lib/utils';
 import { useEffect, useState, useMemo, memo } from 'react';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
-import { format } from 'date-fns';
+import { format, differenceInSeconds } from 'date-fns';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -56,11 +57,40 @@ const TaskCard = memo(({ order, onUpdate, userData, onPass }: any) => {
   const [enteredCode, setEnteredCode] = useState('');
   const [collectionMethod, setCollectionMethod] = useState<'Online' | 'Cash' | null>(null);
   const [showQr, setShowQr] = useState(false);
+  const [timeLeftStr, setTimeLeftStr] = useState('20:00');
+  const [isOverdue, setIsOverdue] = useState(false);
 
   const isReadyForPickup = order.status === 'Ready for Pickup' || order.status === 'Accepted Task';
   const isPickedUp = order.status === 'Picked Up';
   const isOutForDelivery = order.status === 'Out for Delivery';
   const isMyTask = order.deliveryPartnerId === userData?.uid;
+
+  // LIVE TIMER LOGIC
+  useEffect(() => {
+    if (!isMyTask || !order.readyForPickupAt || order.status === 'Delivered' || order.status === 'Cancelled') return;
+
+    const interval = setInterval(() => {
+      const startTime = order.readyForPickupAt?.seconds ? new Date(order.readyForPickupAt.seconds * 1000) : new Date();
+      const elapsedSeconds = differenceInSeconds(new Date(), startTime);
+      const limitSeconds = 20 * 60; // 20 minutes
+      const remainingSeconds = limitSeconds - elapsedSeconds;
+
+      if (remainingSeconds <= 0) {
+        setIsOverdue(true);
+        const overBy = Math.abs(remainingSeconds);
+        const mm = Math.floor(overBy / 60);
+        const ss = overBy % 60;
+        setTimeLeftStr(`-${mm}:${String(ss).padStart(2, '0')}`);
+      } else {
+        setIsOverdue(false);
+        const mm = Math.floor(remainingSeconds / 60);
+        const ss = remainingSeconds % 60;
+        setTimeLeftStr(`${mm}:${String(ss).padStart(2, '0')}`);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isMyTask, order.readyForPickupAt, order.status]);
 
   const handleAction = () => {
     if (order.status === 'Ready for Pickup' && !order.deliveryPartnerId) {
@@ -85,7 +115,8 @@ const TaskCard = memo(({ order, onUpdate, userData, onPass }: any) => {
         return;
       }
       if (enteredCode === order.deliveryOTP) {
-        onUpdate(order.id, 'Delivered', collectionMethod);
+        // FINAL STOP: Save duration on delivery
+        onUpdate(order.id, 'Delivered', collectionMethod, userData);
         setEnteredCode('');
       } else {
         alert("Invalid Delivery OTP! Ask customer for 6-digit code.");
@@ -100,6 +131,15 @@ const TaskCard = memo(({ order, onUpdate, userData, onPass }: any) => {
              <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
              <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Order ID #{order.customerOrderNumber}</span>
           </div>
+          {isMyTask && !['Delivered', 'Cancelled'].includes(order.status) && (
+             <div className={cn(
+               "flex items-center gap-2 px-3 py-1 rounded-full border shadow-sm animate-pulse",
+               isOverdue ? "bg-red-50 border-red-200 text-red-600" : "bg-primary/5 border-primary/20 text-primary"
+             )}>
+                <Timer className="h-3 w-3" />
+                <span className="text-xs font-black tabular-nums">{timeLeftStr}</span>
+             </div>
+          )}
           <Badge className={cn("border-none text-[8px] font-black uppercase px-2 py-0.5 rounded-lg", 
             isMyTask ? "bg-primary text-white" : "bg-gray-200 text-gray-600")}>
             {isMyTask ? 'MY TASK' : 'AVAILABLE'}
@@ -276,14 +316,29 @@ export default function DeliveryDashboard() {
   const updateDelivery = async (orderId: string, status: string, collectionMethod?: string | null, partnerData?: any) => {
     if (!firestore || !user) return;
     try {
+      const orderRef = doc(firestore, 'orders', orderId);
       const updateData: any = { status, updatedAt: serverTimestamp() };
+      
       if (status === 'Accepted Task') {
         updateData.deliveryPartnerId = user.uid;
         updateData.deliveryPartnerName = partnerData?.fullName || 'Partner';
         updateData.deliveryPartnerPhone = partnerData?.phone || '';
       }
+      
+      if (status === 'Delivered') {
+        // CALCULATION LOGIC: Find when it was ready for pickup
+        const snap = await getDoc(orderRef);
+        const data = snap.data();
+        if (data?.readyForPickupAt) {
+          const startTime = data.readyForPickupAt.seconds ? new Date(data.readyForPickupAt.seconds * 1000) : new Date();
+          const durationMins = Math.ceil(differenceInSeconds(new Date(), startTime) / 60);
+          updateData.totalDeliveryDuration = durationMins;
+        }
+        updateData.deliveredAt = serverTimestamp();
+      }
+
       if (collectionMethod) updateData.paymentCollectionMethod = collectionMethod;
-      await updateDoc(doc(firestore, 'orders', orderId), updateData);
+      await updateDoc(orderRef, updateData);
       toast({ title: `Order ${status}` });
     } catch (e) { 
       toast({ variant: "destructive", title: "Update Failed" }); 
@@ -412,6 +467,11 @@ export default function DeliveryDashboard() {
                         <div>
                            <h4 className="font-black italic uppercase text-sm leading-none mb-1">#{order.customerOrderNumber}</h4>
                            <p className="text-[10px] font-bold text-gray-400 uppercase italic truncate max-w-[150px]">{order.restaurantName}</p>
+                           {order.totalDeliveryDuration && (
+                             <Badge className="bg-blue-50 text-blue-600 border-none text-[7px] font-black uppercase mt-1">
+                               {order.totalDeliveryDuration} min delivery
+                             </Badge>
+                           )}
                         </div>
                      </div>
                      <div className="text-right">

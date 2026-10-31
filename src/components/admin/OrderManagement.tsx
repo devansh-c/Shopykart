@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -22,7 +23,8 @@ import {
   Trash2,
   Store,
   Calendar,
-  ShoppingBag
+  ShoppingBag,
+  Timer
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -43,10 +45,6 @@ const STATUS_FLOW = [
   "Delivered"
 ];
 
-/**
- * @fileOverview OrderManagement with Enhanced Visibility: Address, Time, and Store Names.
- * Fixed: Added missing ShoppingBag icon import to prevent ReferenceError.
- */
 export default function OrderManagement() {
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -225,6 +223,18 @@ export default function OrderManagement() {
                     </div>
                  </div>
               </div>
+
+              {order.status === 'Delivered' && order.totalDeliveryDuration && (
+                <div className="mb-6 px-4">
+                   <div className="bg-blue-50 border border-blue-100 p-4 rounded-2xl flex items-center gap-3">
+                      <Timer className="h-5 w-5 text-blue-600" />
+                      <div>
+                         <p className="text-[10px] font-black text-blue-400 uppercase leading-none mb-1">Efficiency Report</p>
+                         <h4 className="text-sm font-black text-blue-900 uppercase italic">Order Delivered in {order.totalDeliveryDuration} mins</h4>
+                      </div>
+                   </div>
+                </div>
+              )}
 
               <div className="bg-gray-50 rounded-[2.5rem] p-6 mb-6 space-y-4 border border-border/20">
                  <div className="flex items-center gap-2 mb-2 px-1">
