@@ -1,8 +1,6 @@
-'use client';
 
+'use client';
 /**
- * @fileOverview AdSense unit disabled for a clean premium experience.
+ * @fileOverview AdSense components removed to optimize page load.
  */
-export default function AdSenseUnit() {
-  return null;
-}
+export default function AdSenseUnit() { return null; }

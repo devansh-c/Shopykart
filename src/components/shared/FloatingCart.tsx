@@ -1,9 +1,6 @@
-"use client"
 
+'use client';
 /**
- * @fileOverview FloatingCart disabled as requested.
- * User now uses the dedicated Cart button in the Bottom Navigation.
+ * @fileOverview Component removed to reduce bundle size. Logic handled by BottomNav.
  */
-export default function FloatingCart() {
-  return null;
-}
+export default function FloatingCart() { return null; }

@@ -1,35 +1,29 @@
+
 'use client';
 
-import MenuContent from '@/components/menu/MenuContent';
-import { Suspense } from 'react';
+import { useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
-import { useSearchParams } from 'next/navigation';
 
 /**
- * @fileOverview Direct store view path with fallback resolution.
- * Wrapped in Suspense to prevent SSR bail-out issues.
+ * @fileOverview Redundant route. Redirecting to SEO friendly Slug path.
  */
-function StoreViewInner() {
+export default function StoreViewPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams.get('id');
-  const slug = searchParams.get('slug');
+
+  useEffect(() => {
+    if (id) {
+      router.replace(`/store/${id}/`);
+    } else {
+      router.replace('/');
+    }
+  }, [id, router]);
 
   return (
-    <MenuContent forcedSlug={id || slug || undefined} />
-  );
-}
-
-export default function StoreViewPage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Opening Gourmet Hub...</p>
-        </div>
-      </div>
-    }>
-      <StoreViewInner />
-    </Suspense>
+    <div className="h-screen flex items-center justify-center bg-white">
+      <Loader2 className="animate-spin text-primary" />
+    </div>
   );
 }

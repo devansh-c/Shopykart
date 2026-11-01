@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo, useState, useEffect, memo } from 'react';
@@ -108,15 +109,15 @@ export const VerticalStoreList = memo(({
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'vendors'), limit(100));
+    return query(collection(firestore, 'vendors'), limit(50));
   }, [firestore]);
-  const { data: dbVendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery, 'home_vstores_v15', initialData);
+  const { data: dbVendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery, 'home_vstores_v16', initialData);
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'products'), limit(1000));
+    return query(collection(firestore, 'products'), limit(500));
   }, [firestore]);
-  const { data: allProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_strip_products_v20');
+  const { data: allProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_strip_products_v21');
 
   const filteredVendors = useMemo(() => {
     const list = dbVendors || initialData || [];
@@ -126,7 +127,6 @@ export const VerticalStoreList = memo(({
     const currentMode = activeMode.toLowerCase();
 
     return list.filter(v => {
-      // RESILIENT ZONE FILTERING:
       if (activeZoneId) {
         const zoneMatch = v.zoneId === activeZoneId || v.zoneId === 'global';
         const townMatch = activeTown && v.town?.toLowerCase().includes(activeTown.toLowerCase());
@@ -142,8 +142,6 @@ export const VerticalStoreList = memo(({
         if (storeCat !== 'medical') return false;
       } else if (currentMode === 'beauty') {
         if (storeCat !== 'beauty') return false;
-      } else if (currentMode === 'grocery') {
-        if (storeCat !== 'grocery') return false;
       } else {
         if (['medical', 'beauty', 'grocery'].includes(storeCat)) return false;
       }
@@ -166,28 +164,16 @@ export const VerticalStoreList = memo(({
     });
   }, [dbVendors, initialData, activeZoneId, activeTown, searchQuery, activeMode, currentTimeMins]);
 
-  const navigateToStore = (store: any) => {
-    const storeSlug = store.slug || slugify(store.storeName) || store.id;
-    router.push(`/store/view?id=${store.id}&slug=${storeSlug}`);
-  };
-
   const isActuallyLoading = vendorsLoading || !initialSync;
   const showEmptyState = !isActuallyLoading && filteredVendors.length === 0;
 
   if (isActuallyLoading && filteredVendors.length === 0) {
     return (
       <div className="px-4 py-6 bg-white space-y-16">
-        {[1, 2, 3].map(i => (
+        {[1, 2].map(i => (
           <div key={i} className="space-y-6">
-            <div className="space-y-4">
-              <Skeleton className="w-full aspect-[18/9] rounded-[1.5rem]" />
-              <div className="space-y-2 px-2">
-                <Skeleton className="h-6 w-2/3 rounded-full" />
-                <Skeleton className="h-3 w-1/2 rounded-full" />
-              </div>
-            </div>
+            <Skeleton className="w-full aspect-[18/9] rounded-[1.5rem]" />
             <div className="flex gap-4 overflow-hidden px-2">
-              <Skeleton className="h-40 w-[140px] shrink-0 rounded-2xl" />
               <Skeleton className="h-40 w-[140px] shrink-0 rounded-2xl" />
               <Skeleton className="h-40 w-[140px] shrink-0 rounded-2xl" />
             </div>
@@ -197,15 +183,20 @@ export const VerticalStoreList = memo(({
     );
   }
 
+  if (showEmptyState) {
+    return (
+      <div className="px-4 py-24 bg-white text-center opacity-20 flex flex-col items-center">
+         <StoreIcon className="h-16 w-16 mb-4" />
+         <p className="font-black italic uppercase text-sm tracking-widest text-center">No stores found in your zone</p>
+      </div>
+    );
+  }
+
   return (
     <div className="px-4 py-6 bg-white min-h-[500px] content-visibility-auto">
       <div className="flex items-center justify-between mb-8 px-2">
-        <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900 leading-none">
-           Best <span className="text-primary">Hubs</span>
-        </h2>
-        <Badge variant="outline" className="rounded-full border-gray-200 text-gray-400 font-black uppercase text-[10px]">
-          {filteredVendors.length} STORES
-        </Badge>
+        <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900 leading-none">Best <span className="text-primary">Hubs</span></h2>
+        <Badge variant="outline" className="rounded-full border-gray-200 text-gray-400 font-black uppercase text-[10px]">{filteredVendors.length} STORES</Badge>
       </div>
 
       <div className="space-y-16">
@@ -213,122 +204,51 @@ export const VerticalStoreList = memo(({
             const displayImage = store.bannerUrl || store.imageUrl || `https://picsum.photos/seed/${store.id}/800/400`;
             const isOpen = isStoreScheduleOpen(store, currentTimeMins);
             const isOffline = store.isOnline === false || !isOpen;
-            const isBestRated = Number(store.rating) >= 4.5;
-            
-            const storeProducts = allProducts?.filter(p => 
-              String(p.vendorId) === String(store.id) && 
-              p.isDeleted !== true
-            ).slice(0, 10) || [];
+            const storeProducts = allProducts?.filter(p => String(p.vendorId) === String(store.id) && p.isDeleted !== true).slice(0, 8) || [];
 
             return (
-              <div key={store.id} className="flex flex-col space-y-4 animate-in fade-in duration-500">
-                <div 
-                  onClick={() => navigateToStore(store)}
-                  className={cn(
-                    "w-full text-left bg-white transition-all active:scale-[0.98] group relative cursor-pointer",
-                    isOffline && "opacity-75 grayscale-[0.3]"
-                  )}
-                >
+              <div key={store.id} className={cn("flex flex-col space-y-4 animate-in fade-in duration-500", isOffline && "opacity-75 grayscale-[0.3]")}>
+                <div onClick={() => router.push(`/store/${store.slug || slugify(store.storeName)}/`)} className="w-full text-left bg-white transition-all active:scale-[0.98] group relative cursor-pointer">
                   <div className="relative w-full aspect-[18/9] rounded-[1.5rem] overflow-hidden border border-gray-100 bg-gray-50">
-                    <Image 
-                      src={displayImage} 
-                      alt={store.storeName} 
-                      fill 
-                      className={cn("object-cover", isOffline && "grayscale")} 
-                      unoptimized 
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-60" />
-
+                    <Image src={displayImage} alt={store.storeName} fill className="object-cover" unoptimized />
                     {isOffline && (
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10">
                         <span className="text-white font-black text-xl uppercase italic border-2 border-white/30 px-6 py-2 rounded-2xl shadow-xl">Closed Now</span>
                       </div>
                     )}
-
-                    {!isOffline && isBestRated && (
-                      <div className="absolute top-4 left-4 z-20">
-                        <Badge className="bg-amber-400 text-black border-none font-black text-[7px] px-3 py-1 rounded-lg">
-                          <Award className="h-2.5 w-2.5 mr-1 fill-black" /> BEST IN TOWN
-                        </Badge>
-                      </div>
-                    )}
-
                     {!isOffline && (
                       <div className="absolute bottom-4 right-4 z-20">
                         <div className="bg-white px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm border border-gray-100">
-                            <Timer className="h-3.5 w-3.5 text-primary" />
-                            <span className="text-[11px] font-black text-gray-900 uppercase italic tracking-tighter">{store.deliveryTime || '20 min'}</span>
+                            <Timer className="h-3.5 w-3.5 text-primary" /><span className="text-[11px] font-black text-gray-900 uppercase italic tracking-tighter">{store.deliveryTime || '20 min'}</span>
                         </div>
-                    </div>
+                      </div>
                     )}
                   </div>
 
-                  <div className="pt-5 px-3">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1 min-w-0 pr-4">
-                        <h3 className="font-black text-2xl italic uppercase tracking-tighter text-gray-900 leading-none mb-1.5 truncate group-hover:text-primary transition-colors">
-                          {store.storeName}
-                        </h3>
-                        <div className="flex items-center gap-2">
-                          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest italic">{store.category || 'Premium Store'}</p>
-                          <span className="h-1 w-1 bg-gray-200 rounded-full" />
-                          <div className="flex items-center gap-1 text-[11px] font-bold text-gray-400 italic uppercase">
-                            <MapPin className="h-3.5 w-3.5 text-primary" />
-                            {store.town || 'Local'}
-                          </div>
-                        </div>
+                  <div className="pt-5 px-3 flex justify-between items-start">
+                    <div className="flex-1 min-w-0 pr-4">
+                      <h3 className="font-black text-2xl italic uppercase tracking-tighter text-gray-900 leading-none mb-1.5 truncate group-hover:text-primary transition-colors">{store.storeName}</h3>
+                      <div className="flex items-center gap-2">
+                        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest italic">{store.category || 'Premium Store'}</p>
+                        <span className="h-1 w-1 bg-gray-200 rounded-full" />
+                        <div className="flex items-center gap-1 text-[11px] font-bold text-gray-400 italic uppercase"><MapPin className="h-3.5 w-3.5 text-primary" />{store.town || 'Local'}</div>
                       </div>
-
-                      <div className="bg-[#15803d] text-white px-2.5 py-1.5 rounded-xl flex flex-col items-center gap-0 border border-green-700">
-                        <div className="flex items-center gap-1">
-                          <span className="text-base font-black italic">{Number(store.rating || 4.0).toFixed(1)}</span>
-                          <Star className="h-3 w-3 fill-white stroke-none" />
-                        </div>
-                        <span className="text-[7px] font-black uppercase opacity-60 leading-none">Rating</span>
-                      </div>
+                    </div>
+                    <div className="bg-[#15803d] text-white px-2.5 py-1.5 rounded-xl flex flex-col items-center gap-0 border border-green-700">
+                      <div className="flex items-center gap-1"><span className="text-base font-black italic">{Number(store.rating || 4.0).toFixed(1)}</span><Star className="h-3 w-3 fill-white stroke-none" /></div>
+                      <span className="text-[7px] font-black uppercase opacity-60 leading-none">Rating</span>
                     </div>
                   </div>
                 </div>
 
                 <div className="px-1 overflow-hidden">
                   <div className="flex overflow-x-auto space-x-4 no-scrollbar pb-4 pt-2">
-                    {storeProducts.length > 0 ? (
-                      storeProducts.map((p: any) => (
-                        <ProductStripItem 
-                          key={p.id} 
-                          product={{...p, restaurantName: store.storeName}} 
-                          isOffline={isOffline}
-                        />
-                      ))
-                    ) : (
-                      productsLoading ? (
-                        [1, 2, 3, 4].map(i => (
-                          <div key={i} className="min-w-[140px] space-y-3" style={{ opacity: 0.5 }}>
-                            <Skeleton className="w-full aspect-square rounded-2xl" />
-                            <Skeleton className="h-3 w-2/3 rounded-full" />
-                            <Skeleton className="h-2 w-1/2 rounded-full" />
-                          </div>
-                        ))
-                      ) : (
-                        <div className="h-40 flex items-center justify-center w-full bg-gray-50 rounded-2xl border border-dashed">
-                          <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">No products listed</p>
-                        </div>
-                      )
-                    )}
+                    {storeProducts.length > 0 ? storeProducts.map((p: any) => <ProductStripItem key={p.id} product={{...p, restaurantName: store.storeName}} isOffline={isOffline} />) : <div className="h-40 flex items-center justify-center w-full bg-gray-50 rounded-2xl border border-dashed"><p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">No products listed</p></div>}
                   </div>
                 </div>
               </div>
             );
         })}
-
-        {showEmptyState && (
-          <div className="px-4 py-24 bg-white text-center opacity-20 flex flex-col items-center">
-             <StoreIcon className="h-16 w-16 mb-4" />
-             <p className="font-black italic uppercase text-sm tracking-widest text-center">
-               No stores found in your zone
-             </p>
-          </div>
-        )}
       </div>
     </div>
   );
