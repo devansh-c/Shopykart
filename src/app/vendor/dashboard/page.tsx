@@ -45,11 +45,12 @@ import {
   History,
   AlertTriangle,
   CalendarClock,
-  Edit
+  Edit,
+  Globe
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
+import { cn, slugify } from '@/lib/utils';
 import { useState, useEffect, useRef, useMemo, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
@@ -137,7 +138,7 @@ export default function VendorDashboard() {
   const [isVarietyRequired, setIsVarietyRequired] = useState(false);
   const [options, setOptions] = useState<{ name: string; price: number }[]>([]);
   const [productForm, setProductForm] = useState({
-    name: '', price: '', mrp: '', description: '', category: '', imageUrl: '', preparingTime: ''
+    name: '', slug: '', price: '', mrp: '', description: '', category: '', imageUrl: '', preparingTime: ''
   });
 
   const [isUpdatingStoreImage, setIsUpdatingStoreImage] = useState(false);
@@ -320,8 +321,11 @@ export default function VendorDashboard() {
       return;
     }
     setIsSavingProduct(true);
+    const finalSlug = productForm.slug.trim().toLowerCase().replace(/\s+/g, '-') || slugify(productForm.name);
+    
     const pData = {
       name: productForm.name.trim(),
+      slug: finalSlug,
       price: parseFloat(productForm.price),
       mrp: parseFloat(productForm.mrp) || parseFloat(productForm.price),
       description: productForm.description.trim(),
@@ -359,7 +363,7 @@ export default function VendorDashboard() {
 
   const resetProductForm = () => {
     setEditingProductId(null);
-    setProductForm({ name: '', price: '', mrp: '', description: '', category: '', imageUrl: '', preparingTime: '' });
+    setProductForm({ name: '', slug: '', price: '', mrp: '', description: '', category: '', imageUrl: '', preparingTime: '' });
     setOptions([]);
     setIsVarietyRequired(false);
   };
@@ -368,6 +372,7 @@ export default function VendorDashboard() {
     setEditingProductId(p.id);
     setProductForm({
       name: p.name,
+      slug: p.slug || '',
       price: p.price.toString(),
       mrp: p.mrp?.toString() || '',
       description: p.description || '',
@@ -466,6 +471,10 @@ export default function VendorDashboard() {
                          <input type="file" ref={fileInputRef} className="hidden" onChange={handleProductImageSelect} />
                          <div className="space-y-4">
                             <Input placeholder="Product Name" value={productForm.name} onChange={e => setProductForm({...productForm, name: e.target.value})} className="h-12 rounded-xl font-bold bg-muted/20 border-none" />
+                            <div className="space-y-1">
+                               <label className="text-[9px] font-black uppercase text-primary ml-1 flex items-center gap-1.5"><Globe className="h-2.5 w-2.5" /> SEO Slug</label>
+                               <Input value={productForm.slug} onChange={e => setProductForm({...productForm, slug: e.target.value})} placeholder="e.g. classic-burger" className="h-12 rounded-xl bg-primary/5 border-none font-black italic text-primary" />
+                            </div>
                             <div className="grid grid-cols-2 gap-4">
                               <Input placeholder="MRP ₹" type="number" value={productForm.mrp} onChange={e => setProductForm({...productForm, mrp: e.target.value})} className="h-12 rounded-xl bg-muted/20 border-none" />
                               <Input placeholder="Selling Price ₹" type="number" value={productForm.price} onChange={e => setProductForm({...productForm, price: e.target.value})} className="h-12 rounded-xl border-primary/40 font-bold" />

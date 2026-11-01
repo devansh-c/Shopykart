@@ -7,13 +7,13 @@ export const dynamic = 'force-static';
 
 /**
  * @fileOverview Store hub dynamic page with static export compatibility.
+ * Next.js 15 requires generateStaticParams for dynamic routes in static export mode.
  */
 export async function generateStaticParams() {
-  // Providing sample slugs for build phase to satisfy Next.js export
+  // Providing sample slugs to satisfy the build process
   return [
     { slug: 'premium-store' },
     { slug: 'local-hub' },
-    { slug: 'city-sweets' },
     { slug: 'shopykart' }
   ];
 }
@@ -24,11 +24,9 @@ export default async function StorePage(props: { params: Promise<{ slug: string 
 
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-10 w-10 animate-spin text-primary" />
-          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Opening Store Hub...</p>
-        </div>
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-4">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Opening Store Hub...</p>
       </div>
     }>
       <MenuContent forcedSlug={slug} />
