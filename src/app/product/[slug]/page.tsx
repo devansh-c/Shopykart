@@ -13,7 +13,8 @@ export async function generateStaticParams() {
   return [
     { slug: 'gourmet-item' },
     { slug: 'featured-dish' },
-    { slug: 'classic-burger' }
+    { slug: 'classic-burger' },
+    { slug: 'mr-burger-special' }
   ];
 }
 
