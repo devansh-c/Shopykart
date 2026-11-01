@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 
 /**
  * @fileOverview Global Firebase Error Listener.
- * Strictly handles permission errors. Suppresses noisy backend connection warnings visually.
+ * Strictly handles permission errors. Suppresses noisy backend connection and quota warnings visually.
  */
 export function FirebaseErrorListener() {
   const { toast } = useToast();
@@ -17,11 +17,11 @@ export function FirebaseErrorListener() {
     const handlePermissionError = (error: FirestorePermissionError) => {
       // SILENT DEBUG: Do not throw or log as error to prevent Next.js Red Screen
       console.debug('Firestore Notice:', {
-        path: error.context.path,
-        operation: error.context.operation,
+        path: error.context?.path,
+        operation: error.context?.operation,
       });
 
-      // AGGRESSIVE SILENCE: Suppress all connectivity, timeout and reachability warnings visually
+      // AGGRESSIVE SILENCE: Suppress all connectivity, timeout and quota warnings visually
       const silentMessages = [
         'unavailable', 
         'deadline-exceeded', 
@@ -30,25 +30,31 @@ export function FirebaseErrorListener() {
         'offline mode',
         'within 10 seconds',
         'failed-precondition',
-        'quota-exceeded'
+        'quota-exceeded',
+        'resource-exhausted',
+        'quota exceeded'
       ];
       
+      const errorMessage = error.message?.toLowerCase() || '';
+      const errorCode = (error as any).code || '';
+
       const isSilentWarning = silentMessages.some(m => 
-        error.message?.toLowerCase().includes(m) || 
-        (error as any).code === 'unavailable' || 
-        (error as any).code === 'deadline-exceeded'
+        errorMessage.includes(m) || 
+        errorCode === 'unavailable' || 
+        errorCode === 'deadline-exceeded' ||
+        errorCode === 'resource-exhausted'
       );
 
       if (isSilentWarning) {
         return;
       }
 
-      if (lastErrorRef.current !== error.context.path) {
+      if (error.context?.path && lastErrorRef.current !== error.context.path) {
         lastErrorRef.current = error.context.path;
         
         // SUPPRESS NOISY PATHS: Don't show toast for sync-heavy collections
         const noisyPaths = ['/orders', '/users', '/products', '/banners', '/categories', '/vendors'];
-        const isNoisy = noisyPaths.some(p => error.context.path.includes(p));
+        const isNoisy = noisyPaths.some(p => error.context?.path.includes(p));
 
         if (!isNoisy) {
           toast({

@@ -174,7 +174,7 @@ export const VerticalStoreList = memo(({
   const isActuallyLoading = vendorsLoading || !initialSync;
   const showEmptyState = !isActuallyLoading && filteredVendors.length === 0;
 
-  if (isActuallyLoading) {
+  if (isActuallyLoading && filteredVendors.length === 0) {
     return (
       <div className="px-4 py-6 bg-white space-y-16">
         {[1, 2, 3].map(i => (
@@ -193,17 +193,6 @@ export const VerticalStoreList = memo(({
             </div>
           </div>
         ))}
-      </div>
-    );
-  }
-
-  if (showEmptyState) {
-    return (
-      <div className="px-4 py-24 bg-white text-center opacity-20 flex flex-col items-center">
-         <StoreIcon className="h-16 w-16 mb-4" />
-         <p className="font-black italic uppercase text-sm tracking-widest text-center">
-           No stores found in your zone
-         </p>
       </div>
     );
   }
@@ -331,6 +320,15 @@ export const VerticalStoreList = memo(({
               </div>
             );
         })}
+
+        {showEmptyState && (
+          <div className="px-4 py-24 bg-white text-center opacity-20 flex flex-col items-center">
+             <StoreIcon className="h-16 w-16 mb-4" />
+             <p className="font-black italic uppercase text-sm tracking-widest text-center">
+               No stores found in your zone
+             </p>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -14,6 +14,7 @@ import { FirestorePermissionError } from '../errors';
 /**
  * @fileOverview High-Performance Real-time Collection Hook.
  * Optimized for Instant Hydration from localStorage and stable snapshot listeners.
+ * Added graceful handling for Quota Exceeded errors.
  */
 export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey?: string, initialData?: T[]) {
   // 1. ATOMIC INITIALIZATION: Try to get data from cache before first render
@@ -88,6 +89,7 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
         const silentCodes = ['resource-exhausted', 'unavailable', 'deadline-exceeded', 'cancelled'];
         if (silentCodes.includes(err.code)) {
           setLoading(false);
+          // If quota reached, we keep existing cached data if available
           return;
         }
 
