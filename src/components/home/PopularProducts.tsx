@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useState, useEffect, memo, useCallback } from "react"
@@ -101,10 +102,16 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   const firestore = useFirestore();
   const { toast } = useToast();
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
+  const [activeTown, setActiveTown] = useState<string | null>(null);
   const [currentTimeMinutes, setCurrentTimeMinutes] = useState<number | null>(null);
   
   useEffect(() => {
-    const updateZone = () => setActiveZoneId(localStorage.getItem('active_zone_id'));
+    const updateZone = () => {
+      if (typeof window !== 'undefined') {
+        setActiveZoneId(localStorage.getItem('active_zone_id'));
+        setActiveTown(localStorage.getItem('user_address'));
+      }
+    };
     updateZone(); 
     window.addEventListener('user-address-updated', updateZone);
     const syncTime = () => { const d = new Date(); setCurrentTimeMinutes(d.getHours() * 60 + d.getMinutes()); };
@@ -137,8 +144,11 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     return list.filter(p => {
       const v = vendorMap.get(String(p.vendorId));
       if (activeZoneId) {
-        const itemZoneId = p.zoneId || v?.zoneId;
-        if (itemZoneId && itemZoneId !== activeZoneId && itemZoneId !== 'global') return false;
+        const zoneMatch = p.zoneId === activeZoneId || v?.zoneId === activeZoneId || p.zoneId === 'global' || v?.zoneId === 'global';
+        // FIXED: Strict town matching using exact comparison to prevent location overlap
+        const townMatch = activeTown && v?.town?.toLowerCase().trim() === activeTown.toLowerCase().trim();
+        
+        if (!zoneMatch && !townMatch && (p.zoneId || v?.zoneId)) return false;
       }
       if ((p.serviceMode || 'Food').toLowerCase() !== activeMode.toLowerCase()) return false;
       if (q && !p.name?.toLowerCase().includes(q) && !v?.storeName?.toLowerCase().includes(q)) return false;
@@ -154,7 +164,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       const rankB = (Number(vB?.rating) || 0) + (Number(b.rating) || 0);
       return rankB - rankA;
     });
-  }, [dbProducts, initialData, vendors, initialStores, searchQuery, category, activeMode, activeZoneId, currentTimeMinutes]);
+  }, [dbProducts, initialData, vendors, initialStores, searchQuery, category, activeMode, activeZoneId, activeTown, currentTimeMinutes]);
 
   const handleShare = useCallback((e: React.MouseEvent, product: any) => {
     e.stopPropagation();
@@ -167,7 +177,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     <div className="px-4 py-6 bg-white min-h-[600px] content-visibility-auto">
       <div className="flex items-center justify-between mb-6 px-2">
         <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900">Premium <span className="text-primary">Selection</span></h2>
-        <Badge variant="outline" className="rounded-full border-primary/20 text-primary font-black uppercase text-[10px]">
+        <Badge variant="outline" className="rounded-full border-gray-200 text-gray-400 font-black uppercase text-[10px]">
           {productsToDisplay.length} ITEMS
         </Badge>
       </div>

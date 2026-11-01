@@ -13,21 +13,25 @@ import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 import { Skeleton } from '@/components/ui/skeleton';
 
 /**
- * @fileOverview StoresPage with deterministic shimmer loading.
+ * @fileOverview StoresPage with strict location isolation.
  */
 export default function StoresPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
+  const [activeTown, setActiveTown] = useState<string | null>(null);
   const [currentTimeMins, setCurrentTimeMins] = useState<number | null>(null);
   const [initialSync, setInitialSync] = useState(false);
   const firestore = useFirestore();
 
   useEffect(() => {
-    const updateZone = () => {
-      setActiveZoneId(typeof window !== 'undefined' ? localStorage.getItem('active_zone_id') : null);
+    const updateLocation = () => {
+      if (typeof window !== 'undefined') {
+        setActiveZoneId(localStorage.getItem('active_zone_id'));
+        setActiveTown(localStorage.getItem('user_address'));
+      }
     };
-    updateZone();
-    window.addEventListener('user-address-updated', updateZone);
+    updateLocation();
+    window.addEventListener('user-address-updated', updateLocation);
 
     const syncTime = () => {
       const now = new Date();
@@ -38,7 +42,7 @@ export default function StoresPage() {
     setTimeout(() => setInitialSync(true), 1200);
 
     return () => {
-      window.removeEventListener('user-address-updated', updateZone);
+      window.removeEventListener('user-address-updated', updateLocation);
     };
   }, []);
 
@@ -56,7 +60,11 @@ export default function StoresPage() {
 
     return dbVendors.filter(v => {
       if (activeZoneId) {
-        if (v.zoneId && v.zoneId !== activeZoneId && v.zoneId !== 'global') {
+        const zoneMatch = v.zoneId === activeZoneId || v.zoneId === 'global';
+        // FIXED: Strict town matching for isolation
+        const townMatch = activeTown && v.town?.toLowerCase().trim() === activeTown.toLowerCase().trim();
+        
+        if (!zoneMatch && !townMatch && v.zoneId) {
           return false;
         }
       }
@@ -77,7 +85,7 @@ export default function StoresPage() {
       const ratingB = Number(b.rating) || 0;
       return ratingB - ratingA;
     });
-  }, [dbVendors, activeZoneId, searchQuery, currentTimeMins]);
+  }, [dbVendors, activeZoneId, activeTown, searchQuery, currentTimeMins]);
 
   // Detereministic Loading State
   const isActuallyLoading = loading || !initialSync;
@@ -137,7 +145,7 @@ export default function StoresPage() {
                   {isOffline && (
                     <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center backdrop-blur-[2px]">
                       <div className="flex flex-col items-center gap-2">
-                        <span className="text-white font-black text-2xl uppercase italic tracking-tighter border-2 border-white/30 px-6 py-2 rounded-2xl backdrop-blur-md shadow-2xl">
+                        <span className="text-white font-black text-2xl uppercase italic border-2 border-white/30 px-6 py-2 rounded-2xl backdrop-blur-md shadow-2xl">
                           Closed Now
                         </span>
                         {!isOpen && store.openingTime && (

@@ -21,12 +21,14 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
   const router = useRouter();
   
   const [activeZoneId, setActiveZoneId] = React.useState<string | null>(null);
+  const [activeTown, setActiveTown] = React.useState<string | null>(null);
   const [currentTimeMins, setCurrentTimeMins] = React.useState<number | null>(null);
   const [initialSync, setInitialSync] = React.useState(false);
 
   React.useEffect(() => {
     const updateZone = () => {
       setActiveZoneId(localStorage.getItem('active_zone_id'));
+      setActiveTown(localStorage.getItem('user_address'));
     };
     updateZone();
     window.addEventListener('user-address-updated', updateZone);
@@ -59,7 +61,11 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
 
     return list.filter(v => {
       if (activeZoneId) {
-        if (v.zoneId && v.zoneId !== activeZoneId && v.zoneId !== 'global') {
+        const zoneMatch = v.zoneId === activeZoneId || v.zoneId === 'global';
+        // FIXED: Strict town matching using exact comparison
+        const townMatch = activeTown && v.town?.toLowerCase().trim() === activeTown.toLowerCase().trim();
+        
+        if (!zoneMatch && !townMatch && v.zoneId) {
           return false;
         }
       }
@@ -82,7 +88,7 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
       if (onlineA !== onlineB) return onlineB - onlineA;
       return (b.rating || 0) - (a.rating || 0);
     });
-  }, [dbVendors, initialData, activeMode, activeZoneId, currentTimeMins]);
+  }, [dbVendors, initialData, activeMode, activeZoneId, activeTown, currentTimeMins]);
 
   const isInitialLoading = vendorsLoading || !initialSync;
 
@@ -116,7 +122,7 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
               <button 
                 onClick={() => {
                   const storeSlug = store.slug || slugify(store.storeName) || store.id;
-                  router.push(`/store/view?id=${store.id}&slug=${storeSlug}`);
+                  router.push(`/store/${storeSlug}/`);
                 }}
                 className="block text-left w-full rounded-[1.5rem] overflow-hidden shadow-xl group border border-white/10 relative transform-gpu active:scale-95 transition-all"
               >

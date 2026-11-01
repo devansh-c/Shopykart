@@ -27,7 +27,7 @@ const ProductStripItem = memo(({ product, isOffline }: any) => {
       className={cn("min-w-[140px] max-w-[140px] flex flex-col group/item transition-all animate-in fade-in zoom-in duration-300", isOffline && "opacity-60")}
     >
        <div className="relative aspect-square w-full rounded-2xl overflow-hidden bg-muted mb-2 border border-black/[0.03]">
-          <Image src={product.imageUrl} alt={product.name} fill className="object-cover group-hover/item:scale-105 transition-transform duration-500" unoptimized />
+          <Image src={product.imageUrl} alt={product.name} fill className="object-cover" unoptimized />
           
           <div className="absolute top-2 left-2">
              <Badge className="bg-[#15803d] text-white border-none font-bold text-[7px] px-2 py-0.5 rounded-lg uppercase shadow-sm">Popular</Badge>
@@ -129,7 +129,8 @@ export const VerticalStoreList = memo(({
     return list.filter(v => {
       if (activeZoneId) {
         const zoneMatch = v.zoneId === activeZoneId || v.zoneId === 'global';
-        const townMatch = activeTown && v.town?.toLowerCase().includes(activeTown.toLowerCase());
+        // FIXED: Strict town matching using exact comparison to prevent "Ranipur" matching "Mauranipur"
+        const townMatch = activeTown && v.town?.toLowerCase().trim() === activeTown.toLowerCase().trim();
         
         if (!zoneMatch && !townMatch && v.zoneId) {
           return false;
