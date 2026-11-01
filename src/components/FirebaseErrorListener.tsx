@@ -21,8 +21,19 @@ export function FirebaseErrorListener() {
         operation: error.context.operation,
       });
 
-      // IGNORE NETWORK FLICKERS: Suppress connection unavailable errors visually
-      if (error.message?.includes('unavailable') || error.message?.includes('deadline')) {
+      // IGNORE NETWORK FLICKERS: Suppress connection unavailable or timeout errors visually
+      const offlineMessages = [
+        'unavailable', 
+        'deadline-exceeded', 
+        'reach cloud firestore backend',
+        'backend didn\'t respond'
+      ];
+      
+      const isOfflineWarning = offlineMessages.some(m => 
+        error.message?.toLowerCase().includes(m)
+      );
+
+      if (isOfflineWarning) {
         return;
       }
 

@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo, useState, useEffect, memo } from 'react';
@@ -115,6 +114,7 @@ export const VerticalStoreList = memo(({
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
+    // Resilient Fetch: Removed strict isDeleted filter to catch all active items
     return query(collection(firestore, 'products'), limit(1000));
   }, [firestore]);
   const { data: allProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_strip_products_v17_fixed');
@@ -202,128 +202,129 @@ export const VerticalStoreList = memo(({
           </div>
         ) : null}
 
-        {!isActuallyLoading && filteredVendors.map((store: any) => {
-          const displayImage = store.bannerUrl || store.imageUrl || `https://picsum.photos/seed/${store.id}/800/400`;
-          const isOpen = isStoreScheduleOpen(store, currentTimeMins);
-          const isOffline = store.isOnline === false || !isOpen;
-          const isBestRated = Number(store.rating) >= 4.5;
-          
-          const storeProducts = allProducts?.filter(p => 
-            String(p.vendorId) === String(store.id) && 
-            p.isDeleted !== true
-          ).slice(0, 10) || [];
+        {!isActuallyLoading && filteredVendors.length > 0 ? (
+          filteredVendors.map((store: any) => {
+            const displayImage = store.bannerUrl || store.imageUrl || `https://picsum.photos/seed/${store.id}/800/400`;
+            const isOpen = isStoreScheduleOpen(store, currentTimeMins);
+            const isOffline = store.isOnline === false || !isOpen;
+            const isBestRated = Number(store.rating) >= 4.5;
+            
+            // In-Memory Filter for reliability across all locations (including Mauranipur)
+            const storeProducts = allProducts?.filter(p => 
+              String(p.vendorId) === String(store.id) && 
+              p.isDeleted !== true
+            ).slice(0, 10) || [];
 
-          return (
-            <div key={store.id} className="flex flex-col space-y-4 animate-in fade-in duration-500">
-              <div 
-                onClick={() => navigateToStore(store)}
-                className={cn(
-                  "w-full text-left bg-white transition-all active:scale-[0.98] group relative cursor-pointer",
-                  isOffline && "opacity-75 grayscale-[0.3]"
-                )}
-              >
-                <div className="relative w-full aspect-[18/9] rounded-[1.5rem] overflow-hidden border border-gray-100 bg-gray-50">
-                  <Image 
-                    src={displayImage} 
-                    alt={store.storeName} 
-                    fill 
-                    className={cn("object-cover", isOffline && "grayscale")} 
-                    unoptimized 
-                    priority={filteredVendors.indexOf(store) < 2}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-60" />
-
-                  {isOffline && (
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10">
-                      <span className="text-white font-black text-xl uppercase italic border-2 border-white/30 px-6 py-2 rounded-2xl shadow-xl">Closed Now</span>
-                    </div>
+            return (
+              <div key={store.id} className="flex flex-col space-y-4 animate-in fade-in duration-500">
+                <div 
+                  onClick={() => navigateToStore(store)}
+                  className={cn(
+                    "w-full text-left bg-white transition-all active:scale-[0.98] group relative cursor-pointer",
+                    isOffline && "opacity-75 grayscale-[0.3]"
                   )}
+                >
+                  <div className="relative w-full aspect-[18/9] rounded-[1.5rem] overflow-hidden border border-gray-100 bg-gray-50">
+                    <Image 
+                      src={displayImage} 
+                      alt={store.storeName} 
+                      fill 
+                      className={cn("object-cover", isOffline && "grayscale")} 
+                      unoptimized 
+                      priority={filteredVendors.indexOf(store) < 2}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-60" />
 
-                  {!isOffline && isBestRated && (
-                    <div className="absolute top-4 left-4 z-20">
-                      <Badge className="bg-amber-400 text-black border-none font-black text-[7px] px-3 py-1 rounded-lg">
-                        <Award className="h-2.5 w-2.5 mr-1 fill-black" /> BEST IN TOWN
-                      </Badge>
+                    {isOffline && (
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10">
+                        <span className="text-white font-black text-xl uppercase italic border-2 border-white/30 px-6 py-2 rounded-2xl shadow-xl">Closed Now</span>
+                      </div>
+                    )}
+
+                    {!isOffline && isBestRated && (
+                      <div className="absolute top-4 left-4 z-20">
+                        <Badge className="bg-amber-400 text-black border-none font-black text-[7px] px-3 py-1 rounded-lg">
+                          <Award className="h-2.5 w-2.5 mr-1 fill-black" /> BEST IN TOWN
+                        </Badge>
+                      </div>
+                    )}
+
+                    {!isOffline && (
+                      <div className="absolute bottom-4 right-4 z-20">
+                        <div className="bg-white px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm border border-gray-100">
+                            <Timer className="h-3.5 w-3.5 text-primary" />
+                            <span className="text-[11px] font-black text-gray-900 uppercase italic tracking-tighter">{store.deliveryTime || '20 min'}</span>
+                        </div>
                     </div>
-                  )}
-
-                  {!isOffline && (
-                    <div className="absolute bottom-4 right-4 z-20">
-                       <div className="bg-white px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm border border-gray-100">
-                          <Timer className="h-3.5 w-3.5 text-primary" />
-                          <span className="text-[11px] font-black text-gray-900 uppercase italic tracking-tighter">{store.deliveryTime || '20 min'}</span>
-                       </div>
+                    )}
                   </div>
-                  )}
-                </div>
 
-                <div className="pt-5 px-3">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1 min-w-0 pr-4">
-                      <h3 className="font-black text-2xl italic uppercase tracking-tighter text-gray-900 leading-none mb-1.5 truncate group-hover:text-primary transition-colors">
-                        {store.storeName}
-                      </h3>
-                      <div className="flex items-center gap-2">
-                        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest italic">{store.category || 'Premium Store'}</p>
-                        <span className="h-1 w-1 bg-gray-200 rounded-full" />
-                        <div className="flex items-center gap-1 text-[11px] font-bold text-gray-400 italic uppercase">
-                          <MapPin className="h-3.5 w-3.5 text-primary" />
-                          {store.town || 'Local'}
+                  <div className="pt-5 px-3">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1 min-w-0 pr-4">
+                        <h3 className="font-black text-2xl italic uppercase tracking-tighter text-gray-900 leading-none mb-1.5 truncate group-hover:text-primary transition-colors">
+                          {store.storeName}
+                        </h3>
+                        <div className="flex items-center gap-2">
+                          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest italic">{store.category || 'Premium Store'}</p>
+                          <span className="h-1 w-1 bg-gray-200 rounded-full" />
+                          <div className="flex items-center gap-1 text-[11px] font-bold text-gray-400 italic uppercase">
+                            <MapPin className="h-3.5 w-3.5 text-primary" />
+                            {store.town || 'Local'}
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="bg-[#15803d] text-white px-2.5 py-1.5 rounded-xl flex flex-col items-center gap-0 border border-green-700">
-                      <div className="flex items-center gap-1">
-                        <span className="text-base font-black italic">{Number(store.rating || 4.0).toFixed(1)}</span>
-                        <Star className="h-3 w-3 fill-white stroke-none" />
+                      <div className="bg-[#15803d] text-white px-2.5 py-1.5 rounded-xl flex flex-col items-center gap-0 border border-green-700">
+                        <div className="flex items-center gap-1">
+                          <span className="text-base font-black italic">{Number(store.rating || 4.0).toFixed(1)}</span>
+                          <Star className="h-3 w-3 fill-white stroke-none" />
+                        </div>
+                        <span className="text-[7px] font-black uppercase opacity-60 leading-none">Rating</span>
                       </div>
-                      <span className="text-[7px] font-black uppercase opacity-60 leading-none">Rating</span>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="px-1 overflow-hidden">
-                <div className="flex overflow-x-auto space-x-4 no-scrollbar pb-4 pt-2">
-                  {storeProducts.length > 0 ? (
-                    storeProducts.map((p: any) => (
-                      <ProductStripItem 
-                        key={p.id} 
-                        product={{...p, restaurantName: store.storeName}} 
-                        isOffline={isOffline}
-                      />
-                    ))
-                  ) : productsLoading ? (
-                    [1, 2, 3, 4].map(i => (
-                      <div key={i} className="min-w-[140px] space-y-3">
-                         <Skeleton className="w-full aspect-square rounded-2xl" />
-                         <Skeleton className="h-3 w-2/3 rounded-full" />
-                         <Skeleton className="h-2 w-1/2 rounded-full" />
-                      </div>
-                    ))
-                  ) : (
-                    !isActuallyLoading && (
+                <div className="px-1 overflow-hidden">
+                  <div className="flex overflow-x-auto space-x-4 no-scrollbar pb-4 pt-2">
+                    {storeProducts.length > 0 ? (
+                      storeProducts.map((p: any) => (
+                        <ProductStripItem 
+                          key={p.id} 
+                          product={{...p, restaurantName: store.storeName}} 
+                          isOffline={isOffline}
+                        />
+                      ))
+                    ) : productsLoading ? (
+                      [1, 2, 3, 4].map(i => (
+                        <div key={i} className="min-w-[140px] space-y-3">
+                          <Skeleton className="w-full aspect-square rounded-2xl" />
+                          <Skeleton className="h-3 w-2/3 rounded-full" />
+                          <Skeleton className="h-2 w-1/2 rounded-full" />
+                        </div>
+                      ))
+                    ) : (
                       <div className="h-40 flex items-center justify-center w-full bg-gray-50 rounded-2xl border border-dashed">
                         <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">No products listed</p>
                       </div>
-                    )
-                  )}
-                  <div className="min-w-[1px] h-full" />
+                    )}
+                    <div className="min-w-[1px] h-full" />
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })
+        ) : null}
 
-        {showEmptyState && (
+        {showEmptyState ? (
           <div className="text-center py-24 opacity-20 flex flex-col items-center">
              <StoreIcon className="h-16 w-16 mb-4" />
              <p className="font-black italic uppercase text-sm tracking-widest text-center">
                No stores found in your zone
              </p>
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

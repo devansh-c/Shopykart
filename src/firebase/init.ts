@@ -1,6 +1,6 @@
 import { initializeApp, getApps, FirebaseApp, getApp } from 'firebase/app';
 import { firebaseConfig } from './config';
-import { getFirestore, Firestore } from 'firebase/firestore';
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, Firestore } from 'firebase/firestore';
 import { getAuth, Auth, setPersistence, browserLocalPersistence } from 'firebase/auth';
 
 /**
@@ -13,6 +13,7 @@ let authInstance: Auth | null = null;
 /**
  * Robust Firebase initialization singleton for Next.js.
  * Environment-aware: Works on both Server (SSR) and Client.
+ * Persistence Enabled: Ensures offline functionality when backend is unreachable.
  */
 export function initializeFirebase() {
   // 1. Initialize App
@@ -22,9 +23,20 @@ export function initializeFirebase() {
     appInstance = getApp();
   }
 
-  // 2. Initialize Firestore
+  // 2. Initialize Firestore with Offline Persistence
   if (!firestoreInstance) {
-    firestoreInstance = getFirestore(appInstance);
+    // Only initialize with persistence on the client side
+    if (typeof window !== 'undefined') {
+      firestoreInstance = initializeFirestore(appInstance, {
+        localCache: persistentLocalCache({
+          tabManager: persistentMultipleTabManager()
+        })
+      });
+    } else {
+      // Basic initialization for SSR
+      const { getFirestore } = require('firebase/firestore');
+      firestoreInstance = getFirestore(appInstance);
+    }
   }
 
   // 3. Initialize Auth (Persistence only on client)
