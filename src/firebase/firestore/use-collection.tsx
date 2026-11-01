@@ -13,8 +13,8 @@ import { FirestorePermissionError } from '../errors';
 
 /**
  * @fileOverview High-Performance Real-time Collection Hook.
- * Optimized for Instant Hydration from localStorage and stable snapshot listeners.
- * Added graceful handling for Quota Exceeded errors.
+ * Optimized for Quota Exceeded (resource-exhausted) fallback.
+ * Automatically falls back to local cache if quota is hit.
  */
 export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey?: string, initialData?: T[]) {
   // 1. ATOMIC INITIALIZATION: Try to get data from cache before first render
@@ -37,7 +37,6 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
   const stableQueryPath = useMemo(() => {
     if (!query) return '';
     try {
-      // Using query segments for stability
       return (query as any)._query?.path?.segments?.join('/') || Math.random().toString();
     } catch (e) {
       return Math.random().toString();
@@ -80,16 +79,15 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
         if (cacheKey && typeof window !== 'undefined') {
           try {
             localStorage.setItem(`fire_cache_${cacheKey}`, JSON.stringify(items));
-          } catch (e: any) {
-            // Silently handle storage errors (e.g. quota exceeded)
-          }
+          } catch (e: any) {}
         }
       },
       (err: FirestoreError) => {
-        const silentCodes = ['resource-exhausted', 'unavailable', 'deadline-exceeded', 'cancelled'];
-        if (silentCodes.includes(err.code)) {
+        // 3. QUOTA HANDLING: If quota is hit, silently stop loading and stay on cache
+        const silentCodes = ['resource-exhausted', 'quota-exceeded', 'unavailable', 'deadline-exceeded'];
+        if (silentCodes.some(code => err.code?.includes(code) || err.message?.toLowerCase().includes('quota'))) {
           setLoading(false);
-          // If quota reached, we keep existing cached data if available
+          console.warn("Firestore Quota Exceeded. Using offline cache.");
           return;
         }
 

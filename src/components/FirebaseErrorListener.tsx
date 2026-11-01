@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 
 /**
  * @fileOverview Global Firebase Error Listener.
- * Strictly handles permission errors. Suppresses noisy backend connection and quota warnings visually.
+ * Aggressively silences Quota and Connectivity errors to prevent visual Red Screen interruptions.
  */
 export function FirebaseErrorListener() {
   const { toast } = useToast();
@@ -15,24 +15,25 @@ export function FirebaseErrorListener() {
 
   useEffect(() => {
     const handlePermissionError = (error: FirestorePermissionError) => {
-      // SILENT DEBUG: Do not throw or log as error to prevent Next.js Red Screen
-      console.debug('Firestore Notice:', {
+      // SILENT DEBUG: Do not throw to prevent Red Screen
+      console.debug('Firestore Notification:', {
         path: error.context?.path,
         operation: error.context?.operation,
+        message: error.message
       });
 
-      // AGGRESSIVE SILENCE: Suppress all connectivity, timeout and quota warnings visually
+      // AGGRESSIVE SILENCE: Suppress all quota and connectivity warnings
       const silentMessages = [
         'unavailable', 
         'deadline-exceeded', 
         'reach cloud firestore backend',
         'backend didn\'t respond',
         'offline mode',
-        'within 10 seconds',
         'failed-precondition',
         'quota-exceeded',
         'resource-exhausted',
-        'quota exceeded'
+        'quota exceeded',
+        'limit exceeded'
       ];
       
       const errorMessage = error.message?.toLowerCase() || '';
@@ -42,7 +43,8 @@ export function FirebaseErrorListener() {
         errorMessage.includes(m) || 
         errorCode === 'unavailable' || 
         errorCode === 'deadline-exceeded' ||
-        errorCode === 'resource-exhausted'
+        errorCode === 'resource-exhausted' ||
+        errorCode === 'quota-exceeded'
       );
 
       if (isSilentWarning) {
@@ -52,15 +54,15 @@ export function FirebaseErrorListener() {
       if (error.context?.path && lastErrorRef.current !== error.context.path) {
         lastErrorRef.current = error.context.path;
         
-        // SUPPRESS NOISY PATHS: Don't show toast for sync-heavy collections
-        const noisyPaths = ['/orders', '/users', '/products', '/banners', '/categories', '/vendors'];
+        // SUPPRESS NOISY PATHS: Don't show toast for high-sync internal collections
+        const noisyPaths = ['/orders', '/users', '/products', '/banners', '/categories', '/vendors', '/app_settings'];
         const isNoisy = noisyPaths.some(p => error.context?.path.includes(p));
 
         if (!isNoisy) {
           toast({
             variant: 'destructive',
             title: 'Identity Alert',
-            description: `Access restricted. Please verify your account.`,
+            description: `Access restricted. Check your login status.`,
           });
         }
 

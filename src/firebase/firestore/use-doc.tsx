@@ -12,9 +12,8 @@ import { errorEmitter } from '../error-emitter';
 import { FirestorePermissionError } from '../errors';
 
 /**
- * @fileOverview High-Performance Document Hook with Instant Cache Access and Date Normalization.
- * Quota-Aware: Safely handles full storage errors.
- * Normalization ensures standard Dates across the app to prevent hydration RangeErrors.
+ * @fileOverview High-Performance Document Hook.
+ * Quota-Aware: Falls back to local storage if Google Cloud limits are reached.
  */
 export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null, cacheKey?: string, initialData?: T) {
   // 1. Initialize strictly with SSR data or Cache
@@ -52,7 +51,6 @@ export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null, cache
           return;
         }
 
-        // CONSISTENT NORMALIZATION: Converts Firestore Timestamps to ISO Strings
         const cleanData = JSON.parse(JSON.stringify(rawData, (key, value) => {
           if (value && typeof value === 'object' && value.seconds !== undefined) {
             return new Date(value.seconds * 1000).toISOString();
@@ -65,19 +63,16 @@ export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null, cache
         setLoading(false);
         setError(null);
 
-        // Update Cache for instant subsequent loads - DEFENSIVELY
         if (cacheKey && typeof window !== 'undefined' && docData) {
           try {
             localStorage.setItem(`fire_doc_cache_${cacheKey}`, JSON.stringify(docData));
-          } catch (e: any) {
-            if (e.name === 'QuotaExceededError') {
-              console.warn("Firestore Doc Cache skipped: quota exceeded.");
-            }
-          }
+          } catch (e: any) {}
         }
       },
       async (err: FirestoreError) => {
-        if (err.code === 'resource-exhausted' || err.code === 'unavailable') {
+        // QUOTA HANDLING
+        const silentCodes = ['resource-exhausted', 'quota-exceeded', 'unavailable'];
+        if (silentCodes.some(code => err.code?.includes(code) || err.message?.toLowerCase().includes('quota'))) {
           setLoading(false);
           return;
         }
