@@ -75,19 +75,19 @@ export const VerticalStoreList = memo(({
   const firestore = useFirestore();
 
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
+  const [activeTown, setActiveTown] = useState<string | null>(null);
   const [currentTimeMins, setCurrentTimeMins] = useState<number | null>(null);
   const [initialSync, setInitialSync] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setActiveZoneId(localStorage.getItem('active_zone_id'));
-    }
-    const updateZone = () => {
+    const updateLocation = () => {
       if (typeof window !== 'undefined') {
         setActiveZoneId(localStorage.getItem('active_zone_id'));
+        setActiveTown(localStorage.getItem('user_address'));
       }
     };
-    window.addEventListener('user-address-updated', updateZone);
+    updateLocation();
+    window.addEventListener('user-address-updated', updateLocation);
     
     const now = new Date();
     setCurrentTimeMins(now.getHours() * 60 + now.getMinutes());
@@ -100,7 +100,7 @@ export const VerticalStoreList = memo(({
     const timer = setTimeout(() => setInitialSync(true), 1200);
 
     return () => {
-      window.removeEventListener('user-address-updated', updateZone);
+      window.removeEventListener('user-address-updated', updateLocation);
       clearInterval(interval);
       clearTimeout(timer);
     };
@@ -114,7 +114,6 @@ export const VerticalStoreList = memo(({
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // Resilient fetching: Remove strict filters to ensure all products load
     return query(collection(firestore, 'products'), limit(1000));
   }, [firestore]);
   const { data: allProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_strip_products_v18_final');
@@ -127,8 +126,17 @@ export const VerticalStoreList = memo(({
     const currentMode = activeMode.toLowerCase();
 
     return list.filter(v => {
-      if (activeZoneId && v.zoneId && v.zoneId !== activeZoneId && v.zoneId !== 'global') {
-        return false;
+      // RESILIENT ZONE FILTERING:
+      // Priority 1: Match by Firestore Zone Doc ID
+      // Priority 2: Fallback - Match by Town Name (Legacy/Unassigned stores)
+      if (activeZoneId) {
+        const zoneMatch = v.zoneId === activeZoneId || v.zoneId === 'global';
+        const townMatch = activeTown && v.town?.toLowerCase().includes(activeTown.toLowerCase());
+        
+        // If it doesn't match ID and doesn't match Town name, filter it out
+        if (!zoneMatch && !townMatch && v.zoneId) {
+          return false;
+        }
       }
 
       const storeCat = (v.category || 'Food').toLowerCase();
@@ -159,7 +167,7 @@ export const VerticalStoreList = memo(({
       const ratingB = Number(b.rating) || 0;
       return ratingB - ratingA;
     });
-  }, [dbVendors, initialData, activeZoneId, searchQuery, activeMode, currentTimeMins]);
+  }, [dbVendors, initialData, activeZoneId, activeTown, searchQuery, activeMode, currentTimeMins]);
 
   const navigateToStore = (store: any) => {
     const storeSlug = store.slug || slugify(store.storeName) || store.id;
@@ -221,7 +229,6 @@ export const VerticalStoreList = memo(({
             const isOffline = store.isOnline === false || !isOpen;
             const isBestRated = Number(store.rating) >= 4.5;
             
-            // In-memory filter for Mauranipur Bali products
             const storeProducts = allProducts?.filter(p => 
               String(p.vendorId) === String(store.id) && 
               p.isDeleted !== true
@@ -311,7 +318,7 @@ export const VerticalStoreList = memo(({
                     ) : (
                       productsLoading ? (
                         [1, 2, 3, 4].map(i => (
-                          <div key={i} className="min-w-[140px] space-y-3">
+                          <div key={i} className="min-w-[140px] space-y-3" style={{ opacity: 0.5 }}>
                             <Skeleton className="w-full aspect-square rounded-2xl" />
                             <Skeleton className="h-3 w-2/3 rounded-full" />
                             <Skeleton className="h-2 w-1/2 rounded-full" />

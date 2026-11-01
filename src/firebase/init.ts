@@ -12,7 +12,6 @@ let authInstance: Auth | null = null;
 
 /**
  * Robust Firebase initialization singleton for Next.js.
- * Environment-aware: Works on both Server (SSR) and Client.
  * Persistence Enabled: Ensures offline functionality when backend is unreachable.
  */
 export function initializeFirebase() {
@@ -25,7 +24,6 @@ export function initializeFirebase() {
 
   // 2. Initialize Firestore with Offline Persistence
   if (!firestoreInstance) {
-    // Only initialize with persistence on the client side
     if (typeof window !== 'undefined') {
       firestoreInstance = initializeFirestore(appInstance, {
         localCache: persistentLocalCache({
@@ -42,8 +40,6 @@ export function initializeFirebase() {
   // 3. Initialize Auth (Persistence only on client)
   if (!authInstance) {
     authInstance = getAuth(appInstance);
-    
-    // Only set browser persistence if we are in a browser environment
     if (typeof window !== 'undefined') {
       setPersistence(authInstance, browserLocalPersistence).catch(() => {});
     }

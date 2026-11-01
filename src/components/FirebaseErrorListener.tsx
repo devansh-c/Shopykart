@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 
 /**
  * @fileOverview Global Firebase Error Listener.
- * Strictly handles permission errors. Suppresses noisy backend connection warnings and network glitches.
+ * Strictly handles permission errors. Suppresses noisy backend connection warnings visually.
  */
 export function FirebaseErrorListener() {
   const { toast } = useToast();
@@ -21,7 +21,7 @@ export function FirebaseErrorListener() {
         operation: error.context.operation,
       });
 
-      // AGGRESSIVE SILENCE: Suppress all connectivity, timeout and reachability warnings
+      // AGGRESSIVE SILENCE: Suppress all connectivity, timeout and reachability warnings visually
       const silentMessages = [
         'unavailable', 
         'deadline-exceeded', 
@@ -29,7 +29,8 @@ export function FirebaseErrorListener() {
         'backend didn\'t respond',
         'offline mode',
         'within 10 seconds',
-        'failed-precondition'
+        'failed-precondition',
+        'quota-exceeded'
       ];
       
       const isSilentWarning = silentMessages.some(m => 
@@ -46,7 +47,7 @@ export function FirebaseErrorListener() {
         lastErrorRef.current = error.context.path;
         
         // SUPPRESS NOISY PATHS: Don't show toast for sync-heavy collections
-        const noisyPaths = ['/orders', '/users', '/products', '/banners', '/categories'];
+        const noisyPaths = ['/orders', '/users', '/products', '/banners', '/categories', '/vendors'];
         const isNoisy = noisyPaths.some(p => error.context.path.includes(p));
 
         if (!isNoisy) {
