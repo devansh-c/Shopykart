@@ -46,13 +46,7 @@ import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 import { compressImage } from '@/lib/image-utils';
 import { scheduleTestNotification } from '@/components/shared/PermissionManager';
 
-type MainTab = 'orders' | 'catalog' | 'coupons' | 'payouts' | 'account';
-
-const TIME_SLOTS = [
-  "06:00 AM", "07:00 AM", "08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM",
-  "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM", "05:00 PM", "06:00 PM", "07:00 PM",
-  "08:00 PM", "08:15 PM", "08:30 PM", "09:00 PM", "10:00 PM", "11:00 PM", "12:00 AM"
-];
+type MainTab = 'orders' | 'catalog' | 'payouts' | 'account';
 
 const PrepTimer = ({ order }: { order: any }) => {
   const [timeLeft, setTimeLeft] = useState('10:00');
@@ -109,8 +103,6 @@ export default function VendorDashboard() {
   const { toast } = useToast();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const storeImageInputRef = useRef<HTMLInputElement>(null);
-  const [isPending, startTransition] = useTransition();
   
   const [activeMainTab, setActiveMainTab] = useState<MainTab>('orders');
   const [isMounted, setIsMounted] = useState(false);
@@ -123,16 +115,6 @@ export default function VendorDashboard() {
     name: '', slug: '', price: '', mrp: '', description: '', category: '', imageUrl: '', preparingTime: ''
   });
 
-  const [isUpdatingStoreImage, setIsUpdatingStoreImage] = useState(false);
-  const [isSavingSchedule, setIsSavingSchedule] = useState(false);
-  const [announcement, setAnnouncement] = useState('');
-  const [isAnnActive, setIsAnnActive] = useState(false);
-  const [isSavingAnn, setIsSavingAnn] = useState(false);
-  const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
-  const [couponForm, setCouponForm] = useState({ code: '', value: '', type: 'percentage', minOrder: '0' });
-  const [isSavingCoupon, setIsSavingCoupon] = useState(false);
-  const [isTesting, setIsTesting] = useState(false);
-
   useEffect(() => { setIsMounted(true); }, []);
 
   useEffect(() => {
@@ -142,13 +124,6 @@ export default function VendorDashboard() {
 
   const vendorRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'vendors', user.uid) : null, [firestore, user]);
   const { data: vendorProfile, loading: profileLoading } = useDoc<any>(vendorRef);
-
-  useEffect(() => {
-    if (vendorProfile) {
-      setAnnouncement(vendorProfile.storeAnnouncement || '');
-      setIsAnnActive(vendorProfile.isAnnouncementActive || false);
-    }
-  }, [vendorProfile]);
 
   const categoriesQuery = useMemoFirebase(() => {
     if (!firestore || !vendorProfile) return null;
@@ -228,7 +203,6 @@ export default function VendorDashboard() {
   };
 
   const resetProductForm = () => {
-    setEditingId(null);
     setEditingProductId(null);
     setProductForm({ name: '', slug: '', price: '', mrp: '', description: '', category: '', imageUrl: '', preparingTime: '' });
     setOptions([]);
@@ -365,7 +339,7 @@ export default function VendorDashboard() {
         )}
 
         {activeMainTab === 'payouts' && (
-           <div className="p-4 space-y-6"><h2 className="text-xl font-black italic uppercase ml-2">Earnings</h2><div className="bg-[#0B0B0B] p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden"><div className="relative z-10 space-y-6"><div><span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">Current Balance</span><div className="text-5xl font-black italic tracking-tighter text-primary mt-1">₹{vendorProfile?.walletBalance?.toFixed(2) || '0.00'}</div></div></div></div><div className="space-y-4">{/* Payout history component would go here */}</div></div>
+           <div className="p-4 space-y-6"><h2 className="text-xl font-black italic uppercase ml-2">Earnings</h2><div className="bg-[#0B0B0B] p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden"><div className="relative z-10 space-y-6"><div><span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">Current Balance</span><div className="text-5xl font-black italic tracking-tighter text-primary mt-1">₹{vendorProfile?.walletBalance?.toFixed(2) || '0.00'}</div></div></div></div><div className="space-y-4"></div></div>
         )}
       </main>
 

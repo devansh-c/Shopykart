@@ -50,15 +50,12 @@ export default function CartPage() {
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
   const [isPlacing, setIsPlacing] = useState(false);
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
-  const [currentMinutes, setCurrentTimeMinutes] = useState<number | null>(null);
   
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [recipientForm, setRecipientForm] = useState({ name: '', phone: '', address: '' });
   
   const [deliveryTip, setDeliveryTip] = useState(0);
-  const [isPremiumPacking, setIsPremiumPacking] = useState(false);
   const [isRedeemingCoins, setIsRedeemingCoins] = useState(false);
-  const [deliveryInstructions, setDeliveryInstructions] = useState('');
 
   const [couponCode, setCouponCode] = useState('');
   const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
@@ -77,8 +74,6 @@ export default function CartPage() {
         address: localStorage.getItem('user_address_line') || '' 
       });
       setActiveZoneId(localStorage.getItem('active_zone_id'));
-      const d = new Date();
-      setCurrentTimeMinutes(d.getHours() * 60 + d.getMinutes());
     }
   }, []);
 
@@ -212,7 +207,6 @@ export default function CartPage() {
              </div>
           </section>
 
-          {/* PAYMENT METHOD SECTION */}
           <section className="p-6 space-y-4">
              <div className="flex items-center gap-3"><div className="h-10 w-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600"><CreditCard className="h-5 w-5" /></div><h4 className="text-xs font-black uppercase">Payment Method</h4></div>
              <div className="grid grid-cols-2 gap-3">

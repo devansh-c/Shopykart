@@ -88,7 +88,7 @@ function LoginPageContent() {
 
       // 2. VERIFY PASSWORD AGAINST FIRESTORE (Overrides Auth system for Admin control)
       if (vendorData.password !== pass) {
-        toast({ variant: "destructive", title: "Incorrect Password", description: "The master password set by Admin does not match." });
+        toast({ variant: "destructive", title: "Incorrect Password", description: "The password set by Admin does not match." });
         setLoading(false);
         return;
       }
@@ -100,7 +100,7 @@ function LoginPageContent() {
       
     } catch (err: any) {
       console.error("Login Error:", err);
-      toast({ variant: "destructive", title: "Login Failed", description: "Authentication sync error. Try again." });
+      toast({ variant: "destructive", title: "Login Failed", description: "Authentication error. Please try again." });
     } finally {
       setLoading(false);
     }
