@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -152,9 +153,9 @@ const TaskCard = memo(({ order, onUpdate, userData, onPass }: any) => {
                 <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Pick from</p>
                 <h3 className="text-lg font-black uppercase italic tracking-tighter truncate text-gray-900">{order.restaurantName}</h3>
              </div>
-             {isMyTask && (
-               <button onClick={() => window.open(`tel:${order.customerPhone}`)} className="h-12 w-12 bg-green-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-green-100 active:scale-90 transition-transform">
-                 <Phone className="h-5 w-5" />
+             {isMyTask && order.vendorPhone && (
+               <button onClick={() => window.open(`tel:${order.vendorPhone}`)} className="h-12 w-12 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-blue-100 active:scale-90 transition-transform">
+                 <Store className="h-5 w-5" />
                </button>
              )}
           </div>
@@ -167,7 +168,30 @@ const TaskCard = memo(({ order, onUpdate, userData, onPass }: any) => {
                 <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Deliver to</p>
                 <p className="text-xs font-bold text-gray-700 leading-tight uppercase italic line-clamp-2">{order.address}</p>
              </div>
+             {isMyTask && (
+               <button onClick={() => window.open(`tel:${order.customerPhone}`)} className="h-12 w-12 bg-green-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-green-100 active:scale-90 transition-transform">
+                 <Phone className="h-5 w-5" />
+               </button>
+             )}
           </div>
+
+          {isMyTask && (
+             <div className="bg-muted/30 p-4 rounded-2xl flex justify-around items-center border border-border/30">
+                <div className="flex flex-col items-center gap-1">
+                   <button onClick={() => window.open(`tel:${order.vendorPhone}`)} className="h-14 w-14 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center shadow-sm active:scale-90 transition-all border border-blue-100">
+                      <Store className="h-6 w-6" />
+                   </button>
+                   <span className="text-[8px] font-black uppercase text-blue-600">CALL STORE</span>
+                </div>
+                <div className="h-10 w-[1px] bg-border/50" />
+                <div className="flex flex-col items-center gap-1">
+                   <button onClick={() => window.open(`tel:${order.customerPhone}`)} className="h-14 w-14 bg-green-50 text-green-600 rounded-full flex items-center justify-center shadow-sm active:scale-90 transition-all border border-green-100">
+                      <User className="h-6 w-6" />
+                   </button>
+                   <span className="text-[8px] font-black uppercase text-green-600">CALL CUSTOMER</span>
+                </div>
+             </div>
+          )}
 
           <div className="pt-4 mt-2">
              {!isMyTask ? (

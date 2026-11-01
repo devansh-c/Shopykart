@@ -203,6 +203,9 @@ export default function CartPage() {
     setIsPlacing(true);
     try {
       const allVendorIds = Array.from(new Set(cart.map(item => String(item.vendorId)).filter(Boolean)));
+      const firstVendorId = allVendorIds[0];
+      const firstVendor = vendors?.find(v => String(v.id) === String(firstVendorId));
+      const vendorPhone = firstVendor?.phone || '';
 
       const orderData = {
         userId: user?.uid || 'guest_user',
@@ -213,8 +216,9 @@ export default function CartPage() {
         total: totalPayable,
         status: 'Placed',
         createdAt: serverTimestamp(),
-        vendorId: allVendorIds[0] || null,
+        vendorId: firstVendorId || null,
         vendorIds: allVendorIds,
+        vendorPhone: vendorPhone, // Saved for Delivery Partner
         restaurantName: cart[0]?.restaurantName || 'ShopyKart Select',
         deliveryOTP: Math.floor(100000 + Math.random() * 900000).toString(),
         deliveryFee,
