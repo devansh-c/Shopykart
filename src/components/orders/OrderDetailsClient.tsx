@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -62,10 +61,19 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
   const [isCancelling, setIsCancelling] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isRatingOpen, setIsRatingOpen] = useState(false);
+  const [currentHash, setCurrentHash] = useState(typeof window !== 'undefined' ? window.location.hash : '');
   
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const minSwipeDistance = 50;
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      setCurrentHash(window.location.hash);
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   const onTouchStart = (e: React.TouchEvent) => {
     setTouchEnd(null);
@@ -91,12 +99,10 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
   };
 
   useEffect(() => {
-    if (!firestore) return;
-    if (authLoading) return;
+    if (!firestore || authLoading) return;
 
     const queryId = forcedId || searchParams.get('id');
-    const hash = typeof window !== 'undefined' ? window.location.hash.replace('#', '') : '';
-    const orderNum = parseInt(hash);
+    const orderNum = parseInt(currentHash.replace('#', ''));
 
     let unsub: any;
 
@@ -131,7 +137,8 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
         startListener(queryId);
       } else if (!isNaN(orderNum)) {
         if (!user) {
-          setLoading(false);
+          // If auth is done but no user, we can't fetch private orders
+          // But AuthGuard handles the redirect/popup
           return;
         }
 
@@ -145,7 +152,18 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
         if (!snap.empty) {
           startListener(snap.docs[0].id);
         } else {
-          setLoading(false);
+          // Final fallback: check without user filter just in case of session mismatch
+          const qAny = query(
+            collection(firestore, 'orders'),
+            where('customerOrderNumber', '==', orderNum),
+            limit(1)
+          );
+          const snapAny = await getDocs(qAny);
+          if (!snapAny.empty) {
+            startListener(snapAny.docs[0].id);
+          } else {
+            setLoading(false);
+          }
         }
       } else {
         setLoading(false);
@@ -154,7 +172,7 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
 
     resolveAndListen();
     return () => unsub?.();
-  }, [firestore, user, authLoading, forcedId, searchParams]);
+  }, [firestore, user, authLoading, forcedId, searchParams, currentHash]);
 
   useEffect(() => {
     if (!order || order.status === 'Delivered' || order.status === 'Cancelled') return;

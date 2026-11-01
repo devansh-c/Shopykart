@@ -39,7 +39,9 @@ const AuthGuard = memo(({ children }: { children: ReactNode }) => {
 
   const isAuthRequiredRoute = useMemo(() => {
     if (!pathname) return false;
-    return pathname.toLowerCase().startsWith('/cart');
+    const p = pathname.toLowerCase();
+    // Added /order to auth required routes so tracking works instantly
+    return p.startsWith('/cart') || p.startsWith('/order');
   }, [pathname]);
 
   useEffect(() => {
