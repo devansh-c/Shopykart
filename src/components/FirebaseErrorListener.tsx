@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 
 /**
  * @fileOverview Global Firebase Error Listener.
- * Aggressively silences Quota and Connectivity errors to prevent visual Red Screen interruptions.
+ * Aggressively silences Connectivity and Timeout errors to prevent visual interruptions.
  */
 export function FirebaseErrorListener() {
   const { toast } = useToast();
@@ -22,7 +22,7 @@ export function FirebaseErrorListener() {
         message: error.message
       });
 
-      // AGGRESSIVE SILENCE: Suppress all quota and connectivity warnings
+      // AGGRESSIVE SILENCE: Suppress all timeout and connectivity warnings
       const silentMessages = [
         'unavailable', 
         'deadline-exceeded', 
@@ -33,7 +33,8 @@ export function FirebaseErrorListener() {
         'quota-exceeded',
         'resource-exhausted',
         'quota exceeded',
-        'limit exceeded'
+        'limit exceeded',
+        'network'
       ];
       
       const errorMessage = error.message?.toLowerCase() || '';
@@ -54,7 +55,7 @@ export function FirebaseErrorListener() {
       if (error.context?.path && lastErrorRef.current !== error.context.path) {
         lastErrorRef.current = error.context.path;
         
-        // SUPPRESS NOISY PATHS: Don't show toast for high-sync internal collections
+        // SUPPRESS NOISY PATHS
         const noisyPaths = ['/orders', '/users', '/products', '/banners', '/categories', '/vendors', '/app_settings'];
         const isNoisy = noisyPaths.some(p => error.context?.path.includes(p));
 

@@ -1,4 +1,3 @@
-
 import { Suspense } from 'react';
 import ProductDetailsClient from '@/components/product/ProductDetailsClient';
 import { Loader2 } from 'lucide-react';
@@ -19,7 +18,7 @@ export async function generateStaticParams() {
 }
 
 export default async function ProductPage(props: { params: Promise<{ slug: string }> }) {
-  const { slug } = await props.params;
+  const resolvedParams = await props.params;
 
   return (
     <Suspense fallback={
@@ -28,7 +27,7 @@ export default async function ProductPage(props: { params: Promise<{ slug: strin
         <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Loading Gourmet Details...</p>
       </div>
     }>
-      <ProductDetailsClient forcedSlug={slug} />
+      <ProductDetailsClient forcedSlug={resolvedParams.slug} />
     </Suspense>
   );
 }

@@ -1,4 +1,3 @@
-
 import { Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 import MenuContent from '@/components/menu/MenuContent';
@@ -11,8 +10,6 @@ export const dynamicParams = false;
  * Next.js 15 requires generateStaticParams for dynamic routes in static export mode.
  */
 export async function generateStaticParams() {
-  // Common seeds to prevent build failure. 
-  // In a real build, you'd fetch these from Firestore.
   return [
     { slug: 'premium-store' },
     { slug: 'mr-burger' },
@@ -22,7 +19,8 @@ export async function generateStaticParams() {
 }
 
 export default async function StorePage(props: { params: Promise<{ slug: string }> }) {
-  const { slug } = await props.params;
+  const { slug } = await props;
+  const resolvedParams = await props.params;
 
   return (
     <Suspense fallback={
@@ -33,7 +31,7 @@ export default async function StorePage(props: { params: Promise<{ slug: string 
         </div>
       </div>
     }>
-      <MenuContent forcedSlug={slug} />
+      <MenuContent forcedSlug={resolvedParams.slug} />
     </Suspense>
   );
 }

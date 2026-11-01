@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -195,11 +194,16 @@ export default function VendorDashboard() {
         await setDoc(newRef, { ...pData, id: newRef.id, createdAt: serverTimestamp() });
         await setDoc(doc(firestore, 'vendors', user.uid, 'products', newRef.id), { ...pData, id: newRef.id, createdAt: serverTimestamp() });
       }
-      setIsProductModalOpen(false);
+      setIsAddOpen(false);
       resetProductForm();
       toast({ title: editingProductId ? "Updated!" : "Published!" });
     } catch (e) { toast({ variant: "destructive", title: "Save Error" }); }
     finally { setIsSavingProduct(false); }
+  };
+
+  const setIsAddOpen = (val: boolean) => {
+    setIsProductModalOpen(val);
+    if(!val) resetProductForm();
   };
 
   const resetProductForm = () => {
@@ -290,7 +294,7 @@ export default function VendorDashboard() {
           <div className="p-4 space-y-4">
              <div className="flex items-center justify-between mb-2">
                 <h2 className="text-xl font-black italic uppercase tracking-tighter">My Inventory</h2>
-                <Dialog open={isProductModalOpen} onOpenChange={(val) => { setIsProductModalOpen(val); if(!val) resetProductForm(); }}>
+                <Dialog open={isProductModalOpen} onOpenChange={setIsAddOpen}>
                    <DialogTrigger asChild><Button className="bg-primary rounded-xl h-10 font-black uppercase text-[10px] tracking-widest"><Plus className="h-3.5 w-3.5 mr-1" /> ADD ITEM</Button></DialogTrigger>
                    <DialogContent className="rounded-[2.5rem] max-w-md max-h-[85vh] overflow-y-auto no-scrollbar focus:outline-none p-0">
                       <DialogHeader className="p-6 border-b"><DialogTitle className="font-black italic uppercase text-center">{editingProductId ? 'Edit Item' : 'New Item Entry'}</DialogTitle></DialogHeader>
