@@ -110,13 +110,13 @@ export const VerticalStoreList = memo(({
     if (!firestore) return null;
     return query(collection(firestore, 'vendors'), limit(100));
   }, [firestore]);
-  const { data: dbVendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery, 'home_vstores_v12', initialData);
+  const { data: dbVendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery, 'home_vstores_v15', initialData);
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'products'), limit(1000));
   }, [firestore]);
-  const { data: allProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_strip_products_v18_final');
+  const { data: allProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_strip_products_v20');
 
   const filteredVendors = useMemo(() => {
     const list = dbVendors || initialData || [];
@@ -127,13 +127,10 @@ export const VerticalStoreList = memo(({
 
     return list.filter(v => {
       // RESILIENT ZONE FILTERING:
-      // Priority 1: Match by Firestore Zone Doc ID
-      // Priority 2: Fallback - Match by Town Name (Legacy/Unassigned stores)
       if (activeZoneId) {
         const zoneMatch = v.zoneId === activeZoneId || v.zoneId === 'global';
         const townMatch = activeTown && v.town?.toLowerCase().includes(activeTown.toLowerCase());
         
-        // If it doesn't match ID and doesn't match Town name, filter it out
         if (!zoneMatch && !townMatch && v.zoneId) {
           return false;
         }
@@ -177,7 +174,7 @@ export const VerticalStoreList = memo(({
   const isActuallyLoading = vendorsLoading || !initialSync;
   const showEmptyState = !isActuallyLoading && filteredVendors.length === 0;
 
-  if (isActuallyLoading && filteredVendors.length === 0) {
+  if (isActuallyLoading) {
     return (
       <div className="px-4 py-6 bg-white space-y-16">
         {[1, 2, 3].map(i => (
@@ -250,7 +247,6 @@ export const VerticalStoreList = memo(({
                       fill 
                       className={cn("object-cover", isOffline && "grayscale")} 
                       unoptimized 
-                      priority={filteredVendors.indexOf(store) < 2}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-60" />
 
@@ -330,7 +326,6 @@ export const VerticalStoreList = memo(({
                         </div>
                       )
                     )}
-                    <div className="min-w-[1px] h-full" />
                   </div>
                 </div>
               </div>
