@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -42,7 +43,8 @@ import {
   Zap,
   Camera,
   History,
-  AlertTriangle
+  AlertTriangle,
+  CalendarClock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -61,6 +63,12 @@ import { compressImage } from '@/lib/image-utils';
 import { scheduleTestNotification } from '@/components/shared/PermissionManager';
 
 type MainTab = 'orders' | 'catalog' | 'coupons' | 'payouts' | 'account';
+
+const TIME_SLOTS = [
+  "06:00 AM", "07:00 AM", "08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM",
+  "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM", "05:00 PM", "06:00 PM", "07:00 PM",
+  "08:00 PM", "08:15 PM", "08:30 PM", "09:00 PM", "10:00 PM", "11:00 PM", "12:00 AM"
+];
 
 // TIMER COMPONENT FOR VENDORS
 const PrepTimer = ({ order }: { order: any }) => {
@@ -144,6 +152,7 @@ export default function VendorDashboard() {
   });
 
   const [isUpdatingStoreImage, setIsUpdatingStoreImage] = useState(false);
+  const [isSavingSchedule, setIsSavingSchedule] = useState(false);
 
   // Announcement State
   const [announcement, setAnnouncement] = useState('');
@@ -228,7 +237,6 @@ export default function VendorDashboard() {
       };
       
       if (newStatus === 'Accepted') {
-        // TRIGGER 10-MIN PREP TIMER
         updateData.acceptedAt = serverTimestamp();
       }
 
@@ -241,8 +249,8 @@ export default function VendorDashboard() {
           const minsTaken = differenceInMinutes(new Date(), acceptedTime);
           
           let penalty = 0;
-          if (minsTaken >= 20) penalty = 20; // 10 min base + 10 delay
-          else if (minsTaken >= 15) penalty = 10; // 10 min base + 5 delay
+          if (minsTaken >= 20) penalty = 20; 
+          else if (minsTaken >= 15) penalty = 10; 
           
           updateData.preparationMinutes = minsTaken;
           updateData.preparationPenalty = penalty;
@@ -264,6 +272,23 @@ export default function VendorDashboard() {
       toast({ title: `Order ${newStatus}!` });
     } catch (e) {
       toast({ variant: "destructive", title: "Update Failed" });
+    }
+  };
+
+  const handleUpdateSchedule = async (opening: string, closing: string) => {
+    if (!firestore || !user) return;
+    setIsSavingSchedule(true);
+    try {
+      await updateDoc(doc(firestore, 'vendors', user.uid), {
+        openingTime: opening,
+        closingTime: closing,
+        updatedAt: serverTimestamp()
+      });
+      toast({ title: "Schedule Updated! 🕰️" });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Update Failed" });
+    } finally {
+      setIsSavingSchedule(false);
     }
   };
 
@@ -669,7 +694,7 @@ export default function VendorDashboard() {
              
              <div className="grid grid-cols-1 gap-4">
                 {myProducts?.filter(p => !p.isDeleted)?.map(p => (
-                  <div key={p.id} className="bg-white p-4 rounded-3xl border border-border/50 flex items-center justify-between shadow-sm group">
+                  <div key={p.id} className="bg-white p-4 rounded-3xl border border-border/50 shadow-sm flex items-center justify-between group">
                     <div className="flex items-center gap-4">
                       <img src={p.imageUrl} className="h-16 w-16 rounded-xl object-cover bg-muted" alt="" />
                       <div>
@@ -764,7 +789,7 @@ export default function VendorDashboard() {
         )}
 
         {activeMainTab === 'account' && (
-          <div className="p-4 pt-0 space-y-6 animate-in fade-in duration-500">
+          <div className="p-4 pt-0 space-y-6 animate-in fade-in duration-500 pb-20">
               <div className="flex flex-col items-center py-8">
                 <div className="relative group">
                   <div className="h-32 w-32 rounded-[2.5rem] border-4 border-white shadow-2xl overflow-hidden bg-muted flex items-center justify-center relative">
@@ -797,8 +822,53 @@ export default function VendorDashboard() {
                 <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">{vendorProfile?.category} Partner • {vendorProfile?.town}</p>
               </div>
               
-              <div className="bg-white p-8 rounded-[2.5rem] border border-border/50 shadow-sm space-y-5">
+              <div className="bg-white p-8 rounded-[2.5rem] border border-border/50 shadow-sm space-y-8">
+                 {/* STORE SCHEDULE SECTION */}
                  <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                       <CalendarClock className="h-5 w-5 text-primary" />
+                       <h3 className="text-sm font-black italic uppercase tracking-tight">Operation Schedule</h3>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                       <div className="space-y-1.5">
+                          <label className="text-[8px] font-black uppercase text-muted-foreground ml-1">Opening Time</label>
+                          <Select 
+                            defaultValue={vendorProfile?.openingTime || '10:00 AM'} 
+                            onValueChange={(v) => handleUpdateSchedule(v, vendorProfile?.closingTime || '08:15 PM')}
+                          >
+                             <SelectTrigger className="h-12 rounded-xl bg-gray-50 border-none font-bold text-xs">
+                                <SelectValue placeholder="Opening" />
+                             </SelectTrigger>
+                             <SelectContent className="rounded-2xl max-h-[250px]">
+                                {TIME_SLOTS.map(t => <SelectItem key={t} value={t} className="font-bold text-xs">{t}</SelectItem>)}
+                             </SelectContent>
+                          </Select>
+                       </div>
+                       <div className="space-y-1.5">
+                          <label className="text-[8px] font-black uppercase text-muted-foreground ml-1">Closing Time</label>
+                          <Select 
+                            defaultValue={vendorProfile?.closingTime || '08:15 PM'} 
+                            onValueChange={(v) => handleUpdateSchedule(vendorProfile?.openingTime || '10:00 AM', v)}
+                          >
+                             <SelectTrigger className="h-12 rounded-xl bg-gray-50 border-none font-bold text-xs">
+                                <SelectValue placeholder="Closing" />
+                             </SelectTrigger>
+                             <SelectContent className="rounded-2xl max-h-[250px]">
+                                {TIME_SLOTS.map(t => <SelectItem key={t} value={t} className="font-bold text-xs">{t}</SelectItem>)}
+                             </SelectContent>
+                          </Select>
+                       </div>
+                    </div>
+                    <div className="p-4 bg-primary/5 rounded-2xl flex items-start gap-3 border border-primary/10">
+                       <Timer className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                       <p className="text-[9px] font-bold text-primary/80 uppercase leading-relaxed">
+                         Store timing respect system active. Customers will see "Closed" status automatically outside these hours.
+                       </p>
+                    </div>
+                 </div>
+
+                 <div className="space-y-4 pt-4 border-t border-dashed border-gray-100">
                     <div className="flex items-center gap-4 pb-4 border-b border-gray-50">
                        <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary"><User className="h-5 w-5" /></div>
                        <div>
@@ -815,7 +885,7 @@ export default function VendorDashboard() {
                     </div>
                  </div>
 
-                 <Button onClick={() => { localStorage.removeItem('shopykart_session_active'); signOut(auth!); router.push('/'); }} variant="ghost" className="w-full h-14 text-red-500 font-black uppercase text-[10px] tracking-widest border border-red-50 rounded-2xl hover:bg-red-50 mt-4"><LogOut className="h-4 w-4 mr-2" /> DISCONNECT</Button>
+                 <Button onClick={() => { localStorage.removeItem('shopykart_session_active'); signOut(auth!); router.push('/'); }} variant="ghost" className="w-full h-18 bg-white border border-red-50 text-red-500 rounded-[2rem] flex items-center justify-center gap-3 font-black uppercase italic text-sm shadow-sm active:scale-95 transition-all mt-4"><LogOut className="h-4 w-4 mr-2" /> DISCONNECT ACCOUNT</Button>
               </div>
           </div>
         )}

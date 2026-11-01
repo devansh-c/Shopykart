@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect, useMemo } from 'react';
@@ -18,7 +19,10 @@ import {
   Timer,
   Clock,
   Award,
-  ChevronRight
+  ChevronRight,
+  User,
+  Lock,
+  Type
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -89,6 +93,8 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
       const finalSlug = slugify(editingStore.storeName);
       await updateDoc(doc(firestore, 'vendors', editingStore.id), {
         storeName: editingStore.storeName,
+        storeId: editingStore.storeId.toLowerCase().replace(/\s/g, ''),
+        password: editingStore.password,
         slug: finalSlug,
         phone: editingStore.phone || '',
         rating: parseFloat(editingStore.rating) || 4.0,
@@ -98,7 +104,7 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
         updatedAt: serverTimestamp()
       });
       setIsEditOpen(false);
-      toast({ title: "Store Updated ✅" });
+      toast({ title: "Hub Master Record Updated ✅" });
     } catch (err) { toast({ variant: "destructive", title: "Update Failed" }); }
     finally { setIsProcessing(false); }
   };
@@ -145,7 +151,7 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
              <h2 className="text-3xl font-black italic uppercase tracking-tighter">Hub Control</h2>
-             <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Configure Partner Stores & Manual Ratings</p>
+             <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Configure Partner Stores & Master Credentials</p>
           </div>
           <div className="relative w-full md:w-80">
              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -216,14 +222,39 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
                 <div className="flex gap-2">
                   <Dialog open={isEditOpen && editingStore?.id === store.id} onOpenChange={(val) => { setIsEditOpen(val); if(val) setEditingStore({...store}); }}>
                       <DialogTrigger asChild>
-                        <button className="flex-1 h-12 bg-black hover:bg-primary text-white rounded-2xl font-black uppercase italic text-[10px] tracking-widest shadow-xl transition-all flex items-center justify-center gap-2"><Edit className="h-3.5 w-3.5" /> SET RATING & TIMING</button>
+                        <button className="flex-1 h-12 bg-black hover:bg-primary text-white rounded-2xl font-black uppercase italic text-[10px] tracking-widest shadow-xl transition-all flex items-center justify-center gap-2"><Edit className="h-3.5 w-3.5" /> MANAGE CREDENTIALS</button>
                       </DialogTrigger>
                       <DialogContent className="rounded-[2.5rem] max-w-md p-0 overflow-hidden border-none shadow-2xl flex flex-col max-h-[90vh]">
                         <DialogHeader className="p-8 pb-4">
-                            <DialogTitle className="font-black italic uppercase text-center text-2xl tracking-tighter">Business Logic</DialogTitle>
+                            <DialogTitle className="font-black italic uppercase text-center text-2xl tracking-tighter">Edit Hub Access</DialogTitle>
                         </DialogHeader>
                         <div className="flex-1 overflow-y-auto no-scrollbar p-8 pt-0 space-y-6">
-                            <div className="space-y-4">
+                            <div className="space-y-5">
+                              <div className="space-y-1.5">
+                                 <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Store Name</label>
+                                 <div className="relative">
+                                    <Type className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
+                                    <Input value={editingStore?.storeName} onChange={e => setEditingStore({...editingStore, storeName: e.target.value})} className="h-14 pl-12 rounded-2xl bg-gray-50 border-none font-bold" />
+                                 </div>
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-4">
+                                 <div className="space-y-1.5">
+                                    <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Login ID</label>
+                                    <div className="relative">
+                                       <Fingerprint className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
+                                       <Input value={editingStore?.storeId} onChange={e => setEditingStore({...editingStore, storeId: e.target.value})} className="h-14 pl-12 rounded-2xl bg-gray-50 border-none font-bold uppercase" />
+                                    </div>
+                                 </div>
+                                 <div className="space-y-1.5">
+                                    <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Access Pin</label>
+                                    <div className="relative">
+                                       <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
+                                       <Input value={editingStore?.password} onChange={e => setEditingStore({...editingStore, password: e.target.value})} className="h-14 pl-12 rounded-2xl bg-gray-50 border-none font-black" />
+                                    </div>
+                                 </div>
+                              </div>
+
                               <div className="p-5 bg-amber-50 rounded-[2rem] border border-amber-100 space-y-3">
                                  <div className="flex items-center gap-2">
                                     <Star className="h-4 w-4 text-amber-600 fill-amber-500" />
@@ -261,7 +292,7 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
                         </div>
                         <div className="p-8 bg-muted/5 border-t">
                             <Button onClick={handleUpdateStore} disabled={isProcessing} className="w-full h-18 bg-primary hover:bg-black text-white rounded-[2rem] font-black uppercase italic text-lg shadow-xl transition-all">
-                              {isProcessing ? <Loader2 className="h-6 w-6 animate-spin" /> : "SAVE STORE DATA"}
+                              {isProcessing ? <Loader2 className="h-6 w-6 animate-spin" /> : "UPDATE MASTER RECORD"}
                             </Button>
                         </div>
                       </DialogContent>
