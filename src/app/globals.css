@@ -70,7 +70,6 @@
 
   .premium-card {
     @apply bg-white rounded-[2rem] border border-border/60 relative overflow-hidden;
-    contain: content;
   }
 
   nav.fixed {

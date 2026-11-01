@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect, memo, useCallback } from "react"
@@ -145,7 +144,6 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       const v = vendorMap.get(String(p.vendorId));
       if (activeZoneId) {
         const zoneMatch = p.zoneId === activeZoneId || v?.zoneId === activeZoneId || p.zoneId === 'global' || v?.zoneId === 'global';
-        // FIXED: Strict town matching using exact comparison to prevent location overlap
         const townMatch = activeTown && v?.town?.toLowerCase().trim() === activeTown.toLowerCase().trim();
         
         if (!zoneMatch && !townMatch && (p.zoneId || v?.zoneId)) return false;
@@ -174,7 +172,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   }, [toast]);
 
   return (
-    <div className="px-4 py-6 bg-white min-h-[600px] content-visibility-auto">
+    <div className="px-4 py-6 bg-white min-h-[600px]">
       <div className="flex items-center justify-between mb-6 px-2">
         <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900">Premium <span className="text-primary">Selection</span></h2>
         <Badge variant="outline" className="rounded-full border-gray-200 text-gray-400 font-black uppercase text-[10px]">

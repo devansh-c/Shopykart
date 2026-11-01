@@ -9,6 +9,7 @@ export const dynamicParams = false;
  * @fileOverview Store hub dynamic page with static export compatibility.
  */
 export async function generateStaticParams() {
+  // Common slugs to ensure they are pre-rendered
   return [
     { slug: 'premium-store' },
     { slug: 'mr-burger' },

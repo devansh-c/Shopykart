@@ -313,7 +313,7 @@ export default function AdminDashboard() {
           </h2>
           <p className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest mt-1">Management Portal</p>
         </header>
-        <div className="pb-20 content-visibility-auto">{content}</div>
+        <div className="pb-20">{content}</div>
       </main>
     </div>
   );

@@ -71,19 +71,16 @@ function LoginPageContent() {
       // 1. SEARCH FIRESTORE FIRST (Admin's Source of Truth)
       const vendorsRef = collection(firestore, 'vendors');
       let vendorData: any = null;
-      let vendorDocId: string = '';
 
       const qId = query(vendorsRef, where('storeId', '==', input));
       const snapId = await getDocs(qId);
       if (!snapId.empty) {
         vendorData = snapId.docs[0].data();
-        vendorDocId = snapId.docs[0].id;
       } else {
         const qEmail = query(vendorsRef, where('email', '==', input));
         const snapEmail = await getDocs(qEmail);
         if (!snapEmail.empty) {
           vendorData = snapEmail.docs[0].data();
-          vendorDocId = snapEmail.docs[0].id;
         }
       }
 
@@ -107,7 +104,7 @@ function LoginPageContent() {
       
     } catch (err: any) {
       console.error("Login Error:", err);
-      toast({ variant: "destructive", title: "Login Failed", description: "Connection error. Please check your internet." });
+      toast({ variant: "destructive", title: "Login Failed", description: "Incorrect credentials or connection error." });
     } finally {
       setLoading(false);
     }

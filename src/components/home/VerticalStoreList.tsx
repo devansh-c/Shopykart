@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo, useState, useEffect, memo } from 'react';
@@ -129,7 +128,6 @@ export const VerticalStoreList = memo(({
     return list.filter(v => {
       if (activeZoneId) {
         const zoneMatch = v.zoneId === activeZoneId || v.zoneId === 'global';
-        // FIXED: Strict town matching using exact comparison to prevent "Ranipur" matching "Mauranipur"
         const townMatch = activeTown && v.town?.toLowerCase().trim() === activeTown.toLowerCase().trim();
         
         if (!zoneMatch && !townMatch && v.zoneId) {
@@ -194,7 +192,7 @@ export const VerticalStoreList = memo(({
   }
 
   return (
-    <div className="px-4 py-6 bg-white min-h-[500px] content-visibility-auto">
+    <div className="px-4 py-6 bg-white min-h-[500px]">
       <div className="flex items-center justify-between mb-8 px-2">
         <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900 leading-none">Best <span className="text-primary">Hubs</span></h2>
         <Badge variant="outline" className="rounded-full border-gray-200 text-gray-400 font-black uppercase text-[10px]">{filteredVendors.length} STORES</Badge>
