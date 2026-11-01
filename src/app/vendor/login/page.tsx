@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect, Suspense } from 'react';
@@ -55,7 +56,7 @@ function LoginPageContent() {
     if (e) e.preventDefault();
     if (!auth || !firestore || loading) return;
 
-    const input = identifier.trim();
+    const input = identifier.trim().toLowerCase();
     const pass = password.trim();
 
     if (!input || !pass) {
@@ -64,35 +65,48 @@ function LoginPageContent() {
     }
 
     setLoading(true);
-    let loginEmail = input.toLowerCase();
 
     try {
-      if (!input.includes('@')) {
-        const vendorsRef = collection(firestore, 'vendors');
-        const q = query(vendorsRef, where('storeId', '==', input.toLowerCase()));
-        const querySnapshot = await getDocs(q);
+      // 1. Fetch Vendor from Firestore first to handle Master Admin Password changes
+      const vendorsRef = collection(firestore, 'vendors');
+      const q = query(vendorsRef, where('storeId', '==', input));
+      const querySnapshot = await getDocs(q);
 
-        if (querySnapshot.empty) {
+      if (querySnapshot.empty) {
+        // Try searching by email
+        const qEmail = query(vendorsRef, where('email', '==', input));
+        const emailSnap = await getDocs(qEmail);
+        
+        if (emailSnap.empty) {
           toast({ variant: "destructive", title: "ID Not Found" });
           setLoading(false);
           return;
         }
-        loginEmail = querySnapshot.docs[0].data().email; 
+        
+        const vendorData = emailSnap.docs[0].data();
+        // Verify password from Firestore (Source of Truth for Admin changes)
+        if (vendorData.password !== pass) {
+          throw new Error("Incorrect Password");
+        }
+        
+        await signInWithEmailAndPassword(auth, vendorData.email, pass);
+      } else {
+        const vendorData = querySnapshot.docs[0].data();
+        // Verify password from Firestore (Source of Truth for Admin changes)
+        if (vendorData.password !== pass) {
+          throw new Error("Incorrect Password");
+        }
+        
+        await signInWithEmailAndPassword(auth, vendorData.email, pass);
       }
 
-      const userCredential = await signInWithEmailAndPassword(auth, loginEmail, pass);
       localStorage.setItem('shopykart_session_active', 'true');
+      toast({ title: "Welcome Back!" });
       
-      const vendorRef = doc(firestore, 'vendors', userCredential.user.uid);
-      const vendorSnap = await getDoc(vendorRef);
-      const vendorData = vendorSnap.data();
-      
-      if (vendorData?.category === 'Medical') router.replace('/Medical/store');
-      else if (vendorData?.category === 'Beauty') router.replace('/Beauty/store');
-      else router.replace('/vendor/dashboard');
-      
-    } catch (err) {
+    } catch (err: any) {
+      console.error("Login Error:", err);
       toast({ variant: "destructive", title: "Login Failed", description: "Incorrect ID or Password." });
+    } finally {
       setLoading(false);
     }
   };

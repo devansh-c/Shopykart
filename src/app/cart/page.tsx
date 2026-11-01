@@ -23,7 +23,8 @@ import {
   QrCode,
   CheckCircle2,
   AlertCircle,
-  Heart
+  Heart,
+  Receipt
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -96,6 +97,10 @@ export default function CartPage() {
   const vendorsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'vendors') : null, [firestore]);
   const { data: vendors } = useCollection<any>(vendorsQuery, 'cart_vendors_check');
 
+  // Fetch extra charges (GST, Packaging Fee, etc.)
+  const extraChargesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'checkout_charges') : null, [firestore]);
+  const { data: dbExtraCharges } = useCollection<any>(extraChargesQuery, 'checkout_extra_charges');
+
   const cartItemsWithStatus = useMemo(() => {
     if (!vendors) return cart.map(item => ({ ...item, isClosed: false }));
     const vMap = new Map(vendors.map(v => [String(v.id), v]));
@@ -116,7 +121,27 @@ export default function CartPage() {
   const isMinOrderMet = totalPrice >= minOrderValue;
 
   const coinDiscount = isRedeemingCoins ? 5 : 0; 
-  const packingFee = isPremiumPacking ? 10 : 0;
+  const hardcodedPackingFee = isPremiumPacking ? 10 : 0;
+
+  // Filter and calculate extra charges for this zone
+  const applicableExtraCharges = useMemo(() => {
+    if (!dbExtraCharges) return [];
+    return dbExtraCharges.filter(charge => 
+      charge.zoneId === 'global' || charge.zoneId === activeZoneId
+    ).map(charge => {
+      const chargeValue = charge.type === 'percentage' 
+        ? (totalPrice * charge.value) / 100 
+        : charge.value;
+      return {
+        ...charge,
+        calculatedAmount: chargeValue
+      };
+    });
+  }, [dbExtraCharges, activeZoneId, totalPrice]);
+
+  const extraChargesTotal = useMemo(() => {
+    return applicableExtraCharges.reduce((sum, c) => sum + c.calculatedAmount, 0);
+  }, [applicableExtraCharges]);
 
   const handleApplyCoupon = async () => {
     if (!firestore || !couponCode.trim()) return;
@@ -168,8 +193,8 @@ export default function CartPage() {
   }, [appliedCoupon, totalPrice, cart]);
 
   const totalPayable = useMemo(() => {
-    return Math.max(0, totalPrice + deliveryFee + deliveryTip + packingFee - coinDiscount - couponDiscount);
-  }, [totalPrice, deliveryFee, deliveryTip, packingFee, coinDiscount, couponDiscount]);
+    return Math.max(0, totalPrice + deliveryFee + deliveryTip + hardcodedPackingFee + extraChargesTotal - coinDiscount - couponDiscount);
+  }, [totalPrice, deliveryFee, deliveryTip, hardcodedPackingFee, extraChargesTotal, coinDiscount, couponDiscount]);
 
   const finalizeOrder = async () => {
     const sessionActive = typeof window !== 'undefined' && localStorage.getItem('shopykart_session_active') === 'true';
@@ -218,12 +243,14 @@ export default function CartPage() {
         createdAt: serverTimestamp(),
         vendorId: firstVendorId || null,
         vendorIds: allVendorIds,
-        vendorPhone: vendorPhone, // Saved for Delivery Partner
+        vendorPhone: vendorPhone,
         restaurantName: cart[0]?.restaurantName || 'ShopyKart Select',
         deliveryOTP: Math.floor(100000 + Math.random() * 900000).toString(),
         deliveryFee,
         deliveryTip,
-        packingFee,
+        extraCharges: applicableExtraCharges,
+        extraChargesTotal,
+        hardcodedPackingFee,
         coinDiscount,
         couponDiscount,
         paymentMethod,
@@ -313,7 +340,6 @@ export default function CartPage() {
              </div>
           </section>
 
-          {/* DELIVERY TIP SECTION */}
           <section className="p-6 bg-rose-50/30 border-y border-rose-50">
              <div className="flex items-center gap-4 mb-4">
                 <div className="h-10 w-10 bg-rose-100 rounded-xl flex items-center justify-center text-rose-600">
@@ -345,7 +371,6 @@ export default function CartPage() {
                   <X className="h-5 w-5" />
                 </button>
              </div>
-             <p className="text-[8px] font-bold text-gray-400 uppercase mt-3 tracking-widest italic">100% of tip goes directly to the delivery partner.</p>
           </section>
 
           <section className="p-6 bg-gray-50/50">
@@ -404,7 +429,6 @@ export default function CartPage() {
              />
           </section>
 
-          {/* PAYMENT MODE SELECTION */}
           <section className="p-6 space-y-4">
              <div className="flex items-center gap-4 mb-2">
                 <div className="h-10 w-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
@@ -445,8 +469,17 @@ export default function CartPage() {
              <div className="space-y-3">
                 <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Item Subtotal</span><span className="text-gray-900 font-black">₹{totalPrice.toFixed(0)}</span></div>
                 <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Delivery & Handling</span><span className="text-gray-900 font-black">₹{deliveryFee.toFixed(0)}</span></div>
+                
+                {/* Dynamic Extra Charges from Admin */}
+                {applicableExtraCharges.map((charge, idx) => (
+                  <div key={idx} className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                    <span>{charge.name} {charge.type === 'percentage' ? `(${charge.value}%)` : ''}</span>
+                    <span className="text-gray-900 font-black">₹{charge.calculatedAmount.toFixed(0)}</span>
+                  </div>
+                ))}
+
                 {deliveryTip > 0 && <div className="flex justify-between text-[10px] font-bold text-rose-500 uppercase tracking-widest"><span>Rider Tip</span><span className="font-black">₹{deliveryTip}</span></div>}
-                {packingFee > 0 && <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Safety Pack</span><span className="text-gray-900 font-black">₹{packingFee}</span></div>}
+                {hardcodedPackingFee > 0 && <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Safety Pack</span><span className="text-gray-900 font-black">₹{hardcodedPackingFee}</span></div>}
                 {coinDiscount > 0 && <div className="flex justify-between text-[10px] font-black text-green-600 uppercase tracking-widest"><span>Loyalty Discount</span><span className="font-black">- ₹{coinDiscount}</span></div>}
                 {couponDiscount > 0 && <div className="flex justify-between text-[10px] font-black text-indigo-600 uppercase tracking-widest"><span>Promo Discount</span><span className="font-black">- ₹{couponDiscount.toFixed(0)}</span></div>}
              </div>
@@ -465,9 +498,6 @@ export default function CartPage() {
            >
              {isPlacing ? <Loader2 className="h-8 w-8 animate-spin" /> : <>PLACE ORDER <ArrowRight className="h-6 w-6" /></>}
            </Button>
-           {!isMinOrderMet && cart.length > 0 && (
-             <p className="text-center text-red-500 text-[10px] font-black uppercase mt-4 animate-pulse">Min order ₹{minOrderValue} required</p>
-           )}
         </div>
       </main>
 
