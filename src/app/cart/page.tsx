@@ -97,7 +97,7 @@ export default function CartPage() {
   const vendorsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'vendors') : null, [firestore]);
   const { data: vendors } = useCollection<any>(vendorsQuery, 'cart_vendors_check');
 
-  // Fetch extra charges (GST, Packaging Fee, Platform Fee, etc.)
+  // FETCH DYNAMIC CHARGES FROM FIRESTORE
   const extraChargesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'checkout_charges') : null, [firestore]);
   const { data: dbExtraCharges } = useCollection<any>(extraChargesQuery, 'checkout_extra_charges');
 
@@ -400,9 +400,15 @@ export default function CartPage() {
              <div className="space-y-3">
                 <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Item Subtotal</span><span className="text-gray-900 font-black">₹{totalPrice.toFixed(0)}</span></div>
                 <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Delivery & Handling</span><span className="text-gray-900 font-black">₹{deliveryFee.toFixed(0)}</span></div>
+                
+                {/* DYNAMIC EXTRA CHARGES DISPLAY */}
                 {applicableExtraCharges.map((charge, idx) => (
-                  <div key={idx} className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest animate-in slide-in-from-right-2"><span>{charge.name} {charge.type === 'percentage' ? `(${charge.value}%)` : ''}</span><span className="text-gray-900 font-black">₹{charge.calculatedAmount.toFixed(0)}</span></div>
+                  <div key={idx} className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest animate-in slide-in-from-right-2">
+                    <span>{charge.name} {charge.type === 'percentage' ? `(${charge.value}%)` : ''}</span>
+                    <span className="text-gray-900 font-black">₹{charge.calculatedAmount.toFixed(0)}</span>
+                  </div>
                 ))}
+
                 {deliveryTip > 0 && <div className="flex justify-between text-[10px] font-bold text-rose-500 uppercase tracking-widest"><span>Rider Tip</span><span className="font-black">₹{deliveryTip}</span></div>}
                 {hardcodedPackingFee > 0 && <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Safety Pack</span><span className="text-gray-900 font-black">₹{hardcodedPackingFee}</span></div>}
                 {coinDiscount > 0 && <div className="flex justify-between text-[10px] font-black text-green-600 uppercase tracking-widest"><span>Loyalty Discount</span><span className="font-black">- ₹{coinDiscount}</span></div>}

@@ -9,6 +9,7 @@ export const dynamic = 'force-static';
  * @fileOverview Product details dynamic page with static export compatibility.
  */
 export async function generateStaticParams() {
+  // Providing sample slugs for build phase
   return [
     { slug: 'gourmet-item' },
     { slug: 'featured-dish' },

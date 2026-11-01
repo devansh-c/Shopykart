@@ -9,11 +9,12 @@ export const dynamic = 'force-static';
  * @fileOverview Store hub dynamic page with static export compatibility.
  */
 export async function generateStaticParams() {
-  // Providing sample slugs for build phase
+  // Providing sample slugs for build phase to satisfy Next.js export
   return [
     { slug: 'premium-store' },
     { slug: 'local-hub' },
-    { slug: 'city-sweets' }
+    { slug: 'city-sweets' },
+    { slug: 'shopykart' }
   ];
 }
 

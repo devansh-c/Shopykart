@@ -30,7 +30,6 @@ function LoginPageContent() {
   const firestore = useFirestore();
   const { user, loading: authLoading } = useUser();
 
-  // AUTO-REDIRECT IF ALREADY LOGGED IN
   useEffect(() => {
     if (!authLoading && user && firestore) {
       const checkAndRedirect = async () => {
@@ -67,8 +66,7 @@ function LoginPageContent() {
     setLoading(true);
 
     try {
-      // 1. Fetch Vendor from Firestore first to handle Master Admin Password changes
-      // This makes Firestore the primary source of truth for passwords
+      // 1. SEARCH FIRESTORE FIRST (Source of Truth for Admin changes)
       const vendorsRef = collection(firestore, 'vendors');
       const q = query(vendorsRef, where('storeId', '==', input));
       const querySnapshot = await getDocs(q);
@@ -92,21 +90,24 @@ function LoginPageContent() {
         return;
       }
 
-      // Verify password from Firestore (Source of Truth for Admin changes)
+      // 2. VERIFY PASSWORD AGAINST FIRESTORE (Override Firebase Auth)
       if (vendorData.password !== pass) {
         toast({ variant: "destructive", title: "Incorrect Password", description: "Login key mismatch." });
         setLoading(false);
         return;
       }
       
-      // Perform Auth Sign In using the stored email
-      await signInWithEmailAndPassword(auth, vendorData.email, pass);
+      // 3. PERFORM SIGN IN
+      // Since Admin might have changed pass in Firestore but not in Auth, 
+      // we use the stored password from Firestore which was kept in sync during setup
+      await signInWithEmailAndPassword(auth, vendorData.email, vendorData.password);
+      
       localStorage.setItem('shopykart_session_active', 'true');
       toast({ title: "Welcome Back!" });
       
     } catch (err: any) {
       console.error("Login Error:", err);
-      toast({ variant: "destructive", title: "Login Failed", description: "Incorrect ID or Password." });
+      toast({ variant: "destructive", title: "Login Failed", description: "Authentication error." });
     } finally {
       setLoading(false);
     }
@@ -132,7 +133,7 @@ function LoginPageContent() {
       toast({ title: "Email Sent!", description: "Reset link sent to your registered email." });
       setView('login');
     } catch (err) {
-      toast({ variant: "destructive", title: "Error", description: "Could not send reset link. Verify your email." });
+      toast({ variant: "destructive", title: "Error", description: "Could not send reset link." });
     } finally {
       setLoading(false);
     }
