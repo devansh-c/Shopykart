@@ -57,7 +57,7 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
   const [order, setOrder] = useState<any>(null);
   const [vendors, setVendors] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [etaDisplay, setEtaDisplay] = useState<string>('20');
+  const [etaDisplay, setEtaDisplay] = useState<string>('30');
   const [isMapExpanded, setIsMapExpanded] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -163,7 +163,7 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
       const createdAt = order.createdAt?.seconds ? new Date(order.createdAt.seconds * 1000) : new Date();
       const elapsedMins = Math.abs(differenceInMinutes(new Date(), createdAt));
       
-      let remaining = 20 - elapsedMins;
+      let remaining = 30 - elapsedMins;
       
       if (remaining <= 0) {
         setEtaDisplay("2-3");
