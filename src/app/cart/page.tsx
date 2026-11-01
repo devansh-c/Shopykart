@@ -130,8 +130,8 @@ export default function CartPage() {
       charge.zoneId === 'global' || charge.zoneId === activeZoneId
     ).map(charge => {
       const chargeValue = charge.type === 'percentage' 
-        ? (totalPrice * charge.value) / 100 
-        : charge.value;
+        ? (totalPrice * (Number(charge.value) || 0)) / 100 
+        : (Number(charge.value) || 0);
       return {
         ...charge,
         calculatedAmount: chargeValue
@@ -401,7 +401,7 @@ export default function CartPage() {
                 <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Item Subtotal</span><span className="text-gray-900 font-black">₹{totalPrice.toFixed(0)}</span></div>
                 <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Delivery & Handling</span><span className="text-gray-900 font-black">₹{deliveryFee.toFixed(0)}</span></div>
                 {applicableExtraCharges.map((charge, idx) => (
-                  <div key={idx} className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>{charge.name} {charge.type === 'percentage' ? `(${charge.value}%)` : ''}</span><span className="text-gray-900 font-black">₹{charge.calculatedAmount.toFixed(0)}</span></div>
+                  <div key={idx} className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest animate-in slide-in-from-right-2"><span>{charge.name} {charge.type === 'percentage' ? `(${charge.value}%)` : ''}</span><span className="text-gray-900 font-black">₹{charge.calculatedAmount.toFixed(0)}</span></div>
                 ))}
                 {deliveryTip > 0 && <div className="flex justify-between text-[10px] font-bold text-rose-500 uppercase tracking-widest"><span>Rider Tip</span><span className="font-black">₹{deliveryTip}</span></div>}
                 {hardcodedPackingFee > 0 && <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Safety Pack</span><span className="text-gray-900 font-black">₹{hardcodedPackingFee}</span></div>}

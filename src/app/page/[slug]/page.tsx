@@ -1,13 +1,12 @@
+
 import { Suspense } from 'react';
 import StaticPageView from '@/components/shared/StaticPageView';
 import { Loader2 } from 'lucide-react';
 
 export const dynamic = 'force-static';
-export const dynamicParams = false;
 
 /**
  * @fileOverview Static export configuration for Policy Pages.
- * Returning essential slugs to satisfy Next.js build requirements.
  */
 export async function generateStaticParams() {
   return [

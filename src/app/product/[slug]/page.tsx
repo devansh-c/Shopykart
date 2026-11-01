@@ -11,7 +11,8 @@ export const dynamic = 'force-static';
 export async function generateStaticParams() {
   return [
     { slug: 'gourmet-item' },
-    { slug: 'featured-dish' }
+    { slug: 'featured-dish' },
+    { slug: 'classic-burger' }
   ];
 }
 
@@ -28,7 +29,7 @@ export default async function ProductPage(props: { params: Promise<{ slug: strin
         </div>
       </div>
     }>
-      <ProductDetailsClient forcedSlug={slug === 'gourmet-item' || slug === 'featured-dish' ? undefined : slug} />
+      <ProductDetailsClient forcedSlug={slug} />
     </Suspense>
   );
 }

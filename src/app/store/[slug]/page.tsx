@@ -9,9 +9,11 @@ export const dynamic = 'force-static';
  * @fileOverview Store hub dynamic page with static export compatibility.
  */
 export async function generateStaticParams() {
+  // Providing sample slugs for build phase
   return [
     { slug: 'premium-store' },
-    { slug: 'local-hub' }
+    { slug: 'local-hub' },
+    { slug: 'city-sweets' }
   ];
 }
 
@@ -28,7 +30,7 @@ export default async function StorePage(props: { params: Promise<{ slug: string 
         </div>
       </div>
     }>
-      <MenuContent forcedSlug={slug === 'premium-store' || slug === 'local-hub' ? undefined : slug} />
+      <MenuContent forcedSlug={slug} />
     </Suspense>
   );
 }
