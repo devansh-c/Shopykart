@@ -7,8 +7,6 @@ export const dynamicParams = false;
 
 /**
  * @fileOverview Store hub dynamic page with static export compatibility.
- * Next.js 15 requires generateStaticParams for dynamic routes in static export mode.
- * Set to dynamicParams: false to satisfy export requirements.
  */
 export async function generateStaticParams() {
   return [

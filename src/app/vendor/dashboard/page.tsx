@@ -326,7 +326,7 @@ export default function VendorDashboard() {
                                    ))}<button onClick={handleAddOption} className="w-full h-10 border-2 border-dashed border-primary/20 text-primary rounded-xl font-black uppercase text-[8px] flex items-center justify-center gap-2"><Plus className="h-3 w-3" /> ADD VARIETY</button></div>
                             </div>
                          </div>
-                         <Button onClick={handleSaveProduct} disabled={isSavingProduct} className="w-full h-16 bg-primary text-white rounded-[2rem] font-black uppercase italic shadow-xl">{isSavingProduct ? <Loader2 className="h-5 w-5 animate-spin" /> : editingProductId ? 'UPDATE ITEM' : 'PUBLISH ITEM'}</Button>
+                         <Button onClick={handleSaveProduct} disabled={isSavingProduct} className="w-full h-18 bg-primary text-white rounded-[2rem] font-black uppercase italic shadow-xl">{isSavingProduct ? <Loader2 className="h-5 w-5 animate-spin" /> : editingProductId ? 'UPDATE ITEM' : 'PUBLISH ITEM'}</Button>
                       </div>
                    </DialogContent>
                 </Dialog>
