@@ -4,6 +4,7 @@ import ProductDetailsClient from '@/components/product/ProductDetailsClient';
 import { Loader2 } from 'lucide-react';
 
 export const dynamic = 'force-static';
+export const dynamicParams = true;
 
 /**
  * @fileOverview Product details dynamic page with static export compatibility.
@@ -17,8 +18,7 @@ export async function generateStaticParams() {
 }
 
 export default async function ProductPage(props: { params: Promise<{ slug: string }> }) {
-  const params = await props.params;
-  const slug = params.slug;
+  const { slug } = await props.params;
 
   return (
     <Suspense fallback={

@@ -4,6 +4,7 @@ import StaticPageView from '@/components/shared/StaticPageView';
 import { Loader2 } from 'lucide-react';
 
 export const dynamic = 'force-static';
+export const dynamicParams = true;
 
 /**
  * @fileOverview Static export configuration for Policy Pages.
@@ -17,9 +18,8 @@ export async function generateStaticParams() {
   ];
 }
 
-export default async function GenericPage({ params }: { params: Promise<{ slug: string }> }) {
-  const resolvedParams = await params;
-  const slug = resolvedParams.slug;
+export default async function GenericPage(props: { params: Promise<{ slug: string }> }) {
+  const { slug } = await props.params;
 
   return (
     <Suspense fallback={

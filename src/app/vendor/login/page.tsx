@@ -66,22 +66,18 @@ function LoginPageContent() {
     setLoading(true);
 
     try {
-      // 1. SEARCH FIRESTORE FIRST (Source of Truth for Admin changes)
+      // 1. SEARCH FIRESTORE FIRST (Admin's Source of Truth)
       const vendorsRef = collection(firestore, 'vendors');
-      const q = query(vendorsRef, where('storeId', '==', input));
-      const querySnapshot = await getDocs(q);
-
       let vendorData: any = null;
 
-      if (!querySnapshot.empty) {
-        vendorData = querySnapshot.docs[0].data();
+      const qId = query(vendorsRef, where('storeId', '==', input));
+      const snapId = await getDocs(qId);
+      if (!snapId.empty) {
+        vendorData = snapId.docs[0].data();
       } else {
-        // Try searching by email
         const qEmail = query(vendorsRef, where('email', '==', input));
-        const emailSnap = await getDocs(qEmail);
-        if (!emailSnap.empty) {
-          vendorData = emailSnap.docs[0].data();
-        }
+        const snapEmail = await getDocs(qEmail);
+        if (!snapEmail.empty) vendorData = snapEmail.docs[0].data();
       }
 
       if (!vendorData) {
@@ -90,31 +86,21 @@ function LoginPageContent() {
         return;
       }
 
-      // 2. VERIFY PASSWORD AGAINST FIRESTORE (Source of Truth for Admin Master Control)
+      // 2. VERIFY PASSWORD AGAINST FIRESTORE (Overrides Auth system for Admin control)
       if (vendorData.password !== pass) {
-        toast({ variant: "destructive", title: "Incorrect Password", description: "The password set by Admin does not match." });
+        toast({ variant: "destructive", title: "Incorrect Password", description: "The master password set by Admin does not match." });
         setLoading(false);
         return;
       }
       
-      // 3. PERFORM SIGN IN
-      // We use the Firestore stored password because Admin updates it there.
+      // 3. PERFORM SIGN IN using the credentials stored in Firestore
       await signInWithEmailAndPassword(auth, vendorData.email, vendorData.password);
-      
       localStorage.setItem('shopykart_session_active', 'true');
       toast({ title: "Welcome Back!" });
       
     } catch (err: any) {
       console.error("Login Error:", err);
-      // Fallback: If auth signin fails because passwords are out of sync, we still trust the Firestore match
-      // for this prototype to give Admin 100% control.
-      if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-         // This is a common case when Admin manually changes Firestore but not Auth.
-         // In production, we'd use Admin SDK to sync, but for now we just show a helpful message.
-         toast({ variant: "destructive", title: "Sync Error", description: "Admin has changed your password. Please try the old password if the new one fails, or contact Admin." });
-      } else {
-         toast({ variant: "destructive", title: "Login Failed", description: "Authentication error." });
-      }
+      toast({ variant: "destructive", title: "Login Failed", description: "Authentication sync error. Try again." });
     } finally {
       setLoading(false);
     }
@@ -122,19 +108,16 @@ function LoginPageContent() {
 
   const handleResetPassword = async () => {
     if (!auth || !identifier.trim()) {
-      toast({ variant: "destructive", title: "Email Required", description: "Please enter your store email address." });
+      toast({ variant: "destructive", title: "Email Required" });
       return;
     }
     setLoading(true);
     try {
       let resetEmail = identifier.trim().toLowerCase();
       if (!resetEmail.includes('@') && firestore) {
-        const vendorsRef = collection(firestore, 'vendors');
-        const q = query(vendorsRef, where('storeId', '==', resetEmail));
-        const querySnapshot = await getDocs(q);
-        if (!querySnapshot.empty) {
-          resetEmail = querySnapshot.docs[0].data().email;
-        }
+        const q = query(collection(firestore, 'vendors'), where('storeId', '==', resetEmail));
+        const snap = await getDocs(q);
+        if (!snap.empty) resetEmail = snap.docs[0].data().email;
       }
       await sendPasswordResetEmail(auth, resetEmail);
       toast({ title: "Email Sent!", description: "Reset link sent to your registered email." });
@@ -146,27 +129,44 @@ function LoginPageContent() {
     }
   };
 
-  if (authLoading) {
-    return <div className="h-screen bg-white flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
-  }
+  if (authLoading) return <div className="h-screen bg-white flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center p-4">
       <Card className="w-full max-w-md border-none shadow-2xl rounded-[3rem] overflow-hidden bg-white">
         <CardHeader className="text-center pt-10">
-          <div className={cn("mx-auto w-16 h-16 rounded-[1.25rem] flex items-center justify-center mb-4 transition-all duration-500", isMedical ? "bg-teal-50 text-teal-600 shadow-xl shadow-teal-100" : isBeauty ? "bg-rose-50 text-rose-600 shadow-xl shadow-rose-100" : "bg-primary/10 text-primary")}>{isMedical ? <HeartPulse className="h-8 w-8" /> : isBeauty ? <Sparkles className="h-8 w-8" /> : <Store className="h-8 w-8" />}</div>
+          <div className={cn("mx-auto w-16 h-16 rounded-[1.25rem] flex items-center justify-center mb-4 transition-all duration-500", isMedical ? "bg-teal-50 text-teal-600" : isBeauty ? "bg-rose-50 text-rose-600" : "bg-primary/10 text-primary")}>
+            {isMedical ? <HeartPulse className="h-8 w-8" /> : isBeauty ? <Sparkles className="h-8 w-8" /> : <Store className="h-8 w-8" />}
+          </div>
           <CardTitle className="text-2xl font-black italic uppercase tracking-tighter text-black">{view === 'forgot' ? 'Reset Access' : (isMedical ? 'Medical Hub' : isBeauty ? 'Beauty Hub' : 'Store Login')}</CardTitle>
           <p className="text-muted-foreground text-[10px] font-bold uppercase tracking-[0.2em] mt-1">Business Console</p>
         </CardHeader>
         <CardContent className="px-8 pb-12">
           <div className="space-y-6">
             <div className="space-y-4">
-              <div className="space-y-1"><label className="text-[9px] font-black uppercase text-muted-foreground ml-1">{view === 'forgot' ? 'Registered Email' : 'Store ID or Email'}</label><div className="relative group"><Fingerprint className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-primary transition-colors" /><Input type="text" placeholder={view === 'forgot' ? "vendor@email.com" : "e.g. MyStore123"} value={identifier} onChange={(e) => setIdentifier(e.target.value)} className="pl-12 h-14 rounded-2xl bg-muted/20 border-none font-bold" /></div></div>
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">{view === 'forgot' ? 'Registered Email' : 'Store ID or Email'}</label>
+                <div className="relative group">
+                  <Fingerprint className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-primary transition-colors" />
+                  <Input type="text" placeholder={view === 'forgot' ? "vendor@email.com" : "e.g. MyStore123"} value={identifier} onChange={(e) => setIdentifier(e.target.value)} className="pl-12 h-14 rounded-2xl bg-muted/20 border-none font-bold" />
+                </div>
+              </div>
               {view === 'login' && (
-                <div className="space-y-1"><label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Security Key</label><div className="relative group"><Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-primary transition-colors" /><Input type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} className="pl-12 h-14 rounded-2xl bg-muted/20 border-none font-bold" onKeyDown={(e) => e.key === 'Enter' && handleLogin()} /></div><div className="flex justify-end px-1 mt-2"><button onClick={() => setView('forgot')} className="text-[10px] font-black uppercase text-primary tracking-widest hover:underline underline-offset-4">Forgot Password?</button></div></div>
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Security Key</label>
+                  <div className="relative group">
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-primary transition-colors" />
+                    <Input type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} className="pl-12 h-14 rounded-2xl bg-muted/20 border-none font-bold" onKeyDown={(e) => e.key === 'Enter' && handleLogin()} />
+                  </div>
+                  <div className="flex justify-end px-1 mt-2">
+                    <button onClick={() => setView('forgot')} className="text-[10px] font-black uppercase text-primary tracking-widest hover:underline underline-offset-4">Forgot Password?</button>
+                  </div>
+                </div>
               )}
             </div>
-            <Button onClick={() => view === 'forgot' ? handleResetPassword() : handleLogin()} className="w-full h-16 rounded-[2rem] font-black uppercase italic text-lg shadow-xl bg-black text-white hover:bg-gray-900" disabled={loading}>{loading ? <Loader2 className="h-6 w-6 animate-spin" /> : (view === 'forgot' ? "SEND RESET LINK" : "AUTHENTICATE")}</Button>
+            <Button onClick={() => view === 'forgot' ? handleResetPassword() : handleLogin()} className="w-full h-16 rounded-[2rem] font-black uppercase italic text-lg shadow-xl bg-black text-white hover:bg-gray-900" disabled={loading}>
+              {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : (view === 'forgot' ? "SEND RESET LINK" : "AUTHENTICATE")}
+            </Button>
             {view === 'forgot' && (<button onClick={() => setView('login')} className="w-full flex items-center justify-center gap-2 text-[10px] font-black uppercase text-gray-400 hover:text-black"><ChevronLeft className="h-3 w-3" /> BACK TO LOGIN</button>)}
             {view === 'login' && (
               <div className="pt-4 space-y-4">

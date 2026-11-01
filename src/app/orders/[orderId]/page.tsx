@@ -4,10 +4,10 @@ import OrderDetailsClient from '@/components/orders/OrderDetailsClient';
 import { Loader2 } from 'lucide-react';
 
 export const dynamic = 'force-static';
+export const dynamicParams = true;
 
 /**
  * @fileOverview Dynamic order page with static export compatibility.
- * Provides multiple sample paths to satisfy Next.js static generation.
  */
 export async function generateStaticParams() {
   return [
@@ -20,9 +20,7 @@ export async function generateStaticParams() {
 export default async function OrderPage(props: {
   params: Promise<{ orderId: string }>;
 }) {
-  const params = await props.params;
-  const orderId = params.orderId;
-
+  const { orderId } = await props.params;
   const isReservedSlug = ['tracking', 'status', 'latest'].includes(orderId);
 
   return (
