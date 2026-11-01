@@ -228,6 +228,7 @@ export default function VendorDashboard() {
   };
 
   const resetProductForm = () => {
+    setEditingId(null);
     setEditingProductId(null);
     setProductForm({ name: '', slug: '', price: '', mrp: '', description: '', category: '', imageUrl: '', preparingTime: '' });
     setOptions([]);
@@ -240,6 +241,31 @@ export default function VendorDashboard() {
     setOptions(p.options || []);
     setIsVarietyRequired(p.isVarietyRequired || false);
     setIsProductModalOpen(true);
+  };
+
+  const handleProductImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const compressed = await compressImage(reader.result as string, 600, 600);
+      setProductForm(prev => ({ ...prev, imageUrl: compressed }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleAddOption = () => {
+    setOptions([...options, { name: '', price: 0 }]);
+  };
+
+  const handleRemoveOption = (index: number) => {
+    setOptions(options.filter((_, i) => i !== index));
+  };
+
+  const updateOption = (index: number, field: string, value: any) => {
+    const newOptions = [...options];
+    (newOptions[index] as any)[field] = field === 'price' ? parseFloat(value) || 0 : value;
+    setOptions(newOptions);
   };
 
   if (!isMounted || authLoading || (profileLoading && !vendorProfile)) return <div className="h-screen bg-white flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
@@ -339,9 +365,7 @@ export default function VendorDashboard() {
         )}
 
         {activeMainTab === 'payouts' && (
-           <div className="p-4 space-y-6"><h2 className="text-xl font-black italic uppercase ml-2">Earnings</h2><div className="bg-[#0B0B0B] p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden"><div className="relative z-10 space-y-6"><div><span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">Current Balance</span><div className="text-5xl font-black italic tracking-tighter text-primary mt-1">₹{vendorProfile?.walletBalance?.toFixed(2) || '0.00'}</div></div></div></div><div className="space-y-4">{payoutHistory?.map((p: any) => (
-                   <div key={p.id} className="bg-white p-5 rounded-3xl border border-border/50 shadow-sm flex items-center justify-between"><div><h4 className="font-black text-sm uppercase italic">₹{p.amount?.toFixed(2)}</h4><p className="text-[8px] font-bold text-muted-foreground uppercase">{format(new Date(p.date?.seconds * 1000 || Date.now()), 'MMM d, h:mm a')}</p></div><Badge className="bg-green-100 text-green-700 border-none font-black text-[7px] uppercase px-2">{p.status || 'Success'}</Badge></div>
-                 ))}</div></div>
+           <div className="p-4 space-y-6"><h2 className="text-xl font-black italic uppercase ml-2">Earnings</h2><div className="bg-[#0B0B0B] p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden"><div className="relative z-10 space-y-6"><div><span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">Current Balance</span><div className="text-5xl font-black italic tracking-tighter text-primary mt-1">₹{vendorProfile?.walletBalance?.toFixed(2) || '0.00'}</div></div></div></div><div className="space-y-4">{/* Payout history component would go here */}</div></div>
         )}
       </main>
 

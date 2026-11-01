@@ -4,7 +4,7 @@ import { Loader2 } from 'lucide-react';
 import MenuContent from '@/components/menu/MenuContent';
 
 export const dynamic = 'force-static';
-export const dynamicParams = true;
+export const dynamicParams = false;
 
 /**
  * @fileOverview Store hub dynamic page with static export compatibility.

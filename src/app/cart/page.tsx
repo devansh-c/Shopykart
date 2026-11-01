@@ -110,7 +110,8 @@ export default function CartPage() {
   const extraChargesTotal = useMemo(() => applicableExtraCharges.reduce((sum, c) => sum + c.calculatedAmount, 0), [applicableExtraCharges]);
 
   const totalPayable = useMemo(() => {
-    return Math.max(0, totalPrice + deliveryFee + deliveryTip + extraChargesTotal - (isRedeemingCoins ? 5 : 0) - (appliedCoupon ? (appliedCoupon.discountType === 'percentage' ? (totalPrice * appliedCoupon.discountValue) / 100 : appliedCoupon.discountValue) : 0));
+    const discount = appliedCoupon ? (appliedCoupon.discountType === 'percentage' ? (totalPrice * appliedCoupon.discountValue) / 100 : appliedCoupon.discountValue) : 0;
+    return Math.max(0, totalPrice + deliveryFee + deliveryTip + extraChargesTotal - (isRedeemingCoins ? 5 : 0) - discount);
   }, [totalPrice, deliveryFee, deliveryTip, extraChargesTotal, isRedeemingCoins, appliedCoupon]);
 
   const handleApplyCoupon = async () => {
@@ -208,6 +209,19 @@ export default function CartPage() {
                 {[10, 20, 30, 50].map(amt => (
                   <button key={amt} onClick={() => setDeliveryTip(deliveryTip === amt ? 0 : amt)} className={cn("h-10 rounded-xl font-black text-xs border-2", deliveryTip === amt ? "bg-rose-600 text-white border-rose-600" : "bg-white text-gray-400 border-gray-100")}>₹{amt}</button>
                 ))}
+             </div>
+          </section>
+
+          {/* PAYMENT METHOD SECTION */}
+          <section className="p-6 space-y-4">
+             <div className="flex items-center gap-3"><div className="h-10 w-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600"><CreditCard className="h-5 w-5" /></div><h4 className="text-xs font-black uppercase">Payment Method</h4></div>
+             <div className="grid grid-cols-2 gap-3">
+                <button onClick={() => setPaymentMethod('COD')} className={cn("h-14 rounded-2xl border-2 flex flex-col items-center justify-center gap-1", paymentMethod === 'COD' ? "bg-primary/5 border-primary text-primary" : "bg-gray-50 border-transparent text-gray-400")}>
+                   <Banknote className="h-4 w-4" /><span className="text-[9px] font-black uppercase">COD (Cash)</span>
+                </button>
+                <button onClick={() => setPaymentMethod('UPI')} className={cn("h-14 rounded-2xl border-2 flex flex-col items-center justify-center gap-1", paymentMethod === 'UPI' ? "bg-blue-50 border-blue-500 text-blue-700" : "bg-gray-50 border-transparent text-gray-400")}>
+                   <QrCode className="h-4 w-4" /><span className="text-[9px] font-black uppercase">Pay Via UPI</span>
+                </button>
              </div>
           </section>
 

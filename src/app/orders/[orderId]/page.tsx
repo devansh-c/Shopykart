@@ -4,7 +4,7 @@ import OrderDetailsClient from '@/components/orders/OrderDetailsClient';
 import { Loader2 } from 'lucide-react';
 
 export const dynamic = 'force-static';
-export const dynamicParams = true;
+export const dynamicParams = false;
 
 /**
  * @fileOverview Dynamic order page with static export compatibility.
