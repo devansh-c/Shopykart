@@ -114,10 +114,9 @@ export const VerticalStoreList = memo(({
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // Resilient Fetch: Removed strict isDeleted filter to catch all active items
     return query(collection(firestore, 'products'), limit(1000));
   }, [firestore]);
-  const { data: allProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_strip_products_v17_fixed');
+  const { data: allProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_strip_products_v18_final');
 
   const filteredVendors = useMemo(() => {
     const list = dbVendors || initialData || [];
@@ -181,7 +180,7 @@ export const VerticalStoreList = memo(({
       </div>
 
       <div className="space-y-16">
-        {isActuallyLoading && filteredVendors.length === 0 ? (
+        {isActuallyLoading && filteredVendors.length === 0 && (
           <div className="space-y-16">
             {[1, 2, 3].map(i => (
               <div key={i} className="space-y-6">
@@ -200,16 +199,14 @@ export const VerticalStoreList = memo(({
               </div>
             ))}
           </div>
-        ) : null}
+        )}
 
-        {!isActuallyLoading && filteredVendors.length > 0 ? (
-          filteredVendors.map((store: any) => {
+        {filteredVendors.length > 0 && filteredVendors.map((store: any) => {
             const displayImage = store.bannerUrl || store.imageUrl || `https://picsum.photos/seed/${store.id}/800/400`;
             const isOpen = isStoreScheduleOpen(store, currentTimeMins);
             const isOffline = store.isOnline === false || !isOpen;
             const isBestRated = Number(store.rating) >= 4.5;
             
-            // In-Memory Filter for reliability across all locations (including Mauranipur)
             const storeProducts = allProducts?.filter(p => 
               String(p.vendorId) === String(store.id) && 
               p.isDeleted !== true
@@ -296,35 +293,36 @@ export const VerticalStoreList = memo(({
                           isOffline={isOffline}
                         />
                       ))
-                    ) : productsLoading ? (
-                      [1, 2, 3, 4].map(i => (
-                        <div key={i} className="min-w-[140px] space-y-3">
-                          <Skeleton className="w-full aspect-square rounded-2xl" />
-                          <Skeleton className="h-3 w-2/3 rounded-full" />
-                          <Skeleton className="h-2 w-1/2 rounded-full" />
-                        </div>
-                      ))
                     ) : (
-                      <div className="h-40 flex items-center justify-center w-full bg-gray-50 rounded-2xl border border-dashed">
-                        <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">No products listed</p>
-                      </div>
+                      productsLoading ? (
+                        [1, 2, 3, 4].map(i => (
+                          <div key={i} className="min-w-[140px] space-y-3">
+                            <Skeleton className="w-full aspect-square rounded-2xl" />
+                            <Skeleton className="h-3 w-2/3 rounded-full" />
+                            <Skeleton className="h-2 w-1/2 rounded-full" />
+                          </div>
+                        ))
+                      ) : (
+                        <div className="h-40 flex items-center justify-center w-full bg-gray-50 rounded-2xl border border-dashed">
+                          <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">No products listed</p>
+                        </div>
+                      )
                     )}
                     <div className="min-w-[1px] h-full" />
                   </div>
                 </div>
               </div>
             );
-          })
-        ) : null}
+        })}
 
-        {showEmptyState ? (
+        {showEmptyState && (
           <div className="text-center py-24 opacity-20 flex flex-col items-center">
              <StoreIcon className="h-16 w-16 mb-4" />
              <p className="font-black italic uppercase text-sm tracking-widest text-center">
                No stores found in your zone
              </p>
           </div>
-        ) : null}
+        )}
       </div>
     </div>
   );

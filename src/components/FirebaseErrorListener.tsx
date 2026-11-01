@@ -21,19 +21,20 @@ export function FirebaseErrorListener() {
         operation: error.context.operation,
       });
 
-      // IGNORE NETWORK FLICKERS: Suppress connection unavailable or timeout errors visually
-      const offlineMessages = [
+      // AGGRESSIVE SILENCE: Suppress all connectivity, timeout and reachability warnings
+      const silentMessages = [
         'unavailable', 
         'deadline-exceeded', 
         'reach cloud firestore backend',
-        'backend didn\'t respond'
+        'backend didn\'t respond',
+        'offline mode'
       ];
       
-      const isOfflineWarning = offlineMessages.some(m => 
+      const isSilentWarning = silentMessages.some(m => 
         error.message?.toLowerCase().includes(m)
       );
 
-      if (isOfflineWarning) {
+      if (isSilentWarning) {
         return;
       }
 
