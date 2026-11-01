@@ -1,3 +1,4 @@
+
 import { Suspense } from 'react';
 import ProductDetailsClient from '@/components/product/ProductDetailsClient';
 import { Loader2 } from 'lucide-react';
@@ -8,8 +9,10 @@ export const dynamic = 'force-static';
  * @fileOverview Product details dynamic page with static export compatibility.
  */
 export async function generateStaticParams() {
-  // Providing a placeholder to satisfy the build requirement
-  return [{ slug: 'gourmet-item' }];
+  return [
+    { slug: 'gourmet-item' },
+    { slug: 'featured-dish' }
+  ];
 }
 
 export default async function ProductPage(props: { params: Promise<{ slug: string }> }) {
@@ -25,7 +28,7 @@ export default async function ProductPage(props: { params: Promise<{ slug: strin
         </div>
       </div>
     }>
-      <ProductDetailsClient forcedSlug={slug === 'gourmet-item' ? undefined : slug} />
+      <ProductDetailsClient forcedSlug={slug === 'gourmet-item' || slug === 'featured-dish' ? undefined : slug} />
     </Suspense>
   );
 }

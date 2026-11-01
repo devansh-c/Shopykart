@@ -68,38 +68,39 @@ function LoginPageContent() {
 
     try {
       // 1. Fetch Vendor from Firestore first to handle Master Admin Password changes
+      // This makes Firestore the primary source of truth for passwords
       const vendorsRef = collection(firestore, 'vendors');
       const q = query(vendorsRef, where('storeId', '==', input));
       const querySnapshot = await getDocs(q);
 
-      if (querySnapshot.empty) {
+      let vendorData: any = null;
+
+      if (!querySnapshot.empty) {
+        vendorData = querySnapshot.docs[0].data();
+      } else {
         // Try searching by email
         const qEmail = query(vendorsRef, where('email', '==', input));
         const emailSnap = await getDocs(qEmail);
-        
-        if (emailSnap.empty) {
-          toast({ variant: "destructive", title: "ID Not Found" });
-          setLoading(false);
-          return;
+        if (!emailSnap.empty) {
+          vendorData = emailSnap.docs[0].data();
         }
-        
-        const vendorData = emailSnap.docs[0].data();
-        // Verify password from Firestore (Source of Truth for Admin changes)
-        if (vendorData.password !== pass) {
-          throw new Error("Incorrect Password");
-        }
-        
-        await signInWithEmailAndPassword(auth, vendorData.email, pass);
-      } else {
-        const vendorData = querySnapshot.docs[0].data();
-        // Verify password from Firestore (Source of Truth for Admin changes)
-        if (vendorData.password !== pass) {
-          throw new Error("Incorrect Password");
-        }
-        
-        await signInWithEmailAndPassword(auth, vendorData.email, pass);
       }
 
+      if (!vendorData) {
+        toast({ variant: "destructive", title: "ID Not Found" });
+        setLoading(false);
+        return;
+      }
+
+      // Verify password from Firestore (Source of Truth for Admin changes)
+      if (vendorData.password !== pass) {
+        toast({ variant: "destructive", title: "Incorrect Password", description: "Login key mismatch." });
+        setLoading(false);
+        return;
+      }
+      
+      // Perform Auth Sign In using the stored email
+      await signInWithEmailAndPassword(auth, vendorData.email, pass);
       localStorage.setItem('shopykart_session_active', 'true');
       toast({ title: "Welcome Back!" });
       
@@ -116,11 +117,9 @@ function LoginPageContent() {
       toast({ variant: "destructive", title: "Email Required", description: "Please enter your store email address." });
       return;
     }
-
     setLoading(true);
     try {
       let resetEmail = identifier.trim().toLowerCase();
-      
       if (!resetEmail.includes('@') && firestore) {
         const vendorsRef = collection(firestore, 'vendors');
         const q = query(vendorsRef, where('storeId', '==', resetEmail));
@@ -129,7 +128,6 @@ function LoginPageContent() {
           resetEmail = querySnapshot.docs[0].data().email;
         }
       }
-
       await sendPasswordResetEmail(auth, resetEmail);
       toast({ title: "Email Sent!", description: "Reset link sent to your registered email." });
       setView('login');
@@ -148,73 +146,26 @@ function LoginPageContent() {
     <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center p-4">
       <Card className="w-full max-w-md border-none shadow-2xl rounded-[3rem] overflow-hidden bg-white">
         <CardHeader className="text-center pt-10">
-          <div className={cn(
-            "mx-auto w-16 h-16 rounded-[1.25rem] flex items-center justify-center mb-4 transition-all duration-500",
-            isMedical ? "bg-teal-50 text-teal-600 shadow-xl shadow-teal-100" : isBeauty ? "bg-rose-50 text-rose-600 shadow-xl shadow-rose-100" : "bg-primary/10 text-primary"
-          )}>
-            {isMedical ? <HeartPulse className="h-8 w-8" /> : isBeauty ? <Sparkles className="h-8 w-8" /> : <Store className="h-8 w-8" />}
-          </div>
-          <CardTitle className="text-2xl font-black italic uppercase tracking-tighter text-black">
-            {view === 'forgot' ? 'Reset Access' : (isMedical ? 'Medical Hub' : isBeauty ? 'Beauty Hub' : 'Store Login')}
-          </CardTitle>
+          <div className={cn("mx-auto w-16 h-16 rounded-[1.25rem] flex items-center justify-center mb-4 transition-all duration-500", isMedical ? "bg-teal-50 text-teal-600 shadow-xl shadow-teal-100" : isBeauty ? "bg-rose-50 text-rose-600 shadow-xl shadow-rose-100" : "bg-primary/10 text-primary")}>{isMedical ? <HeartPulse className="h-8 w-8" /> : isBeauty ? <Sparkles className="h-8 w-8" /> : <Store className="h-8 w-8" />}</div>
+          <CardTitle className="text-2xl font-black italic uppercase tracking-tighter text-black">{view === 'forgot' ? 'Reset Access' : (isMedical ? 'Medical Hub' : isBeauty ? 'Beauty Hub' : 'Store Login')}</CardTitle>
           <p className="text-muted-foreground text-[10px] font-bold uppercase tracking-[0.2em] mt-1">Business Console</p>
         </CardHeader>
         <CardContent className="px-8 pb-12">
           <div className="space-y-6">
             <div className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">{view === 'forgot' ? 'Registered Email' : 'Store ID or Email'}</label>
-                <div className="relative group">
-                  <Fingerprint className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-primary transition-colors" />
-                  <Input type="text" placeholder={view === 'forgot' ? "vendor@email.com" : "e.g. MyStore123"} value={identifier} onChange={(e) => setIdentifier(e.target.value)} className="pl-12 h-14 rounded-2xl bg-muted/20 border-none font-bold" />
-                </div>
-              </div>
-              
+              <div className="space-y-1"><label className="text-[9px] font-black uppercase text-muted-foreground ml-1">{view === 'forgot' ? 'Registered Email' : 'Store ID or Email'}</label><div className="relative group"><Fingerprint className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-primary transition-colors" /><Input type="text" placeholder={view === 'forgot' ? "vendor@email.com" : "e.g. MyStore123"} value={identifier} onChange={(e) => setIdentifier(e.target.value)} className="pl-12 h-14 rounded-2xl bg-muted/20 border-none font-bold" /></div></div>
               {view === 'login' && (
-                <div className="space-y-1">
-                  <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Security Key</label>
-                  <div className="relative group">
-                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-primary transition-colors" />
-                    <Input type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} className="pl-12 h-14 rounded-2xl bg-muted/20 border-none font-bold" onKeyDown={(e) => e.key === 'Enter' && handleLogin()} />
-                  </div>
-                  <div className="flex justify-end px-1 mt-2">
-                    <button onClick={() => setView('forgot')} className="text-[10px] font-black uppercase text-primary tracking-widest hover:underline underline-offset-4">
-                      Forgot Password?
-                    </button>
-                  </div>
-                </div>
+                <div className="space-y-1"><label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Security Key</label><div className="relative group"><Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-primary transition-colors" /><Input type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} className="pl-12 h-14 rounded-2xl bg-muted/20 border-none font-bold" onKeyDown={(e) => e.key === 'Enter' && handleLogin()} /></div><div className="flex justify-end px-1 mt-2"><button onClick={() => setView('forgot')} className="text-[10px] font-black uppercase text-primary tracking-widest hover:underline underline-offset-4">Forgot Password?</button></div></div>
               )}
             </div>
-            
-            <Button onClick={() => view === 'forgot' ? handleResetPassword() : handleLogin()} className="w-full h-16 rounded-[2rem] font-black uppercase italic text-lg shadow-xl bg-black" disabled={loading}>
-              {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : (view === 'forgot' ? "SEND RESET LINK" : "AUTHENTICATE")}
-            </Button>
-
-            {view === 'forgot' && (
-              <button onClick={() => setView('login')} className="w-full flex items-center justify-center gap-2 text-[10px] font-black uppercase text-gray-400 hover:text-black">
-                <ChevronLeft className="h-3 w-3" /> BACK TO LOGIN
-              </button>
-            )}
-            
+            <Button onClick={() => view === 'forgot' ? handleResetPassword() : handleLogin()} className="w-full h-16 rounded-[2rem] font-black uppercase italic text-lg shadow-xl bg-black" disabled={loading}>{loading ? <Loader2 className="h-6 w-6 animate-spin" /> : (view === 'forgot' ? "SEND RESET LINK" : "AUTHENTICATE")}</Button>
+            {view === 'forgot' && (<button onClick={() => setView('login')} className="w-full flex items-center justify-center gap-2 text-[10px] font-black uppercase text-gray-400 hover:text-black"><ChevronLeft className="h-3 w-3" /> BACK TO LOGIN</button>)}
             {view === 'login' && (
               <div className="pt-4 space-y-4">
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border"></div></div>
-                  <div className="relative flex justify-center text-[9px] font-black uppercase"><span className="bg-white px-3 text-muted-foreground">New Partner?</span></div>
-                </div>
-
-                <Button 
-                  type="button" 
-                  variant="outline"
-                  className="w-full h-12 rounded-xl border-gray-200 text-black font-black uppercase italic tracking-tighter hover:bg-gray-50"
-                  onClick={() => router.push(isMedical ? '/vendor/register?type=Medical' : isBeauty ? '/vendor/register?type=Beauty' : '/vendor/register')}
-                >
-                  BECOME A PARTNER
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
+                <div className="relative"><div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border"></div></div><div className="relative flex justify-center text-[9px] font-black uppercase"><span className="bg-white px-3 text-muted-foreground">New Partner?</span></div></div>
+                <Button type="button" variant="outline" className="w-full h-12 rounded-xl border-gray-200 text-black font-black uppercase italic tracking-tighter hover:bg-gray-50" onClick={() => router.push(isMedical ? '/vendor/register?type=Medical' : isBeauty ? '/vendor/register?type=Beauty' : '/vendor/register')}>BECOME A PARTNER<ArrowRight className="ml-2 h-4 w-4" /></Button>
               </div>
             )}
-
             <Button type="button" variant="ghost" className="w-full h-12 text-gray-400 font-bold uppercase text-[9px] tracking-widest" onClick={() => router.push('/')}>EXIT TO HOME</Button>
           </div>
         </CardContent>
