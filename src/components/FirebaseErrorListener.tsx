@@ -27,11 +27,15 @@ export function FirebaseErrorListener() {
         'deadline-exceeded', 
         'reach cloud firestore backend',
         'backend didn\'t respond',
-        'offline mode'
+        'offline mode',
+        'within 10 seconds',
+        'failed-precondition'
       ];
       
       const isSilentWarning = silentMessages.some(m => 
-        error.message?.toLowerCase().includes(m)
+        error.message?.toLowerCase().includes(m) || 
+        (error as any).code === 'unavailable' || 
+        (error as any).code === 'deadline-exceeded'
       );
 
       if (isSilentWarning) {

@@ -114,6 +114,7 @@ export const VerticalStoreList = memo(({
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
+    // Resilient fetching: Remove strict filters to ensure all products load
     return query(collection(firestore, 'products'), limit(1000));
   }, [firestore]);
   const { data: allProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_strip_products_v18_final');
@@ -168,6 +169,40 @@ export const VerticalStoreList = memo(({
   const isActuallyLoading = vendorsLoading || !initialSync;
   const showEmptyState = !isActuallyLoading && filteredVendors.length === 0;
 
+  if (isActuallyLoading && filteredVendors.length === 0) {
+    return (
+      <div className="px-4 py-6 bg-white space-y-16">
+        {[1, 2, 3].map(i => (
+          <div key={i} className="space-y-6">
+            <div className="space-y-4">
+              <Skeleton className="w-full aspect-[18/9] rounded-[1.5rem]" />
+              <div className="space-y-2 px-2">
+                <Skeleton className="h-6 w-2/3 rounded-full" />
+                <Skeleton className="h-3 w-1/2 rounded-full" />
+              </div>
+            </div>
+            <div className="flex gap-4 overflow-hidden px-2">
+              <Skeleton className="h-40 w-[140px] shrink-0 rounded-2xl" />
+              <Skeleton className="h-40 w-[140px] shrink-0 rounded-2xl" />
+              <Skeleton className="h-40 w-[140px] shrink-0 rounded-2xl" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (showEmptyState) {
+    return (
+      <div className="px-4 py-24 bg-white text-center opacity-20 flex flex-col items-center">
+         <StoreIcon className="h-16 w-16 mb-4" />
+         <p className="font-black italic uppercase text-sm tracking-widest text-center">
+           No stores found in your zone
+         </p>
+      </div>
+    );
+  }
+
   return (
     <div className="px-4 py-6 bg-white min-h-[500px] content-visibility-auto">
       <div className="flex items-center justify-between mb-8 px-2">
@@ -175,38 +210,18 @@ export const VerticalStoreList = memo(({
            Best <span className="text-primary">Hubs</span>
         </h2>
         <Badge variant="outline" className="rounded-full border-gray-200 text-gray-400 font-black uppercase text-[10px]">
-          {isActuallyLoading ? '...' : `${filteredVendors.length} STORES`}
+          {filteredVendors.length} STORES
         </Badge>
       </div>
 
       <div className="space-y-16">
-        {isActuallyLoading && filteredVendors.length === 0 && (
-          <div className="space-y-16">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="space-y-6">
-                <div className="space-y-4">
-                  <Skeleton className="w-full aspect-[18/9] rounded-[1.5rem]" />
-                  <div className="space-y-2 px-2">
-                    <Skeleton className="h-6 w-2/3 rounded-full" />
-                    <Skeleton className="h-3 w-1/2 rounded-full" />
-                  </div>
-                </div>
-                <div className="flex gap-4 overflow-hidden px-2">
-                  <Skeleton className="h-40 w-[140px] shrink-0 rounded-2xl" />
-                  <Skeleton className="h-40 w-[140px] shrink-0 rounded-2xl" />
-                  <Skeleton className="h-40 w-[140px] shrink-0 rounded-2xl" />
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {filteredVendors.length > 0 && filteredVendors.map((store: any) => {
+        {filteredVendors.map((store: any) => {
             const displayImage = store.bannerUrl || store.imageUrl || `https://picsum.photos/seed/${store.id}/800/400`;
             const isOpen = isStoreScheduleOpen(store, currentTimeMins);
             const isOffline = store.isOnline === false || !isOpen;
             const isBestRated = Number(store.rating) >= 4.5;
             
+            // In-memory filter for Mauranipur Bali products
             const storeProducts = allProducts?.filter(p => 
               String(p.vendorId) === String(store.id) && 
               p.isDeleted !== true
@@ -314,15 +329,6 @@ export const VerticalStoreList = memo(({
               </div>
             );
         })}
-
-        {showEmptyState && (
-          <div className="text-center py-24 opacity-20 flex flex-col items-center">
-             <StoreIcon className="h-16 w-16 mb-4" />
-             <p className="font-black italic uppercase text-sm tracking-widest text-center">
-               No stores found in your zone
-             </p>
-          </div>
-        )}
       </div>
     </div>
   );
