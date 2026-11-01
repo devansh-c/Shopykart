@@ -37,6 +37,9 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 
+/**
+ * @fileOverview CartPage upgraded with dynamic platform fee and zone-based charge fetching.
+ */
 export default function CartPage() {
   const { cart, addToCart, removeFromCart, totalPrice, clearCart } = useCart();
   const router = useRouter();
@@ -79,6 +82,7 @@ export default function CartPage() {
   const { data: profile } = useDoc<any>(profileRef);
   const userCoins = profile?.coins || 0;
 
+  // Real-time extra charges fetching
   const extraChargesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'checkout_charges') : null, [firestore]);
   const { data: dbExtraCharges } = useCollection<any>(extraChargesQuery);
 

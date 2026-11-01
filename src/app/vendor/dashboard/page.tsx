@@ -215,7 +215,16 @@ export default function VendorDashboard() {
 
   const handleEdit = (p: any) => {
     setEditingProductId(p.id);
-    setProductForm({ name: p.name, slug: p.slug || '', price: p.price.toString(), mrp: p.mrp?.toString() || '', description: p.description || '', category: p.category || '', imageUrl: p.imageUrl || '', preparingTime: p.preparingTime?.toString() || '' });
+    setProductForm({ 
+      name: p.name, 
+      slug: p.slug || '', 
+      price: p.price.toString(), 
+      mrp: p.mrp?.toString() || '', 
+      description: p.description || '', 
+      category: p.category || '', 
+      imageUrl: p.imageUrl || '', 
+      preparingTime: p.preparingTime?.toString() || '' 
+    });
     setOptions(p.options || []);
     setIsVarietyRequired(p.isVarietyRequired || false);
     setIsProductModalOpen(true);

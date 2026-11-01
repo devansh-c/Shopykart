@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 
 /**
  * @fileOverview Global Firebase Error Listener.
- * Aggressively silences Connectivity and Timeout errors to prevent visual interruptions.
+ * Aggressively silences Connectivity, Timeout and Quota errors to prevent visual interruptions.
  */
 export function FirebaseErrorListener() {
   const { toast } = useToast();
@@ -15,13 +15,6 @@ export function FirebaseErrorListener() {
 
   useEffect(() => {
     const handlePermissionError = (error: FirestorePermissionError) => {
-      // SILENT DEBUG: Do not throw to prevent Red Screen
-      console.debug('Firestore Notification:', {
-        path: error.context?.path,
-        operation: error.context?.operation,
-        message: error.message
-      });
-
       // AGGRESSIVE SILENCE: Suppress all timeout and connectivity warnings
       const silentMessages = [
         'unavailable', 
@@ -49,6 +42,7 @@ export function FirebaseErrorListener() {
       );
 
       if (isSilentWarning) {
+        console.debug('Firestore connectivity notice silenced:', errorMessage);
         return;
       }
 

@@ -12,6 +12,9 @@ import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/aut
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 
+/**
+ * @fileOverview Vendor Login upgraded to prioritize Firestore Password for Admin Control.
+ */
 function LoginPageContent() {
   const searchParams = useSearchParams();
   const typeParam = searchParams.get('type');
@@ -68,38 +71,43 @@ function LoginPageContent() {
       // 1. SEARCH FIRESTORE FIRST (Admin's Source of Truth)
       const vendorsRef = collection(firestore, 'vendors');
       let vendorData: any = null;
+      let vendorDocId: string = '';
 
       const qId = query(vendorsRef, where('storeId', '==', input));
       const snapId = await getDocs(qId);
       if (!snapId.empty) {
         vendorData = snapId.docs[0].data();
+        vendorDocId = snapId.docs[0].id;
       } else {
         const qEmail = query(vendorsRef, where('email', '==', input));
         const snapEmail = await getDocs(qEmail);
-        if (!snapEmail.empty) vendorData = snapEmail.docs[0].data();
+        if (!snapEmail.empty) {
+          vendorData = snapEmail.docs[0].data();
+          vendorDocId = snapEmail.docs[0].id;
+        }
       }
 
       if (!vendorData) {
-        toast({ variant: "destructive", title: "ID Not Found" });
+        toast({ variant: "destructive", title: "ID Not Found", description: "This store ID or email is not registered." });
         setLoading(false);
         return;
       }
 
-      // 2. VERIFY PASSWORD AGAINST FIRESTORE (Overrides Auth system for Admin control)
+      // 2. VERIFY PASSWORD AGAINST FIRESTORE (Source of Truth for Admin changes)
       if (vendorData.password !== pass) {
         toast({ variant: "destructive", title: "Incorrect Password", description: "The password set by Admin does not match." });
         setLoading(false);
         return;
       }
       
-      // 3. PERFORM SIGN IN using the credentials stored in Firestore
+      // 3. AUTHENTICATE with Firebase Auth using verified credentials
       await signInWithEmailAndPassword(auth, vendorData.email, vendorData.password);
       localStorage.setItem('shopykart_session_active', 'true');
       toast({ title: "Welcome Back!" });
       
     } catch (err: any) {
       console.error("Login Error:", err);
-      toast({ variant: "destructive", title: "Login Failed", description: "Authentication error. Please try again." });
+      toast({ variant: "destructive", title: "Login Failed", description: "Connection error. Please check your internet." });
     } finally {
       setLoading(false);
     }
@@ -163,7 +171,7 @@ function LoginPageContent() {
                 </div>
               )}
             </div>
-            <Button onClick={() => view === 'forgot' ? handleResetPassword() : handleLogin()} className="w-full h-16 rounded-[2rem] font-black uppercase italic text-lg shadow-xl bg-black text-white hover:bg-gray-900" disabled={loading}>
+            <Button onClick={() => view === 'forgot' ? handleResetPassword() : handleLogin()} className="w-full h-18 rounded-[2rem] font-black uppercase italic text-lg shadow-xl bg-black text-white hover:bg-gray-900" disabled={loading}>
               {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : (view === 'forgot' ? "SEND RESET LINK" : "AUTHENTICATE")}
             </Button>
             {view === 'forgot' && (<button onClick={() => setView('login')} className="w-full flex items-center justify-center gap-2 text-[10px] font-black uppercase text-gray-400 hover:text-black"><ChevronLeft className="h-3 w-3" /> BACK TO LOGIN</button>)}
