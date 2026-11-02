@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 
 /**
  * @fileOverview Global Firebase Error Listener.
- * GHOST-SILENCE MODE: Aggressively silences Connectivity, Timeout and Quota logs
+ * GHOST-SILENCE MODE: Aggressively silences Connectivity, Timeout, Quota, and 3rd Party Logger logs
  * by intercepting console.error before the environment can display them visually.
  */
 export function FirebaseErrorListener() {
@@ -15,7 +15,7 @@ export function FirebaseErrorListener() {
   const lastErrorRef = useRef<string>('');
 
   useEffect(() => {
-    // 1. GHOST-SILENCE: Override global console methods to filter out annoying Firestore backend messages
+    // 1. GHOST-SILENCE: Override global console methods to filter out annoying messages
     const originalConsoleError = console.error;
     const originalConsoleWarn = console.warn;
 
@@ -27,24 +27,28 @@ export function FirebaseErrorListener() {
       'resource-exhausted',
       'quota-exceeded',
       'failed-precondition',
-      '@firebase/firestore'
+      '@firebase/firestore',
+      'tawk/logger',
+      '[tawk/logger]',
+      'error report sent true'
     ];
 
-    const isInternalFirestoreNotice = (args: any[]) => {
+    const isInternalNoise = (args: any[]) => {
       const combinedMsg = args.map(arg => String(arg).toLowerCase()).join(' ');
       return silentKeywords.some(keyword => combinedMsg.includes(keyword));
     };
 
     console.error = (...args: any[]) => {
-      if (isInternalFirestoreNotice(args)) {
-        // Silently swallow the error so it doesn't trigger visual HTML boxes
+      if (isInternalNoise(args)) {
+        // Silently swallow the noise so it doesn't trigger visual HTML boxes
         return;
       }
+      // Only pass through genuine, non-filtered errors
       originalConsoleError.apply(console, args);
     };
 
     console.warn = (...args: any[]) => {
-      if (isInternalFirestoreNotice(args)) {
+      if (isInternalNoise(args)) {
         return;
       }
       originalConsoleWarn.apply(console, args);

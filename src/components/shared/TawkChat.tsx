@@ -1,4 +1,3 @@
-
 'use client';
 
 import Script from 'next/script';
@@ -23,6 +22,9 @@ export function TawkChat() {
       (window as any).Tawk_API.onLoad = function() {
         setIsTawkReady(true);
       };
+      
+      // Silence internal Tawk logger if possible
+      (window as any).Tawk_API.onLog = function() { return true; };
     }
   }, []);
 
