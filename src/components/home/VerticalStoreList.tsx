@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo, useState, useEffect, memo } from 'react';
@@ -65,11 +66,13 @@ ProductStripItem.displayName = "ProductStripItem";
 export const VerticalStoreList = memo(({ 
   searchQuery = '', 
   activeMode = 'Food', 
-  initialData = [] 
+  initialData = [],
+  initialProducts = []
 }: { 
   searchQuery?: string, 
   activeMode?: string, 
-  initialData?: any[] 
+  initialData?: any[],
+  initialProducts?: any[]
 }) => {
   const router = useRouter();
   const firestore = useFirestore();
@@ -97,7 +100,7 @@ export const VerticalStoreList = memo(({
       setCurrentTimeMins(d.getHours() * 60 + d.getMinutes());
     }, 60000);
 
-    const timer = setTimeout(() => setInitialSync(true), 1200);
+    const timer = setTimeout(() => setInitialSync(true), 800);
 
     return () => {
       window.removeEventListener('user-address-updated', updateLocation);
@@ -114,13 +117,13 @@ export const VerticalStoreList = memo(({
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'products'), limit(500));
+    return query(collection(firestore, 'products'), limit(1000));
   }, [firestore]);
-  const { data: allProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_strip_products_v21');
+  const { data: dbAllProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_strip_products_v22', initialProducts);
 
   const filteredVendors = useMemo(() => {
-    const list = dbVendors || initialData || [];
-    if (list.length === 0) return [];
+    const list = (dbVendors && dbVendors.length > 0) ? dbVendors : initialData;
+    if (!list || list.length === 0) return [];
     
     const searchLower = searchQuery.toLowerCase().trim();
     const currentMode = activeMode.toLowerCase();
@@ -163,10 +166,11 @@ export const VerticalStoreList = memo(({
     });
   }, [dbVendors, initialData, activeZoneId, activeTown, searchQuery, activeMode, currentTimeMins]);
 
-  const isActuallyLoading = vendorsLoading || !initialSync;
-  const showEmptyState = !isActuallyLoading && filteredVendors.length === 0;
+  // Priority to show content immediately if we have initialData
+  const hasContent = filteredVendors.length > 0;
+  const isActuallyLoading = vendorsLoading && !hasContent;
 
-  if (isActuallyLoading && filteredVendors.length === 0) {
+  if (isActuallyLoading) {
     return (
       <div className="px-4 py-6 bg-white space-y-16">
         {[1, 2].map(i => (
@@ -182,7 +186,7 @@ export const VerticalStoreList = memo(({
     );
   }
 
-  if (showEmptyState) {
+  if (filteredVendors.length === 0 && !vendorsLoading) {
     return (
       <div className="px-4 py-24 bg-white text-center opacity-20 flex flex-col items-center">
          <StoreIcon className="h-16 w-16 mb-4" />
@@ -203,13 +207,16 @@ export const VerticalStoreList = memo(({
             const displayImage = store.bannerUrl || store.imageUrl || `https://picsum.photos/seed/${store.id}/800/400`;
             const isOpen = isStoreScheduleOpen(store, currentTimeMins);
             const isOffline = store.isOnline === false || !isOpen;
-            const storeProducts = allProducts?.filter(p => String(p.vendorId) === String(store.id) && p.isDeleted !== true).slice(0, 8) || [];
+            
+            // Use dbAllProducts with fallback to initialProducts for instant strip rendering
+            const productPool = (dbAllProducts && dbAllProducts.length > 0) ? dbAllProducts : initialProducts;
+            const storeProducts = productPool.filter((p: any) => String(p.vendorId) === String(store.id) && p.isDeleted !== true).slice(0, 10);
 
             return (
               <div key={store.id} className={cn("flex flex-col space-y-4 animate-in fade-in duration-500", isOffline && "opacity-75 grayscale-[0.3]")}>
                 <div onClick={() => router.push(`/store/${store.slug || slugify(store.storeName)}/`)} className="w-full text-left bg-white transition-all active:scale-[0.98] group relative cursor-pointer">
                   <div className="relative w-full aspect-[18/9] rounded-[1.5rem] overflow-hidden border border-gray-100 bg-gray-50">
-                    <Image src={displayImage} alt={store.storeName} fill className="object-cover" unoptimized />
+                    <Image src={displayImage} alt={store.storeName} fill className="object-cover" unoptimized priority={false} />
                     {isOffline && (
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10">
                         <span className="text-white font-black text-xl uppercase italic border-2 border-white/30 px-6 py-2 rounded-2xl shadow-xl">Closed Now</span>
@@ -242,7 +249,9 @@ export const VerticalStoreList = memo(({
 
                 <div className="px-1 overflow-hidden">
                   <div className="flex overflow-x-auto space-x-4 no-scrollbar pb-4 pt-2">
-                    {storeProducts.length > 0 ? storeProducts.map((p: any) => <ProductStripItem key={p.id} product={{...p, restaurantName: store.storeName}} isOffline={isOffline} />) : <div className="h-40 flex items-center justify-center w-full bg-gray-50 rounded-2xl border border-dashed"><p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">No products listed</p></div>}
+                    {storeProducts.length > 0 ? storeProducts.map((p: any) => <ProductStripItem key={p.id} product={{...p, restaurantName: store.storeName}} isOffline={isOffline} />) : (
+                      <div className="h-40 flex items-center justify-center w-full bg-gray-50 rounded-2xl border border-dashed"><p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">No products listed</p></div>
+                    )}
                   </div>
                 </div>
               </div>

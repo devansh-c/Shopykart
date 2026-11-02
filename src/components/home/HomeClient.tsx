@@ -14,15 +14,15 @@ import AnnouncementBanner from '@/components/home/AnnouncementBanner';
 import { Under49Products } from '@/components/home/Under49Products';
 
 function HomeContent({ 
-  initialBanners, 
-  initialCategories, 
-  initialStores, 
-  initialProducts 
+  initialBanners = [], 
+  initialCategories = [], 
+  initialStores = [], 
+  initialProducts = [] 
 }: { 
-  initialBanners: any[], 
-  initialCategories: any[], 
-  initialStores: any[], 
-  initialProducts: any[] 
+  initialBanners?: any[], 
+  initialCategories?: any[], 
+  initialStores?: any[], 
+  initialProducts?: any[] 
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -36,9 +36,9 @@ function HomeContent({
     const isBiz = process.env.NEXT_PUBLIC_BIZ_APP === 'true';
     const isTow = process.env.NEXT_PUBLIC_TOW_APP === 'true';
 
-    if (isAdmin) router.replace('/admin/login');
-    else if (isBiz) router.replace('/vendor/login');
-    else if (isTow) router.replace('/delivery/login');
+    if (isAdmin) router.replace('/admin/dashboard');
+    else if (isBiz) router.replace('/vendor/dashboard');
+    else if (isTow) router.replace('/delivery/dashboard');
     else setAppTypeResolved(true);
   }, [router]);
 
@@ -103,6 +103,7 @@ function HomeContent({
               searchQuery={searchQuery}
               activeMode={activeMode}
               initialData={initialStores}
+              initialProducts={initialProducts}
             />
           </div>
         ) : (
@@ -121,6 +122,7 @@ function HomeContent({
                 searchQuery={searchQuery}
                 activeMode={activeMode}
                 initialData={initialStores}
+                initialProducts={initialProducts}
               />
             </div>
           </div>

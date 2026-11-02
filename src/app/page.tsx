@@ -2,7 +2,7 @@
 import HomeClient from '@/components/home/HomeClient';
 import Loading from './loading';
 import { initializeFirebase } from '@/firebase/init';
-import { collection, getDocs, limit, query, orderBy } from 'firebase/firestore';
+import { collection, getDocs, limit, query, where } from 'firebase/firestore';
 
 /**
  * @fileOverview Optimized Server-Side Entry Point.
@@ -26,12 +26,12 @@ async function getInitialData() {
     const categories = categoriesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
     // Fetch Top Stores
-    const storesQuery = query(collection(firestore, 'vendors'), limit(40));
+    const storesQuery = query(collection(firestore, 'vendors'), limit(50));
     const storesSnap = await getDocs(storesQuery);
     const stores = storesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
     // Fetch Popular Products
-    const productsQuery = query(collection(firestore, 'products'), where('isTopTen', '==', true), limit(30));
+    const productsQuery = query(collection(firestore, 'products'), limit(500));
     const productsSnap = await getDocs(productsQuery);
     const products = productsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
@@ -47,9 +47,6 @@ async function getInitialData() {
     return { banners: [], categories: [], stores: [], products: [] };
   }
 }
-
-// We need a small helper to handle SSR-safe query/where since top-level import is tricky
-import { where } from 'firebase/firestore';
 
 export default async function ShopyKartApp() {
   const initialData = await getInitialData();
