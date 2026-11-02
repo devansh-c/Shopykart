@@ -25,9 +25,6 @@ android {
     }
 }
 
-setup {
-    // This is managed by Capacitor
-}
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
