@@ -323,12 +323,11 @@ export default function CartPage() {
               )}
            </div>
 
-           {/* COINS CARD */}
-           {userCoins > 0 && (
-             <div className={cn(
-               "rounded-[2.5rem] p-7 border-2 transition-all shadow-lg flex flex-col justify-between",
-               isRedeemingCoins ? "border-amber-400 bg-amber-50" : "border-black/5 bg-white"
-             )}>
+           {/* COINS CARD - LOCKED (Always Visible) */}
+           <div className={cn(
+             "rounded-[2.5rem] p-7 border-2 transition-all shadow-lg flex flex-col justify-between",
+             isRedeemingCoins ? "border-amber-400 bg-amber-50" : "border-black/5 bg-white"
+           )}>
                 <div className="flex items-center justify-between mb-4">
                    <div className="flex items-center gap-3">
                       <div className={cn("h-10 w-10 rounded-2xl flex items-center justify-center transition-all", isRedeemingCoins ? "bg-amber-100 text-amber-600" : "bg-gray-100 text-gray-400 shadow-inner")}>
@@ -336,13 +335,19 @@ export default function CartPage() {
                       </div>
                       <div>
                          <h4 className="text-[11px] font-black uppercase text-gray-900 leading-none mb-1">ShopyKart Coins</h4>
-                         <p className="text-[9px] font-bold text-amber-600 uppercase italic">Redeem {Math.min(userCoins, 10)} now</p>
+                         <p className="text-[9px] font-bold text-amber-600 uppercase italic">
+                           {userCoins > 0 ? `Redeem up to ${Math.min(userCoins, 10)} now` : 'Earn coins on this order'}
+                         </p>
                       </div>
                    </div>
-                   <Switch checked={isRedeemingCoins} onCheckedChange={setIsRedeemingCoins} className="data-[state=checked]:bg-amber-500" />
+                   <Switch 
+                     disabled={userCoins === 0}
+                     checked={isRedeemingCoins} 
+                     onCheckedChange={setIsRedeemingCoins} 
+                     className="data-[state=checked]:bg-amber-500" 
+                   />
                 </div>
-             </div>
-           )}
+           </div>
         </section>
 
         {/* 4. PREMIUM LOGISTICS BAR */}
@@ -353,7 +358,7 @@ export default function CartPage() {
               </div>
               <div>
                  <span className="text-[8px] font-black text-primary uppercase tracking-[0.3em] block mb-1">Premium Delivery</span>
-                 <h4 className="text-xl font-black italic uppercase tracking-tighter leading-none">Arriving in 20 Mins</h4>
+                 <h4 className="text-xl font-black italic uppercase tracking-tighter leading-none">Arriving in 30 Mins</h4>
               </div>
            </div>
            <div className="text-right relative z-10 pr-2">
