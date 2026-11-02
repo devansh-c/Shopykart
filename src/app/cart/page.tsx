@@ -22,7 +22,15 @@ import {
   AlertCircle,
   Heart,
   Receipt,
-  ShieldCheck
+  ShieldCheck,
+  Leaf,
+  Utensils,
+  BellOff,
+  PhoneOff,
+  DoorOpen,
+  Info,
+  Zap,
+  MessageSquare
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -36,9 +44,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 
 /**
- * @fileOverview CartPage upgraded with dynamic platform fee and zone-based charge fetching.
+ * @fileOverview CartPage upgraded with Zomato/Swiggy Premium Features.
+ * Includes: Cooking instructions, Go Green, Donation, Delivery Tags, and Detailed Billing.
  */
 export default function CartPage() {
   const { cart, addToCart, removeFromCart, totalPrice, clearCart } = useCart();
@@ -57,6 +67,10 @@ export default function CartPage() {
   
   const [deliveryTip, setDeliveryTip] = useState(0);
   const [isRedeemingCoins, setIsRedeemingCoins] = useState(false);
+  const [isDonating, setIsDonating] = useState(false);
+  const [noCutlery, setNoCutlery] = useState(false);
+  const [cookingNote, setCookingNote] = useState('');
+  const [deliveryInst, setDeliveryInst] = useState<string[]>([]);
 
   const [couponCode, setCouponCode] = useState('');
   const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
@@ -82,7 +96,6 @@ export default function CartPage() {
   const { data: profile } = useDoc<any>(profileRef);
   const userCoins = profile?.coins || 0;
 
-  // Real-time extra charges fetching
   const extraChargesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'checkout_charges') : null, [firestore]);
   const { data: dbExtraCharges } = useCollection<any>(extraChargesQuery);
 
@@ -108,8 +121,9 @@ export default function CartPage() {
 
   const totalPayable = useMemo(() => {
     const discount = appliedCoupon ? (appliedCoupon.discountType === 'percentage' ? (totalPrice * appliedCoupon.discountValue) / 100 : appliedCoupon.discountValue) : 0;
-    return Math.max(0, totalPrice + deliveryFee + deliveryTip + extraChargesTotal - (isRedeemingCoins ? 5 : 0) - discount);
-  }, [totalPrice, deliveryFee, deliveryTip, extraChargesTotal, isRedeemingCoins, appliedCoupon]);
+    const donation = isDonating ? 2 : 0;
+    return Math.max(0, totalPrice + deliveryFee + deliveryTip + extraChargesTotal + donation - (isRedeemingCoins ? 5 : 0) - discount);
+  }, [totalPrice, deliveryFee, deliveryTip, extraChargesTotal, isRedeemingCoins, appliedCoupon, isDonating]);
 
   const handleApplyCoupon = async () => {
     if (!firestore || !couponCode.trim()) return;
@@ -146,7 +160,11 @@ export default function CartPage() {
         deliveryOTP: Math.floor(100000 + Math.random() * 900000).toString(),
         deliveryFee, deliveryTip, extraCharges: applicableExtraCharges, extraChargesTotal,
         paymentMethod, paymentStatus: paymentMethod === 'UPI' ? 'Paid (UTR Provided)' : 'Pending', paymentUTR: utrNumber || null,
-        zoneId: activeZoneId, customerOrderNumber: Math.floor(1000 + Math.random() * 9000)
+        zoneId: activeZoneId, customerOrderNumber: Math.floor(1000 + Math.random() * 9000),
+        cookingInstructions: cookingNote.trim().toUpperCase(),
+        noCutlery,
+        isDonationEnabled: isDonating,
+        deliveryTags: deliveryInst
       };
 
       await addDoc(collection(firestore!, 'orders'), orderData);
@@ -156,43 +174,53 @@ export default function CartPage() {
     } catch (e) { setIsPlacing(false); toast({ variant: "destructive", title: "Order Failed" }); }
   };
 
+  const toggleDeliveryInst = (inst: string) => {
+    setDeliveryInst(prev => prev.includes(inst) ? prev.filter(i => i !== inst) : [...prev, inst]);
+  };
+
   if (!isMounted) return null;
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] pb-40 max-w-lg mx-auto relative overflow-hidden transform-gpu">
       <OrderSuccessOverlay isVisible={showSuccessOverlay} />
-      <header className="bg-white/80 backdrop-blur-xl py-4 px-6 sticky top-0 z-[100] flex items-center gap-4 border-b border-black/5">
+      
+      <header className="bg-white py-4 px-6 sticky top-0 z-[100] flex items-center gap-4 border-b border-black/5">
         <button onClick={() => router.back()} className="h-10 w-10 flex items-center justify-center rounded-xl bg-gray-50 active:scale-90"><ChevronLeft className="h-6 w-6" /></button>
-        <h1 className="text-sm font-black uppercase italic tracking-widest text-gray-800 flex-1 text-center">Checkout</h1>
+        <div className="flex-1 text-center">
+           <h1 className="text-sm font-black uppercase italic tracking-widest text-gray-800">Review Items</h1>
+           <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">{cart.length} ITEMS IN BAG</p>
+        </div>
         <Badge variant="outline" className="rounded-xl bg-amber-50 text-amber-600 font-black text-[9px]"><Coins className="h-2.5 w-2.5 mr-1" /> {userCoins}</Badge>
       </header>
 
       <main className="px-4 pt-6 space-y-6">
-        <div className="bg-white rounded-[2rem] border shadow-sm overflow-hidden">
-          <section className="p-6 flex items-center justify-between border-b border-gray-50">
+        <div className="bg-white rounded-[2.5rem] border border-black/5 shadow-sm overflow-hidden">
+          {/* 1. DROP POINT */}
+          <section className="p-6 flex items-center justify-between border-b border-gray-50 bg-gray-50/30">
              <div className="flex items-center gap-4 min-w-0">
                 <div className="h-12 w-12 bg-black rounded-2xl flex items-center justify-center text-white shrink-0"><Navigation className="h-6 w-6" /></div>
                 <div className="min-w-0 pr-4">
-                   <h4 className="text-[10px] font-black uppercase text-primary italic">Drop Point</h4>
-                   <h4 className="text-xs font-black uppercase truncate">{recipientForm.name || 'Set Name'}</h4>
-                   <p className="text-[9px] font-bold text-gray-400 truncate mt-1">{recipientForm.address || 'Set Address'}</p>
+                   <h4 className="text-[10px] font-black uppercase text-primary italic">Drop Destination</h4>
+                   <h4 className="text-xs font-black uppercase truncate">{recipientForm.name || 'Anonymous User'}</h4>
+                   <p className="text-[9px] font-bold text-gray-400 truncate mt-1">{recipientForm.address || 'Select Address'}</p>
                 </div>
              </div>
-             <button onClick={() => setIsAddressModalOpen(true)} className="bg-primary/5 px-4 py-2 rounded-xl text-[10px] font-black uppercase text-primary border border-primary/10">EDIT</button>
+             <button onClick={() => setIsAddressModalOpen(true)} className="bg-primary/10 px-4 py-2 rounded-xl text-[10px] font-black uppercase text-primary border border-primary/5 active:scale-90 transition-transform">EDIT</button>
           </section>
 
+          {/* 2. ITEM LIST */}
           <section className="p-6 space-y-6">
              {cart.map((item, idx) => (
-                <div key={idx} className="flex gap-4 items-center">
-                   <div className="h-16 w-16 rounded-2xl overflow-hidden bg-muted relative shrink-0">
+                <div key={idx} className="flex gap-4 items-center animate-in fade-in slide-in-from-right-2" style={{ animationDelay: `${idx * 100}ms` }}>
+                   <div className="h-16 w-16 rounded-2xl overflow-hidden bg-muted relative shrink-0 border border-black/5">
                       <Image src={item.imageUrl} alt={item.name} fill className="object-cover" unoptimized />
                    </div>
                    <div className="flex-1 min-w-0">
-                      <h4 className="text-[11px] font-black uppercase truncate">{item.name}</h4>
-                      <div className="flex items-center mt-1 bg-gray-50 w-fit rounded-xl p-0.5">
-                         <button onClick={() => removeFromCart(item.id)} className="h-7 w-7 flex items-center justify-center text-gray-500"><Minus className="h-3 w-3" /></button>
+                      <h4 className="text-[11px] font-black uppercase truncate leading-none mb-1.5">{item.name}</h4>
+                      <div className="flex items-center mt-1 bg-gray-50 w-fit rounded-xl p-0.5 border border-black/5">
+                         <button onClick={() => removeFromCart(item.id)} className="h-7 w-7 flex items-center justify-center text-gray-500 active:scale-75"><Minus className="h-3 w-3" /></button>
                          <span className="mx-2 text-[10px] font-black">{item.quantity}</span>
-                         <button onClick={() => addToCart({...item, quantity: 1})} className="h-7 w-7 flex items-center justify-center text-primary"><Plus className="h-3 w-3" /></button>
+                         <button onClick={() => addToCart({...item, quantity: 1})} className="h-7 w-7 flex items-center justify-center text-primary active:scale-75"><Plus className="h-3 w-3" /></button>
                       </div>
                    </div>
                    <div className="text-sm font-black italic">₹{(item.price * item.quantity).toFixed(0)}</div>
@@ -200,52 +228,136 @@ export default function CartPage() {
              ))}
           </section>
 
-          <section className="p-6 bg-rose-50/30 border-y border-rose-50">
-             <div className="flex items-center gap-3 mb-4"><div className="h-10 w-10 bg-rose-100 rounded-xl flex items-center justify-center text-rose-600"><Heart className="h-5 w-5 fill-rose-600" /></div><h4 className="text-xs font-black uppercase">DELIVERY TIP</h4></div>
-             <div className="grid grid-cols-4 gap-2">
-                {[10, 20, 30, 50].map(amt => (
-                  <button key={amt} onClick={() => setDeliveryTip(deliveryTip === amt ? 0 : amt)} className={cn("h-10 rounded-xl font-black text-xs border-2", deliveryTip === amt ? "bg-rose-600 text-white border-rose-600" : "bg-white text-gray-400 border-gray-100")}>₹{amt}</button>
+          {/* 3. COOKING INSTRUCTIONS (SWIGGY/ZOMATO STYLE) */}
+          <section className="px-6 py-4 border-y border-gray-50">
+             <div className="bg-gray-50/50 p-4 rounded-2xl flex items-start gap-4 border border-black/5">
+                <MessageSquare className="h-5 w-5 text-gray-400 mt-1" />
+                <div className="flex-1">
+                   <label className="text-[10px] font-black uppercase text-gray-500 mb-2 block">Cooking Instructions</label>
+                   <Input 
+                    value={cookingNote}
+                    onChange={(e) => setCookingNote(e.target.value)}
+                    placeholder="e.g. Less spicy, No onion" 
+                    className="h-10 bg-white border-none rounded-xl text-xs font-bold focus-visible:ring-1 focus-visible:ring-primary/20"
+                   />
+                </div>
+             </div>
+          </section>
+
+          {/* 4. GO GREEN & DONATION */}
+          <section className="p-6 space-y-4">
+             <div className="flex items-center justify-between p-4 bg-green-50/50 rounded-2xl border border-green-100">
+                <div className="flex items-center gap-3">
+                   <div className="h-10 w-10 bg-green-100 rounded-xl flex items-center justify-center text-green-600"><Leaf className="h-5 w-5" /></div>
+                   <div>
+                      <h4 className="text-[11px] font-black uppercase text-gray-900 leading-none mb-1">Opt-out of Cutlery</h4>
+                      <p className="text-[8px] font-bold text-green-600 uppercase">Save plastic for a better planet</p>
+                   </div>
+                </div>
+                <Switch checked={noCutlery} onCheckedChange={setNoCutlery} className="data-[state=checked]:bg-green-600" />
+             </div>
+
+             <div className="flex items-center justify-between p-4 bg-primary/5 rounded-2xl border border-primary/10">
+                <div className="flex items-center gap-3">
+                   <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary"><Heart className="h-5 w-5 fill-primary" /></div>
+                   <div>
+                      <h4 className="text-[11px] font-black uppercase text-gray-900 leading-none mb-1">Feed India</h4>
+                      <p className="text-[8px] font-bold text-primary uppercase">Add ₹2 to feed someone in need</p>
+                   </div>
+                </div>
+                <Switch checked={isDonating} onCheckedChange={setIsDonating} />
+             </div>
+          </section>
+
+          {/* 5. DELIVERY INSTRUCTIONS */}
+          <section className="p-6 border-t border-gray-50">
+             <h4 className="text-[10px] font-black uppercase text-gray-500 mb-4 tracking-widest italic">Delivery Instructions</h4>
+             <div className="flex overflow-x-auto gap-3 no-scrollbar pb-2">
+                {[
+                  { label: 'Avoid Calling', icon: PhoneOff },
+                  { label: 'Don\'t Ring', icon: BellOff },
+                  { label: 'Leave at Gate', icon: DoorOpen },
+                  { label: 'Leave with Guard', icon: ShieldCheck }
+                ].map((inst) => (
+                  <button 
+                    key={inst.label} 
+                    onClick={() => toggleDeliveryInst(inst.label)}
+                    className={cn(
+                      "flex flex-col items-center justify-center min-w-[100px] h-20 rounded-2xl border-2 transition-all active:scale-95",
+                      deliveryInst.includes(inst.label) ? "bg-primary border-primary text-white shadow-lg" : "bg-white border-gray-50 text-gray-400"
+                    )}
+                  >
+                    <inst.icon className="h-5 w-5 mb-2" />
+                    <span className="text-[8px] font-black uppercase text-center leading-tight">{inst.label}</span>
+                  </button>
                 ))}
              </div>
           </section>
 
+          {/* 6. RIDER TIP */}
+          <section className="p-6 bg-rose-50/30 border-y border-rose-50">
+             <div className="flex items-center gap-3 mb-4"><div className="h-10 w-10 bg-rose-100 rounded-xl flex items-center justify-center text-rose-600"><Zap className="h-5 w-5 fill-rose-600" /></div><h4 className="text-xs font-black uppercase tracking-tighter">Rider Appreciation Tip</h4></div>
+             <div className="grid grid-cols-4 gap-2">
+                {[10, 20, 30, 50].map(amt => (
+                  <button key={amt} onClick={() => setDeliveryTip(deliveryTip === amt ? 0 : amt)} className={cn("h-11 rounded-xl font-black text-xs border-2 transition-all transform-gpu", deliveryTip === amt ? "bg-rose-600 text-white border-rose-600 scale-105 shadow-lg" : "bg-white text-gray-400 border-gray-100 active:scale-95")}>₹{amt}</button>
+                ))}
+             </div>
+             <p className="text-[7px] font-bold text-rose-400 uppercase mt-3 text-center tracking-widest italic">100% of this tip goes to your delivery partner</p>
+          </section>
+
+          {/* 7. PAYMENT METHOD */}
           <section className="p-6 space-y-4">
-             <div className="flex items-center gap-3"><div className="h-10 w-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600"><CreditCard className="h-5 w-5" /></div><h4 className="text-xs font-black uppercase">Payment Method</h4></div>
+             <div className="flex items-center gap-3"><div className="h-10 w-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600"><CreditCard className="h-5 w-5" /></div><h4 className="text-xs font-black uppercase tracking-tighter">Choose Payment</h4></div>
              <div className="grid grid-cols-2 gap-3">
-                <button onClick={() => setPaymentMethod('COD')} className={cn("h-14 rounded-2xl border-2 flex flex-col items-center justify-center gap-1", paymentMethod === 'COD' ? "bg-primary/5 border-primary text-primary" : "bg-gray-50 border-transparent text-gray-400")}>
-                   <Banknote className="h-4 w-4" /><span className="text-[9px] font-black uppercase">COD (Cash)</span>
+                <button onClick={() => setPaymentMethod('COD')} className={cn("h-16 rounded-2xl border-2 flex flex-col items-center justify-center gap-1 transition-all", paymentMethod === 'COD' ? "bg-primary/5 border-primary text-primary shadow-inner" : "bg-gray-50 border-transparent text-gray-400")}>
+                   <Banknote className="h-4 w-4" /><span className="text-[9px] font-black uppercase tracking-widest">COD (Cash)</span>
                 </button>
-                <button onClick={() => setPaymentMethod('UPI')} className={cn("h-14 rounded-2xl border-2 flex flex-col items-center justify-center gap-1", paymentMethod === 'UPI' ? "bg-blue-50 border-blue-500 text-blue-700" : "bg-gray-50 border-transparent text-gray-400")}>
-                   <QrCode className="h-4 w-4" /><span className="text-[9px] font-black uppercase">Pay Via UPI</span>
+                <button onClick={() => setPaymentMethod('UPI')} className={cn("h-16 rounded-2xl border-2 flex flex-col items-center justify-center gap-1 transition-all", paymentMethod === 'UPI' ? "bg-blue-50 border-blue-500 text-blue-700 shadow-inner" : "bg-gray-50 border-transparent text-gray-400")}>
+                   <QrCode className="h-4 w-4" /><span className="text-[9px] font-black uppercase tracking-widest">Pay Via UPI</span>
                 </button>
              </div>
           </section>
 
-          <section className="p-6 space-y-6 bg-muted/10">
-             <h3 className="text-xl font-black italic uppercase text-gray-900">Final Bill</h3>
-             <div className="space-y-3">
-                <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Item Subtotal</span><span className="text-gray-900 font-black">₹{totalPrice.toFixed(0)}</span></div>
+          {/* 8. FINAL BILL (ZOMATO STYLE) */}
+          <section className="p-6 space-y-6 bg-muted/10 relative overflow-hidden">
+             <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none"><Receipt className="h-32 w-32 -rotate-12" /></div>
+             <h3 className="text-xl font-black italic uppercase text-gray-900 relative z-10">Bill Summary</h3>
+             <div className="space-y-3 relative z-10">
+                <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Item Total</span><span className="text-gray-900 font-black">₹{totalPrice.toFixed(0)}</span></div>
                 <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Delivery Fee</span><span className="text-gray-900 font-black">₹{deliveryFee.toFixed(0)}</span></div>
                 {applicableExtraCharges.map((charge, idx) => (
-                  <div key={idx} className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest animate-in slide-in-from-right-2">
-                    <span>{charge.name} {charge.type === 'percentage' ? `(${charge.value}%)` : ''}</span>
+                  <div key={idx} className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                    <span>{charge.name}</span>
                     <span className="text-gray-900 font-black">₹{charge.calculatedAmount.toFixed(0)}</span>
                   </div>
                 ))}
-                {deliveryTip > 0 && <div className="flex justify-between text-[10px] font-black text-rose-500 uppercase"><span>Rider Tip</span><span>₹{deliveryTip}</span></div>}
+                {isDonating && <div className="flex justify-between text-[10px] font-black text-primary uppercase"><span>Feeding India</span><span>₹2</span></div>}
+                {deliveryTip > 0 && <div className="flex justify-between text-[10px] font-black text-rose-500 uppercase"><span>Delivery Partner Tip</span><span>₹{deliveryTip}</span></div>}
              </div>
-             <div className="pt-6 border-t-2 border-dashed border-black/5 flex justify-between items-end">
-                <div className="flex flex-col"><span className="text-[8px] font-black uppercase text-primary mb-1">To Pay</span><div className="flex items-center gap-1 text-4xl font-black italic text-gray-900 leading-none"><IndianRupee className="h-6 w-6 text-primary" /><span>{totalPayable.toFixed(0)}</span></div></div>
-                <span className="text-[10px] font-bold text-gray-400 uppercase italic">INC. ALL FEES</span>
+             
+             <div className="pt-6 border-t-2 border-dashed border-black/5 flex justify-between items-end relative z-10">
+                <div className="flex flex-col"><span className="text-[8px] font-black uppercase text-primary mb-1">Final Payable</span><div className="flex items-center gap-1 text-4xl font-black italic text-gray-900 leading-none"><IndianRupee className="h-6 w-6 text-primary" /><span>{totalPayable.toFixed(0)}</span></div></div>
+                <div className="bg-green-100 text-green-700 px-3 py-1.5 rounded-lg text-[8px] font-black uppercase italic tracking-tighter">SAVING ₹{isRedeemingCoins ? 5 : 0} ON THIS BILL</div>
              </div>
           </section>
         </div>
 
-        <Button onClick={finalizeOrder} disabled={isPlacing || !isMinOrderMet || cart.length === 0} className="w-full h-20 bg-black text-white rounded-[2.5rem] font-black uppercase italic text-xl shadow-xl active:scale-95 transition-all">
-          {isPlacing ? <Loader2 className="h-8 w-8 animate-spin" /> : <>PLACE ORDER <ArrowRight className="h-6 w-6 ml-2" /></>}
+        {/* CANCELLATION DISCLAIMER */}
+        <div className="p-4 flex gap-3 items-start bg-gray-50 rounded-2xl border border-black/[0.03]">
+           <Info className="h-4 w-4 text-gray-400 shrink-0 mt-0.5" />
+           <p className="text-[8px] font-bold text-gray-400 uppercase leading-relaxed">
+             Policy: Once order is accepted, cancellation will not be allowed. A 100% cancellation fee will be applicable in case of no-show or refusal to accept delivery.
+           </p>
+        </div>
+
+        <Button onClick={finalizeOrder} disabled={isPlacing || !isMinOrderMet || cart.length === 0} className="w-full h-20 bg-black text-white rounded-[2.5rem] font-black uppercase italic text-xl shadow-2xl active:scale-95 transition-all transform-gpu hover:bg-gray-900 group">
+          {isPlacing ? <Loader2 className="h-8 w-8 animate-spin" /> : <>PROCEED TO PAY <ArrowRight className="h-6 w-6 ml-2 group-hover:translate-x-1 transition-transform" /></>}
         </Button>
+
+        <p className="text-center text-[8px] font-black text-gray-300 uppercase tracking-[0.4em] pt-4">ShopyKart Premium Network</p>
       </main>
 
+      {/* UPI DIALOG */}
       <Dialog open={isUpiModalOpen} onOpenChange={setIsUpiModalOpen}>
         <DialogContent className="rounded-t-[3rem] p-8 bg-white focus:outline-none bottom-0 top-auto translate-y-0 h-[650px] flex flex-col">
            <div className="text-center space-y-6">
@@ -264,6 +376,7 @@ export default function CartPage() {
         </DialogContent>
       </Dialog>
 
+      {/* ADDRESS DIALOG */}
       <Dialog open={isAddressModalOpen} onOpenChange={setIsAddressModalOpen}>
         <DialogContent className="rounded-t-[3.5rem] p-8 bg-white bottom-0 top-auto translate-y-0 h-[580px] flex flex-col focus:outline-none">
           <DialogHeader className="text-center"><MapPin className="h-12 w-12 mx-auto text-primary mb-2" /><DialogTitle className="text-3xl font-black uppercase italic">Drop Address</DialogTitle></DialogHeader>
