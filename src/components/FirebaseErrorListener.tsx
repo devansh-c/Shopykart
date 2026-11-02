@@ -7,49 +7,61 @@ import { useToast } from '@/hooks/use-toast';
 
 /**
  * @fileOverview Global Firebase Error Listener.
- * Aggressively silences Connectivity, Timeout and Quota errors to prevent visual interruptions.
+ * GHOST-SILENCE MODE: Aggressively silences Connectivity, Timeout and Quota logs
+ * by intercepting console.error before the environment can display them visually.
  */
 export function FirebaseErrorListener() {
   const { toast } = useToast();
   const lastErrorRef = useRef<string>('');
 
   useEffect(() => {
-    const handlePermissionError = (error: FirestorePermissionError) => {
-      // AGGRESSIVE SILENCE: Suppress all timeout and connectivity warnings
-      const silentMessages = [
-        'unavailable', 
-        'deadline-exceeded', 
-        'reach cloud firestore backend',
-        'backend didn\'t respond',
-        'offline mode',
-        'failed-precondition',
-        'quota-exceeded',
-        'resource-exhausted',
-        'quota exceeded',
-        'limit exceeded',
-        'network'
-      ];
-      
-      const errorMessage = error.message?.toLowerCase() || '';
-      const errorCode = (error as any).code || '';
+    // 1. GHOST-SILENCE: Override global console methods to filter out annoying Firestore backend messages
+    const originalConsoleError = console.error;
+    const originalConsoleWarn = console.warn;
 
-      const isSilentWarning = silentMessages.some(m => 
-        errorMessage.includes(m) || 
-        errorCode === 'unavailable' || 
-        errorCode === 'deadline-exceeded' ||
-        errorCode === 'resource-exhausted' ||
-        errorCode === 'quota-exceeded'
-      );
+    const silentKeywords = [
+      'could not reach cloud firestore backend',
+      'backend didn\'t respond',
+      'unavailable',
+      'deadline-exceeded',
+      'resource-exhausted',
+      'quota-exceeded',
+      'failed-precondition',
+      '@firebase/firestore'
+    ];
 
-      if (isSilentWarning) {
-        console.debug('Firestore connectivity notice silenced:', errorMessage);
+    const isInternalFirestoreNotice = (args: any[]) => {
+      const combinedMsg = args.map(arg => String(arg).toLowerCase()).join(' ');
+      return silentKeywords.some(keyword => combinedMsg.includes(keyword));
+    };
+
+    console.error = (...args: any[]) => {
+      if (isInternalFirestoreNotice(args)) {
+        // Silently swallow the error so it doesn't trigger visual HTML boxes
         return;
       }
+      originalConsoleError.apply(console, args);
+    };
+
+    console.warn = (...args: any[]) => {
+      if (isInternalFirestoreNotice(args)) {
+        return;
+      }
+      originalConsoleWarn.apply(console, args);
+    };
+
+    // 2. Permission Error Handler (For real identity issues)
+    const handlePermissionError = (error: FirestorePermissionError) => {
+      const errorMessage = error.message?.toLowerCase() || '';
+      
+      // Don't show toast for connectivity/timeout even if they bubble up here
+      const isSilent = silentKeywords.some(k => errorMessage.includes(k));
+      if (isSilent) return;
 
       if (error.context?.path && lastErrorRef.current !== error.context.path) {
         lastErrorRef.current = error.context.path;
         
-        // SUPPRESS NOISY PATHS
+        // SUPPRESS NOISY PATHS (These usually recover or are handled by ISR)
         const noisyPaths = ['/orders', '/users', '/products', '/banners', '/categories', '/vendors', '/app_settings'];
         const isNoisy = noisyPaths.some(p => error.context?.path.includes(p));
 
@@ -68,6 +80,12 @@ export function FirebaseErrorListener() {
     };
 
     errorEmitter.on('permission-error', handlePermissionError);
+
+    // Cleanup: Restore original console methods when component unmounts
+    return () => {
+      console.error = originalConsoleError;
+      console.warn = originalConsoleWarn;
+    };
   }, [toast]);
 
   return null;

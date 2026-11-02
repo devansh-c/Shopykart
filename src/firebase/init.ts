@@ -13,6 +13,7 @@ let authInstance: Auth | null = null;
 /**
  * Robust Firebase initialization singleton for Next.js.
  * Persistence Enabled: Ensures offline functionality when backend is unreachable.
+ * Long Polling Enabled: Bypasses network restrictions that cause "Could not reach backend" errors.
  */
 export function initializeFirebase() {
   // 1. Initialize App
@@ -22,13 +23,16 @@ export function initializeFirebase() {
     appInstance = getApp();
   }
 
-  // 2. Initialize Firestore with Offline Persistence
+  // 2. Initialize Firestore with Offline Persistence & Long Polling
   if (!firestoreInstance) {
     if (typeof window !== 'undefined') {
       firestoreInstance = initializeFirestore(appInstance, {
         localCache: persistentLocalCache({
           tabManager: persistentMultipleTabManager()
-        })
+        }),
+        // FORCE LONG POLLING: This is critical for preview environments where 
+        // standard GRPC/WebSockets connections might be throttled or blocked.
+        experimentalForceLongPolling: true 
       });
     } else {
       // Basic initialization for SSR
