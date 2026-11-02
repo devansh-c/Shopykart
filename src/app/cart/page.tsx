@@ -34,7 +34,8 @@ import {
   Star,
   Check,
   Clock,
-  Shield
+  Shield,
+  Store
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
