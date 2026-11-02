@@ -1,8 +1,9 @@
+
 "use client"
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, Suspense } from 'react';
 import { LocationHeader } from '@/components/home/LocationHeader';
-import { ShoppingBag, HeartPulse, Sparkles, ArrowLeft } from 'lucide-react';
+import { ShoppingBag, HeartPulse, Sparkles, ArrowLeft, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 
@@ -12,17 +13,34 @@ import OffersSection from '@/components/home/OffersSection';
 import AnnouncementBanner from '@/components/home/AnnouncementBanner';
 import { Under49Products } from '@/components/home/Under49Products';
 
-/**
- * @fileOverview Home Page Orchestrator.
- * SPEED OPTIMIZATION: CategoryList removed from home to reduce Firestore load.
- * Layout: Slider -> Announcement -> Under 49 -> Coupons -> Stores list.
- */
-export default function HomeClient() {
+function HomeContent({ 
+  initialBanners, 
+  initialCategories, 
+  initialStores, 
+  initialProducts 
+}: { 
+  initialBanners: any[], 
+  initialCategories: any[], 
+  initialStores: any[], 
+  initialProducts: any[] 
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
-  
   const [searchQuery, setSearchQuery] = useState('');
+  const [appTypeResolved, setAppTypeResolved] = useState(false);
+
+  // APP TYPE REDIRECTION (Client-side only)
+  useEffect(() => {
+    const isAdmin = process.env.NEXT_PUBLIC_ADMIN_APP === 'true';
+    const isBiz = process.env.NEXT_PUBLIC_BIZ_APP === 'true';
+    const isTow = process.env.NEXT_PUBLIC_TOW_APP === 'true';
+
+    if (isAdmin) router.replace('/admin/login');
+    else if (isBiz) router.replace('/vendor/login');
+    else if (isTow) router.replace('/delivery/login');
+    else setAppTypeResolved(true);
+  }, [router]);
 
   const activeMode = searchParams.get('mode') || 'Food';
   const activeCategory = searchParams.get('cat') || 'all';
@@ -34,26 +52,22 @@ export default function HomeClient() {
     } else {
       params.set(key, value);
     }
-    
-    if (key === 'mode') {
-      params.delete('cat');
-    }
+    if (key === 'mode') params.delete('cat');
     
     const query = params.toString() ? `?${params.toString()}` : '';
     router.push(`${pathname}${query}`);
   }, [router, searchParams, pathname]);
 
-  const handleBackToFood = () => {
-    updateUrlParam('mode', 'Food');
-  };
-
   const handleModeChange = (mode: string) => {
     updateUrlParam('mode', mode);
   };
 
+  if (!appTypeResolved) {
+    return <div className="h-screen bg-white flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
+  }
+
   return (
     <div className="min-h-screen bg-white transform-gpu">
-      {/* HEADER SECTION */}
       {activeMode !== 'Medical' && activeMode !== 'Beauty' && (
         <LocationHeader 
           searchValue={searchQuery} 
@@ -78,24 +92,24 @@ export default function HomeClient() {
           <div className="animate-in slide-in-from-right-4 duration-500">
             <div className="sticky top-0 z-[100] bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
                <div className="flex items-center gap-3">
-                  <button onClick={handleBackToFood} className="h-9 w-9 bg-gray-50 rounded-full flex items-center justify-center text-gray-800 border border-gray-100 active:scale-90 transition-transform"><ArrowLeft className="h-4 w-4" /></button>
+                  <button onClick={() => updateUrlParam('mode', 'Food')} className="h-9 w-9 bg-gray-50 rounded-full flex items-center justify-center text-gray-800 border border-gray-100 active:scale-90 transition-transform"><ArrowLeft className="h-4 w-4" /></button>
                   <div className="flex flex-col">
                     <span className="text-[12px] font-black uppercase italic tracking-tighter text-gray-900 leading-none">{activeMode === 'Medical' ? 'Medical Hub' : 'Beauty & Cosmetics'}</span>
                   </div>
                </div>
                <div className={cn("h-9 w-9 rounded-xl flex items-center justify-center border", activeMode === 'Medical' ? "bg-teal-50 text-teal-600 border-teal-100" : "bg-rose-50 text-rose-600 border-rose-100")}>{activeMode === 'Medical' ? <HeartPulse className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}</div>
             </div>
-            {/* CategoryList hidden for speed as requested */}
             <VerticalStoreList 
               searchQuery={searchQuery}
               activeMode={activeMode}
+              initialData={initialStores}
             />
           </div>
         ) : (
           <div className="animate-in fade-in duration-300">
             {!searchQuery && activeCategory === 'all' && (
               <div className="pt-2">
-                <OfferSlider />
+                <OfferSlider initialData={initialBanners} />
                 <AnnouncementBanner />
                 <Under49Products />
                 <OffersSection />
@@ -103,15 +117,23 @@ export default function HomeClient() {
             )}
             
             <div className="bg-white">
-              {/* CategoryList removed from landing for speed boost */}
               <VerticalStoreList 
                 searchQuery={searchQuery}
                 activeMode={activeMode}
+                initialData={initialStores}
               />
             </div>
           </div>
         )}
       </main>
     </div>
+  );
+}
+
+export default function HomeClient(props: any) {
+  return (
+    <Suspense fallback={<div className="h-screen bg-white flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>}>
+      <HomeContent {...props} />
+    </Suspense>
   );
 }
