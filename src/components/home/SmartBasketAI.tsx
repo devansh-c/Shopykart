@@ -9,6 +9,9 @@ import { Input } from '@/components/ui/input';
 import { getSmartBasketDetails, type SmartBasketOutput } from '@/ai/flows/smart-basket-flow';
 import { useToast } from '@/hooks/use-toast';
 
+/**
+ * @fileOverview Smart Basket AI Assistant with top 'face' line reduced to 2px.
+ */
 export function SmartBasketAI() {
   const [mounted, setMounted] = useState(false);
   const [dish, setDish] = useState('');
@@ -27,7 +30,6 @@ export function SmartBasketAI() {
       const data = await getSmartBasketDetails({ dishName: dish });
       setResult(data);
     } catch (error) {
-      // SILENT FALLBACK: Error toast removed to prevent "AI Busy" message
       console.warn("Silent fallback triggered for Smart Basket");
     } finally {
       setIsLoading(false);
@@ -74,7 +76,7 @@ export function SmartBasketAI() {
           <DialogHeader className="sr-only">
             <DialogTitle>Smart Basket AI Assistant</DialogTitle>
           </DialogHeader>
-          <div className="bg-[#EF4444] h-2 w-full" />
+          <div className="bg-[#EF4444] h-[2px] w-full shrink-0" />
           <div className="p-8 space-y-6 overflow-y-auto no-scrollbar">
             {!result ? (
               <div className="space-y-6 animate-in fade-in duration-500">

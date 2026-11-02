@@ -116,7 +116,7 @@ export function ClientLayout({ children }: { children: ReactNode }) {
   const isFleetApp = process.env.NEXT_PUBLIC_TOW_APP === 'true';
   const isBusinessApp = isAdminApp || isStoreApp || isFleetApp;
 
-  // Hydration Safety: Apply conditional styles/classes only after mount
+  // Optimized top padding 'face' to strictly 2px as requested
   const showPaddingTop = mounted && !isExcludedPath;
   const showPaddingBottom = mounted && !isExcludedPath;
 
@@ -134,7 +134,7 @@ export function ClientLayout({ children }: { children: ReactNode }) {
           <AuthGuard>
             <div className={cn(
               "relative min-h-screen flex flex-col max-w-lg mx-auto w-full bg-white shadow-2xl border-x border-gray-100 overflow-y-auto no-scrollbar",
-              showPaddingTop && "pt-10"
+              showPaddingTop && "pt-[2px]"
             )}>
               <main className={cn("flex-1", showPaddingBottom && "pb-32")}>
                 {!isExcludedPath && <LocationRequest />}

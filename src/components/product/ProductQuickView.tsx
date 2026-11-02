@@ -33,7 +33,7 @@ interface ProductQuickViewProps {
 
 /**
  * @fileOverview ProductQuickView with Fixed Cart Addition Logic and Auth Guard.
- * Rounding updated to professional 1.25rem/1.5rem.
+ * Top 'face' line reduced to strictly 2px as requested.
  */
 export function ProductQuickView({ product, children, isMedical, vendorScheduleOpen }: ProductQuickViewProps) {
   const { addToCart } = useCart();
@@ -112,6 +112,8 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogTrigger asChild>{children}</DialogTrigger>
         <DialogContent className="rounded-t-[1.5rem] p-0 overflow-hidden border-none shadow-2xl z-[2000001] bottom-0 top-auto translate-y-0 focus:outline-none h-[88vh] max-w-lg flex flex-col bg-[#0B0B0B] sm:h-[80vh] sm:rounded-[1.5rem] sm:bottom-1/2 sm:translate-y-1/2">
+          
+          <div className="bg-primary h-[2px] w-full shrink-0" />
           
           <div className="p-6 pb-4 shrink-0 border-b border-white/5 relative z-10 text-white">
             <DialogHeader>

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -17,6 +16,9 @@ interface OrderRatingDialogProps {
   onClose: () => void;
 }
 
+/**
+ * @fileOverview Order Rating Dialog with top 'face' line reduced to 2px.
+ */
 export function OrderRatingDialog({ order, isOpen, onClose }: OrderRatingDialogProps) {
   const [rating, setRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
@@ -71,7 +73,7 @@ export function OrderRatingDialog({ order, isOpen, onClose }: OrderRatingDialogP
   return (
     <Dialog open={isOpen} onOpenChange={(val) => !isSubmitting && !isSuccess && (val ? null : onClose())}>
       <DialogContent className="rounded-[3rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none">
-        <div className="bg-primary h-1.5 w-full" />
+        <div className="bg-primary h-[2px] w-full shrink-0" />
         
         <div className="p-8">
           {isSuccess ? (

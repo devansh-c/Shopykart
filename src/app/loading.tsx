@@ -1,16 +1,15 @@
-
 import { Skeleton } from "@/components/ui/skeleton";
 
 /**
  * @fileOverview Premium Pure White FAST Shimmer Loading UI.
- * Speed increased for a more dynamic feel.
+ * Top padding reduced to 2px for consistency.
  */
 export default function Loading() {
   return (
     <div className="min-h-screen bg-white">
       {/* Header Skeleton */}
-      <div className="p-4 space-y-4">
-        <div className="flex justify-between items-center">
+      <div className="pt-[2px] px-4 pb-4 space-y-4">
+        <div className="flex justify-between items-center pt-4">
           <Skeleton className="h-10 w-[160px] rounded-full" />
           <Skeleton className="h-10 w-10 rounded-xl" />
         </div>
@@ -23,15 +22,15 @@ export default function Loading() {
           <Skeleton className="aspect-[18/9] w-full rounded-[2.5rem]" />
         </div>
 
-        {/* Explore Hub Skeleton */}
+        {/* Explore Hub Skeleton - Matching Grid Removal */}
         <div className="space-y-4">
           <div className="px-6 flex justify-between items-center">
             <Skeleton className="h-5 w-32 rounded-full" />
             <Skeleton className="h-3 w-16 rounded-full" />
           </div>
-          <div className="flex gap-4 px-6 overflow-hidden">
-            <Skeleton className="h-44 w-56 shrink-0 rounded-[2.5rem]" />
-            <Skeleton className="h-44 w-56 shrink-0 rounded-[2.5rem]" />
+          <div className="grid grid-cols-2 gap-4 px-6">
+            <Skeleton className="h-44 w-full rounded-[2.5rem]" />
+            <Skeleton className="h-44 w-full rounded-[2.5rem]" />
           </div>
         </div>
 
