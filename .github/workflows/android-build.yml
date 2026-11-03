@@ -30,6 +30,11 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
+      # CREATE DUMMY KEYSTORE FOR BUILD (User must replace for real store upload)
+      - name: Create Dummy Keystore
+        run: |
+          keytool -genkey -noprompt -alias shopykart -dname "CN=ShopyKart, OU=IT, O=ShopyKart, L=Ranipur, S=UP, C=IN" -keystore android/app/release.jks -storepass shopykart123 -keypass shopykart123 -keyalg RSA -keysize 2048 -validity 10000
+
       # BACKUP ORIGINAL ASSETS
       - name: Backup Original Assets
         run: |
@@ -56,11 +61,11 @@ jobs:
 
       - name: Build Android (Customer)
         working-directory: android
-        run: chmod +x gradlew && ./gradlew assembleDebug bundleRelease
+        run: chmod +x gradlew && ./gradlew bundleRelease assembleRelease
 
       - name: Archive Customer
         run: |
-          cp android/app/build/outputs/apk/debug/app-debug.apk app.shopykart.apk
+          cp android/app/build/outputs/apk/release/app-release.apk app.shopykart.apk
           cp android/app/build/outputs/bundle/release/app-release.aab app.shopykart.aab
 
       # BUILD 2: ADMIN APP (co.in.shopykart.admin)
@@ -88,11 +93,11 @@ jobs:
 
       - name: Build Android (Admin)
         working-directory: android
-        run: chmod +x gradlew && ./gradlew assembleDebug bundleRelease
+        run: chmod +x gradlew && ./gradlew bundleRelease assembleRelease
 
       - name: Archive Admin
         run: |
-          cp android/app/build/outputs/apk/debug/app-debug.apk admin.shopykart.apk
+          cp android/app/build/outputs/apk/release/app-release.apk admin.shopykart.apk
           cp android/app/build/outputs/bundle/release/app-release.aab admin.shopykart.aab
 
       # BUILD 3: BIZ APP (co.in.shopykart.biz)
@@ -120,11 +125,11 @@ jobs:
 
       - name: Build Android (Biz)
         working-directory: android
-        run: chmod +x gradlew && ./gradlew assembleDebug bundleRelease
+        run: chmod +x gradlew && ./gradlew bundleRelease assembleRelease
 
       - name: Archive Biz
         run: |
-          cp android/app/build/outputs/apk/debug/app-debug.apk biz.shopykart.apk
+          cp android/app/build/outputs/apk/release/app-release.apk biz.shopykart.apk
           cp android/app/build/outputs/bundle/release/app-release.aab biz.shopykart.aab
 
       # BUILD 4: TOW APP (co.in.shopykart.tow)
@@ -152,11 +157,11 @@ jobs:
 
       - name: Build Android (Tow)
         working-directory: android
-        run: chmod +x gradlew && ./gradlew assembleDebug bundleRelease
+        run: chmod +x gradlew && ./gradlew bundleRelease assembleRelease
 
       - name: Archive Tow
         run: |
-          cp android/app/build/outputs/apk/debug/app-debug.apk tow.shopykart.apk
+          cp android/app/build/outputs/apk/release/app-release.apk tow.shopykart.apk
           cp android/app/build/outputs/bundle/release/app-release.aab tow.shopykart.aab
 
       # UPLOAD ALL 8 ARTIFACTS
