@@ -27,7 +27,13 @@ import {
   Ticket,
   BellRing,
   Edit,
-  Globe
+  Globe,
+  Wallet,
+  Calendar,
+  Zap,
+  ChevronRight,
+  TrendingUp,
+  CreditCard
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -40,7 +46,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { format, differenceInSeconds, differenceInMinutes } from 'date-fns';
+import { format, differenceInSeconds, differenceInMinutes, startOfDay, startOfWeek, startOfMonth, isAfter } from 'date-fns';
 import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 import { compressImage } from '@/lib/image-utils';
 import { scheduleTestNotification } from '@/components/shared/PermissionManager';
@@ -133,12 +139,41 @@ export default function VendorDashboard() {
   const productsQuery = useMemoFirebase(() => (firestore && user) ? query(collection(firestore, 'products'), where('vendorId', '==', user.uid)) : null, [firestore, user]);
   const { data: myProducts } = useCollection<any>(productsQuery);
 
-  const ordersQuery = useMemoFirebase(() => (firestore && user) ? query(collection(firestore, 'orders'), orderBy('createdAt', 'desc'), limit(100)) : null, [firestore, user]);
+  const ordersQuery = useMemoFirebase(() => (firestore && user) ? query(collection(firestore, 'orders'), orderBy('createdAt', 'desc')) : null, [firestore, user]);
   const { data: rawOrders } = useCollection<any>(ordersQuery);
 
   const filteredOrders = useMemo(() => {
     if (!rawOrders || !user) return [];
-    return rawOrders.filter((o: any) => String(o.vendorId) === String(user.uid) || (Array.isArray(o.vendorIds) && o.vendorIds.includes(user.uid)) || o.items?.some((it:any) => String(it.vendorId) === String(user.uid)));
+    return rawOrders.filter((o: any) => 
+      (String(o.vendorId) === String(user.uid) || (Array.isArray(o.vendorIds) && o.vendorIds.includes(user.uid)) || o.items?.some((it:any) => String(it.vendorId) === String(user.uid))) &&
+      o.status !== 'Delivered' && o.status !== 'Cancelled'
+    );
+  }, [rawOrders, user]);
+
+  const earnings = useMemo(() => {
+    if (!rawOrders || !user) return { today: 0, week: 0, month: 0 };
+    
+    const now = new Date();
+    const today = startOfDay(now);
+    const week = startOfWeek(now);
+    const month = startOfMonth(now);
+
+    let t = 0, w = 0, m = 0;
+
+    rawOrders.forEach((o: any) => {
+      // Only count DELIVERED orders for earnings
+      if (o.status !== 'Delivered') return;
+      
+      const isForMe = String(o.vendorId) === String(user.uid) || (Array.isArray(o.vendorIds) && o.vendorIds.includes(user.uid)) || o.items?.some((it:any) => String(it.vendorId) === String(user.uid));
+      if (!isForMe) return;
+
+      const orderDate = o.createdAt?.seconds ? new Date(o.createdAt.seconds * 1000) : new Date(o.createdAt);
+      if (isAfter(orderDate, today)) t += Number(o.total) || 0;
+      if (isAfter(orderDate, week)) w += Number(o.total) || 0;
+      if (isAfter(orderDate, month)) m += Number(o.total) || 0;
+    });
+
+    return { today: t, week: w, month: m };
   }, [rawOrders, user]);
 
   const handleUpdateStatus = async (orderId: string, newStatus: string) => {
@@ -214,7 +249,7 @@ export default function VendorDashboard() {
   };
 
   const handleEdit = (p: any) => {
-    setEditingProductId(p.id);
+    setEditingId(p.id);
     setProductForm({ 
       name: p.name, 
       slug: p.slug || '', 
@@ -229,6 +264,8 @@ export default function VendorDashboard() {
     setIsVarietyRequired(p.isVarietyRequired || false);
     setIsProductModalOpen(true);
   };
+
+  const setEditingId = (id: string | null) => setEditingProductId(id);
 
   const handleProductImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -269,8 +306,52 @@ export default function VendorDashboard() {
 
       <main className="flex-1 overflow-y-auto no-scrollbar pb-32">
         {activeMainTab === 'orders' && (
-           <div className="p-4 space-y-4">
-              <h2 className="text-xl font-black italic uppercase ml-2">Active Orders</h2>
+           <div className="p-4 space-y-6">
+              {/* EARNINGS SECTION - MATCHING IMAGE STYLE */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                 <div className="bg-[#EF4444] p-8 rounded-[2.5rem] text-white shadow-2xl shadow-rose-200 relative overflow-hidden flex items-center justify-between">
+                    <div className="relative z-10">
+                       <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Today</span>
+                       <div className="text-4xl font-black italic tracking-tighter mt-1">₹ {earnings.today.toFixed(2)}</div>
+                    </div>
+                    <div className="bg-white/20 p-4 rounded-[1.5rem] backdrop-blur-md relative z-10">
+                       <Wallet className="h-10 w-10 text-white fill-white/20" />
+                    </div>
+                    <div className="absolute top-0 right-0 h-full w-24 bg-white/5 -skew-x-12 translate-x-10" />
+                 </div>
+
+                 <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-[#EF4444] p-5 rounded-[2rem] text-white shadow-xl relative overflow-hidden">
+                       <span className="text-[8px] font-black uppercase tracking-widest opacity-80">This Week</span>
+                       <div className="text-lg font-black italic tracking-tight mt-1">₹ {earnings.week.toFixed(2)}</div>
+                    </div>
+                    <div className="bg-[#EF4444] p-5 rounded-[2rem] text-white shadow-xl relative overflow-hidden">
+                       <span className="text-[8px] font-black uppercase tracking-widest opacity-80">This Month</span>
+                       <div className="text-lg font-black italic tracking-tight mt-1">₹ {earnings.month.toFixed(2)}</div>
+                    </div>
+                 </div>
+              </div>
+
+              {/* PROMO ADS SECTION - MATCHING IMAGE STYLE */}
+              <div className="bg-[#FFF5F5] border-2 border-dashed border-[#EF4444]/20 p-8 rounded-[3rem] flex flex-col items-center text-center space-y-4 animate-in fade-in zoom-in duration-700">
+                 <div className="relative">
+                    <div className="absolute inset-0 bg-primary/10 rounded-full animate-ping opacity-20" />
+                    <Megaphone className="h-10 w-10 text-primary relative z-10" />
+                 </div>
+                 <div className="space-y-1">
+                    <h3 className="text-xl font-black italic uppercase tracking-tighter text-gray-900">Want To Get Highlighted?</h3>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-relaxed">In the customer app & websites.</p>
+                 </div>
+                 <Button className="bg-[#EF4444] text-white px-8 h-12 rounded-2xl font-black uppercase italic text-xs shadow-xl shadow-rose-100 active:scale-95 transition-all">
+                    Create Ads
+                 </Button>
+              </div>
+
+              <div className="flex items-center justify-between px-2">
+                 <h2 className="text-xl font-black italic uppercase">Order Queue</h2>
+                 <Badge variant="outline" className="rounded-full border-gray-200 text-gray-400 font-black uppercase text-[8px]">{filteredOrders.length} ACTIVE</Badge>
+              </div>
+
               <div className="space-y-4">
                  {filteredOrders.length > 0 ? filteredOrders.map((o: any) => (
                    <div key={o.id} className="bg-white p-6 rounded-[2.5rem] border border-border/50 shadow-sm mb-4">
@@ -352,18 +433,48 @@ export default function VendorDashboard() {
         )}
 
         {activeMainTab === 'payouts' && (
-           <div className="p-4 space-y-6"><h2 className="text-xl font-black italic uppercase ml-2">Earnings</h2><div className="bg-[#0B0B0B] p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden"><div className="relative z-10 space-y-6"><div><span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">Current Balance</span><div className="text-5xl font-black italic tracking-tighter text-primary mt-1">₹{vendorProfile?.walletBalance?.toFixed(2) || '0.00'}</div></div></div></div><div className="space-y-4"></div></div>
+           <div className="p-4 space-y-6">
+              <h2 className="text-xl font-black italic uppercase ml-2">Wallet & Settlements</h2>
+              <div className="bg-[#0B0B0B] p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden">
+                 <div className="relative z-10 space-y-6">
+                    <div>
+                       <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">Available Balance</span>
+                       <div className="text-5xl font-black italic tracking-tighter text-primary mt-1">₹{vendorProfile?.walletBalance?.toFixed(2) || '0.00'}</div>
+                    </div>
+                    <div className="bg-white/5 p-5 rounded-2xl border border-white/10 flex items-center justify-between">
+                       <div className="flex items-center gap-3">
+                          <TrendingUp className="h-5 w-5 text-green-500" />
+                          <span className="text-[10px] font-black uppercase">Growth This Month</span>
+                       </div>
+                       <span className="text-xs font-black italic text-green-500">+12%</span>
+                    </div>
+                 </div>
+                 <div className="absolute top-0 right-0 h-full w-44 bg-primary/5 -skew-x-12 translate-x-12" />
+              </div>
+
+              <div className="space-y-4">
+                 <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Payment History</h3>
+                 {/* This would show payout records from vendors/{vendorId}/payout_history */}
+                 <div className="text-center py-20 opacity-20 flex flex-col items-center">
+                    <History className="h-12 w-12 mb-4" />
+                    <p className="font-black uppercase text-xs">No records found</p>
+                 </div>
+              </div>
+           </div>
         )}
       </main>
 
       <nav className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto w-full bg-[#0F172A] pt-4 pb-8 px-4 flex justify-around border-t border-white/5 z-50 rounded-t-[2.5rem] shadow-2xl">
         {[
-          {id:'orders',label:'Orders',icon:LayoutDashboard},
-          {id:'catalog',label:'Catalog',icon:Layers},
-          {id:'payouts',label:'Payouts',icon:CircleDollarSign},
+          {id:'orders',label:'Home',icon:LayoutDashboard},
+          {id:'catalog',label:'Menu',icon:Layers},
+          {id:'payouts',label:'Wallet',icon:Wallet},
           {id:'account',label:'Profile',icon:UserCircle2}
         ].map(item => (
-          <button key={item.id} onClick={() => setActiveMainTab(item.id as MainTab)} className="flex flex-col items-center gap-1.5 active:scale-90 transition-none"><item.icon className={cn("h-5 w-5", activeMainTab === item.id ? "text-primary scale-110" : "text-gray-500")} /><span className={cn("text-[8px] font-black uppercase tracking-widest", activeMainTab === item.id ? "text-white" : "text-gray-500")}>{item.label}</span></button>
+          <button key={item.id} onClick={() => setActiveMainTab(item.id as MainTab)} className="flex flex-col items-center gap-1.5 active:scale-90 transition-none">
+            <item.icon className={cn("h-5 w-5", activeMainTab === item.id ? "text-primary scale-110" : "text-gray-500")} />
+            <span className={cn("text-[8px] font-black uppercase tracking-widest", activeMainTab === item.id ? "text-white" : "text-gray-500")}>{item.label}</span>
+          </button>
         ))}
       </nav>
     </div>
