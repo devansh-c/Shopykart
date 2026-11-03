@@ -33,7 +33,7 @@ jobs:
       # CREATE DUMMY KEYSTORE FOR BUILD (User must replace for real store upload)
       - name: Create Dummy Keystore
         run: |
-          keytool -genkey -noprompt -alias shopykart -dname "CN=ShopyKart, OU=IT, O=ShopyKart, L=Ranipur, S=UP, C=IN" -keystore android/app/release.jks -storepass shopykart123 -keypass shopykart123 -keyalg RSA -keysize 2048 -validity 10000
+          test -f android/app/release.jks || keytool -genkey -noprompt -alias shopykart -dname "CN=ShopyKart, OU=IT, O=ShopyKart, L=Ranipur, S=UP, C=IN" -keystore android/app/release.jks -storepass shopykart123 -keypass shopykart123 -keyalg RSA -keysize 2048 -validity 10000
 
       # BACKUP ORIGINAL ASSETS
       - name: Backup Original Assets
