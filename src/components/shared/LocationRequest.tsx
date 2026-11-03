@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -8,24 +9,21 @@ import { collection, query, where, doc, setDoc, serverTimestamp } from 'firebase
 import { MapPin, ChevronRight, Store, Loader2, X } from 'lucide-react';
 
 /**
- * @fileOverview Simplified Location Selection - Manual Zone Selection ONLY.
- * GPS and Map Pinning systems have been removed as requested.
+ * @fileOverview Instant Location Selection - Optimized with Pre-fetched SSR Zones.
  */
-export default function LocationRequest() {
+export default function LocationRequest({ initialData = [] }: { initialData?: any[] }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [displayZones, setDisplayZones] = useState<any[]>([]);
+  const [displayZones, setDisplayZones] = useState<any[]>(initialData);
   const { toast } = useToast();
   const firestore = useFirestore();
   const { user, loading: userLoading } = useUser();
 
-  // 1. Fetch active zones
   const zonesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'zones'), where('isActive', '==', true));
   }, [firestore]);
-  const { data: activeZones } = useCollection<any>(zonesQuery);
+  const { data: activeZones } = useCollection<any>(zonesQuery, 'location_zones_v5', initialData);
 
-  // 2. Fetch logged-in user's profile for recovery
   const userProfileRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, 'users', user.uid);
@@ -53,7 +51,7 @@ export default function LocationRequest() {
       }
     };
 
-    const timer = setTimeout(checkLocationStatus, 1500);
+    const timer = setTimeout(checkLocationStatus, 200);
 
     const handleOpenManual = () => { setIsOpen(true); };
     window.addEventListener('open-location-picker', handleOpenManual);

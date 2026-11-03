@@ -1,3 +1,4 @@
+
 "use client";
 
 import { CartProvider } from '@/components/cart/CartProvider';
@@ -17,7 +18,6 @@ import TelegramNotifier from '@/components/shared/TelegramNotifier';
 import NotificationHandler from '@/components/shared/NotificationHandler';
 import CustomerNotificationHandler from '@/components/shared/CustomerNotificationHandler';
 import WelcomeBonusOverlay from '@/components/auth/WelcomeBonusOverlay';
-import LocationRequest from '@/components/shared/LocationRequest';
 import BottomNav from '@/components/shared/BottomNav';
 import { TawkChat } from '@/components/shared/TawkChat';
 import PermissionManager from '@/components/shared/PermissionManager';
@@ -40,7 +40,6 @@ const AuthGuard = memo(({ children }: { children: ReactNode }) => {
   const isAuthRequiredRoute = useMemo(() => {
     if (!pathname) return false;
     const p = pathname.toLowerCase();
-    // Added /order to auth required routes so tracking works instantly
     return p.startsWith('/cart') || p.startsWith('/order');
   }, [pathname]);
 
@@ -110,13 +109,11 @@ export function ClientLayout({ children }: { children: ReactNode }) {
     return p.startsWith('/admin') || p.startsWith('/vendor') || p.startsWith('/delivery');
   }, [pathname]);
 
-  // APP ROLE DETECTION
   const isAdminApp = process.env.NEXT_PUBLIC_ADMIN_APP === 'true';
   const isStoreApp = process.env.NEXT_PUBLIC_BIZ_APP === 'true';
   const isFleetApp = process.env.NEXT_PUBLIC_TOW_APP === 'true';
   const isBusinessApp = isAdminApp || isStoreApp || isFleetApp;
 
-  // Optimized top padding 'face' to strictly 2px as requested
   const showPaddingTop = mounted && !isExcludedPath;
   const showPaddingBottom = mounted && !isExcludedPath;
 
@@ -128,7 +125,6 @@ export function ClientLayout({ children }: { children: ReactNode }) {
           <FirebaseErrorListener />
           <PermissionManager />
           
-          {/* HANDLER ROUTING: Ensure messages go to the right person */}
           {isBusinessApp ? <NotificationHandler /> : <CustomerNotificationHandler />}
           
           <AuthGuard>
@@ -137,7 +133,6 @@ export function ClientLayout({ children }: { children: ReactNode }) {
               showPaddingTop && "pt-[2px]"
             )}>
               <main className={cn("flex-1", showPaddingBottom && "pb-32")}>
-                {!isExcludedPath && <LocationRequest />}
                 <TelegramNotifier />
                 <WelcomeBonusOverlay />
                 

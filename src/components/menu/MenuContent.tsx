@@ -63,7 +63,7 @@ const ProductHorizontalItem = memo(({ product, isOffline }: any) => {
 });
 ProductHorizontalItem.displayName = "ProductHorizontalItem";
 
-export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
+export default function MenuContent({ forcedSlug, initialVendor, initialProducts = [] }: { forcedSlug?: string, initialVendor?: any, initialProducts?: any[] }) {
   const params = useParams();
   const searchParams = useSearchParams();
   const rawSlug = forcedSlug || (params?.slug as string) || searchParams.get('id');
@@ -72,8 +72,8 @@ export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
   
   const [searchQuery, setSearchQuery] = useState('');
   const [currentMinutes, setCurrentMinutes] = useState<number | null>(null);
-  const [vendorProfile, setVendorProfile] = useState<any>(null);
-  const [vendorLoading, setVendorLoading] = useState(true);
+  const [vendorProfile, setVendorProfile] = useState<any>(initialVendor);
+  const [vendorLoading, setVendorLoading] = useState(!initialVendor);
   
   const firestore = useFirestore();
 
@@ -88,11 +88,14 @@ export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
   }, []);
 
   useEffect(() => {
+    if (initialVendor) {
+      setVendorProfile(initialVendor);
+      setVendorLoading(false);
+      return;
+    }
+    
     async function resolveVendor() {
-      if (!firestore || !rawSlug) {
-        setVendorLoading(false);
-        return;
-      }
+      if (!firestore || !rawSlug) return;
       setVendorLoading(true);
       try {
         const idRef = doc(firestore, 'vendors', rawSlug);
@@ -110,15 +113,6 @@ export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
           setVendorLoading(false);
           return;
         }
-
-        const sidQ = query(collection(firestore, 'vendors'), where('storeId', '==', rawSlug.toLowerCase()), limit(1));
-        const sidSnap = await getDocs(sidQ);
-        if (!sidSnap.empty) {
-          setVendorProfile({ id: sidSnap.docs[0].id, ...sidSnap.docs[0].data() });
-          setVendorLoading(false);
-          return;
-        }
-        
       } catch (err) {
         console.error("Vendor resolution error:", err);
       } finally {
@@ -126,13 +120,13 @@ export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
       }
     }
     resolveVendor();
-  }, [firestore, rawSlug]);
+  }, [firestore, rawSlug, initialVendor]);
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore || !vendorProfile) return null;
     return query(collection(firestore, 'products'), where('vendorId', '==', vendorProfile.id));
   }, [firestore, vendorProfile]);
-  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, `menu_${vendorProfile?.id}`);
+  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, `menu_v3_${vendorProfile?.id}`, initialProducts);
 
   const storeCouponsQuery = useMemoFirebase(() => {
     if (!firestore || !vendorProfile) return null;
@@ -141,9 +135,10 @@ export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
   const { data: storeCoupons } = useCollection<any>(storeCouponsQuery);
 
   const categoriesWithProducts = useMemo(() => {
-    if (!dbProducts) return [];
+    const list = (dbProducts && dbProducts.length > 0) ? dbProducts : initialProducts;
+    if (!list) return [];
     
-    const filtered = dbProducts.filter((product: any) => {
+    const filtered = list.filter((product: any) => {
       if (product.isDeleted) return false;
       const matchesSearch = (product.name || '').toLowerCase().includes(searchQuery.toLowerCase());
       return matchesSearch;
@@ -160,12 +155,12 @@ export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
       name,
       items: items.sort((a, b) => (Number(a.price) - Number(b.price)))
     }));
-  }, [searchQuery, dbProducts]);
+  }, [searchQuery, dbProducts, initialProducts]);
 
   const scheduleOpen = useMemo(() => isStoreScheduleOpen(vendorProfile, currentMinutes), [vendorProfile, currentMinutes]);
   const isOffline = vendorProfile?.isOnline === false || !scheduleOpen;
 
-  if (vendorLoading) {
+  if (vendorLoading && !vendorProfile) {
     return (
       <div className="h-screen bg-white flex flex-col items-center justify-center gap-4">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -207,32 +202,12 @@ export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
         </div>
       </div>
 
-      {/* TOP ANNOUNCEMENT */}
       {vendorProfile.isAnnouncementActive && vendorProfile.storeAnnouncement && (
         <div className="px-6 py-4 animate-in fade-in duration-500">
            <div className="bg-amber-50 border-2 border-amber-400 p-5 rounded-[2rem] shadow-xl flex items-start gap-4">
               <div className="bg-amber-400 p-2 rounded-xl text-white shadow-sm shrink-0"><Megaphone className="h-5 w-5 animate-pulse" /></div>
               <p className="text-xs font-black italic text-amber-900 leading-tight uppercase">"{vendorProfile.storeAnnouncement}"</p>
            </div>
-        </div>
-      )}
-
-      {/* STORE COUPONS */}
-      {storeCoupons && storeCoupons.length > 0 && (
-        <div className="px-6 py-4 flex overflow-x-auto space-x-4 no-scrollbar">
-           {storeCoupons.map((c: any) => (
-             <button 
-              key={c.id} 
-              onClick={() => { navigator.clipboard.writeText(c.code); toast({title: "Coupon Copied!"}); }}
-              className="min-w-[200px] h-16 bg-primary/5 rounded-2xl border-2 border-dashed border-primary/20 p-4 flex items-center gap-3 active:scale-95 transition-all"
-             >
-                <Tag className="h-5 w-5 text-primary" />
-                <div className="text-left">
-                   <p className="text-[10px] font-black text-gray-900 leading-none mb-1">{c.code}</p>
-                   <p className="text-[8px] font-bold text-primary uppercase">GET {c.discountValue}{c.discountType === 'percentage' ? '%' : '₹'} OFF</p>
-                </div>
-             </button>
-           ))}
         </div>
       )}
 
@@ -275,15 +250,6 @@ export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
           </div>
         ))}
       </div>
-
-      {/* BOTTOM ANNOUNCEMENT */}
-      {vendorProfile.isAnnouncementActive && vendorProfile.storeAnnouncement && (
-        <div className="px-6 py-12 text-center border-t border-dashed border-gray-100 mt-10">
-           <Megaphone className="h-10 w-10 text-primary/10 mx-auto mb-4" />
-           <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-4">NOTICE FROM STORE</p>
-           <h4 className="text-xl font-black italic uppercase text-gray-700 leading-tight px-10">"{vendorProfile.storeAnnouncement}"</h4>
-        </div>
-      )}
     </div>
   );
 }

@@ -12,23 +12,26 @@ import { VerticalStoreList } from '@/components/home/VerticalStoreList';
 import OffersSection from '@/components/home/OffersSection';
 import AnnouncementBanner from '@/components/home/AnnouncementBanner';
 import { Under49Products } from '@/components/home/Under49Products';
+import LocationRequest from '@/components/shared/LocationRequest';
 
 function HomeContent({ 
   initialBanners = [], 
   initialCategories = [], 
   initialStores = [], 
-  initialProducts = [] 
+  initialProducts = [],
+  initialZones = []
 }: { 
   initialBanners?: any[], 
   initialCategories?: any[], 
   initialStores?: any[], 
-  initialProducts?: any[] 
+  initialProducts?: any[],
+  initialZones?: any[]
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const [searchQuery, setSearchQuery] = useState('');
-  const [appTypeResolved, setAppTypeResolved] = useState(false);
+  const [appTypeResolved, setAppTypeResolved] = useState(true);
 
   // APP TYPE REDIRECTION (Client-side only)
   useEffect(() => {
@@ -39,7 +42,6 @@ function HomeContent({
     if (isAdmin) router.replace('/admin/dashboard');
     else if (isBiz) router.replace('/vendor/dashboard');
     else if (isTow) router.replace('/delivery/dashboard');
-    else setAppTypeResolved(true);
   }, [router]);
 
   const activeMode = searchParams.get('mode') || 'Food';
@@ -62,12 +64,10 @@ function HomeContent({
     updateUrlParam('mode', mode);
   };
 
-  if (!appTypeResolved) {
-    return <div className="h-screen bg-white flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
-  }
-
   return (
     <div className="min-h-screen bg-white transform-gpu">
+      <LocationRequest initialData={initialZones} />
+      
       {activeMode !== 'Medical' && activeMode !== 'Beauty' && (
         <LocationHeader 
           searchValue={searchQuery} 
