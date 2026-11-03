@@ -1,8 +1,7 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
-import { collection, doc, query, where, setDoc, serverTimestamp, updateDoc, orderBy, limit, addDoc, getDoc } from 'firebase/firestore';
+import { collection, doc, query, where, setDoc, serverTimestamp, updateDoc, orderBy, limit, addDoc, getDoc, deleteDoc, writeBatch } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { 
   ShoppingBag, 
@@ -44,12 +43,16 @@ import {
   CheckCircle2,
   QrCode,
   Building2,
-  Sparkles
+  Sparkles,
+  FileUp,
+  Sparkle,
+  Search,
+  Check
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { cn, slugify } from '@/lib/utils';
-import { useState, useEffect, useRef, useMemo, useTransition } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
@@ -57,9 +60,10 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { format, differenceInSeconds, differenceInMinutes, startOfDay, startOfWeek, startOfMonth, isAfter } from 'date-fns';
+import { format, startOfDay, startOfWeek, startOfMonth, isAfter } from 'date-fns';
 import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 import { compressImage } from '@/lib/image-utils';
+import { extractAndGenerateMenu } from '@/ai/flows/bulk-menu-extraction-flow';
 
 type MainTab = 'orders' | 'catalog' | 'payouts' | 'account';
 type OrderFilter = 'NEW ORDERS' | 'DELIVERED' | 'CANCELLED';
@@ -70,6 +74,7 @@ export default function VendorDashboard() {
   const { user, loading: authLoading } = useUser();
   const { toast } = useToast();
   const router = useRouter();
+  const menuInputRef = useRef<HTMLInputElement>(null);
   
   const [activeMainTab, setActiveMainTab] = useState<MainTab>('orders');
   const [orderFilter, setOrderFilter] = useState<OrderFilter>('NEW ORDERS');
@@ -78,6 +83,7 @@ export default function VendorDashboard() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isUpiModalOpen, setIsUpiModalOpen] = useState(false);
   const [isWithdrawLoading, setIsWithdrawLoading] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
 
   // UPI Form State
   const [upiForm, setUpiForm] = useState({
@@ -103,6 +109,9 @@ export default function VendorDashboard() {
 
   const ordersQuery = useMemoFirebase(() => (firestore && user) ? query(collection(firestore, 'orders'), orderBy('createdAt', 'desc')) : null, [firestore, user]);
   const { data: rawOrders } = useCollection<any>(ordersQuery);
+
+  const productsQuery = useMemoFirebase(() => (firestore && user) ? query(collection(firestore, 'products'), where('vendorId', '==', user.uid)) : null, [firestore, user]);
+  const { data: products } = useCollection<any>(productsQuery);
 
   const payoutHistoryQuery = useMemoFirebase(() => (firestore && user) ? query(collection(firestore, 'vendors', user.uid, 'payout_history'), orderBy('date', 'desc')) : null, [firestore, user]);
   const { data: payoutHistory } = useCollection<any>(payoutHistoryQuery);
@@ -168,6 +177,72 @@ export default function VendorDashboard() {
     } catch (e) { toast({ variant: "destructive", title: "Failed" }); }
   };
 
+  const handleMenuScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !firestore || !user || !vendorProfile) return;
+    
+    setIsScanning(true);
+    toast({ title: "AI Scanning Menu...", description: "Identifying dishes and generating professional visuals." });
+    
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      try {
+        const base64 = reader.result as string;
+        const result = await extractAndGenerateMenu({ 
+          photoDataUri: base64, 
+          vendorCategory: vendorProfile.category || 'Food' 
+        });
+
+        if (result.items.length > 0) {
+          const batch = writeBatch(firestore);
+          result.items.forEach((item) => {
+            const productRef = doc(collection(firestore, 'products'));
+            const pData = {
+              ...item,
+              id: productRef.id,
+              vendorId: user.uid,
+              restaurantName: vendorProfile.storeName,
+              zoneId: vendorProfile.zoneId || 'global',
+              town: vendorProfile.town || 'Local',
+              isAvailable: true,
+              isVeg: true,
+              isDeleted: false,
+              slug: slugify(item.name),
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp()
+            };
+            batch.set(productRef, pData);
+            // Also sync to vendor sub-collection for legacy support
+            const vendorProductRef = doc(firestore, 'vendors', user.uid, 'products', productRef.id);
+            batch.set(vendorProductRef, pData);
+          });
+          await batch.commit();
+          toast({ title: "Menu Imported! ✨", description: `${result.items.length} products added with AI images.` });
+        } else {
+          toast({ variant: "destructive", title: "Scan Failed", description: "Could not read items. Try a clearer photo." });
+        }
+      } catch (err) {
+        toast({ variant: "destructive", title: "AI Error", description: "Menu processing failed." });
+      } finally {
+        setIsScanning(false);
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const toggleAvailability = async (id: string, current: boolean) => {
+    if (!firestore) return;
+    await updateDoc(doc(firestore, 'products', id), { isAvailable: !current });
+    toast({ title: !current ? "Item Available" : "Item Sold Out" });
+  };
+
+  const deleteProduct = async (id: string) => {
+    if (!firestore || !confirm("Delete this product?")) return;
+    await updateDoc(doc(firestore, 'products', id), { isDeleted: true });
+    toast({ title: "Removed from Menu" });
+  };
+
   const handleSaveUpi = async () => {
     if (!firestore || !user || !upiForm.upiId) return;
     setIsProcessing(true);
@@ -231,7 +306,6 @@ export default function VendorDashboard() {
       <main className="flex-1 overflow-y-auto no-scrollbar pb-32">
          {activeMainTab === 'orders' && (
            <div className="p-4 space-y-6">
-              {/* RESTORED: EARNINGS ANALYTICS BOXES */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                  <div className="bg-[#EF4444] p-6 rounded-[2rem] text-white shadow-xl shadow-rose-200/50 relative overflow-hidden flex items-center justify-between">
                     <div className="relative z-10"><span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-80">Today</span><div className="text-3xl font-black italic mt-1">₹ {earnings.today.toFixed(0)}</div></div>
@@ -247,7 +321,6 @@ export default function VendorDashboard() {
                  </div>
               </div>
 
-              {/* RESTORED: AD PROMOTION CARD */}
               <div className="bg-[#0B0B0B] p-6 rounded-[2.5rem] text-white relative overflow-hidden border border-white/5 shadow-2xl group cursor-pointer active:scale-95 transition-all">
                 <div className="relative z-10 flex items-center justify-between">
                   <div className="space-y-1">
@@ -300,6 +373,58 @@ export default function VendorDashboard() {
                    </div>
                 </div>
               )) : <div className="text-center py-20 opacity-20 flex flex-col items-center"><ShoppingBag className="h-12 w-12 mb-2" /><p className="font-black uppercase text-xs">No active orders</p></div>}
+           </div>
+         )}
+
+         {activeMainTab === 'catalog' && (
+           <div className="p-4 space-y-6">
+              <div className="flex items-center justify-between px-2">
+                 <h2 className="text-xl font-black italic uppercase">My Catalog</h2>
+                 <div className="flex gap-2">
+                    <button onClick={() => menuInputRef.current?.click()} disabled={isScanning} className="bg-[#0B0B0B] text-white px-4 h-10 rounded-xl font-black uppercase text-[9px] italic tracking-widest flex items-center gap-2 shadow-lg active:scale-95 disabled:opacity-50">
+                       {isScanning ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkle className="h-3 w-3 text-primary" />}
+                       AI MENU SCAN
+                    </button>
+                    <input type="file" ref={menuInputRef} className="hidden" accept="image/*" onChange={handleMenuScan} />
+                    <Button onClick={() => router.push('/vendor/add-product')} variant="outline" className="h-10 rounded-xl border-gray-200"><Plus className="h-4 w-4" /></Button>
+                 </div>
+              </div>
+
+              {isScanning && (
+                <div className="bg-primary/5 p-6 rounded-[2rem] border-2 border-dashed border-primary/20 flex flex-col items-center text-center space-y-3 animate-pulse">
+                   <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                   <div>
+                      <h4 className="font-black italic uppercase text-sm">Processing Menu...</h4>
+                      <p className="text-[9px] font-bold text-muted-foreground uppercase">Identifying dishes & Generating AI visuals</p>
+                   </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 gap-4">
+                 {products?.filter(p => !p.isDeleted).map(p => (
+                   <div key={p.id} className="bg-white p-4 rounded-[2rem] border border-border/50 shadow-sm flex items-center gap-4 relative group">
+                      <div className="h-20 w-20 rounded-2xl overflow-hidden bg-muted border border-border/50 shrink-0">
+                         <img src={p.imageUrl} className="h-full w-full object-cover" alt="" />
+                      </div>
+                      <div className="flex-1 min-w-0 pr-10">
+                         <h4 className="font-black text-sm uppercase italic truncate">{p.name}</h4>
+                         <p className="text-[10px] font-black text-primary italic mb-2">₹{p.price}</p>
+                         <div className="flex items-center gap-2">
+                            <Switch checked={p.isAvailable !== false} onCheckedChange={() => toggleAvailability(p.id, p.isAvailable !== false)} className="scale-75 data-[state=checked]:bg-green-500" />
+                            <span className="text-[8px] font-black uppercase text-gray-400">{p.isAvailable !== false ? 'In Stock' : 'Sold Out'}</span>
+                         </div>
+                      </div>
+                      <button onClick={() => deleteProduct(p.id)} className="absolute top-4 right-4 h-8 w-8 bg-red-50 text-red-500 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 className="h-4 w-4" /></button>
+                   </div>
+                 ))}
+                 {!products?.filter(p => !p.isDeleted).length && !isScanning && (
+                   <div className="text-center py-20 opacity-20 flex flex-col items-center">
+                      <Layers className="h-12 w-12 mb-2" />
+                      <p className="font-black uppercase text-xs">Menu is empty</p>
+                      <p className="text-[8px] font-bold mt-1">USE AI SCAN TO ADD PRODUCTS FAST</p>
+                   </div>
+                 )}
+              </div>
            </div>
          )}
 
