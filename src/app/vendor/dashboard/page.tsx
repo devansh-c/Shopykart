@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -110,6 +109,27 @@ export default function VendorDashboard() {
   const pendingRequestsQuery = useMemoFirebase(() => (firestore && user) ? query(collection(firestore, 'payout_requests'), where('vendorId', '==', user.uid), where('status', '==', 'Pending')) : null, [firestore, user]);
   const { data: pendingRequests } = useCollection<any>(pendingRequestsQuery);
 
+  const filteredOrders = useMemo(() => {
+    if (!rawOrders || !user) return [];
+    
+    // 1. Filter orders belonging to this vendor
+    const myOrders = rawOrders.filter((o: any) => {
+      const vId = String(user.uid);
+      return String(o.vendorId) === vId || (Array.isArray(o.vendorIds) && o.vendorIds.includes(vId)) || o.items?.some((it: any) => String(it.vendorId) === vId);
+    });
+
+    // 2. Apply status filter based on active tab
+    if (orderFilter === 'DELIVERED') {
+      return myOrders.filter((o: any) => o.status === 'Delivered');
+    } else if (orderFilter === 'CANCELLED') {
+      return myOrders.filter((o: any) => o.status === 'Cancelled');
+    } else {
+      // NEW ORDERS: Everything else that is active
+      const activeStatuses = ['Placed', 'Accepted', 'Preparing', 'Ready for Pickup', 'Picked Up', 'Out for Delivery'];
+      return myOrders.filter((o: any) => activeStatuses.includes(o.status));
+    }
+  }, [rawOrders, user, orderFilter]);
+
   const earnings = useMemo(() => {
     if (!rawOrders || !user) return { today: 0, totalDelivered: 0, totalCancelled: 0 };
     let t = 0, td = 0, tc = 0;
@@ -124,7 +144,9 @@ export default function VendorDashboard() {
         td += amt;
         const orderDate = o.createdAt?.seconds ? new Date(o.createdAt.seconds * 1000) : new Date(o.createdAt);
         if (isAfter(orderDate, today)) t += amt;
-      } else if (status === 'CANCELLED') tc += amt;
+      } else if (status === 'CANCELLED') {
+        tc += amt;
+      }
     });
     return { today: t, totalDelivered: td, totalCancelled: tc };
   }, [rawOrders, user]);
@@ -235,6 +257,19 @@ export default function VendorDashboard() {
                   <button key={f} onClick={() => setOrderFilter(f as OrderFilter)} className={cn("flex-1 py-3 text-[9px] font-black rounded-xl transition-all", orderFilter === f ? "bg-[#EF4444] text-white" : "text-gray-400")}>{f}</button>
                 ))}
               </div>
+
+              {(orderFilter === 'DELIVERED' || orderFilter === 'CANCELLED') && (
+                <div className="grid grid-cols-2 gap-4 px-2">
+                   <div className="bg-white p-4 rounded-3xl border border-border/50 flex flex-col items-center">
+                      <span className="text-[7px] font-black text-gray-400 uppercase tracking-widest">Total Sales</span>
+                      <span className="text-xl font-black text-green-600 italic">₹{earnings.totalDelivered.toFixed(0)}</span>
+                   </div>
+                   <div className="bg-white p-4 rounded-3xl border border-border/50 flex flex-col items-center">
+                      <span className="text-[7px] font-black text-gray-400 uppercase tracking-widest">Total Loss</span>
+                      <span className="text-xl font-black text-red-600 italic">₹{earnings.totalCancelled.toFixed(0)}</span>
+                   </div>
+                </div>
+              )}
 
               {filteredOrders.length > 0 ? filteredOrders.map((o: any) => (
                 <div key={o.id} className="bg-white p-6 rounded-[2.5rem] border border-border/50 shadow-sm mb-4">

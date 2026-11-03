@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -103,10 +102,28 @@ export default function BeautyDashboard() {
   const { data: rawOrders } = useCollection<any>(ordersQuery);
 
   const payoutHistoryQuery = useMemoFirebase(() => (firestore && user) ? query(collection(firestore, 'vendors', user.uid, 'payout_history'), orderBy('date', 'desc')) : null, [firestore, user]);
-  const { data: payoutHistory } = useCollection<any>(payoutHistoryQuery);
+  const { data: payoutHistory } = useCollection<any>( payoutHistoryQuery);
 
   const pendingRequestsQuery = useMemoFirebase(() => (firestore && user) ? query(collection(firestore, 'payout_requests'), where('vendorId', '==', user.uid), where('status', '==', 'Pending')) : null, [firestore, user]);
   const { data: pendingRequests } = useCollection<any>(pendingRequestsQuery);
+
+  const filteredOrders = useMemo(() => {
+    if (!rawOrders || !user) return [];
+    
+    const myOrders = rawOrders.filter((o: any) => {
+      const vId = String(user.uid);
+      return String(o.vendorId) === vId || (Array.isArray(o.vendorIds) && o.vendorIds.includes(vId)) || o.items?.some((it: any) => String(it.vendorId) === vId);
+    });
+
+    if (orderFilter === 'DELIVERED') {
+      return myOrders.filter((o: any) => o.status === 'Delivered');
+    } else if (orderFilter === 'CANCELLED') {
+      return myOrders.filter((o: any) => o.status === 'Cancelled');
+    } else {
+      const activeStatuses = ['Placed', 'Accepted', 'Preparing', 'Ready for Pickup', 'Picked Up', 'Out for Delivery'];
+      return myOrders.filter((o: any) => activeStatuses.includes(o.status));
+    }
+  }, [rawOrders, user, orderFilter]);
 
   const earnings = useMemo(() => {
     if (!rawOrders || !user) return { today: 0, totalDelivered: 0, totalCancelled: 0 };
@@ -227,7 +244,7 @@ export default function BeautyDashboard() {
               )}
 
               {filteredOrders.length > 0 ? filteredOrders.map(o => (
-                <div key={o.id} className="bg-white p-6 rounded-[2.5rem] border border-border/50 shadow-sm">
+                <div key={o.id} className="bg-white p-6 rounded-[2.5rem] border border-border/50 shadow-sm mb-4">
                    <div className="flex justify-between items-start mb-4">
                       <div><span className="text-2xl font-black italic">#{o.customerOrderNumber}</span><p className="text-[8px] font-black text-gray-400 uppercase mt-1">{format(new Date(o.createdAt?.seconds * 1000 || Date.now()), 'hh:mm a')}</p></div>
                       <Badge className={cn("border-none font-black text-[8px] uppercase", o.status === 'Cancelled' ? 'bg-red-50 text-red-600' : 'bg-rose-50 text-rose-600')}>{o.status}</Badge>

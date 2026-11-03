@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -108,6 +107,24 @@ export default function MedicalDashboard() {
   const pendingRequestsQuery = useMemoFirebase(() => (firestore && user) ? query(collection(firestore, 'payout_requests'), where('vendorId', '==', user.uid), where('status', '==', 'Pending')) : null, [firestore, user]);
   const { data: pendingRequests } = useCollection<any>(pendingRequestsQuery);
 
+  const filteredOrders = useMemo(() => {
+    if (!rawOrders || !user) return [];
+    
+    const myOrders = rawOrders.filter((o: any) => {
+      const vId = String(user.uid);
+      return String(o.vendorId) === vId || (Array.isArray(o.vendorIds) && o.vendorIds.includes(vId)) || o.items?.some((it: any) => String(it.vendorId) === vId);
+    });
+
+    if (orderFilter === 'DELIVERED') {
+      return myOrders.filter((o: any) => o.status === 'Delivered');
+    } else if (orderFilter === 'CANCELLED') {
+      return myOrders.filter((o: any) => o.status === 'Cancelled');
+    } else {
+      const activeStatuses = ['Placed', 'Accepted', 'Preparing', 'Ready for Pickup', 'Picked Up', 'Out for Delivery'];
+      return myOrders.filter((o: any) => activeStatuses.includes(o.status));
+    }
+  }, [rawOrders, user, orderFilter]);
+
   const earnings = useMemo(() => {
     if (!rawOrders || !user) return { today: 0, totalDelivered: 0, totalCancelled: 0 };
     let t = 0, td = 0, tc = 0;
@@ -213,8 +230,21 @@ export default function MedicalDashboard() {
                 ))}
               </div>
 
+              {(orderFilter === 'DELIVERED' || orderFilter === 'CANCELLED') && (
+                <div className="grid grid-cols-2 gap-4 px-2">
+                   <div className="bg-white p-4 rounded-3xl border border-border/50 flex flex-col items-center">
+                      <span className="text-[7px] font-black text-gray-400 uppercase tracking-widest">Total Sales</span>
+                      <span className="text-xl font-black text-green-600 italic">₹{earnings.totalDelivered.toFixed(0)}</span>
+                   </div>
+                   <div className="bg-white p-4 rounded-3xl border border-border/50 flex flex-col items-center">
+                      <span className="text-[7px] font-black text-gray-400 uppercase tracking-widest">Total Loss</span>
+                      <span className="text-xl font-black text-red-600 italic">₹{earnings.totalCancelled.toFixed(0)}</span>
+                   </div>
+                </div>
+              )}
+
               {filteredOrders.length > 0 ? filteredOrders.map(o => (
-                <div key={o.id} className="bg-white p-6 rounded-[2.5rem] border border-border/50 shadow-sm">
+                <div key={o.id} className="bg-white p-6 rounded-[2.5rem] border border-border/50 shadow-sm mb-4">
                    <div className="flex justify-between items-start mb-4">
                       <div><span className="text-2xl font-black italic">#{o.customerOrderNumber}</span><p className="text-[8px] font-black text-gray-400 uppercase mt-1">{format(new Date(o.createdAt?.seconds * 1000 || Date.now()), 'hh:mm a')}</p></div>
                       <Badge className={cn("border-none font-black text-[8px] uppercase", o.status === 'Cancelled' ? 'bg-red-50 text-red-600' : 'bg-teal-50 text-teal-600')}>{o.status}</Badge>
