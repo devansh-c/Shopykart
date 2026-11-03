@@ -13,25 +13,31 @@ import { FirestorePermissionError } from '../errors';
 
 /**
  * @fileOverview High-Performance Document Hook.
- * Quota-Aware: Falls back to local storage if Google Cloud limits are reached.
+ * Hydration Safe: Defer cache reading until after component mount.
  */
 export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null, cacheKey?: string, initialData?: T) {
-  // 1. Initialize strictly with SSR data or Cache
-  const [data, setData] = useState<T | null>(() => {
-    if (initialData) return initialData;
-    
-    if (typeof window !== 'undefined' && cacheKey) {
-      try {
-        const cached = localStorage.getItem(`fire_doc_cache_${cacheKey}`);
-        if (cached) return JSON.parse(cached);
-      } catch (e) {}
-    }
-    return null;
-  });
-
-  const [loading, setLoading] = useState(() => !initialData && !data && !!ref);
+  // 1. Initialize strictly with SSR data or null
+  const [data, setData] = useState<T | null>(initialData || null);
+  const [loading, setLoading] = useState(() => !initialData && !!ref);
   const [error, setError] = useState<FirestoreError | null>(null);
+  const hasMounted = useRef(false);
   const refPath = ref?.path;
+
+  // 2. Defer cache lookup to prevent server/client HTML mismatch
+  useEffect(() => {
+    if (!hasMounted.current) {
+      hasMounted.current = true;
+      if (cacheKey && !data) {
+        try {
+          const cached = localStorage.getItem(`fire_doc_cache_${cacheKey}`);
+          if (cached) {
+            setData(JSON.parse(cached));
+            setLoading(false);
+          }
+        } catch (e) {}
+      }
+    }
+  }, [cacheKey, data]);
 
   useEffect(() => {
     if (!ref) {
@@ -70,7 +76,6 @@ export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null, cache
         }
       },
       async (err: FirestoreError) => {
-        // QUOTA HANDLING
         const silentCodes = ['resource-exhausted', 'quota-exceeded', 'unavailable'];
         if (silentCodes.some(code => err.code?.includes(code) || err.message?.toLowerCase().includes('quota'))) {
           setLoading(false);

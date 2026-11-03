@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useCallback, useEffect, Suspense } from 'react';
@@ -19,21 +18,21 @@ function HomeContent({
   initialCategories = [], 
   initialStores = [], 
   initialProducts = [],
-  initialZones = []
+  initialZones = [],
+  initialCoupons = []
 }: { 
   initialBanners?: any[], 
   initialCategories?: any[], 
   initialStores?: any[], 
   initialProducts?: any[],
-  initialZones?: any[]
+  initialZones?: any[],
+  initialCoupons?: any[]
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const [searchQuery, setSearchQuery] = useState('');
-  const [appTypeResolved, setAppTypeResolved] = useState(true);
 
-  // APP TYPE REDIRECTION (Client-side only)
   useEffect(() => {
     const isAdmin = process.env.NEXT_PUBLIC_ADMIN_APP === 'true';
     const isBiz = process.env.NEXT_PUBLIC_BIZ_APP === 'true';
@@ -113,7 +112,7 @@ function HomeContent({
                 <OfferSlider initialData={initialBanners} />
                 <AnnouncementBanner />
                 <Under49Products />
-                <OffersSection />
+                <OffersSection initialData={initialCoupons} />
               </div>
             )}
             

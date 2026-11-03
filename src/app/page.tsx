@@ -1,4 +1,3 @@
-
 import HomeClient from '@/components/home/HomeClient';
 import { initializeFirebase } from '@/firebase/init';
 import { collection, getDocs, limit, query } from 'firebase/firestore';
@@ -6,7 +5,7 @@ import { collection, getDocs, limit, query } from 'firebase/firestore';
 /**
  * @fileOverview Optimized Server-Side Entry Point.
  * BAKES Firestore data into HTML at build time for 0.0ms instant loading.
- * Parallelized fetching for Banners, Categories, Stores, Products, AND Zones.
+ * Fetches Banners, Categories, Stores, Products, Zones, AND Coupons.
  */
 
 export const revalidate = 86400; // 24 Hours
@@ -14,15 +13,16 @@ export const revalidate = 86400; // 24 Hours
 async function getInitialData() {
   try {
     const { firestore } = initializeFirebase();
-    if (!firestore) return { banners: [], categories: [], stores: [], products: [], zones: [] };
+    if (!firestore) return { banners: [], categories: [], stores: [], products: [], zones: [], coupons: [] };
 
     // Parallelize all fetches to reduce TTI (Time to Interactive)
-    const [bannersSnap, categoriesSnap, storesSnap, productsSnap, zonesSnap] = await Promise.all([
+    const [bannersSnap, categoriesSnap, storesSnap, productsSnap, zonesSnap, couponsSnap] = await Promise.all([
       getDocs(collection(firestore, 'banners')),
       getDocs(collection(firestore, 'categories')),
       getDocs(query(collection(firestore, 'vendors'), limit(50))),
       getDocs(query(collection(firestore, 'products'), limit(500))),
-      getDocs(collection(firestore, 'zones'))
+      getDocs(collection(firestore, 'zones')),
+      getDocs(collection(firestore, 'coupons'))
     ]);
 
     const banners = bannersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -30,6 +30,7 @@ async function getInitialData() {
     const stores = storesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
     const products = productsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
     const zones = zonesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const coupons = couponsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
     // Stringify timestamps for serialization safety
     return JSON.parse(JSON.stringify({
@@ -37,11 +38,12 @@ async function getInitialData() {
       categories,
       stores,
       products,
-      zones
+      zones,
+      coupons
     }));
   } catch (error) {
     console.error("Build-time data fetch failed:", error);
-    return { banners: [], categories: [], stores: [], products: [], zones: [] };
+    return { banners: [], categories: [], stores: [], products: [], zones: [], coupons: [] };
   }
 }
 
@@ -70,6 +72,7 @@ export default async function ShopyKartApp() {
         initialStores={initialData.stores}
         initialProducts={initialData.products}
         initialZones={initialData.zones}
+        initialCoupons={initialData.coupons}
       />
     </>
   );

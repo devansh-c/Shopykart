@@ -1,17 +1,15 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection } from "firebase/firestore"
-import { Crown, Sparkles, Tag } from 'lucide-react';
+import { Crown, Tag } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useMemo } from 'react';
 
 /**
- * @fileOverview OffersSection with Fallback Support.
- * Ensures the coupon grid is always visible for aesthetics.
+ * @fileOverview OffersSection with Hydration-Safe Data handling.
  */
-export default function OffersSection() {
+export default function OffersSection({ initialData = [] }: { initialData?: any[] }) {
   const { toast } = useToast();
   const firestore = useFirestore();
 
@@ -20,17 +18,19 @@ export default function OffersSection() {
     return collection(firestore, 'coupons');
   }, [firestore]);
 
-  const { data: dbCoupons } = useCollection<any>(couponsQuery, 'home_coupons_v4_instant');
+  const { data: dbCoupons } = useCollection<any>(couponsQuery, 'home_coupons_v4_instant', initialData);
 
-  // Fallback data for the preview/prototype if DB is empty
+  // Fallback data if DB and Initial are both empty (Prototype mode)
   const displayCoupons = useMemo(() => {
-    if (dbCoupons && dbCoupons.length > 0) return dbCoupons;
+    const list = (dbCoupons && dbCoupons.length > 0) ? dbCoupons : initialData;
+    if (list && list.length > 0) return list;
+    
     return [
       { id: 'f1', code: 'WELCOME10', discountValue: 10, discountType: 'percentage' },
       { id: 'f2', code: 'GOURMET50', discountValue: 50, discountType: 'fixed' },
       { id: 'f3', code: 'OFFER100', discountValue: 100, discountType: 'fixed' }
     ];
-  }, [dbCoupons]);
+  }, [dbCoupons, initialData]);
 
   const handleCopy = async (code: string) => {
     if (typeof window !== 'undefined') {

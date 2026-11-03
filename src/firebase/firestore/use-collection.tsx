@@ -13,26 +13,32 @@ import { FirestorePermissionError } from '../errors';
 
 /**
  * @fileOverview High-Performance Real-time Collection Hook.
- * Optimized for Quota Exceeded (resource-exhausted) fallback.
- * Automatically falls back to local cache if quota is hit.
+ * Hydration Safe: Defer reading from localStorage until after mount.
  */
 export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey?: string, initialData?: T[]) {
-  // 1. ATOMIC INITIALIZATION: Try to get data from cache before first render
-  const [data, setData] = useState<T[] | null>(() => {
-    if (initialData && initialData.length > 0) return initialData;
-    
-    if (typeof window !== 'undefined' && cacheKey) {
-      try {
-        const cached = localStorage.getItem(`fire_cache_${cacheKey}`);
-        if (cached) return JSON.parse(cached);
-      } catch (e) {}
-    }
-    return null;
-  });
-
+  // 1. Initialize with server-safe values (initialData or null)
+  const [data, setData] = useState<T[] | null>(initialData && initialData.length > 0 ? initialData : null);
   const [loading, setLoading] = useState(() => !data && !!query);
   const [error, setError] = useState<FirestoreError | null>(null);
   
+  const hasMounted = useRef(false);
+
+  // 2. Load from cache only after mount to prevent hydration mismatch
+  useEffect(() => {
+    if (!hasMounted.current) {
+      hasMounted.current = true;
+      if (cacheKey && !data) {
+        try {
+          const cached = localStorage.getItem(`fire_cache_${cacheKey}`);
+          if (cached) {
+            setData(JSON.parse(cached));
+            setLoading(false);
+          }
+        } catch (e) {}
+      }
+    }
+  }, [cacheKey, data]);
+
   // Create a stable string representation of the query path to avoid unstable dependencies
   const stableQueryPath = useMemo(() => {
     if (!query) return '';
@@ -49,15 +55,15 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
       return;
     }
 
-    // 2. Real-time Background Sync
+    // Real-time Background Sync
     const unsubscribe = onSnapshot(
       query,
       { includeMetadataChanges: false },
       (snapshot: QuerySnapshot<T>) => {
         const items = snapshot.docs.map(doc => {
           const rawData = doc.data();
-          // Fast normalization for dates
           const cleanData = { ...rawData };
+          
           Object.keys(cleanData).forEach(key => {
             const val = (cleanData as any)[key];
             if (val && typeof val === 'object' && val.seconds !== undefined) {
@@ -75,7 +81,6 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
         setLoading(false);
         setError(null);
         
-        // Persist to local storage for instant load on next visit
         if (cacheKey && typeof window !== 'undefined') {
           try {
             localStorage.setItem(`fire_cache_${cacheKey}`, JSON.stringify(items));
@@ -83,11 +88,9 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
         }
       },
       (err: FirestoreError) => {
-        // 3. QUOTA HANDLING: If quota is hit, silently stop loading and stay on cache
         const silentCodes = ['resource-exhausted', 'quota-exceeded', 'unavailable', 'deadline-exceeded'];
         if (silentCodes.some(code => err.code?.includes(code) || err.message?.toLowerCase().includes('quota'))) {
           setLoading(false);
-          console.warn("Firestore Quota Exceeded. Using offline cache.");
           return;
         }
 
