@@ -47,7 +47,11 @@ import {
   FileUp,
   Sparkle,
   Search,
-  Check
+  Check,
+  Package,
+  Phone,
+  Settings,
+  ShieldAlert
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -75,6 +79,7 @@ export default function VendorDashboard() {
   const { toast } = useToast();
   const router = useRouter();
   const menuInputRef = useRef<HTMLInputElement>(null);
+  const manualImageInputRef = useRef<HTMLInputElement>(null);
   
   const [activeMainTab, setActiveMainTab] = useState<MainTab>('orders');
   const [orderFilter, setOrderFilter] = useState<OrderFilter>('NEW ORDERS');
@@ -82,8 +87,18 @@ export default function VendorDashboard() {
   const [isMounted, setIsMounted] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isUpiModalOpen, setIsUpiModalOpen] = useState(false);
+  const [isManualAddOpen, setIsManualAddOpen] = useState(false);
   const [isWithdrawLoading, setIsWithdrawLoading] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
+
+  // Manual Product Form State
+  const [manualProduct, setManualProduct] = useState({
+    name: '',
+    price: '',
+    category: '',
+    description: '',
+    imageUrl: ''
+  });
 
   // UPI Form State
   const [upiForm, setUpiForm] = useState({
@@ -177,6 +192,51 @@ export default function VendorDashboard() {
     } catch (e) { toast({ variant: "destructive", title: "Failed" }); }
   };
 
+  const handleManualImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const compressed = await compressImage(reader.result as string, 400, 400);
+      setManualProduct(prev => ({ ...prev, imageUrl: compressed }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleManualAddProduct = async () => {
+    if (!firestore || !user || !manualProduct.name || !manualProduct.price) return;
+    setIsProcessing(true);
+    try {
+      const productRef = doc(collection(firestore, 'products'));
+      const pData = {
+        ...manualProduct,
+        id: productRef.id,
+        price: parseFloat(manualProduct.price),
+        vendorId: user.uid,
+        restaurantName: vendorProfile?.storeName || 'Store',
+        zoneId: vendorProfile?.zoneId || 'global',
+        town: vendorProfile?.town || 'Local',
+        isAvailable: true,
+        isVeg: true,
+        isDeleted: false,
+        slug: slugify(manualProduct.name),
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      };
+      await setDoc(productRef, pData);
+      // Sync to vendor subcollection
+      await setDoc(doc(firestore, 'vendors', user.uid, 'products', productRef.id), pData);
+      
+      setIsManualAddOpen(false);
+      setManualProduct({ name: '', price: '', category: '', description: '', imageUrl: '' });
+      toast({ title: "Product Added Manually! ✅" });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Add Failed" });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const handleMenuScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !firestore || !user || !vendorProfile) return;
@@ -212,7 +272,6 @@ export default function VendorDashboard() {
               updatedAt: serverTimestamp()
             };
             batch.set(productRef, pData);
-            // Also sync to vendor sub-collection for legacy support
             const vendorProductRef = doc(firestore, 'vendors', user.uid, 'products', productRef.id);
             batch.set(vendorProductRef, pData);
           });
@@ -299,7 +358,7 @@ export default function VendorDashboard() {
          </div>
          <div className="flex items-center gap-2">
            <Switch checked={vendorProfile?.isOnline !== false} onCheckedChange={async (o) => { await updateDoc(doc(firestore!, 'vendors', user!.uid), { isOnline: o }); }} className="scale-75 data-[state=checked]:bg-green-500" />
-           <button onClick={handleLogout} className="h-8 w-8 bg-red-50 text-red-500 rounded-lg flex items-center justify-center active:scale-90 transition-transform"><LogOut className="h-4 w-4" /></button>
+           <button onClick={() => setActiveMainTab('account')} className="h-8 w-8 bg-gray-50 text-gray-400 rounded-lg flex items-center justify-center active:scale-90 transition-transform"><Settings className="h-4 w-4" /></button>
          </div>
       </header>
 
@@ -386,7 +445,8 @@ export default function VendorDashboard() {
                        AI MENU SCAN
                     </button>
                     <input type="file" ref={menuInputRef} className="hidden" accept="image/*" onChange={handleMenuScan} />
-                    <Button onClick={() => router.push('/vendor/add-product')} variant="outline" className="h-10 rounded-xl border-gray-200"><Plus className="h-4 w-4" /></Button>
+                    
+                    <button onClick={() => setIsManualAddOpen(true)} className="h-10 w-10 bg-white border border-border/50 rounded-xl flex items-center justify-center text-primary active:scale-90 shadow-sm"><Plus className="h-5 w-5" /></button>
                  </div>
               </div>
 
@@ -475,6 +535,67 @@ export default function VendorDashboard() {
            </div>
          )}
 
+         {activeMainTab === 'account' && (
+            <div className="p-8 space-y-10 animate-in fade-in duration-500">
+               <div className="text-center space-y-4">
+                  <div className="relative inline-block">
+                    <div className="h-32 w-32 rounded-[3rem] overflow-hidden border-[6px] border-white shadow-2xl mx-auto bg-gray-50 flex items-center justify-center relative">
+                      {vendorProfile?.imageUrl ? (
+                        <img src={vendorProfile.imageUrl} className="h-full w-full object-cover" alt="" />
+                      ) : (
+                        <Store className="h-10 w-10 text-gray-300" />
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <h2 className="text-3xl font-black italic uppercase tracking-tighter text-gray-900 leading-none">{vendorProfile?.storeName}</h2>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mt-3">HUB ID • {vendorProfile?.storeId}</p>
+                  </div>
+               </div>
+
+               <div className="space-y-4">
+                  <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-5">
+                     <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                           <div className="bg-primary/5 p-2 rounded-xl text-primary"><Store className="h-5 w-5" /></div>
+                           <div className="flex flex-col">
+                              <span className="text-[10px] font-black text-gray-400 uppercase">Business Mode</span>
+                              <span className="text-sm font-black uppercase italic text-gray-800">{vendorProfile?.category} HUB</span>
+                           </div>
+                        </div>
+                     </div>
+                     <div className="h-[1px] w-full bg-gray-50" />
+                     <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                           <div className="bg-blue-50 p-2 rounded-xl text-blue-600"><Globe className="h-5 w-5" /></div>
+                           <div className="flex flex-col">
+                              <span className="text-[10px] font-black text-gray-400 uppercase">Serving Region</span>
+                              <span className="text-sm font-black uppercase italic text-gray-800">{vendorProfile?.town || 'Local'}</span>
+                           </div>
+                        </div>
+                     </div>
+                     <div className="h-[1px] w-full bg-gray-50" />
+                     <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                           <div className="bg-green-50 p-2 rounded-xl text-green-600"><Phone className="h-5 w-5" /></div>
+                           <div className="flex flex-col">
+                              <span className="text-[10px] font-black text-gray-400 uppercase">Registered Mobile</span>
+                              <span className="text-sm font-black uppercase italic text-gray-800">{vendorProfile?.phone}</span>
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+
+                  <button 
+                    onClick={handleLogout}
+                    className="w-full h-18 bg-white border border-red-50 text-red-500 rounded-[2.2rem] flex items-center justify-center gap-3 font-black uppercase italic text-sm shadow-sm active:scale-95 transition-all"
+                  >
+                    <LogOut className="h-5 w-5" /> DISCONNECT ACCOUNT
+                  </button>
+               </div>
+            </div>
+         )}
+
          {/* UPI SETUP MODAL */}
          <Dialog open={isUpiModalOpen} onOpenChange={setIsUpiModalOpen}>
            <DialogContent className="rounded-[2.5rem] max-w-md p-8 bg-white border-none shadow-2xl">
@@ -483,6 +604,35 @@ export default function VendorDashboard() {
                  <div className="space-y-1"><label className="text-[10px] font-black uppercase text-primary ml-1">UPI ID (Mandatory)</label><Input value={upiForm.upiId} onChange={e => setUpiForm({...upiForm, upiId: e.target.value.toLowerCase()})} placeholder="store@upi" className="h-14 rounded-2xl bg-gray-50 border-none font-black italic" /></div>
                  <div className="space-y-1"><label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Account Holder</label><Input value={upiForm.accountHolderName} onChange={e => setUpiForm({...upiForm, accountHolderName: e.target.value.toUpperCase()})} className="h-12 rounded-xl bg-gray-50 border-none" /></div>
                  <Button onClick={handleSaveUpi} disabled={isProcessing || !upiForm.upiId} className="w-full h-16 bg-primary text-white rounded-[1.5rem] font-black uppercase italic shadow-xl">SAVE SETTINGS</Button>
+              </div>
+           </DialogContent>
+         </Dialog>
+
+         {/* MANUAL ADD PRODUCT MODAL */}
+         <Dialog open={isManualAddOpen} onOpenChange={setIsManualAddOpen}>
+           <DialogContent className="rounded-[2.5rem] max-w-md p-0 overflow-hidden border-none shadow-2xl bg-white max-h-[90vh] flex flex-col">
+              <DialogHeader className="p-8 pb-4">
+                 <DialogTitle className="font-black italic uppercase text-center text-2xl tracking-tighter">Manual Add</DialogTitle>
+              </DialogHeader>
+              <div className="flex-1 overflow-y-auto no-scrollbar p-8 pt-0 space-y-6">
+                 <div onClick={() => manualImageInputRef.current?.click()} className="h-40 border-2 border-dashed rounded-[2rem] flex flex-col items-center justify-center bg-muted/20 cursor-pointer overflow-hidden group hover:border-primary transition-all">
+                    {manualProduct.imageUrl ? <img src={manualProduct.imageUrl} className="h-full w-full object-cover" /> : <div className="flex flex-col items-center gap-2"><ImageIcon className="h-8 w-8 opacity-20" /><span className="text-[9px] font-black uppercase">Product Photo</span></div>}
+                 </div>
+                 <input type="file" ref={manualImageInputRef} className="hidden" accept="image/*" onChange={handleManualImageSelect} />
+                 
+                 <div className="space-y-4">
+                    <Input placeholder="ITEM NAME" value={manualProduct.name} onChange={e => setManualProduct({...manualProduct, name: e.target.value.toUpperCase()})} className="h-12 rounded-xl font-bold bg-muted/20 border-none" />
+                    <div className="grid grid-cols-2 gap-4">
+                       <Input type="number" placeholder="PRICE ₹" value={manualProduct.price} onChange={e => setManualProduct({...manualProduct, price: e.target.value})} className="h-12 rounded-xl font-black bg-muted/20 border-none" />
+                       <Input placeholder="CATEGORY" value={manualProduct.category} onChange={e => setManualProduct({...manualProduct, category: e.target.value.toUpperCase()})} className="h-12 rounded-xl font-bold bg-muted/20 border-none" />
+                    </div>
+                    <Textarea placeholder="SHORT DESCRIPTION" value={manualProduct.description} onChange={e => setManualProduct({...manualProduct, description: e.target.value})} className="rounded-xl h-24 bg-muted/20 border-none p-4" />
+                 </div>
+              </div>
+              <div className="p-8 bg-muted/5 border-t">
+                 <Button onClick={handleManualAddProduct} disabled={isProcessing || !manualProduct.name} className="w-full h-16 bg-primary text-white rounded-[2rem] font-black uppercase italic shadow-xl">
+                   {isProcessing ? <Loader2 className="h-6 w-6 animate-spin" /> : "PUBLISH ITEM"}
+                 </Button>
               </div>
            </DialogContent>
          </Dialog>
