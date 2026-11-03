@@ -41,7 +41,8 @@ import {
   ArrowUpRight,
   ShieldCheck,
   Ban,
-  Sparkles
+  Sparkles,
+  CheckCircle2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -77,6 +78,7 @@ export default function BeautyDashboard() {
 
   useEffect(() => { setIsMounted(true); }, []);
 
+  // STICKY SESSION PROTECTION
   useEffect(() => {
     if (!isMounted || authLoading) return;
     const sessionActive = localStorage.getItem('shopykart_session_active') === 'true';
@@ -145,6 +147,14 @@ export default function BeautyDashboard() {
     } catch (e) { toast({ variant: "destructive", title: "Failed" }); }
   };
 
+  const handleLogout = async () => {
+    if (auth) {
+      await signOut(auth);
+      localStorage.removeItem('shopykart_session_active');
+      router.replace('/vendor/login?type=Beauty');
+    }
+  };
+
   if (!isMounted || authLoading || (profileLoading && !vendorProfile)) return <div className="h-screen bg-white flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-rose-600" /></div>;
 
   return (
@@ -159,7 +169,10 @@ export default function BeautyDashboard() {
               <div className="flex items-center gap-1.5 mt-1"><div className={cn("h-1.5 w-1.5 rounded-full", vendorProfile?.isOnline !== false ? "bg-green-500 animate-pulse" : "bg-red-500")} /><p className="text-[8px] font-bold text-muted-foreground uppercase">{vendorProfile?.isOnline !== false ? 'Accepting' : 'Closed'}</p></div>
             </div>
          </div>
-         <div className="flex items-center gap-2"><Switch checked={vendorProfile?.isOnline !== false} onCheckedChange={async (o) => { await updateDoc(doc(firestore!, 'vendors', user!.uid), { isOnline: o }); }} className="scale-75 data-[state=checked]:bg-green-500" /></div>
+         <div className="flex items-center gap-2">
+           <Switch checked={vendorProfile?.isOnline !== false} onCheckedChange={async (o) => { await updateDoc(doc(firestore!, 'vendors', user!.uid), { isOnline: o }); }} className="scale-75 data-[state=checked]:bg-green-500" />
+           <button onClick={handleLogout} className="h-8 w-8 bg-red-50 text-red-500 rounded-lg flex items-center justify-center active:scale-90 transition-transform"><LogOut className="h-4 w-4" /></button>
+         </div>
       </header>
 
       <main className="flex-1 overflow-y-auto no-scrollbar pb-32">

@@ -40,7 +40,8 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
   ShieldCheck,
-  Ban
+  Ban,
+  CheckCircle2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -85,8 +86,8 @@ const PrepTimer = ({ order }: { order: any }) => {
         else setPenalty(0);
       } else {
         setIsOverdue(false);
-        const mm = Math.floor(remainingSecs / 60);
-        const ss = remainingSecs % 60;
+        const mm = Math.floor(remainingSeconds / 60);
+        const ss = remainingSeconds % 60;
         setTimeLeft(`${mm}:${String(ss).padStart(2, '0')}`);
       }
     }, 1000);
@@ -132,9 +133,17 @@ export default function VendorDashboard() {
 
   useEffect(() => { setIsMounted(true); }, []);
 
+  // STICKY SESSION PROTECTION: Prevents frequent redirects during Auth initialization
   useEffect(() => {
     if (!isMounted || authLoading) return;
-    if (!user && !authLoading) router.replace('/vendor/login');
+    
+    const sessionActive = localStorage.getItem('shopykart_session_active') === 'true';
+    
+    if (!user && !authLoading) {
+      if (!sessionActive) {
+        router.replace('/vendor/login');
+      }
+    }
   }, [user, authLoading, router, isMounted]);
 
   const vendorRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'vendors', user.uid) : null, [firestore, user]);
@@ -156,7 +165,6 @@ export default function VendorDashboard() {
     if (!rawOrders || !user) return [];
     const vId = String(user.uid);
     return rawOrders.filter((o: any) => {
-      // Check if order belongs to this vendor
       const isForMe = String(o.vendorId) === vId || (Array.isArray(o.vendorIds) && o.vendorIds.includes(vId)) || o.items?.some((it:any) => String(it.vendorId) === vId);
       if (!isForMe) return false;
 
@@ -317,6 +325,14 @@ export default function VendorDashboard() {
     setOptions(newOptions);
   };
 
+  const handleLogout = async () => {
+    if (auth) {
+      await signOut(auth);
+      localStorage.removeItem('shopykart_session_active');
+      router.replace('/vendor/login');
+    }
+  };
+
   if (!isMounted || authLoading || (profileLoading && !vendorProfile)) return <div className="h-screen bg-white flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
 
   return (
@@ -326,13 +342,15 @@ export default function VendorDashboard() {
            <div className="h-10 w-10 rounded-xl overflow-hidden border-2 border-primary/10 bg-muted shrink-0 shadow-inner"><img src={vendorProfile?.imageUrl || 'https://picsum.photos/seed/vendor/200/200'} className="h-full w-full object-cover" alt="" /></div>
            <div><h1 className="text-sm font-black italic uppercase tracking-tighter leading-none">{vendorProfile?.storeName}</h1><div className="flex items-center gap-1.5 mt-1"><div className={cn("h-1.5 w-1.5 rounded-full", vendorProfile?.isOnline !== false ? "bg-green-500 animate-pulse" : "bg-red-500")} /><p className="text-[8px] font-bold text-muted-foreground uppercase">{vendorProfile?.isOnline !== false ? 'Accepting' : 'Closed'}</p></div></div>
         </div>
-        <Switch checked={vendorProfile?.isOnline !== false} onCheckedChange={async (o) => { await updateDoc(doc(firestore!, 'vendors', user!.uid), { isOnline: o }); }} className="scale-75 data-[state=checked]:bg-green-500" />
+        <div className="flex items-center gap-2">
+          <Switch checked={vendorProfile?.isOnline !== false} onCheckedChange={async (o) => { await updateDoc(doc(firestore!, 'vendors', user!.uid), { isOnline: o }); }} className="scale-75 data-[state=checked]:bg-green-500" />
+          <button onClick={handleLogout} className="h-8 w-8 bg-red-50 text-red-500 rounded-lg flex items-center justify-center active:scale-90 transition-transform"><LogOut className="h-4 w-4" /></button>
+        </div>
       </header>
 
       <main className="flex-1 overflow-y-auto no-scrollbar pb-32">
         {activeMainTab === 'orders' && (
            <div className="p-4 space-y-6">
-              {/* EARNINGS SECTION */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                  <div className="bg-[#EF4444] p-8 rounded-[2.5rem] text-white shadow-2xl shadow-rose-200 relative overflow-hidden flex items-center justify-between">
                     <div className="relative z-10">
@@ -357,7 +375,6 @@ export default function VendorDashboard() {
                  </div>
               </div>
 
-              {/* PROMO ADS SECTION */}
               <div className="bg-[#FFF5F5] border-2 border-dashed border-[#EF4444]/20 p-8 rounded-[3rem] flex flex-col items-center text-center space-y-4">
                  <div className="relative"><div className="absolute inset-0 bg-primary/10 rounded-full animate-ping opacity-20" /><Megaphone className="h-10 w-10 text-primary relative z-10" /></div>
                  <div className="space-y-1"><h3 className="text-xl font-black italic uppercase tracking-tighter text-gray-900">Want To Get Highlighted?</h3><p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Boost your visibility now.</p></div>
@@ -414,8 +431,6 @@ export default function VendorDashboard() {
         {activeMainTab === 'payouts' && (
            <div className="p-4 space-y-6">
               <h2 className="text-xl font-black italic uppercase ml-2">Wallet</h2>
-              
-              {/* IMAGE-STYLE WALLET OVERHAUL */}
               <div className="bg-[#EF4444] p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[180px]">
                  <div className="relative z-10 space-y-1">
                     <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Withdrawable Balance</span>
@@ -456,7 +471,6 @@ export default function VendorDashboard() {
                       </button>
                     ))}
                  </div>
-                 
                  <div className="bg-white rounded-[2.5rem] p-8 border border-border/50 shadow-sm min-h-[300px] flex flex-col items-center justify-center text-center">
                     <History className="h-10 w-10 text-gray-200 mb-4" />
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">No recent transactions to show</p>
