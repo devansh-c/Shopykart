@@ -13,17 +13,20 @@ import { FirestorePermissionError } from '../errors';
 
 /**
  * @fileOverview High-Performance Real-time Collection Hook.
- * Hydration Safe: Defer reading from localStorage until after mount.
+ * TWO-PASS RENDERING: Strictly prevents hydration errors by deferring cache until after mount.
  */
 export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey?: string, initialData?: T[]) {
-  // 1. Initialize with server-safe values (initialData or null)
-  const [data, setData] = useState<T[] | null>(initialData && initialData.length > 0 ? initialData : null);
+  // Always start with server-safe values (initialData or null) for the first render
+  const [data, setData] = useState<T[] | null>(() => {
+    if (initialData && initialData.length > 0) return initialData;
+    return null;
+  });
   const [loading, setLoading] = useState(() => !data && !!query);
   const [error, setError] = useState<FirestoreError | null>(null);
   
   const hasMounted = useRef(false);
 
-  // 2. Load from cache only after mount to prevent hydration mismatch
+  // Load from cache only after client-side hydration is complete
   useEffect(() => {
     if (!hasMounted.current) {
       hasMounted.current = true;
@@ -39,7 +42,6 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
     }
   }, [cacheKey, data]);
 
-  // Create a stable string representation of the query path to avoid unstable dependencies
   const stableQueryPath = useMemo(() => {
     if (!query) return '';
     try {
@@ -55,7 +57,6 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
       return;
     }
 
-    // Real-time Background Sync
     const unsubscribe = onSnapshot(
       query,
       { includeMetadataChanges: false },
