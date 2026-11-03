@@ -41,7 +41,9 @@ import {
   ArrowUpRight,
   ShieldCheck,
   Ban,
-  CheckCircle2
+  CheckCircle2,
+  QrCode,
+  Building2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -57,58 +59,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { format, differenceInSeconds, differenceInMinutes, startOfDay, startOfWeek, startOfMonth, isAfter } from 'date-fns';
 import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 import { compressImage } from '@/lib/image-utils';
-import { scheduleTestNotification } from '@/components/shared/PermissionManager';
 
 type MainTab = 'orders' | 'catalog' | 'payouts' | 'account';
 type OrderFilter = 'NEW ORDERS' | 'DELIVERED' | 'CANCELLED';
-
-const PrepTimer = ({ order }: { order: any }) => {
-  const [timeLeft, setTimeLeft] = useState('10:00');
-  const [isOverdue, setIsOverdue] = useState(false);
-  const [penalty, setPenalty] = useState(0);
-
-  useEffect(() => {
-    if (!order.acceptedAt || order.status === 'Ready for Pickup' || order.status === 'Delivered') return;
-    const interval = setInterval(() => {
-      const acceptedTime = order.acceptedAt.seconds ? new Date(order.acceptedAt.seconds * 1000) : new Date();
-      const elapsedSecs = differenceInSeconds(new Date(), acceptedTime);
-      const limitSecs = 10 * 60;
-      const remainingSecs = limitSecs - elapsedSecs;
-      if (remainingSecs <= 0) {
-        setIsOverdue(true);
-        const overdueSecs = Math.abs(remainingSecs);
-        const mm = Math.floor(overdueSecs / 60);
-        const ss = overdueSecs % 60;
-        setTimeLeft(`+${mm}:${String(ss).padStart(2, '0')}`);
-        const overdueMins = Math.floor(overdueSecs / 60);
-        if (overdueMins >= 10) setPenalty(20);
-        else if (overdueMins >= 5) setPenalty(10);
-        else setPenalty(0);
-      } else {
-        setIsOverdue(false);
-        const mm = Math.floor(remainingSeconds / 60);
-        const ss = remainingSeconds % 60;
-        setTimeLeft(`${mm}:${String(ss).padStart(2, '0')}`);
-      }
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [order.acceptedAt, order.status]);
-
-  if (!order.acceptedAt || ['Ready for Pickup', 'Delivered', 'Cancelled'].includes(order.status)) return null;
-
-  return (
-    <div className={cn("flex items-center justify-between p-4 rounded-2xl border-2 animate-pulse", isOverdue ? "bg-red-50 border-red-200" : "bg-primary/5 border-primary/10")}>
-       <div className="flex items-center gap-3">
-          <Timer className={cn("h-5 w-5", isOverdue ? "text-red-600" : "text-primary")} />
-          <div>
-             <p className={cn("text-[9px] font-black uppercase tracking-widest", isOverdue ? "text-red-500" : "text-primary")}>{isOverdue ? 'PREPARATION DELAY' : 'READY BY'}</p>
-             <h4 className={cn("text-xl font-black tabular-nums", isOverdue ? "text-red-600" : "text-gray-900")}>{timeLeft}</h4>
-          </div>
-       </div>
-       {isOverdue && penalty > 0 && <Badge className="bg-red-600 text-white border-none font-black text-[10px] py-1">₹{penalty} PENALTY</Badge>}
-    </div>
-  );
-};
 
 export default function VendorDashboard() {
   const firestore = useFirestore();
@@ -122,207 +75,123 @@ export default function VendorDashboard() {
   const [orderFilter, setOrderFilter] = useState<OrderFilter>('NEW ORDERS');
   const [walletTab, setWalletTab] = useState<'request' | 'history' | 'transactions'>('request');
   const [isMounted, setIsMounted] = useState(false);
-  const [isSavingProduct, setIsSavingProduct] = useState(false);
-  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
-  const [editingProductId, setEditingProductId] = useState<string | null>(null);
-  const [isVarietyRequired, setIsVarietyRequired] = useState(false);
-  const [options, setOptions] = useState<{ name: string; price: number }[]>([]);
-  const [productForm, setProductForm] = useState({
-    name: '', slug: '', price: '', mrp: '', description: '', category: '', imageUrl: '', preparingTime: ''
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isUpiModalOpen, setIsUpiModalOpen] = useState(false);
+  const [isWithdrawLoading, setIsWithdrawLoading] = useState(false);
+
+  // UPI Form State
+  const [upiForm, setUpiForm] = useState({
+    upiId: '',
+    accountNumber: '',
+    ifscCode: '',
+    accountHolderName: ''
   });
 
   useEffect(() => { setIsMounted(true); }, []);
 
-  // STICKY SESSION PROTECTION: Prevents frequent redirects during Auth initialization
+  // STICKY SESSION PROTECTION
   useEffect(() => {
     if (!isMounted || authLoading) return;
-    
     const sessionActive = localStorage.getItem('shopykart_session_active') === 'true';
-    
     if (!user && !authLoading) {
-      if (!sessionActive) {
-        router.replace('/vendor/login');
-      }
+      if (!sessionActive) router.replace('/vendor/login');
     }
   }, [user, authLoading, router, isMounted]);
 
   const vendorRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'vendors', user.uid) : null, [firestore, user]);
   const { data: vendorProfile, loading: profileLoading } = useDoc<any>(vendorRef);
 
-  const categoriesQuery = useMemoFirebase(() => {
-    if (!firestore || !vendorProfile) return null;
-    return query(collection(firestore, 'categories'), where('serviceType', '==', vendorProfile.category || 'Food'));
-  }, [firestore, vendorProfile]);
-  const { data: foodCategories } = useCollection<any>(categoriesQuery);
-
-  const productsQuery = useMemoFirebase(() => (firestore && user) ? query(collection(firestore, 'products'), where('vendorId', '==', user.uid)) : null, [firestore, user]);
-  const { data: myProducts } = useCollection<any>(productsQuery);
-
   const ordersQuery = useMemoFirebase(() => (firestore && user) ? query(collection(firestore, 'orders'), orderBy('createdAt', 'desc')) : null, [firestore, user]);
   const { data: rawOrders } = useCollection<any>(ordersQuery);
 
-  const filteredOrders = useMemo(() => {
-    if (!rawOrders || !user) return [];
-    const vId = String(user.uid);
-    return rawOrders.filter((o: any) => {
-      const isForMe = String(o.vendorId) === vId || (Array.isArray(o.vendorIds) && o.vendorIds.includes(vId)) || o.items?.some((it:any) => String(it.vendorId) === vId);
-      if (!isForMe) return false;
+  const payoutHistoryQuery = useMemoFirebase(() => (firestore && user) ? query(collection(firestore, 'vendors', user.uid, 'payout_history'), orderBy('date', 'desc')) : null, [firestore, user]);
+  const { data: payoutHistory } = useCollection<any>(payoutHistoryQuery);
 
-      const status = (o.status || '').toUpperCase();
-      if (orderFilter === 'NEW ORDERS') {
-        return !['DELIVERED', 'CANCELLED'].includes(status);
-      } else if (orderFilter === 'DELIVERED') {
-        return status === 'DELIVERED';
-      } else {
-        return status === 'CANCELLED';
-      }
-    });
-  }, [rawOrders, user, orderFilter]);
+  const pendingRequestsQuery = useMemoFirebase(() => (firestore && user) ? query(collection(firestore, 'payout_requests'), where('vendorId', '==', user.uid), where('status', '==', 'Pending')) : null, [firestore, user]);
+  const { data: pendingRequests } = useCollection<any>(pendingRequestsQuery);
 
   const earnings = useMemo(() => {
-    if (!rawOrders || !user) return { today: 0, week: 0, month: 0, totalDelivered: 0, totalCancelled: 0 };
-    
-    const now = new Date();
-    const today = startOfDay(now);
-    const week = startOfWeek(now);
-    const month = startOfMonth(now);
-
-    let t = 0, w = 0, m = 0, td = 0, tc = 0;
-
+    if (!rawOrders || !user) return { today: 0, totalDelivered: 0, totalCancelled: 0 };
+    let t = 0, td = 0, tc = 0;
+    const today = startOfDay(new Date());
     rawOrders.forEach((o: any) => {
       const vId = String(user.uid);
       const isForMe = String(o.vendorId) === vId || (Array.isArray(o.vendorIds) && o.vendorIds.includes(vId)) || o.items?.some((it:any) => String(it.vendorId) === vId);
       if (!isForMe) return;
-
       const amt = Number(o.total) || 0;
       const status = (o.status || '').toUpperCase();
-
       if (status === 'DELIVERED') {
         td += amt;
         const orderDate = o.createdAt?.seconds ? new Date(o.createdAt.seconds * 1000) : new Date(o.createdAt);
         if (isAfter(orderDate, today)) t += amt;
-        if (isAfter(orderDate, week)) w += amt;
-        if (isAfter(orderDate, month)) m += amt;
-      } else if (status === 'CANCELLED') {
-        tc += amt;
-      }
+      } else if (status === 'CANCELLED') tc += amt;
     });
-
-    return { today: t, week: w, month: m, totalDelivered: td, totalCancelled: tc };
+    return { today: t, totalDelivered: td, totalCancelled: tc };
   }, [rawOrders, user]);
 
   const handleUpdateStatus = async (orderId: string, newStatus: string) => {
     if (!firestore) return;
     try {
       const updateData: any = { status: newStatus, updatedAt: serverTimestamp() };
-      if (newStatus === 'Accepted') updateData.acceptedAt = serverTimestamp();
-      if (newStatus === 'Ready for Pickup') {
-        const snap = await getDoc(doc(firestore, 'orders', orderId));
-        const data = snap.data();
-        if (data?.acceptedAt) {
-          const acceptedTime = data.acceptedAt.seconds ? new Date(data.acceptedAt.seconds * 1000) : new Date();
-          const minsTaken = differenceInMinutes(new Date(), acceptedTime);
-          updateData.preparationMinutes = minsTaken;
-          updateData.preparationPenalty = minsTaken >= 20 ? 20 : (minsTaken >= 15 ? 10 : 0);
-        }
-        updateData.pickupOTP = Math.floor(1000 + Math.random() * 9000).toString();
-        updateData.readyForPickupAt = serverTimestamp();
-      }
+      if (newStatus === 'Ready for Pickup') updateData.pickupOTP = Math.floor(1000 + Math.random() * 9000).toString();
       await updateDoc(doc(firestore, 'orders', orderId), updateData);
       toast({ title: `Order ${newStatus}!` });
-    } catch (e) { toast({ variant: "destructive", title: "Update Failed" }); }
+    } catch (e) { toast({ variant: "destructive", title: "Failed" }); }
   };
 
-  const handleSaveProduct = async () => {
-    if (!firestore || !user || !productForm.name || !productForm.price || !productForm.category) return;
-    setIsSavingProduct(true);
-    const finalSlug = productForm.slug.trim().toLowerCase().replace(/\s+/g, '-') || slugify(productForm.name);
-    const pData = {
-      name: productForm.name.trim(),
-      slug: finalSlug,
-      price: parseFloat(productForm.price),
-      mrp: parseFloat(productForm.mrp) || parseFloat(productForm.price),
-      description: productForm.description.trim(),
-      category: productForm.category.toLowerCase().trim(),
-      preparingTime: parseInt(productForm.preparingTime) || 15,
-      vendorId: user.uid,
-      restaurantName: vendorProfile?.storeName || 'Store',
-      serviceMode: vendorProfile?.category || 'Food',
-      imageUrl: productForm.imageUrl || 'https://picsum.photos/seed/product/400/400',
-      isAvailable: true,
-      options: options.filter(opt => opt.name.trim() !== ''),
-      isVarietyRequired,
-      updatedAt: serverTimestamp(),
-      isDeleted: false,
-    };
+  const handleSaveUpi = async () => {
+    if (!firestore || !user || !upiForm.upiId) return;
+    setIsProcessing(true);
     try {
-      if (editingProductId) {
-        await updateDoc(doc(firestore, 'products', editingProductId), pData);
-        await updateDoc(doc(firestore, 'vendors', user.uid, 'products', editingProductId), pData);
-      } else {
-        const newRef = doc(collection(firestore, 'products'));
-        await setDoc(newRef, { ...pData, id: newRef.id, createdAt: serverTimestamp() });
-        await setDoc(doc(firestore, 'vendors', user.uid, 'products', newRef.id), { ...pData, id: newRef.id, createdAt: serverTimestamp() });
-      }
-      setIsAddOpen(false);
-      resetProductForm();
-      toast({ title: editingProductId ? "Updated!" : "Published!" });
-    } catch (e) { toast({ variant: "destructive", title: "Save Error" }); }
-    finally { setIsSavingProduct(false); }
+      await updateDoc(doc(firestore, 'vendors', user.uid), {
+        ...upiForm,
+        kycCompleted: true,
+        updatedAt: serverTimestamp()
+      });
+      setIsUpiModalOpen(false);
+      toast({ title: "Payment Details Saved! ✅" });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Save Failed" });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
-  const setIsAddOpen = (val: boolean) => {
-    setIsProductModalOpen(val);
-    if(!val) resetProductForm();
-  };
+  const handleWithdrawRequest = async () => {
+    if (!firestore || !user || !vendorProfile) return;
+    
+    if (!vendorProfile.upiId) {
+      setIsUpiModalOpen(true);
+      toast({ title: "Setup UPI First", description: "Payment details are required to withdraw." });
+      return;
+    }
 
-  const resetProductForm = () => {
-    setEditingProductId(null);
-    setProductForm({ name: '', slug: '', price: '', mrp: '', description: '', category: '', imageUrl: '', preparingTime: '' });
-    setOptions([]);
-    setIsVarietyRequired(false);
-  };
+    if ((vendorProfile.walletBalance || 0) <= 0) {
+      toast({ variant: "destructive", title: "Insufficient Balance" });
+      return;
+    }
 
-  const handleEdit = (p: any) => {
-    setEditingProductId(p.id);
-    setProductForm({ 
-      name: p.name, 
-      slug: p.slug || '', 
-      price: p.price.toString(), 
-      mrp: p.mrp?.toString() || '', 
-      description: p.description || '', 
-      category: p.category || '', 
-      imageUrl: p.imageUrl || '', 
-      preparingTime: p.preparingTime?.toString() || '' 
-    });
-    setOptions(p.options || []);
-    setIsVarietyRequired(p.isVarietyRequired || false);
-    setIsProductModalOpen(true);
-  };
+    if (pendingRequests && pendingRequests.length > 0) {
+      toast({ variant: "destructive", title: "Request Already Pending", description: "Wait for Admin to clear previous request." });
+      return;
+    }
 
-  const handleProductImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      const compressed = await compressImage(reader.result as string, 600, 600);
-      setProductForm(prev => ({ ...prev, imageUrl: compressed }));
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleAddOption = () => {
-    setOptions([...options, { name: '', price: 0 }]);
-  };
-
-  const handleRemoveOption = (index: number) => {
-    setOptions(options.filter((_, i) => i !== index));
-  };
-
-  const updateOption = (index: number, field: string, value: any) => {
-    const newOptions = [...options];
-    (newOptions[index] as any)[field] = field === 'price' ? parseFloat(value) || 0 : value;
-    setOptions(newOptions);
+    setIsWithdrawLoading(true);
+    try {
+      await addDoc(collection(firestore, 'payout_requests'), {
+        vendorId: user.uid,
+        storeName: vendorProfile.storeName,
+        amount: vendorProfile.walletBalance,
+        upiId: vendorProfile.upiId,
+        status: 'Pending',
+        createdAt: serverTimestamp()
+      });
+      toast({ title: "Withdraw Request Sent! 🚀", description: "Admin will settle your payout soon." });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Request Failed" });
+    } finally {
+      setIsWithdrawLoading(false);
+    }
   };
 
   const handleLogout = async () => {
@@ -337,10 +206,10 @@ export default function VendorDashboard() {
 
   return (
     <div className="h-screen bg-[#F9FAFB] flex flex-col max-lg mx-auto shadow-2xl relative overflow-hidden">
-      <header className="bg-white px-4 py-4 border-b flex items-center justify-between z-50">
+      <header className="bg-white px-4 py-4 border-b flex items-center justify-between z-50 shadow-sm">
         <div className="flex items-center gap-3">
-           <div className="h-10 w-10 rounded-xl overflow-hidden border-2 border-primary/10 bg-muted shrink-0 shadow-inner"><img src={vendorProfile?.imageUrl || 'https://picsum.photos/seed/vendor/200/200'} className="h-full w-full object-cover" alt="" /></div>
-           <div><h1 className="text-sm font-black italic uppercase tracking-tighter leading-none">{vendorProfile?.storeName}</h1><div className="flex items-center gap-1.5 mt-1"><div className={cn("h-1.5 w-1.5 rounded-full", vendorProfile?.isOnline !== false ? "bg-green-500 animate-pulse" : "bg-red-500")} /><p className="text-[8px] font-bold text-muted-foreground uppercase">{vendorProfile?.isOnline !== false ? 'Accepting' : 'Closed'}</p></div></div>
+           <div className="h-10 w-10 rounded-xl overflow-hidden border-2 border-primary/10 bg-muted shrink-0"><img src={vendorProfile?.imageUrl || 'https://picsum.photos/seed/vendor/200/200'} className="h-full w-full object-cover" alt="" /></div>
+           <div><h1 className="text-sm font-black italic uppercase leading-none">{vendorProfile?.storeName}</h1><div className="flex items-center gap-1.5 mt-1"><div className={cn("h-1.5 w-1.5 rounded-full", vendorProfile?.isOnline !== false ? "bg-green-500 animate-pulse" : "bg-red-500")} /><p className="text-[8px] font-bold text-muted-foreground uppercase">{vendorProfile?.isOnline !== false ? 'Accepting' : 'Closed'}</p></div></div>
         </div>
         <div className="flex items-center gap-2">
           <Switch checked={vendorProfile?.isOnline !== false} onCheckedChange={async (o) => { await updateDoc(doc(firestore!, 'vendors', user!.uid), { isOnline: o }); }} className="scale-75 data-[state=checked]:bg-green-500" />
@@ -354,31 +223,11 @@ export default function VendorDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                  <div className="bg-[#EF4444] p-8 rounded-[2.5rem] text-white shadow-2xl shadow-rose-200 relative overflow-hidden flex items-center justify-between">
                     <div className="relative z-10">
-                       <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Today</span>
+                       <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Today's Sale</span>
                        <div className="text-4xl font-black italic tracking-tighter mt-1">₹ {earnings.today.toFixed(0)}</div>
                     </div>
-                    <div className="bg-white/20 p-4 rounded-[1.5rem] backdrop-blur-md relative z-10">
-                       <Wallet className="h-10 w-10 text-white fill-white/20" />
-                    </div>
-                    <div className="absolute top-0 right-0 h-full w-24 bg-white/5 -skew-x-12 translate-x-10" />
+                    <div className="bg-white/20 p-4 rounded-[1.5rem] backdrop-blur-md relative z-10"><Wallet className="h-10 w-10 text-white fill-white/20" /></div>
                  </div>
-
-                 <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-[#EF4444] p-5 rounded-[2rem] text-white shadow-xl relative overflow-hidden">
-                       <span className="text-[8px] font-black uppercase tracking-widest opacity-80">This Week</span>
-                       <div className="text-lg font-black italic tracking-tight mt-1">₹ {earnings.week.toFixed(0)}</div>
-                    </div>
-                    <div className="bg-[#EF4444] p-5 rounded-[2rem] text-white shadow-xl relative overflow-hidden">
-                       <span className="text-[8px] font-black uppercase tracking-widest opacity-80">This Month</span>
-                       <div className="text-lg font-black italic tracking-tight mt-1">₹ {earnings.month.toFixed(0)}</div>
-                    </div>
-                 </div>
-              </div>
-
-              <div className="bg-[#FFF5F5] border-2 border-dashed border-[#EF4444]/20 p-8 rounded-[3rem] flex flex-col items-center text-center space-y-4">
-                 <div className="relative"><div className="absolute inset-0 bg-primary/10 rounded-full animate-ping opacity-20" /><Megaphone className="h-10 w-10 text-primary relative z-10" /></div>
-                 <div className="space-y-1"><h3 className="text-xl font-black italic uppercase tracking-tighter text-gray-900">Want To Get Highlighted?</h3><p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Boost your visibility now.</p></div>
-                 <Button className="bg-[#EF4444] text-white px-8 h-12 rounded-2xl font-black uppercase italic text-xs shadow-xl active:scale-95 transition-all">Create Ads</Button>
               </div>
 
               <div className="flex bg-white rounded-2xl p-1 shadow-sm border border-border/50">
@@ -387,59 +236,46 @@ export default function VendorDashboard() {
                 ))}
               </div>
 
-              {(orderFilter === 'DELIVERED' || orderFilter === 'CANCELLED') && (
-                <div className="grid grid-cols-2 gap-4 px-2">
-                   <div className="bg-white p-4 rounded-3xl border border-border/50 flex flex-col items-center">
-                      <span className="text-[7px] font-black text-gray-400 uppercase tracking-widest">Total Sales</span>
-                      <span className="text-xl font-black text-green-600 italic">₹{earnings.totalDelivered.toFixed(0)}</span>
-                   </div>
-                   <div className="bg-white p-4 rounded-3xl border border-border/50 flex flex-col items-center">
-                      <span className="text-[7px] font-black text-gray-400 uppercase tracking-widest">Total Loss</span>
-                      <span className="text-xl font-black text-red-600 italic">₹{earnings.totalCancelled.toFixed(0)}</span>
-                   </div>
+              {filteredOrders.length > 0 ? filteredOrders.map((o: any) => (
+                <div key={o.id} className="bg-white p-6 rounded-[2.5rem] border border-border/50 shadow-sm mb-4">
+                  <div className="flex justify-between items-start mb-4">
+                      <div><span className="text-2xl font-black italic">#{o.customerOrderNumber}</span><p className="text-[8px] font-black text-gray-400 uppercase mt-1">{format(new Date(o.createdAt?.seconds * 1000 || Date.now()), 'hh:mm a')}</p></div>
+                      <Badge className={cn("border-none text-[8px] font-black uppercase px-3 py-1 rounded-full", o.status === 'Cancelled' ? 'bg-red-50 text-red-600' : 'bg-primary/10 text-primary')}>{o.status}</Badge>
+                  </div>
+                  <div className="bg-muted/30 rounded-3xl p-5 mb-4 space-y-3">
+                      <div className="flex items-center gap-2 border-b border-white pb-2 font-black uppercase italic text-xs text-gray-800"><User className="h-3.5 w-3.5 text-primary" />{o.customerName}</div>
+                      {o.items?.filter((it:any) => String(it.vendorId) === String(user?.uid)).map((item:any, i:number) => (
+                        <div key={i} className="flex justify-between items-center text-xs font-black uppercase italic"><span className="text-gray-700">{item.quantity}x {item.name}</span><span className="text-primary">₹{(item.price * item.quantity).toFixed(0)}</span></div>
+                      ))}
+                      {o.pickupOTP && o.status === 'Ready for Pickup' && <div className="bg-black p-3 rounded-2xl text-center border border-primary/20"><span className="text-[7px] font-black text-primary uppercase tracking-widest">PICKUP OTP</span><h4 className="text-xl font-black text-white italic tracking-[0.4em]">{o.pickupOTP}</h4></div>}
+                  </div>
+                  <div className="flex flex-col gap-2">
+                      {o.status === 'Placed' && <Button onClick={() => handleUpdateStatus(o.id, 'Accepted')} className="w-full h-14 bg-green-600 text-white rounded-2xl font-black uppercase italic shadow-lg">ACCEPT ORDER</Button>}
+                      {o.status === 'Accepted' && <Button onClick={() => handleUpdateStatus(o.id, 'Preparing')} className="w-full h-14 bg-primary text-white rounded-2xl font-black uppercase italic shadow-lg">START PREPARING</Button>}
+                      {o.status === 'Preparing' && <Button onClick={() => handleUpdateStatus(o.id, 'Ready for Pickup')} className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic shadow-lg">READY FOR PICKUP</Button>}
+                  </div>
                 </div>
-              )}
-
-              <div className="space-y-4">
-                 {filteredOrders.length > 0 ? filteredOrders.map((o: any) => (
-                   <div key={o.id} className="bg-white p-6 rounded-[2.5rem] border border-border/50 shadow-sm mb-4">
-                      <div className="flex justify-between items-start mb-6">
-                          <div><span className="text-3xl font-black italic tracking-tighter">#{o.customerOrderNumber}</span><div className="flex items-center gap-1.5 text-[10px] font-black text-gray-400 uppercase mt-1"><Clock className="h-3 w-3 text-primary" />{format(new Date(o.createdAt?.seconds * 1000 || Date.now()), 'hh:mm a')}</div></div>
-                          <Badge className={cn("border-none text-[8px] font-black uppercase px-3 py-1 rounded-full", o.status === 'Cancelled' ? 'bg-red-50 text-red-600' : 'bg-primary/10 text-primary')}>{o.status}</Badge>
-                      </div>
-                      <div className="space-y-4 mb-6">
-                        {orderFilter === 'NEW ORDERS' && <PrepTimer order={o} />}
-                        <div className="bg-muted/30 rounded-[2rem] p-5 space-y-4">
-                            <div className="flex items-center gap-3 border-b border-white pb-3 mb-1"><User className="h-4 w-4 text-primary" /><span className="text-sm font-black uppercase italic">{o.customerName}</span></div>
-                            <div className="space-y-2">{o.items?.filter((it:any) => String(it.vendorId) === String(user?.uid)).map((item:any, i:number) => (
-                                  <div key={i} className="flex justify-between items-center text-xs font-black uppercase italic"><span className="text-gray-700">{item.quantity}x {item.name}</span><span className="text-primary">₹{(item.price * item.quantity).toFixed(0)}</span></div>
-                               ))}</div>
-                            {o.pickupOTP && o.status === 'Ready for Pickup' && (<div className="bg-black p-4 rounded-2xl flex flex-col items-center justify-center text-center border-2 border-primary/30 shadow-xl"><span className="text-[7px] font-black text-primary uppercase tracking-[0.3em] mb-1">PICKUP OTP</span><h4 className="text-2xl font-black italic tracking-[0.5em] text-white pl-2">{o.pickupOTP}</h4></div>)}
-                        </div>
-                      </div>
-                      <div className="flex flex-col gap-3">
-                         {o.status === 'Placed' && (<Button onClick={() => handleUpdateStatus(o.id, 'Accepted')} className="w-full h-16 bg-green-600 text-white rounded-[1.5rem] font-black uppercase italic shadow-lg active:scale-95 transition-all">ACCEPT ORDER</Button>)}
-                         {o.status === 'Accepted' && (<Button onClick={() => handleUpdateStatus(o.id, 'Preparing')} className="w-full h-16 bg-primary text-white rounded-[1.5rem] font-black uppercase italic shadow-lg active:scale-95 transition-all">START PREPARING</Button>)}
-                         {o.status === 'Preparing' && (<Button onClick={() => handleUpdateStatus(o.id, 'Ready for Pickup')} className="w-full h-16 bg-black text-white rounded-[1.5rem] font-black uppercase italic shadow-lg active:scale-95 transition-all">READY FOR PICKUP</Button>)}
-                      </div>
-                   </div>
-                 )) : (<div className="text-center py-20 opacity-30 flex flex-col items-center"><ShoppingBag className="h-12 w-12 mb-4" /><p className="font-black uppercase text-xs">Queue is empty.</p></div>)}
-              </div>
+              )) : <div className="text-center py-20 opacity-30 flex flex-col items-center"><ShoppingBag className="h-12 w-12 mb-4" /><p className="font-black uppercase text-xs">No orders found.</p></div>}
            </div>
         )}
 
         {activeMainTab === 'payouts' && (
            <div className="p-4 space-y-6">
               <h2 className="text-xl font-black italic uppercase ml-2">Wallet</h2>
-              <div className="bg-[#EF4444] p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[180px]">
+              <div className="bg-[#EF4444] p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[200px]">
                  <div className="relative z-10 space-y-1">
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Withdrawable Balance</span>
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Payout Due (Withdrawable)</span>
                     <div className="text-5xl font-black italic tracking-tighter">₹ {vendorProfile?.walletBalance?.toFixed(2) || '0.00'}</div>
                  </div>
                  <div className="relative z-10 flex justify-end mt-4">
-                    <Button onClick={() => toast({ title: "Withdraw Request Sent" })} className="bg-white text-[#EF4444] rounded-xl h-10 px-6 font-black uppercase text-[10px] italic shadow-lg active:scale-95">Withdraw</Button>
+                    <Button 
+                      onClick={handleWithdrawRequest} 
+                      disabled={isWithdrawLoading || (vendorProfile?.walletBalance || 0) <= 0}
+                      className="bg-white text-[#EF4444] rounded-xl h-12 px-8 font-black uppercase text-[12px] italic shadow-xl active:scale-95"
+                    >
+                      {isWithdrawLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Withdraw Now'}
+                    </Button>
                  </div>
-                 <div className="absolute -bottom-10 -left-10 h-32 w-32 bg-white/10 rounded-full blur-2xl" />
                  <Wallet2 className="absolute bottom-4 right-4 h-24 w-24 text-white opacity-10 -rotate-12" />
               </div>
 
@@ -450,77 +286,104 @@ export default function VendorDashboard() {
                  </div>
                  <div className="bg-white p-5 rounded-[2rem] border border-border/50 shadow-sm flex flex-col gap-2">
                     <div className="h-8 w-8 bg-amber-50 text-amber-500 rounded-lg flex items-center justify-center"><Timer className="h-4 w-4" /></div>
-                    <div><span className="text-[8px] font-black text-gray-400 uppercase block mb-0.5">Pending Withdraw</span><h4 className="text-lg font-black italic text-gray-900">₹ 0.00</h4></div>
+                    <div><span className="text-[8px] font-black text-gray-400 uppercase block mb-0.5">Pending Settlement</span><h4 className="text-lg font-black italic text-gray-900">₹ {pendingRequests?.length ? pendingRequests.reduce((sum:any,r:any)=>sum+r.amount, 0).toFixed(2) : '0.00'}</h4></div>
                  </div>
                  <div className="bg-white p-5 rounded-[2rem] border border-border/50 shadow-sm flex flex-col gap-2">
                     <div className="h-8 w-8 bg-green-50 text-green-500 rounded-lg flex items-center justify-center"><CheckCircle2 className="h-4 w-4" /></div>
-                    <div><span className="text-[8px] font-black text-gray-400 uppercase block mb-0.5">Already Withdrawn</span><h4 className="text-lg font-black italic text-gray-900">₹ 23,000.00</h4></div>
+                    <div><span className="text-[8px] font-black text-gray-400 uppercase block mb-0.5">Already Withdrawn</span><h4 className="text-lg font-black italic text-gray-900">₹ {payoutHistory?.length ? payoutHistory.filter((h:any)=>h.status==='Completed').reduce((sum:any,h:any)=>sum+h.amount, 0).toFixed(2) : '0.00'}</h4></div>
                  </div>
                  <div className="bg-white p-5 rounded-[2rem] border border-border/50 shadow-sm flex flex-col gap-2">
                     <div className="h-8 w-8 bg-indigo-50 text-indigo-500 rounded-lg flex items-center justify-center"><ArrowUpRight className="h-4 w-4" /></div>
-                    <div><span className="text-[8px] font-black text-gray-400 uppercase block mb-0.5">Total Earning</span><h4 className="text-lg font-black italic text-gray-900">₹ {earnings.totalDelivered.toFixed(2)}</h4></div>
+                    <div><span className="text-[8px] font-black text-gray-400 uppercase block mb-0.5">Total Revenue</span><h4 className="text-lg font-black italic text-gray-900">₹ {earnings.totalDelivered.toFixed(2)}</h4></div>
                  </div>
               </div>
 
               <div className="space-y-4 pt-4">
-                 <div className="flex border-b border-gray-100 gap-6 px-2">
+                 <div className="flex border-b border-gray-100 gap-6 px-2 overflow-x-auto no-scrollbar">
                     {['Withdraw Request', 'Payment History', 'Transaction History'].map((t, idx) => (
-                      <button key={t} onClick={() => setWalletTab(idx === 0 ? 'request' : idx === 1 ? 'history' : 'transactions')} className={cn("pb-3 text-[10px] font-black uppercase tracking-widest transition-all relative", (idx === 0 && walletTab === 'request') || (idx === 1 && walletTab === 'history') || (idx === 2 && walletTab === 'transactions') ? "text-primary" : "text-gray-400")}>
+                      <button key={t} onClick={() => setWalletTab(idx === 0 ? 'request' : idx === 1 ? 'history' : 'transactions')} className={cn("pb-3 text-[10px] font-black uppercase tracking-widest transition-all relative shrink-0", (idx === 0 && walletTab === 'request') || (idx === 1 && walletTab === 'history') || (idx === 2 && walletTab === 'transactions') ? "text-primary" : "text-gray-400")}>
                         {t}
                         {((idx === 0 && walletTab === 'request') || (idx === 1 && walletTab === 'history') || (idx === 2 && walletTab === 'transactions')) && <div className="absolute bottom-0 left-0 right-0 h-1 bg-primary rounded-t-full" />}
                       </button>
                     ))}
                  </div>
-                 <div className="bg-white rounded-[2.5rem] p-8 border border-border/50 shadow-sm min-h-[300px] flex flex-col items-center justify-center text-center">
-                    <History className="h-10 w-10 text-gray-200 mb-4" />
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">No recent transactions to show</p>
+                 
+                 <div className="bg-white rounded-[2.5rem] p-6 border border-border/50 shadow-sm min-h-[300px]">
+                    {walletTab === 'request' && (
+                      <div className="space-y-6">
+                        <div className="bg-primary/5 p-6 rounded-[2rem] border border-dashed border-primary/20 text-center space-y-4">
+                           <QrCode className="h-10 w-10 text-primary mx-auto opacity-30" />
+                           <div className="space-y-1">
+                              <h4 className="font-black uppercase text-sm italic">Payment Settings</h4>
+                              <p className="text-[10px] font-bold text-muted-foreground uppercase">Configure where you receive money</p>
+                           </div>
+                           <Button onClick={() => { setUpiForm({ upiId: vendorProfile.upiId || '', accountNumber: vendorProfile.accountNumber || '', ifscCode: vendorProfile.ifscCode || '', accountHolderName: vendorProfile.accountHolderName || '' }); setIsUpiModalOpen(true); }} variant="outline" className="h-10 rounded-xl font-black uppercase text-[10px] border-primary/20 text-primary w-full">SETUP UPI / BANK</Button>
+                        </div>
+                        
+                        {pendingRequests?.map((req: any) => (
+                          <div key={req.id} className="bg-amber-50 p-5 rounded-2xl border border-amber-200 flex items-center justify-between animate-in zoom-in">
+                             <div className="flex items-center gap-3">
+                                <Timer className="h-5 w-5 text-amber-600 animate-pulse" />
+                                <div><h4 className="text-xs font-black uppercase italic">Withdraw Pending</h4><p className="text-[9px] font-bold text-amber-700 uppercase">₹{req.amount.toFixed(2)}</p></div>
+                             </div>
+                             <Badge className="bg-amber-500 text-white border-none font-black text-[8px]">WAITING ADMIN</Badge>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {walletTab === 'history' && (
+                      <div className="space-y-4">
+                         {payoutHistory?.length ? payoutHistory.map((h:any) => (
+                           <div key={h.id} className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                 <div className="bg-green-100 p-2 rounded-xl text-green-600"><CheckCircle2 className="h-4 w-4" /></div>
+                                 <div><h4 className="text-xs font-black uppercase italic">Settled Payout</h4><p className="text-[9px] font-bold text-gray-400 uppercase">{format(new Date(h.date), 'dd MMM yyyy')}</p></div>
+                              </div>
+                              <span className="text-sm font-black italic text-green-600">₹{h.amount.toFixed(0)}</span>
+                           </div>
+                         )) : <div className="text-center py-20 opacity-20 flex flex-col items-center"><History className="h-10 w-10 mb-2" /><p className="font-black uppercase text-xs">No payout history</p></div>}
+                      </div>
+                    )}
                  </div>
               </div>
            </div>
         )}
 
-        {activeMainTab === 'catalog' && (
-          <div className="p-4 space-y-4">
-             <div className="flex items-center justify-between mb-2">
-                <h2 className="text-xl font-black italic uppercase tracking-tighter">Inventory</h2>
-                <Dialog open={isProductModalOpen} onOpenChange={setIsAddOpen}>
-                   <DialogTrigger asChild><Button className="bg-primary rounded-xl h-10 font-black uppercase text-[10px] tracking-widest"><Plus className="h-3.5 w-3.5 mr-1" /> ADD ITEM</Button></DialogTrigger>
-                   <DialogContent className="rounded-[2.5rem] max-w-md max-h-[85vh] overflow-y-auto no-scrollbar focus:outline-none p-0">
-                      <DialogHeader className="p-6 border-b"><DialogTitle className="font-black italic uppercase text-center">{editingProductId ? 'Edit Item' : 'New Item'}</DialogTitle></DialogHeader>
-                      <div className="p-8 space-y-6">
-                         <div onClick={() => fileInputRef.current?.click()} className="h-40 border-2 border-dashed rounded-[2rem] flex flex-col items-center justify-center bg-muted/20 cursor-pointer overflow-hidden group hover:border-primary transition-all">{productForm.imageUrl ? <img src={productForm.imageUrl} className="h-full w-full object-cover" /> : <div className="flex flex-col items-center gap-2"><ImageIcon className="h-8 w-8 opacity-20" /><span className="text-[10px] font-black uppercase text-muted-foreground">Product Photo</span></div>}</div>
-                         <input type="file" ref={fileInputRef} className="hidden" onChange={handleProductImageSelect} />
-                         <div className="space-y-4">
-                            <Input placeholder="Product Name" value={productForm.name} onChange={e => setProductForm({...productForm, name: e.target.value})} className="h-12 rounded-xl font-bold bg-muted/20 border-none" />
-                            <div className="space-y-1"><label className="text-[9px] font-black text-primary ml-1 flex items-center gap-1.5"><Globe className="h-2.5 w-2.5" /> SEO Slug</label><Input value={productForm.slug} onChange={e => setProductForm({...productForm, slug: e.target.value})} placeholder="e.g. classic-burger" className="h-12 rounded-xl bg-primary/5 border-none font-black italic text-primary" /></div>
-                            <div className="grid grid-cols-2 gap-4"><Input placeholder="MRP ₹" type="number" value={productForm.mrp} onChange={e => setProductForm({...productForm, mrp: e.target.value})} className="h-12 rounded-xl bg-muted/20 border-none" /><Input placeholder="Price ₹" type="number" value={productForm.price} onChange={e => setProductForm({...productForm, price: e.target.value})} className="h-12 rounded-xl border-primary/40 font-bold" /></div>
-                            <Textarea placeholder="Features..." value={productForm.description} onChange={e => setProductForm({...productForm, description: e.target.value})} className="rounded-xl h-24 bg-muted/20 border-none p-4" />
-                            <div className="grid grid-cols-2 gap-4">
-                               <div className="space-y-1"><label className="text-[9px] font-black text-muted-foreground ml-1">Category</label><Select value={productForm.category} onValueChange={(val) => setProductForm({...productForm, category: val})}><SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold"><SelectValue placeholder="Select" /></SelectTrigger><SelectContent className="rounded-2xl">{foodCategories?.map((cat: any) => (<SelectItem key={cat.id} value={cat.name.toLowerCase()} className="font-bold py-3 uppercase text-xs">{cat.name}</SelectItem>))}</SelectContent></Select></div>
-                               <div className="space-y-1"><label className="text-[9px] font-black text-teal-600 ml-1 flex items-center gap-1"><Timer className="h-3 w-3" /> Prep Time</label><Input type="number" placeholder="15" value={productForm.preparingTime} onChange={e => setProductForm({...productForm, preparingTime: e.target.value})} className="h-12 rounded-xl bg-primary/5 border-none text-center font-bold" /></div>
-                            </div>
-                         </div>
-                         <Button onClick={handleSaveProduct} disabled={isSavingProduct} className="w-full h-18 bg-primary text-white rounded-[2rem] font-black uppercase italic shadow-xl">{isSavingProduct ? <Loader2 className="h-5 w-5 animate-spin" /> : editingProductId ? 'UPDATE ITEM' : 'PUBLISH ITEM'}</Button>
-                      </div>
-                   </DialogContent>
-                </Dialog>
-             </div>
-             <div className="grid grid-cols-1 gap-4">
-                {myProducts?.filter(p => !p.isDeleted)?.map(p => (
-                  <div key={p.id} className="bg-white p-4 rounded-3xl border border-border/50 shadow-sm flex items-center justify-between group">
-                    <div className="flex items-center gap-4">
-                      <img src={p.imageUrl} className="h-16 w-16 rounded-xl object-cover bg-muted" alt="" />
-                      <div><h4 className="font-black text-sm uppercase italic leading-none mb-1">{p.name}</h4><p className="text-xs font-black text-primary italic">₹{p.price}</p></div>
+        {/* UPI SETUP MODAL */}
+        <Dialog open={isUpiModalOpen} onOpenChange={setIsUpiModalOpen}>
+           <DialogContent className="rounded-[2.5rem] max-w-md p-0 overflow-hidden border-none shadow-2xl bg-white">
+              <DialogHeader className="p-8 pb-4">
+                 <DialogTitle className="font-black italic uppercase text-center text-xl">Payment Details</DialogTitle>
+                 <DialogDescription className="text-[10px] font-bold text-muted-foreground uppercase text-center tracking-widest">Admin will use these for your payouts</DialogDescription>
+              </DialogHeader>
+              <div className="p-8 pt-0 space-y-6">
+                 <div className="space-y-4">
+                    <div className="space-y-1.5">
+                       <label className="text-[10px] font-black uppercase text-primary ml-1">UPI ID (Most Important)</label>
+                       <Input value={upiForm.upiId} onChange={e => setUpiForm({...upiForm, upiId: e.target.value.toLowerCase().trim()})} placeholder="e.g. store@upi" className="h-14 rounded-2xl bg-gray-50 border-none font-black italic text-lg" />
                     </div>
-                    <div className="flex gap-2">
-                       <button onClick={() => handleEdit(p)} className="h-10 w-10 text-blue-600 bg-blue-50 rounded-xl flex items-center justify-center active:scale-90 transition-all"><Edit className="h-4 w-4" /></button>
-                       <button onClick={async () => { if(confirm("Remove?")) await updateDoc(doc(firestore!, 'products', p.id), { isDeleted: true }); }} className="h-10 w-10 text-red-500 hover:bg-red-50 rounded-xl flex items-center justify-center"><Trash2 className="h-4 w-4" /></button>
+                    <div className="space-y-1.5">
+                       <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Account Holder Name</label>
+                       <Input value={upiForm.accountHolderName} onChange={e => setUpiForm({...upiForm, accountHolderName: e.target.value.toUpperCase()})} placeholder="FULL NAME ON BANK" className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
                     </div>
-                  </div>
-                ))}
-             </div>
-          </div>
-        )}
+                    <div className="grid grid-cols-2 gap-4">
+                       <div className="space-y-1.5">
+                          <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Bank A/C No.</label>
+                          <Input value={upiForm.accountNumber} onChange={e => setUpiForm({...upiForm, accountNumber: e.target.value})} placeholder="Numbers only" className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
+                       </div>
+                       <div className="space-y-1.5">
+                          <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">IFSC Code</label>
+                          <Input value={upiForm.ifscCode} onChange={e => setUpiForm({...upiForm, ifscCode: e.target.value.toUpperCase()})} placeholder="SBIN00..." className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
+                       </div>
+                    </div>
+                 </div>
+                 <Button onClick={handleSaveUpi} disabled={isProcessing || !upiForm.upiId} className="w-full h-16 bg-black text-white rounded-[1.5rem] font-black uppercase italic shadow-xl">
+                   {isProcessing ? <Loader2 className="h-5 w-5 animate-spin" /> : "SAVE PAYMENT IDENTITY"}
+                 </Button>
+              </div>
+           </DialogContent>
+        </Dialog>
       </main>
 
       <nav className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto w-full bg-[#0F172A] pt-4 pb-8 px-4 flex justify-around border-t border-white/5 z-50 rounded-t-[2.5rem] shadow-2xl">
@@ -530,7 +393,7 @@ export default function VendorDashboard() {
           {id:'payouts',label:'Wallet',icon:Wallet2},
           {id:'account',label:'Profile',icon:UserCircle2}
         ].map(item => (
-          <button key={item.id} onClick={() => setActiveMainTab(item.id as MainTab)} className="flex flex-col items-center gap-1.5 active:scale-90 transition-none">
+          <button key={item.id} onClick={() => setActiveMainTab(item.id as MainTab)} className="flex flex-col items-center gap-1.5 active:scale-90 transition-none outline-none">
             <item.icon className={cn("h-5 w-5", activeMainTab === item.id ? "text-primary scale-110" : "text-gray-500")} />
             <span className={cn("text-[8px] font-black uppercase tracking-widest", activeMainTab === item.id ? "text-white" : "text-gray-500")}>{item.label}</span>
           </button>
