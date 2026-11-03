@@ -1,61 +1,61 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
-import { collection, doc, query, where, setDoc, serverTimestamp, updateDoc, orderBy, limit } from 'firebase/firestore';
+import { collection, doc, query, where, setDoc, serverTimestamp, updateDoc, orderBy, limit, getDoc } from 'firebase/firestore';
 import { 
   ShoppingBag, 
-  Trash2, 
   Plus, 
   LogOut,
   LayoutDashboard,
   Layers,
   CircleDollarSign,
   UserCircle2,
-  Edit,
-  ImageIcon,
-  BellRing,
   Clock,
-  Camera,
-  History,
-  Wallet,
   Store,
-  XCircle,
   X,
   Loader2,
-  ListPlus,
-  HeartPulse,
-  ShieldCheck,
-  Calendar,
-  Tag,
-  FileText,
-  Printer,
-  Download,
-  Eye,
   User,
-  Save,
-  ArrowUpRight,
+  ImageIcon,
+  Trash2,
+  Camera,
+  History,
+  Timer,
   ListTree,
+  Megaphone,
+  Tag,
+  Ticket,
+  BellRing,
+  Edit,
+  Globe,
+  Wallet,
+  Calendar,
+  Zap,
+  ChevronRight,
+  TrendingUp,
   CreditCard,
   Banknote,
-  ChevronRight,
-  Timer,
-  Megaphone,
-  Ticket,
-  TrendingUp
+  Wallet2,
+  ArrowDownLeft,
+  ArrowUpRight,
+  ShieldCheck,
+  Ban,
+  HeartPulse
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
+import { cn, slugify } from '@/lib/utils';
 import { useState, useEffect, useRef, useMemo, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { format, differenceInSeconds, differenceInMinutes, startOfDay, startOfWeek, startOfMonth, isAfter } from 'date-fns';
+import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 import { compressImage } from '@/lib/image-utils';
-import { format, startOfDay, startOfWeek, startOfMonth, isAfter } from 'date-fns';
-import { Badge } from '@/components/ui/badge';
 import { scheduleTestNotification } from '@/components/shared/PermissionManager';
 
 type MainTab = 'orders' | 'catalog' | 'payouts' | 'account';
@@ -71,12 +71,11 @@ export default function MedicalDashboard() {
   
   const [activeMainTab, setActiveMainTab] = useState<MainTab>('orders');
   const [orderFilter, setOrderFilter] = useState<OrderFilter>('NEW ORDERS');
+  const [walletTab, setWalletTab] = useState<'request' | 'history' | 'transactions'>('request');
   const [isMounted, setIsMounted] = useState(false);
-  const [isTesting, setIsTesting] = useState(false);
 
   useEffect(() => { setIsMounted(true); }, []);
 
-  // AUTH GUARD
   useEffect(() => {
     if (!isMounted || authLoading) return;
     const sessionActive = localStorage.getItem('shopykart_session_active') === 'true';
@@ -85,63 +84,47 @@ export default function MedicalDashboard() {
     }
   }, [user, authLoading, router, isMounted]);
 
-  // Vendor Profile
-  const vendorRef = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return doc(firestore, 'vendors', user.uid);
-  }, [firestore, user]);
+  const vendorRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'vendors', user.uid) : null, [firestore, user]);
   const { data: vendorProfile, loading: profileLoading } = useDoc<any>(vendorRef);
 
-  // Product Form State
-  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
-  const [isSavingProduct, setIsSavingProduct] = useState(false);
-  const [isVarietyRequired, setIsVarietyRequired] = useState(false);
-  const [options, setOptions] = useState<{ name: string; price: number }[]>([]);
-  const [productForm, setProductForm] = useState({
-    name: '', price: '', mrp: '', description: '', category: '', imageUrl: '', preparingTime: ''
-  });
-
-  const productsQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(collection(firestore, 'products'), where('vendorId', '==', user.uid));
-  }, [firestore, user]);
-  const { data: myProducts } = useCollection<any>(productsQuery);
-
-  const ordersQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(collection(firestore, 'orders'), orderBy('createdAt', 'desc'));
-  }, [firestore, user]);
+  const ordersQuery = useMemoFirebase(() => (firestore && user) ? query(collection(firestore, 'orders'), orderBy('createdAt', 'desc')) : null, [firestore, user]);
   const { data: rawOrders } = useCollection<any>(ordersQuery);
 
   const filteredOrders = useMemo(() => {
     if (!rawOrders || !user) return [];
     const vId = String(user.uid);
     return rawOrders.filter((o: any) => {
-      const isForMe = o.vendorId === vId || (Array.isArray(o.vendorIds) && o.vendorIds.includes(vId)) || o.items?.some((it:any) => String(it.vendorId) === vId);
+      const isForMe = String(o.vendorId) === vId || (Array.isArray(o.vendorIds) && o.vendorIds.includes(vId)) || o.items?.some((it:any) => String(it.vendorId) === vId);
       if (!isForMe) return false;
       const status = (o.status || '').toUpperCase();
-      if(orderFilter === 'NEW ORDERS') return !['DELIVERED', 'CANCELLED'].includes(status);
-      return status === (orderFilter === 'CANCELLED' ? 'CANCELLED' : 'DELIVERED');
+      if (orderFilter === 'NEW ORDERS') return !['DELIVERED', 'CANCELLED'].includes(status);
+      else if (orderFilter === 'DELIVERED') return status === 'DELIVERED';
+      else return status === 'CANCELLED';
     });
   }, [rawOrders, user, orderFilter]);
 
   const earnings = useMemo(() => {
-    if (!rawOrders || !user) return { today: 0, week: 0, month: 0 };
+    if (!rawOrders || !user) return { today: 0, week: 0, month: 0, totalDelivered: 0, totalCancelled: 0 };
     const now = new Date();
     const today = startOfDay(now);
     const week = startOfWeek(now);
     const month = startOfMonth(now);
-    let t = 0, w = 0, m = 0;
+    let t = 0, w = 0, m = 0, td = 0, tc = 0;
     rawOrders.forEach((o: any) => {
-      if (o.status !== 'Delivered') return;
-      const isForMe = String(o.vendorId) === String(user.uid) || (Array.isArray(o.vendorIds) && o.vendorIds.includes(user.uid));
+      const vId = String(user.uid);
+      const isForMe = String(o.vendorId) === vId || (Array.isArray(o.vendorIds) && o.vendorIds.includes(vId)) || o.items?.some((it:any) => String(it.vendorId) === vId);
       if (!isForMe) return;
-      const orderDate = o.createdAt?.seconds ? new Date(o.createdAt.seconds * 1000) : new Date(o.createdAt);
-      if (isAfter(orderDate, today)) t += Number(o.total) || 0;
-      if (isAfter(orderDate, week)) w += Number(o.total) || 0;
-      if (isAfter(orderDate, month)) m += Number(o.total) || 0;
+      const amt = Number(o.total) || 0;
+      const status = (o.status || '').toUpperCase();
+      if (status === 'DELIVERED') {
+        td += amt;
+        const orderDate = o.createdAt?.seconds ? new Date(o.createdAt.seconds * 1000) : new Date(o.createdAt);
+        if (isAfter(orderDate, today)) t += amt;
+        if (isAfter(orderDate, week)) w += amt;
+        if (isAfter(orderDate, month)) m += amt;
+      } else if (status === 'CANCELLED') tc += amt;
     });
-    return { today: t, week: w, month: m };
+    return { today: t, week: w, month: m, totalDelivered: td, totalCancelled: tc };
   }, [rawOrders, user]);
 
   const handleUpdateStatus = async (orderId: string, newStatus: string) => {
@@ -154,63 +137,7 @@ export default function MedicalDashboard() {
     } catch (e) { toast({ variant: "destructive", title: "Failed" }); }
   };
 
-  const handleSaveProduct = async () => {
-    if (!firestore || !user || !productForm.name || !productForm.price) return;
-    setIsSavingProduct(true);
-    const pData = {
-      name: productForm.name,
-      price: parseFloat(productForm.price),
-      mrp: parseFloat(productForm.mrp) || parseFloat(productForm.price),
-      description: productForm.description,
-      category: productForm.category,
-      vendorId: user.uid,
-      restaurantName: vendorProfile?.storeName || 'Pharmacy Hub',
-      serviceMode: 'Medical',
-      imageUrl: productForm.imageUrl || 'https://picsum.photos/seed/med/400/400',
-      isAvailable: true,
-      options: options.filter(opt => opt.name.trim() !== ''),
-      isVarietyRequired: isVarietyRequired,
-      updatedAt: serverTimestamp(),
-      isDeleted: false,
-    };
-    try {
-      const newRef = doc(collection(firestore, 'products'));
-      await setDoc(newRef, { ...pData, id: newRef.id, createdAt: serverTimestamp() });
-      await setDoc(doc(firestore, 'vendors', user.uid, 'products', newRef.id), { ...pData, id: newRef.id, createdAt: serverTimestamp() });
-      setIsProductModalOpen(false);
-      resetProductForm();
-      toast({ title: "Medicine Entry Published!" });
-    } catch (e) { toast({ variant: "destructive", title: "Save Error" }); }
-    finally { setIsSavingProduct(false); }
-  };
-
-  const resetProductForm = () => {
-    setProductForm({ name: '', price: '', mrp: '', description: '', category: '', imageUrl: '', preparingTime: '' });
-    setOptions([]);
-    setIsVarietyRequired(false);
-  };
-
-  const handleProductImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      const compressed = await compressImage(reader.result as string, 600, 600);
-      setProductForm(prev => ({ ...prev, imageUrl: compressed }));
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleTestAlert = async () => {
-    setIsTesting(true);
-    toast({ title: "Sound Test! 🔊", description: "Phone 10s mein bajega." });
-    await scheduleTestNotification();
-    setTimeout(() => setIsTesting(false), 5000);
-  };
-
-  if (!isMounted || authLoading || (profileLoading && !vendorProfile)) {
-    return <div className="h-screen bg-white flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-teal-600" /></div>;
-  }
+  if (!isMounted || authLoading || (profileLoading && !vendorProfile)) return <div className="h-screen bg-white flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-teal-600" /></div>;
 
   return (
     <div className="h-screen bg-[#F9FAFB] flex flex-col max-lg mx-auto shadow-2xl relative overflow-hidden">
@@ -230,38 +157,15 @@ export default function MedicalDashboard() {
       <main className="flex-1 overflow-y-auto no-scrollbar pb-32">
          {activeMainTab === 'orders' && (
            <div className="p-4 space-y-6">
-              {/* EARNINGS OVERVIEW */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                 <div className="bg-teal-600 p-8 rounded-[2.5rem] text-white shadow-2xl shadow-teal-100 relative overflow-hidden flex items-center justify-between">
-                    <div className="relative z-10">
-                       <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Today</span>
-                       <div className="text-4xl font-black italic tracking-tighter mt-1">₹ {earnings.today.toFixed(2)}</div>
-                    </div>
-                    <div className="bg-white/20 p-4 rounded-[1.5rem] backdrop-blur-md relative z-10">
-                       <Wallet className="h-10 w-10 text-white fill-white/20" />
-                    </div>
-                    <div className="absolute top-0 right-0 h-full w-24 bg-white/5 -skew-x-12 translate-x-10" />
+                 <div className="bg-teal-600 p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden flex items-center justify-between">
+                    <div className="relative z-10"><span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Today</span><div className="text-4xl font-black italic mt-1">₹ {earnings.today.toFixed(0)}</div></div>
+                    <div className="bg-white/20 p-4 rounded-[1.5rem] backdrop-blur-md relative z-10"><Wallet className="h-10 w-10 text-white fill-white/20" /></div>
                  </div>
                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-teal-600 p-5 rounded-[2rem] text-white shadow-xl relative overflow-hidden">
-                       <span className="text-[8px] font-black uppercase tracking-widest opacity-80">This Week</span>
-                       <div className="text-lg font-black italic tracking-tight mt-1">₹ {earnings.week.toFixed(2)}</div>
-                    </div>
-                    <div className="bg-teal-600 p-5 rounded-[2rem] text-white shadow-xl relative overflow-hidden">
-                       <span className="text-[8px] font-black uppercase tracking-widest opacity-80">This Month</span>
-                       <div className="text-lg font-black italic tracking-tight mt-1">₹ {earnings.month.toFixed(2)}</div>
-                    </div>
+                    <div className="bg-teal-600 p-5 rounded-[2rem] text-white shadow-xl relative overflow-hidden"><span className="text-[8px] font-black uppercase tracking-widest opacity-80">This Week</span><div className="text-lg font-black italic mt-1">₹ {earnings.week.toFixed(0)}</div></div>
+                    <div className="bg-teal-600 p-5 rounded-[2rem] text-white shadow-xl relative overflow-hidden"><span className="text-[8px] font-black uppercase tracking-widest opacity-80">This Month</span><div className="text-lg font-black italic mt-1">₹ {earnings.month.toFixed(0)}</div></div>
                  </div>
-              </div>
-
-              {/* ADS PROMO */}
-              <div className="bg-teal-50 border-2 border-dashed border-teal-200 p-8 rounded-[3rem] flex flex-col items-center text-center space-y-4">
-                 <Megaphone className="h-10 w-10 text-teal-600" />
-                 <div>
-                    <h3 className="text-xl font-black italic uppercase tracking-tighter text-gray-900">Want To Get Highlighted?</h3>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Boost your pharmacy visibility now.</p>
-                 </div>
-                 <Button className="bg-teal-600 text-white rounded-2xl h-12 px-8 font-black uppercase italic shadow-lg">Create Ads</Button>
               </div>
 
               <div className="flex bg-white rounded-2xl p-1 shadow-sm border border-border/50">
@@ -270,16 +174,23 @@ export default function MedicalDashboard() {
                 ))}
               </div>
 
+              {(orderFilter === 'DELIVERED' || orderFilter === 'CANCELLED') && (
+                <div className="grid grid-cols-2 gap-4 px-2">
+                   <div className="bg-white p-4 rounded-3xl border border-border/50 flex flex-col items-center"><span className="text-[7px] font-black text-gray-400 uppercase tracking-widest">Total Sales</span><span className="text-xl font-black text-green-600 italic">₹{earnings.totalDelivered.toFixed(0)}</span></div>
+                   <div className="bg-white p-4 rounded-3xl border border-border/50 flex flex-col items-center"><span className="text-[7px] font-black text-gray-400 uppercase tracking-widest">Total Loss</span><span className="text-xl font-black text-red-600 italic">₹{earnings.totalCancelled.toFixed(0)}</span></div>
+                </div>
+              )}
+
               {filteredOrders.length > 0 ? filteredOrders.map(o => (
                 <div key={o.id} className="bg-white p-6 rounded-[2.5rem] border border-border/50 shadow-sm">
                    <div className="flex justify-between items-start mb-4">
-                      <div><span className="text-2xl font-black italic tracking-tighter">#{o.customerOrderNumber}</span><p className="text-[8px] font-black text-gray-400 uppercase mt-1">{format(new Date(o.createdAt?.seconds * 1000 || Date.now()), 'hh:mm a')}</p></div>
-                      <Badge className="bg-teal-50 text-teal-600 border-none font-black text-[8px] uppercase">{o.status}</Badge>
+                      <div><span className="text-2xl font-black italic">#{o.customerOrderNumber}</span><p className="text-[8px] font-black text-gray-400 uppercase mt-1">{format(new Date(o.createdAt?.seconds * 1000 || Date.now()), 'hh:mm a')}</p></div>
+                      <Badge className={cn("border-none font-black text-[8px] uppercase", o.status === 'Cancelled' ? 'bg-red-50 text-red-600' : 'bg-teal-50 text-teal-600')}>{o.status}</Badge>
                    </div>
                    <div className="bg-muted/30 rounded-3xl p-5 mb-4 space-y-3">
                       <div className="flex items-center gap-2 border-b border-white pb-2"><User className="h-3.5 w-3.5 text-teal-600" /><span className="text-xs font-black uppercase italic">{o.customerName}</span></div>
                       {o.items?.filter((it:any) => String(it.vendorId) === String(user?.uid)).map((item:any, i:number) => (
-                        <div key={i} className="flex justify-between items-center text-[11px] font-black uppercase italic"><span className="text-gray-700">{item.quantity}x {item.name}</span><span className="text-teal-600">₹{item.price * item.quantity}</span></div>
+                        <div key={i} className="flex justify-between items-center text-[11px] font-black uppercase italic"><span className="text-gray-700">{item.quantity}x {item.name}</span><span className="text-teal-600">₹{(item.price * item.quantity).toFixed(0)}</span></div>
                       ))}
                       {o.pickupOTP && o.status === 'Ready for Pickup' && <div className="bg-black p-3 rounded-2xl text-center"><span className="text-[7px] font-black text-teal-500 uppercase tracking-widest">PICKUP OTP</span><h4 className="text-xl font-black text-white italic tracking-[0.4em]">{o.pickupOTP}</h4></div>}
                    </div>
@@ -289,100 +200,31 @@ export default function MedicalDashboard() {
                       {o.status === 'Preparing' && <Button onClick={() => handleUpdateStatus(o.id, 'Ready for Pickup')} className="h-14 bg-black text-white rounded-2xl font-black uppercase italic">READY FOR PICKUP</Button>}
                    </div>
                 </div>
-              )) : <div className="text-center py-20 opacity-20"><ShoppingBag className="h-12 w-12 mx-auto mb-2" /><p className="font-black uppercase text-xs">No active medical orders</p></div>}
-           </div>
-         )}
-
-         {activeMainTab === 'catalog' && (
-           <div className="p-4 space-y-4">
-              <div className="flex items-center justify-between">
-                 <h2 className="text-xl font-black italic uppercase">Pharmacy Inventory</h2>
-                 <Dialog open={isProductModalOpen} onOpenChange={(val) => { setIsProductModalOpen(val); if(!val) resetProductForm(); }}>
-                   <DialogTrigger asChild>
-                     <Button className="bg-teal-600 rounded-xl h-10 font-black uppercase text-[10px]"><Plus className="h-4 w-4 mr-1" /> ADD MEDICINE</Button>
-                   </DialogTrigger>
-                   <DialogContent className="rounded-[2.5rem] max-w-md max-h-[85vh] overflow-y-auto no-scrollbar focus:outline-none p-0">
-                      <DialogHeader className="p-6 border-b"><DialogTitle className="font-black italic uppercase text-center">New Medicine Entry</DialogTitle></DialogHeader>
-                      <div className="p-8 space-y-6">
-                         <div onClick={() => fileInputRef.current?.click()} className="h-40 border-2 border-dashed rounded-[2rem] flex flex-col items-center justify-center bg-muted/20 cursor-pointer overflow-hidden group">
-                            {productForm.imageUrl ? <img src={productForm.imageUrl} className="h-full w-full object-cover" /> : <div className="flex flex-col items-center gap-2"><ImageIcon className="h-8 w-8 opacity-20" /><span className="text-[10px] font-black uppercase text-muted-foreground">Medicine Photo</span></div>}
-                         </div>
-                         <input type="file" ref={fileInputRef} className="hidden" onChange={handleProductImageSelect} />
-                         
-                         <div className="space-y-4">
-                            <Input placeholder="Medicine Name" value={productForm.name} onChange={e => setProductForm({...productForm, name: e.target.value})} className="h-12 rounded-xl font-bold bg-muted/20 border-none" />
-                            <div className="grid grid-cols-2 gap-4">
-                              <Input placeholder="MRP ₹" type="number" value={productForm.mrp} onChange={e => setProductForm({...productForm, mrp: e.target.value})} className="h-12 rounded-xl bg-muted/20 border-none" />
-                              <Input placeholder="Selling Price ₹" type="number" value={productForm.price} onChange={e => setProductForm({...productForm, price: e.target.value})} className="h-12 rounded-xl border-teal-400 font-bold" />
-                            </div>
-                            <Textarea placeholder="Dosage / Usage Instructions" value={productForm.description} onChange={e => setProductForm({...productForm, description: e.target.value})} className="rounded-xl h-24 bg-muted/20 border-none p-4" />
-                            
-                            <div className="space-y-4 p-6 bg-gray-50 rounded-[2rem] border-2 border-dashed border-gray-200">
-                                <div className="flex items-center justify-between">
-                                   <div className="flex items-center gap-2">
-                                      <div className="bg-teal-50 p-2 rounded-xl text-teal-600"><ListTree className="h-4 w-4" /></div>
-                                      <div>
-                                         <h4 className="text-[11px] font-black uppercase tracking-tight">Variations</h4>
-                                      </div>
-                                   </div>
-                                   <div className="flex items-center gap-2">
-                                      <span className="text-[8px] font-black uppercase text-gray-400">Choice Required?</span>
-                                      <Switch checked={isVarietyRequired} onCheckedChange={setIsVarietyRequired} className="scale-75 data-[state=checked]:bg-teal-600" />
-                                   </div>
-                                </div>
-
-                                <div className="space-y-3">
-                                   {options.map((opt, idx) => (
-                                     <div key={idx} className="flex gap-3">
-                                        <Input placeholder="Variant (e.g. 500mg)" value={opt.name} onChange={e => updateOption(idx, 'name', e.target.value)} className="h-10 rounded-xl bg-white border-none font-bold text-xs uppercase flex-[2]" />
-                                        <div className="relative flex-1">
-                                           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-teal-600">₹</span>
-                                           <Input type="number" placeholder="0" value={opt.price} onChange={e => updateOption(idx, 'price', e.target.value)} className="h-10 pl-6 rounded-xl bg-white border-none font-black text-xs text-teal-600" />
-                                        </div>
-                                        <button onClick={() => setOptions(options.filter((_, i) => i !== idx))} className="h-10 w-10 bg-red-50 text-red-500 rounded-xl flex items-center justify-center"><Trash2 className="h-4 w-4" /></button>
-                                     </div>
-                                   ))}
-                                   <button onClick={() => setOptions([...options, { name: '', price: 0 }])} className="w-full h-10 border-2 border-dashed border-teal-200 text-teal-600 rounded-xl font-black uppercase text-[8px] flex items-center justify-center gap-2"><Plus className="h-3 w-3" /> ADD VARIETY</button>
-                                </div>
-                            </div>
-                         </div>
-                         <Button onClick={handleSaveProduct} disabled={isSavingProduct} className="w-full h-16 bg-teal-600 text-white rounded-[2rem] font-black uppercase italic shadow-xl">
-                           {isSavingProduct ? <Loader2 className="h-5 w-5 animate-spin" /> : 'PUBLISH MEDICINE'}
-                         </Button>
-                      </div>
-                   </DialogContent>
-                </Dialog>
-              </div>
-              <div className="grid grid-cols-1 gap-4">
-                 {myProducts?.filter(p => !p.isDeleted).map(p => (
-                    <div key={p.id} className="bg-white p-4 rounded-3xl border border-border/50 shadow-sm flex items-center justify-between">
-                       <div className="flex items-center gap-4">
-                          <img src={p.imageUrl} className="h-16 w-16 rounded-2xl object-cover bg-muted" alt="" />
-                          <div>
-                             <h4 className="font-black text-sm uppercase italic leading-none mb-1">{p.name}</h4>
-                             <p className="text-xs font-black text-teal-600 italic">₹{p.price}</p>
-                          </div>
-                       </div>
-                       <button onClick={async () => { if(confirm("Remove entry?")) await updateDoc(doc(firestore!, 'products', p.id), { isDeleted: true }); }} className="h-10 w-10 text-red-500"><Trash2 className="h-4 w-4" /></button>
-                    </div>
-                 ))}
-              </div>
+              )) : <div className="text-center py-20 opacity-20 flex flex-col items-center"><ShoppingBag className="h-12 w-12 mb-2" /><p className="font-black uppercase text-xs">Queue is empty</p></div>}
            </div>
          )}
 
          {activeMainTab === 'payouts' && (
            <div className="p-4 space-y-6">
-              <h2 className="text-xl font-black italic uppercase ml-2">Medical Wallet</h2>
-              <div className="bg-[#0B0B0B] p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden">
-                 <div className="relative z-10 space-y-4">
-                    <span className="text-[10px] font-black uppercase text-gray-500">Available Balance</span>
-                    <div className="text-5xl font-black italic text-teal-500">₹{vendorProfile?.walletBalance?.toFixed(2) || '0.00'}</div>
-                 </div>
-                 <div className="absolute top-0 right-0 h-full w-44 bg-teal-500/5 -skew-x-12 translate-x-12" />
+              <h2 className="text-xl font-black italic uppercase ml-2">Wallet</h2>
+              <div className="bg-teal-600 p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[180px]">
+                 <div className="relative z-10 space-y-1"><span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Withdrawable Balance</span><div className="text-5xl font-black italic">₹ {vendorProfile?.walletBalance?.toFixed(2) || '0.00'}</div></div>
+                 <div className="relative z-10 flex justify-end mt-4"><Button onClick={() => toast({ title: "Request Sent" })} className="bg-white text-teal-600 rounded-xl h-10 px-6 font-black uppercase text-[10px] italic">Withdraw</Button></div>
+                 <Wallet2 className="absolute bottom-4 right-4 h-24 w-24 text-white opacity-10 -rotate-12" />
               </div>
-              <div className="space-y-4">
-                 <h3 className="text-[10px] font-black uppercase text-muted-foreground ml-2">Recent Payouts</h3>
-                 <div className="text-center py-20 opacity-20"><History className="h-10 w-10 mx-auto" /><p className="font-black uppercase text-[10px] mt-2">No records found</p></div>
+              <div className="grid grid-cols-2 gap-4">
+                 <div className="bg-white p-5 rounded-[2rem] border border-border/50 shadow-sm flex flex-col gap-2"><div className="h-8 w-8 bg-blue-50 text-blue-500 rounded-lg flex items-center justify-center"><ArrowDownLeft className="h-4 w-4" /></div><div><span className="text-[8px] font-black text-gray-400 uppercase block mb-0.5">Cash in Hand</span><h4 className="text-lg font-black italic text-gray-900">₹ 0.00</h4></div></div>
+                 <div className="bg-white p-5 rounded-[2rem] border border-border/50 shadow-sm flex flex-col gap-2"><div className="h-8 w-8 bg-amber-50 text-amber-500 rounded-lg flex items-center justify-center"><Timer className="h-4 w-4" /></div><div><span className="text-[8px] font-black text-gray-400 uppercase block mb-0.5">Pending Withdraw</span><h4 className="text-lg font-black italic text-gray-900">₹ 0.00</h4></div></div>
+                 <div className="bg-white p-5 rounded-[2rem] border border-border/50 shadow-sm flex flex-col gap-2"><div className="h-8 w-8 bg-green-50 text-green-500 rounded-lg flex items-center justify-center"><CheckCircle2 className="h-4 w-4" /></div><div><span className="text-[8px] font-black text-gray-400 uppercase block mb-0.5">Already Withdrawn</span><h4 className="text-lg font-black italic text-gray-900">₹ 23,000.00</h4></div></div>
+                 <div className="bg-white p-5 rounded-[2rem] border border-border/50 shadow-sm flex flex-col gap-2"><div className="h-8 w-8 bg-indigo-50 text-indigo-500 rounded-lg flex items-center justify-center"><ArrowUpRight className="h-4 w-4" /></div><div><span className="text-[8px] font-black text-gray-400 uppercase block mb-0.5">Total Earning</span><h4 className="text-lg font-black italic text-gray-900">₹ {earnings.totalDelivered.toFixed(2)}</h4></div></div>
+              </div>
+              <div className="space-y-4 pt-4">
+                 <div className="flex border-b border-gray-100 gap-6 px-2">
+                    {['Withdraw Request', 'Payment History', 'Transaction History'].map((t, idx) => (
+                      <button key={t} onClick={() => setWalletTab(idx === 0 ? 'request' : idx === 1 ? 'history' : 'transactions')} className={cn("pb-3 text-[10px] font-black uppercase tracking-widest transition-all relative", (idx === 0 && walletTab === 'request') || (idx === 1 && walletTab === 'history') || (idx === 2 && walletTab === 'transactions') ? "text-teal-600" : "text-gray-400")}>{t}{( (idx === 0 && walletTab === 'request') || (idx === 1 && walletTab === 'history') || (idx === 2 && walletTab === 'transactions') ) && <div className="absolute bottom-0 left-0 right-0 h-1 bg-teal-600 rounded-t-full" />}</button>
+                    ))}
+                 </div>
+                 <div className="bg-white rounded-[2.5rem] p-8 border border-border/50 shadow-sm min-h-[300px] flex flex-col items-center justify-center text-center"><History className="h-10 w-10 text-gray-200 mb-4" /><p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">No records found</p></div>
               </div>
            </div>
          )}
@@ -390,9 +232,9 @@ export default function MedicalDashboard() {
 
       <nav className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto w-full bg-[#0F172A] pt-4 pb-8 px-6 flex justify-around border-t border-white/5 z-50 rounded-t-[2.5rem] shadow-2xl transform-gpu">
         {[
-          {id:'orders',label:'Home',icon:LayoutDashboard},
+          {id:'orders',label:'Queue',icon:ShoppingBag},
           {id:'catalog',label:'Menu',icon:Layers},
-          {id:'payouts',label:'Wallet',icon:Wallet},
+          {id:'payouts',label:'Wallet',icon:Wallet2},
           {id:'account',label:'Profile',icon:UserCircle2}
         ].map(item => (
           <button key={item.id} onClick={() => setActiveMainTab(item.id as MainTab)} className="flex flex-col items-center gap-1.5 active:scale-90 transition-none">

@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -33,7 +34,13 @@ import {
   Zap,
   ChevronRight,
   TrendingUp,
-  CreditCard
+  CreditCard,
+  Banknote,
+  Wallet2,
+  ArrowDownLeft,
+  ArrowUpRight,
+  ShieldCheck,
+  Ban
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -52,6 +59,7 @@ import { compressImage } from '@/lib/image-utils';
 import { scheduleTestNotification } from '@/components/shared/PermissionManager';
 
 type MainTab = 'orders' | 'catalog' | 'payouts' | 'account';
+type OrderFilter = 'NEW ORDERS' | 'DELIVERED' | 'CANCELLED';
 
 const PrepTimer = ({ order }: { order: any }) => {
   const [timeLeft, setTimeLeft] = useState('10:00');
@@ -110,6 +118,8 @@ export default function VendorDashboard() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [activeMainTab, setActiveMainTab] = useState<MainTab>('orders');
+  const [orderFilter, setOrderFilter] = useState<OrderFilter>('NEW ORDERS');
+  const [walletTab, setWalletTab] = useState<'request' | 'history' | 'transactions'>('request');
   const [isMounted, setIsMounted] = useState(false);
   const [isSavingProduct, setIsSavingProduct] = useState(false);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
@@ -144,36 +154,53 @@ export default function VendorDashboard() {
 
   const filteredOrders = useMemo(() => {
     if (!rawOrders || !user) return [];
-    return rawOrders.filter((o: any) => 
-      (String(o.vendorId) === String(user.uid) || (Array.isArray(o.vendorIds) && o.vendorIds.includes(user.uid)) || o.items?.some((it:any) => String(it.vendorId) === String(user.uid))) &&
-      o.status !== 'Delivered' && o.status !== 'Cancelled'
-    );
-  }, [rawOrders, user]);
+    const vId = String(user.uid);
+    return rawOrders.filter((o: any) => {
+      // Check if order belongs to this vendor
+      const isForMe = String(o.vendorId) === vId || (Array.isArray(o.vendorIds) && o.vendorIds.includes(vId)) || o.items?.some((it:any) => String(it.vendorId) === vId);
+      if (!isForMe) return false;
+
+      const status = (o.status || '').toUpperCase();
+      if (orderFilter === 'NEW ORDERS') {
+        return !['DELIVERED', 'CANCELLED'].includes(status);
+      } else if (orderFilter === 'DELIVERED') {
+        return status === 'DELIVERED';
+      } else {
+        return status === 'CANCELLED';
+      }
+    });
+  }, [rawOrders, user, orderFilter]);
 
   const earnings = useMemo(() => {
-    if (!rawOrders || !user) return { today: 0, week: 0, month: 0 };
+    if (!rawOrders || !user) return { today: 0, week: 0, month: 0, totalDelivered: 0, totalCancelled: 0 };
     
     const now = new Date();
     const today = startOfDay(now);
     const week = startOfWeek(now);
     const month = startOfMonth(now);
 
-    let t = 0, w = 0, m = 0;
+    let t = 0, w = 0, m = 0, td = 0, tc = 0;
 
     rawOrders.forEach((o: any) => {
-      // Only count DELIVERED orders for earnings
-      if (o.status !== 'Delivered') return;
-      
-      const isForMe = String(o.vendorId) === String(user.uid) || (Array.isArray(o.vendorIds) && o.vendorIds.includes(user.uid)) || o.items?.some((it:any) => String(it.vendorId) === String(user.uid));
+      const vId = String(user.uid);
+      const isForMe = String(o.vendorId) === vId || (Array.isArray(o.vendorIds) && o.vendorIds.includes(vId)) || o.items?.some((it:any) => String(it.vendorId) === vId);
       if (!isForMe) return;
 
-      const orderDate = o.createdAt?.seconds ? new Date(o.createdAt.seconds * 1000) : new Date(o.createdAt);
-      if (isAfter(orderDate, today)) t += Number(o.total) || 0;
-      if (isAfter(orderDate, week)) w += Number(o.total) || 0;
-      if (isAfter(orderDate, month)) m += Number(o.total) || 0;
+      const amt = Number(o.total) || 0;
+      const status = (o.status || '').toUpperCase();
+
+      if (status === 'DELIVERED') {
+        td += amt;
+        const orderDate = o.createdAt?.seconds ? new Date(o.createdAt.seconds * 1000) : new Date(o.createdAt);
+        if (isAfter(orderDate, today)) t += amt;
+        if (isAfter(orderDate, week)) w += amt;
+        if (isAfter(orderDate, month)) m += amt;
+      } else if (status === 'CANCELLED') {
+        tc += amt;
+      }
     });
 
-    return { today: t, week: w, month: m };
+    return { today: t, week: w, month: m, totalDelivered: td, totalCancelled: tc };
   }, [rawOrders, user]);
 
   const handleUpdateStatus = async (orderId: string, newStatus: string) => {
@@ -249,7 +276,7 @@ export default function VendorDashboard() {
   };
 
   const handleEdit = (p: any) => {
-    setEditingId(p.id);
+    setEditingProductId(p.id);
     setProductForm({ 
       name: p.name, 
       slug: p.slug || '', 
@@ -264,8 +291,6 @@ export default function VendorDashboard() {
     setIsVarietyRequired(p.isVarietyRequired || false);
     setIsProductModalOpen(true);
   };
-
-  const setEditingId = (id: string | null) => setEditingProductId(id);
 
   const handleProductImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -307,12 +332,12 @@ export default function VendorDashboard() {
       <main className="flex-1 overflow-y-auto no-scrollbar pb-32">
         {activeMainTab === 'orders' && (
            <div className="p-4 space-y-6">
-              {/* EARNINGS SECTION - MATCHING IMAGE STYLE */}
+              {/* EARNINGS SECTION */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                  <div className="bg-[#EF4444] p-8 rounded-[2.5rem] text-white shadow-2xl shadow-rose-200 relative overflow-hidden flex items-center justify-between">
                     <div className="relative z-10">
                        <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Today</span>
-                       <div className="text-4xl font-black italic tracking-tighter mt-1">₹ {earnings.today.toFixed(2)}</div>
+                       <div className="text-4xl font-black italic tracking-tighter mt-1">₹ {earnings.today.toFixed(0)}</div>
                     </div>
                     <div className="bg-white/20 p-4 rounded-[1.5rem] backdrop-blur-md relative z-10">
                        <Wallet className="h-10 w-10 text-white fill-white/20" />
@@ -323,44 +348,50 @@ export default function VendorDashboard() {
                  <div className="grid grid-cols-2 gap-4">
                     <div className="bg-[#EF4444] p-5 rounded-[2rem] text-white shadow-xl relative overflow-hidden">
                        <span className="text-[8px] font-black uppercase tracking-widest opacity-80">This Week</span>
-                       <div className="text-lg font-black italic tracking-tight mt-1">₹ {earnings.week.toFixed(2)}</div>
+                       <div className="text-lg font-black italic tracking-tight mt-1">₹ {earnings.week.toFixed(0)}</div>
                     </div>
                     <div className="bg-[#EF4444] p-5 rounded-[2rem] text-white shadow-xl relative overflow-hidden">
                        <span className="text-[8px] font-black uppercase tracking-widest opacity-80">This Month</span>
-                       <div className="text-lg font-black italic tracking-tight mt-1">₹ {earnings.month.toFixed(2)}</div>
+                       <div className="text-lg font-black italic tracking-tight mt-1">₹ {earnings.month.toFixed(0)}</div>
                     </div>
                  </div>
               </div>
 
-              {/* PROMO ADS SECTION - MATCHING IMAGE STYLE */}
-              <div className="bg-[#FFF5F5] border-2 border-dashed border-[#EF4444]/20 p-8 rounded-[3rem] flex flex-col items-center text-center space-y-4 animate-in fade-in zoom-in duration-700">
-                 <div className="relative">
-                    <div className="absolute inset-0 bg-primary/10 rounded-full animate-ping opacity-20" />
-                    <Megaphone className="h-10 w-10 text-primary relative z-10" />
-                 </div>
-                 <div className="space-y-1">
-                    <h3 className="text-xl font-black italic uppercase tracking-tighter text-gray-900">Want To Get Highlighted?</h3>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-relaxed">In the customer app & websites.</p>
-                 </div>
-                 <Button className="bg-[#EF4444] text-white px-8 h-12 rounded-2xl font-black uppercase italic text-xs shadow-xl shadow-rose-100 active:scale-95 transition-all">
-                    Create Ads
-                 </Button>
+              {/* PROMO ADS SECTION */}
+              <div className="bg-[#FFF5F5] border-2 border-dashed border-[#EF4444]/20 p-8 rounded-[3rem] flex flex-col items-center text-center space-y-4">
+                 <div className="relative"><div className="absolute inset-0 bg-primary/10 rounded-full animate-ping opacity-20" /><Megaphone className="h-10 w-10 text-primary relative z-10" /></div>
+                 <div className="space-y-1"><h3 className="text-xl font-black italic uppercase tracking-tighter text-gray-900">Want To Get Highlighted?</h3><p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Boost your visibility now.</p></div>
+                 <Button className="bg-[#EF4444] text-white px-8 h-12 rounded-2xl font-black uppercase italic text-xs shadow-xl active:scale-95 transition-all">Create Ads</Button>
               </div>
 
-              <div className="flex items-center justify-between px-2">
-                 <h2 className="text-xl font-black italic uppercase">Order Queue</h2>
-                 <Badge variant="outline" className="rounded-full border-gray-200 text-gray-400 font-black uppercase text-[8px]">{filteredOrders.length} ACTIVE</Badge>
+              <div className="flex bg-white rounded-2xl p-1 shadow-sm border border-border/50">
+                {['NEW ORDERS', 'DELIVERED', 'CANCELLED'].map(f => (
+                  <button key={f} onClick={() => setOrderFilter(f as OrderFilter)} className={cn("flex-1 py-3 text-[9px] font-black rounded-xl transition-all", orderFilter === f ? "bg-[#EF4444] text-white" : "text-gray-400")}>{f}</button>
+                ))}
               </div>
+
+              {(orderFilter === 'DELIVERED' || orderFilter === 'CANCELLED') && (
+                <div className="grid grid-cols-2 gap-4 px-2">
+                   <div className="bg-white p-4 rounded-3xl border border-border/50 flex flex-col items-center">
+                      <span className="text-[7px] font-black text-gray-400 uppercase tracking-widest">Total Sales</span>
+                      <span className="text-xl font-black text-green-600 italic">₹{earnings.totalDelivered.toFixed(0)}</span>
+                   </div>
+                   <div className="bg-white p-4 rounded-3xl border border-border/50 flex flex-col items-center">
+                      <span className="text-[7px] font-black text-gray-400 uppercase tracking-widest">Total Loss</span>
+                      <span className="text-xl font-black text-red-600 italic">₹{earnings.totalCancelled.toFixed(0)}</span>
+                   </div>
+                </div>
+              )}
 
               <div className="space-y-4">
                  {filteredOrders.length > 0 ? filteredOrders.map((o: any) => (
                    <div key={o.id} className="bg-white p-6 rounded-[2.5rem] border border-border/50 shadow-sm mb-4">
                       <div className="flex justify-between items-start mb-6">
                           <div><span className="text-3xl font-black italic tracking-tighter">#{o.customerOrderNumber}</span><div className="flex items-center gap-1.5 text-[10px] font-black text-gray-400 uppercase mt-1"><Clock className="h-3 w-3 text-primary" />{format(new Date(o.createdAt?.seconds * 1000 || Date.now()), 'hh:mm a')}</div></div>
-                          <Badge className="bg-primary/10 text-primary border-none text-[8px] font-black uppercase px-3 py-1 rounded-full">{o.status}</Badge>
+                          <Badge className={cn("border-none text-[8px] font-black uppercase px-3 py-1 rounded-full", o.status === 'Cancelled' ? 'bg-red-50 text-red-600' : 'bg-primary/10 text-primary')}>{o.status}</Badge>
                       </div>
                       <div className="space-y-4 mb-6">
-                        <PrepTimer order={o} />
+                        {orderFilter === 'NEW ORDERS' && <PrepTimer order={o} />}
                         <div className="bg-muted/30 rounded-[2rem] p-5 space-y-4">
                             <div className="flex items-center gap-3 border-b border-white pb-3 mb-1"><User className="h-4 w-4 text-primary" /><span className="text-sm font-black uppercase italic">{o.customerName}</span></div>
                             <div className="space-y-2">{o.items?.filter((it:any) => String(it.vendorId) === String(user?.uid)).map((item:any, i:number) => (
@@ -375,7 +406,61 @@ export default function VendorDashboard() {
                          {o.status === 'Preparing' && (<Button onClick={() => handleUpdateStatus(o.id, 'Ready for Pickup')} className="w-full h-16 bg-black text-white rounded-[1.5rem] font-black uppercase italic shadow-lg active:scale-95 transition-all">READY FOR PICKUP</Button>)}
                       </div>
                    </div>
-                 )) : (<div className="text-center py-20 opacity-30 flex flex-col items-center"><ShoppingBag className="h-12 w-12 mb-4" /><p className="font-black uppercase text-xs">No active orders.</p></div>)}
+                 )) : (<div className="text-center py-20 opacity-30 flex flex-col items-center"><ShoppingBag className="h-12 w-12 mb-4" /><p className="font-black uppercase text-xs">Queue is empty.</p></div>)}
+              </div>
+           </div>
+        )}
+
+        {activeMainTab === 'payouts' && (
+           <div className="p-4 space-y-6">
+              <h2 className="text-xl font-black italic uppercase ml-2">Wallet</h2>
+              
+              {/* IMAGE-STYLE WALLET OVERHAUL */}
+              <div className="bg-[#EF4444] p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[180px]">
+                 <div className="relative z-10 space-y-1">
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Withdrawable Balance</span>
+                    <div className="text-5xl font-black italic tracking-tighter">₹ {vendorProfile?.walletBalance?.toFixed(2) || '0.00'}</div>
+                 </div>
+                 <div className="relative z-10 flex justify-end mt-4">
+                    <Button onClick={() => toast({ title: "Withdraw Request Sent" })} className="bg-white text-[#EF4444] rounded-xl h-10 px-6 font-black uppercase text-[10px] italic shadow-lg active:scale-95">Withdraw</Button>
+                 </div>
+                 <div className="absolute -bottom-10 -left-10 h-32 w-32 bg-white/10 rounded-full blur-2xl" />
+                 <Wallet2 className="absolute bottom-4 right-4 h-24 w-24 text-white opacity-10 -rotate-12" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                 <div className="bg-white p-5 rounded-[2rem] border border-border/50 shadow-sm flex flex-col gap-2">
+                    <div className="h-8 w-8 bg-blue-50 text-blue-500 rounded-lg flex items-center justify-center"><ArrowDownLeft className="h-4 w-4" /></div>
+                    <div><span className="text-[8px] font-black text-gray-400 uppercase block mb-0.5">Cash in Hand</span><h4 className="text-lg font-black italic text-gray-900">₹ 0.00</h4></div>
+                 </div>
+                 <div className="bg-white p-5 rounded-[2rem] border border-border/50 shadow-sm flex flex-col gap-2">
+                    <div className="h-8 w-8 bg-amber-50 text-amber-500 rounded-lg flex items-center justify-center"><Timer className="h-4 w-4" /></div>
+                    <div><span className="text-[8px] font-black text-gray-400 uppercase block mb-0.5">Pending Withdraw</span><h4 className="text-lg font-black italic text-gray-900">₹ 0.00</h4></div>
+                 </div>
+                 <div className="bg-white p-5 rounded-[2rem] border border-border/50 shadow-sm flex flex-col gap-2">
+                    <div className="h-8 w-8 bg-green-50 text-green-500 rounded-lg flex items-center justify-center"><CheckCircle2 className="h-4 w-4" /></div>
+                    <div><span className="text-[8px] font-black text-gray-400 uppercase block mb-0.5">Already Withdrawn</span><h4 className="text-lg font-black italic text-gray-900">₹ 23,000.00</h4></div>
+                 </div>
+                 <div className="bg-white p-5 rounded-[2rem] border border-border/50 shadow-sm flex flex-col gap-2">
+                    <div className="h-8 w-8 bg-indigo-50 text-indigo-500 rounded-lg flex items-center justify-center"><ArrowUpRight className="h-4 w-4" /></div>
+                    <div><span className="text-[8px] font-black text-gray-400 uppercase block mb-0.5">Total Earning</span><h4 className="text-lg font-black italic text-gray-900">₹ {earnings.totalDelivered.toFixed(2)}</h4></div>
+                 </div>
+              </div>
+
+              <div className="space-y-4 pt-4">
+                 <div className="flex border-b border-gray-100 gap-6 px-2">
+                    {['Withdraw Request', 'Payment History', 'Transaction History'].map((t, idx) => (
+                      <button key={t} onClick={() => setWalletTab(idx === 0 ? 'request' : idx === 1 ? 'history' : 'transactions')} className={cn("pb-3 text-[10px] font-black uppercase tracking-widest transition-all relative", (idx === 0 && walletTab === 'request') || (idx === 1 && walletTab === 'history') || (idx === 2 && walletTab === 'transactions') ? "text-primary" : "text-gray-400")}>
+                        {t}
+                        {((idx === 0 && walletTab === 'request') || (idx === 1 && walletTab === 'history') || (idx === 2 && walletTab === 'transactions')) && <div className="absolute bottom-0 left-0 right-0 h-1 bg-primary rounded-t-full" />}
+                      </button>
+                    ))}
+                 </div>
+                 
+                 <div className="bg-white rounded-[2.5rem] p-8 border border-border/50 shadow-sm min-h-[300px] flex flex-col items-center justify-center text-center">
+                    <History className="h-10 w-10 text-gray-200 mb-4" />
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">No recent transactions to show</p>
+                 </div>
               </div>
            </div>
         )}
@@ -383,28 +468,22 @@ export default function VendorDashboard() {
         {activeMainTab === 'catalog' && (
           <div className="p-4 space-y-4">
              <div className="flex items-center justify-between mb-2">
-                <h2 className="text-xl font-black italic uppercase tracking-tighter">My Inventory</h2>
+                <h2 className="text-xl font-black italic uppercase tracking-tighter">Inventory</h2>
                 <Dialog open={isProductModalOpen} onOpenChange={setIsAddOpen}>
                    <DialogTrigger asChild><Button className="bg-primary rounded-xl h-10 font-black uppercase text-[10px] tracking-widest"><Plus className="h-3.5 w-3.5 mr-1" /> ADD ITEM</Button></DialogTrigger>
                    <DialogContent className="rounded-[2.5rem] max-w-md max-h-[85vh] overflow-y-auto no-scrollbar focus:outline-none p-0">
-                      <DialogHeader className="p-6 border-b"><DialogTitle className="font-black italic uppercase text-center">{editingProductId ? 'Edit Item' : 'New Item Entry'}</DialogTitle></DialogHeader>
+                      <DialogHeader className="p-6 border-b"><DialogTitle className="font-black italic uppercase text-center">{editingProductId ? 'Edit Item' : 'New Item'}</DialogTitle></DialogHeader>
                       <div className="p-8 space-y-6">
                          <div onClick={() => fileInputRef.current?.click()} className="h-40 border-2 border-dashed rounded-[2rem] flex flex-col items-center justify-center bg-muted/20 cursor-pointer overflow-hidden group hover:border-primary transition-all">{productForm.imageUrl ? <img src={productForm.imageUrl} className="h-full w-full object-cover" /> : <div className="flex flex-col items-center gap-2"><ImageIcon className="h-8 w-8 opacity-20" /><span className="text-[10px] font-black uppercase text-muted-foreground">Product Photo</span></div>}</div>
                          <input type="file" ref={fileInputRef} className="hidden" onChange={handleProductImageSelect} />
                          <div className="space-y-4">
                             <Input placeholder="Product Name" value={productForm.name} onChange={e => setProductForm({...productForm, name: e.target.value})} className="h-12 rounded-xl font-bold bg-muted/20 border-none" />
-                            <div className="space-y-1"><label className="text-[9px] font-black uppercase text-primary ml-1 flex items-center gap-1.5"><Globe className="h-2.5 w-2.5" /> SEO Slug</label><Input value={productForm.slug} onChange={e => setProductForm({...productForm, slug: e.target.value})} placeholder="e.g. classic-burger" className="h-12 rounded-xl bg-primary/5 border-none font-black italic text-primary" /></div>
-                            <div className="grid grid-cols-2 gap-4"><Input placeholder="MRP ₹" type="number" value={productForm.mrp} onChange={e => setProductForm({...productForm, mrp: e.target.value})} className="h-12 rounded-xl bg-muted/20 border-none" /><Input placeholder="Selling Price ₹" type="number" value={productForm.price} onChange={e => setProductForm({...productForm, price: e.target.value})} className="h-12 rounded-xl border-primary/40 font-bold" /></div>
-                            <Textarea placeholder="Description / Features" value={productForm.description} onChange={e => setProductForm({...productForm, description: e.target.value})} className="rounded-xl h-24 bg-muted/20 border-none p-4" />
+                            <div className="space-y-1"><label className="text-[9px] font-black text-primary ml-1 flex items-center gap-1.5"><Globe className="h-2.5 w-2.5" /> SEO Slug</label><Input value={productForm.slug} onChange={e => setProductForm({...productForm, slug: e.target.value})} placeholder="e.g. classic-burger" className="h-12 rounded-xl bg-primary/5 border-none font-black italic text-primary" /></div>
+                            <div className="grid grid-cols-2 gap-4"><Input placeholder="MRP ₹" type="number" value={productForm.mrp} onChange={e => setProductForm({...productForm, mrp: e.target.value})} className="h-12 rounded-xl bg-muted/20 border-none" /><Input placeholder="Price ₹" type="number" value={productForm.price} onChange={e => setProductForm({...productForm, price: e.target.value})} className="h-12 rounded-xl border-primary/40 font-bold" /></div>
+                            <Textarea placeholder="Features..." value={productForm.description} onChange={e => setProductForm({...productForm, description: e.target.value})} className="rounded-xl h-24 bg-muted/20 border-none p-4" />
                             <div className="grid grid-cols-2 gap-4">
-                               <div className="space-y-1"><label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Category</label><Select value={productForm.category} onValueChange={(val) => setProductForm({...productForm, category: val})}><SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold"><SelectValue placeholder="Select" /></SelectTrigger><SelectContent className="rounded-2xl">{foodCategories?.map((cat: any) => (<SelectItem key={cat.id} value={cat.name.toLowerCase()} className="font-bold py-3 uppercase text-xs">{cat.name}</SelectItem>))}</SelectContent></Select></div>
-                               <div className="space-y-1"><label className="text-[9px] font-black uppercase text-teal-600 ml-1 flex items-center gap-1"><Timer className="h-3 w-3" /> Prep Time (Min)</label><Input type="number" placeholder="15" value={productForm.preparingTime} onChange={e => setProductForm({...productForm, preparingTime: e.target.value})} className="h-12 rounded-xl bg-primary/5 border-none text-center font-bold" /></div>
-                            </div>
-                            <div className="space-y-4 p-6 bg-gray-50 rounded-[2rem] border-2 border-dashed border-gray-200">
-                                <div className="flex items-center justify-between"><div className="flex items-center gap-2"><div className="bg-primary/10 p-2 rounded-xl text-primary"><ListTree className="h-4 w-4" /></div><div><h4 className="text-[11px] font-black uppercase tracking-tight">Varieties</h4></div></div><div className="flex items-center gap-2"><span className="text-[8px] font-black uppercase text-gray-400">Choice Required?</span><Switch checked={isVarietyRequired} onCheckedChange={setIsVarietyRequired} className="scale-75 data-[state=checked]:bg-primary" /></div></div>
-                                <div className="space-y-3">{options.map((opt, idx) => (
-                                     <div key={idx} className="flex gap-3"><Input placeholder="Name" value={opt.name} onChange={e => updateOption(idx, 'name', e.target.value)} className="h-10 rounded-xl bg-white border-none font-bold text-xs uppercase flex-[2]" /><div className="relative flex-1"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-primary">₹</span><Input type="number" value={opt.price} onChange={e => updateOption(idx, 'price', e.target.value)} className="h-10 pl-6 rounded-xl bg-white border-none font-black text-xs text-primary" /></div><button onClick={() => handleRemoveOption(idx)} className="h-10 w-10 bg-red-50 text-red-500 rounded-xl flex items-center justify-center"><Trash2 className="h-4 w-4" /></button></div>
-                                   ))}<button onClick={handleAddOption} className="w-full h-10 border-2 border-dashed border-primary/20 text-primary rounded-xl font-black uppercase text-[8px] flex items-center justify-center gap-2"><Plus className="h-3 w-3" /> ADD VARIETY</button></div>
+                               <div className="space-y-1"><label className="text-[9px] font-black text-muted-foreground ml-1">Category</label><Select value={productForm.category} onValueChange={(val) => setProductForm({...productForm, category: val})}><SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold"><SelectValue placeholder="Select" /></SelectTrigger><SelectContent className="rounded-2xl">{foodCategories?.map((cat: any) => (<SelectItem key={cat.id} value={cat.name.toLowerCase()} className="font-bold py-3 uppercase text-xs">{cat.name}</SelectItem>))}</SelectContent></Select></div>
+                               <div className="space-y-1"><label className="text-[9px] font-black text-teal-600 ml-1 flex items-center gap-1"><Timer className="h-3 w-3" /> Prep Time</label><Input type="number" placeholder="15" value={productForm.preparingTime} onChange={e => setProductForm({...productForm, preparingTime: e.target.value})} className="h-12 rounded-xl bg-primary/5 border-none text-center font-bold" /></div>
                             </div>
                          </div>
                          <Button onClick={handleSaveProduct} disabled={isSavingProduct} className="w-full h-18 bg-primary text-white rounded-[2rem] font-black uppercase italic shadow-xl">{isSavingProduct ? <Loader2 className="h-5 w-5 animate-spin" /> : editingProductId ? 'UPDATE ITEM' : 'PUBLISH ITEM'}</Button>
@@ -417,10 +496,7 @@ export default function VendorDashboard() {
                   <div key={p.id} className="bg-white p-4 rounded-3xl border border-border/50 shadow-sm flex items-center justify-between group">
                     <div className="flex items-center gap-4">
                       <img src={p.imageUrl} className="h-16 w-16 rounded-xl object-cover bg-muted" alt="" />
-                      <div>
-                        <h4 className="font-black text-sm uppercase italic leading-none mb-1">{p.name}</h4>
-                        <p className="text-xs font-black text-primary italic">₹{p.price}</p>
-                      </div>
+                      <div><h4 className="font-black text-sm uppercase italic leading-none mb-1">{p.name}</h4><p className="text-xs font-black text-primary italic">₹{p.price}</p></div>
                     </div>
                     <div className="flex gap-2">
                        <button onClick={() => handleEdit(p)} className="h-10 w-10 text-blue-600 bg-blue-50 rounded-xl flex items-center justify-center active:scale-90 transition-all"><Edit className="h-4 w-4" /></button>
@@ -431,44 +507,13 @@ export default function VendorDashboard() {
              </div>
           </div>
         )}
-
-        {activeMainTab === 'payouts' && (
-           <div className="p-4 space-y-6">
-              <h2 className="text-xl font-black italic uppercase ml-2">Wallet & Settlements</h2>
-              <div className="bg-[#0B0B0B] p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden">
-                 <div className="relative z-10 space-y-6">
-                    <div>
-                       <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">Available Balance</span>
-                       <div className="text-5xl font-black italic tracking-tighter text-primary mt-1">₹{vendorProfile?.walletBalance?.toFixed(2) || '0.00'}</div>
-                    </div>
-                    <div className="bg-white/5 p-5 rounded-2xl border border-white/10 flex items-center justify-between">
-                       <div className="flex items-center gap-3">
-                          <TrendingUp className="h-5 w-5 text-green-500" />
-                          <span className="text-[10px] font-black uppercase">Growth This Month</span>
-                       </div>
-                       <span className="text-xs font-black italic text-green-500">+12%</span>
-                    </div>
-                 </div>
-                 <div className="absolute top-0 right-0 h-full w-44 bg-primary/5 -skew-x-12 translate-x-12" />
-              </div>
-
-              <div className="space-y-4">
-                 <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Payment History</h3>
-                 {/* This would show payout records from vendors/{vendorId}/payout_history */}
-                 <div className="text-center py-20 opacity-20 flex flex-col items-center">
-                    <History className="h-12 w-12 mb-4" />
-                    <p className="font-black uppercase text-xs">No records found</p>
-                 </div>
-              </div>
-           </div>
-        )}
       </main>
 
       <nav className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto w-full bg-[#0F172A] pt-4 pb-8 px-4 flex justify-around border-t border-white/5 z-50 rounded-t-[2.5rem] shadow-2xl">
         {[
-          {id:'orders',label:'Home',icon:LayoutDashboard},
+          {id:'orders',label:'Queue',icon:ShoppingBag},
           {id:'catalog',label:'Menu',icon:Layers},
-          {id:'payouts',label:'Wallet',icon:Wallet},
+          {id:'payouts',label:'Wallet',icon:Wallet2},
           {id:'account',label:'Profile',icon:UserCircle2}
         ].map(item => (
           <button key={item.id} onClick={() => setActiveMainTab(item.id as MainTab)} className="flex flex-col items-center gap-1.5 active:scale-90 transition-none">
