@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -42,7 +43,8 @@ import {
   Ban,
   HeartPulse,
   CheckCircle2,
-  QrCode
+  QrCode,
+  Sparkles
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -107,6 +109,36 @@ export default function MedicalDashboard() {
   const pendingRequestsQuery = useMemoFirebase(() => (firestore && user) ? query(collection(firestore, 'payout_requests'), where('vendorId', '==', user.uid), where('status', '==', 'Pending')) : null, [firestore, user]);
   const { data: pendingRequests } = useCollection<any>(pendingRequestsQuery);
 
+  const earnings = useMemo(() => {
+    if (!rawOrders || !user) return { today: 0, thisWeek: 0, thisMonth: 0, totalDelivered: 0, totalCancelled: 0 };
+    let today = 0, week = 0, month = 0, totalDelivered = 0, totalCancelled = 0;
+    
+    const now = new Date();
+    const dayStart = startOfDay(now);
+    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+    const monthStart = startOfMonth(now);
+
+    rawOrders.forEach((o: any) => {
+      const vId = String(user.uid);
+      const isForMe = String(o.vendorId) === vId || (Array.isArray(o.vendorIds) && o.vendorIds.includes(vId)) || o.items?.some((it: any) => String(it.vendorId) === vId);
+      if (!isForMe) return;
+
+      const amt = Number(o.total) || 0;
+      const status = (o.status || '').toUpperCase();
+      const orderDate = o.createdAt?.seconds ? new Date(o.createdAt.seconds * 1000) : new Date(o.createdAt);
+
+      if (status === 'DELIVERED') {
+        totalDelivered += amt;
+        if (isAfter(orderDate, dayStart)) today += amt;
+        if (isAfter(orderDate, weekStart)) week += amt;
+        if (isAfter(orderDate, monthStart)) month += amt;
+      } else if (status === 'CANCELLED') {
+        totalCancelled += amt;
+      }
+    });
+    return { today, thisWeek: week, thisMonth: month, totalDelivered, totalCancelled };
+  }, [rawOrders, user]);
+
   const filteredOrders = useMemo(() => {
     if (!rawOrders || !user) return [];
     
@@ -124,25 +156,6 @@ export default function MedicalDashboard() {
       return myOrders.filter((o: any) => activeStatuses.includes(o.status));
     }
   }, [rawOrders, user, orderFilter]);
-
-  const earnings = useMemo(() => {
-    if (!rawOrders || !user) return { today: 0, totalDelivered: 0, totalCancelled: 0 };
-    let t = 0, td = 0, tc = 0;
-    const today = startOfDay(new Date());
-    rawOrders.forEach((o: any) => {
-      const vId = String(user.uid);
-      const isForMe = String(o.vendorId) === vId || (Array.isArray(o.vendorIds) && o.vendorIds.includes(vId)) || o.items?.some((it:any) => String(it.vendorId) === vId);
-      if (!isForMe) return;
-      const amt = Number(o.total) || 0;
-      const status = (o.status || '').toUpperCase();
-      if (status === 'DELIVERED') {
-        td += amt;
-        const orderDate = o.createdAt?.seconds ? new Date(o.createdAt.seconds * 1000) : new Date(o.createdAt);
-        if (isAfter(orderDate, today)) t += amt;
-      } else if (status === 'CANCELLED') tc += amt;
-    });
-    return { today: t, totalDelivered: td, totalCancelled: tc };
-  }, [rawOrders, user]);
 
   const handleUpdateStatus = async (orderId: string, newStatus: string) => {
     if (!firestore) return;
@@ -217,11 +230,35 @@ export default function MedicalDashboard() {
       <main className="flex-1 overflow-y-auto no-scrollbar pb-32">
          {activeMainTab === 'orders' && (
            <div className="p-4 space-y-6">
+              {/* ANALYTICS BOXES */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                 <div className="bg-teal-600 p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden flex items-center justify-between">
-                    <div className="relative z-10"><span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Today</span><div className="text-4xl font-black italic mt-1">₹ {earnings.today.toFixed(0)}</div></div>
-                    <div className="bg-white/20 p-4 rounded-[1.5rem] backdrop-blur-md relative z-10"><Wallet className="h-10 w-10 text-white fill-white/20" /></div>
+                 <div className="bg-teal-600 p-6 rounded-[2rem] text-white shadow-xl shadow-teal-200/50 relative overflow-hidden flex items-center justify-between">
+                    <div className="relative z-10"><span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-80">Today</span><div className="text-3xl font-black italic mt-1">₹ {earnings.today.toFixed(0)}</div></div>
+                    <div className="bg-white/20 p-3 rounded-2xl backdrop-blur-md relative z-10"><Zap className="h-8 w-8 text-white fill-white/20" /></div>
                  </div>
+                 <div className="bg-blue-600 p-6 rounded-[2rem] text-white shadow-xl shadow-blue-200/50 relative overflow-hidden flex items-center justify-between">
+                    <div className="relative z-10"><span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-80">Week</span><div className="text-3xl font-black italic mt-1">₹ {earnings.thisWeek.toFixed(0)}</div></div>
+                    <div className="bg-white/20 p-3 rounded-2xl backdrop-blur-md relative z-10"><TrendingUp className="h-8 w-8 text-white" /></div>
+                 </div>
+                 <div className="bg-indigo-600 p-6 rounded-[2rem] text-white shadow-xl shadow-indigo-200/50 relative overflow-hidden flex items-center justify-between">
+                    <div className="relative z-10"><span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-80">Month</span><div className="text-3xl font-black italic mt-1">₹ {earnings.thisMonth.toFixed(0)}</div></div>
+                    <div className="bg-white/20 p-3 rounded-2xl backdrop-blur-md relative z-10"><Calendar className="h-8 w-8 text-white" /></div>
+                 </div>
+              </div>
+
+              {/* AD PROMOTION CARD */}
+              <div className="bg-[#0B0B0B] p-6 rounded-[2.5rem] text-white relative overflow-hidden border border-white/5 shadow-2xl active:scale-95 transition-all">
+                <div className="relative z-10 flex items-center justify-between">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-teal-400">
+                      <Sparkles className="h-4 w-4 animate-pulse" />
+                      <h4 className="text-xs font-black uppercase italic tracking-widest">Get Highlighted!</h4>
+                    </div>
+                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Boost pharmacy orders with local ads</p>
+                  </div>
+                  <div className="bg-teal-400/10 p-2 rounded-xl text-teal-400 border border-teal-400/20"><Megaphone className="h-5 w-5" /></div>
+                </div>
+                <div className="absolute top-0 right-0 h-full w-24 bg-white/5 -skew-x-12 translate-x-10" />
               </div>
 
               <div className="flex bg-white rounded-2xl p-1 shadow-sm border border-border/50">
@@ -322,7 +359,7 @@ export default function MedicalDashboard() {
          </Dialog>
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto w-full bg-[#0F172A] pt-4 pb-8 px-6 flex justify-around border-t border-white/5 z-50 rounded-t-[2.5rem] shadow-2xl transform-gpu">
+      <nav className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto w-full bg-[#0F172A] pt-4 pb-8 px-6 flex justify-around border-t border-white/5 z-50 rounded-t-[2.5rem] shadow-2xl">
         {[
           {id:'orders',label:'Queue',icon:ShoppingBag},
           {id:'catalog',label:'Menu',icon:Layers},
