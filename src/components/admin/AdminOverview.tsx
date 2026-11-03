@@ -3,7 +3,7 @@
 
 import { useMemo, useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { IndianRupee, Users, ShoppingBag, Globe, Loader2, RefreshCw, Trash2, TrendingUp, BellRing, Smartphone, Zap } from 'lucide-react';
+import { IndianRupee, Users, ShoppingBag, Globe, Loader2, RefreshCw, Trash2, TrendingUp, BellRing, Smartphone, Zap, Calendar, CalendarDays, CalendarRange } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, serverTimestamp, getDocs, writeBatch } from 'firebase/firestore';
@@ -19,6 +19,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { scheduleTestNotification } from '@/components/shared/PermissionManager';
+import { startOfDay, startOfWeek, startOfMonth, isAfter } from 'date-fns';
 
 export default function AdminOverview() {
   const firestore = useFirestore();
@@ -44,17 +45,45 @@ export default function AdminOverview() {
   const { data: users } = useCollection<any>(usersQuery);
 
   const stats = useMemo(() => {
-    const totalOrders = orders?.length || 0;
-    const totalRevenue = orders?.reduce((acc, curr) => acc + (curr.total || 0), 0) || 0;
-    const totalUsers = users?.length || 0;
+    if (!orders) return [
+      { label: 'Today', value: '₹0', icon: Zap, color: 'text-primary', bg: 'bg-primary/10' },
+      { label: 'This Week', value: '₹0', icon: CalendarDays, color: 'text-blue-600', bg: 'bg-blue-100' },
+      { label: 'This Month', value: '₹0', icon: CalendarRange, color: 'text-indigo-600', bg: 'bg-indigo-100' },
+      { label: 'Total Revenue', value: '₹0', icon: IndianRupee, color: 'text-green-600', bg: 'bg-green-100' },
+    ];
+
+    let todayRev = 0;
+    let weekRev = 0;
+    let monthRev = 0;
+    let totalRev = 0;
+
+    const now = new Date();
+    const todayStart = startOfDay(now);
+    const weekStart = startOfWeek(now, { weekStartsOn: 1 }); // Start from Monday
+    const monthStart = startOfMonth(now);
+
+    orders.forEach((o: any) => {
+      if (o.status === 'Cancelled') return;
+      
+      const amt = Number(o.total) || 0;
+      totalRev += amt;
+
+      const orderDate = o.createdAt?.seconds 
+        ? new Date(o.createdAt.seconds * 1000) 
+        : new Date(o.createdAt);
+
+      if (isAfter(orderDate, todayStart)) todayRev += amt;
+      if (isAfter(orderDate, weekStart)) weekRev += amt;
+      if (isAfter(orderDate, monthStart)) monthRev += amt;
+    });
 
     return [
-      { label: 'Total Revenue', value: `₹${totalRevenue.toLocaleString()}`, icon: IndianRupee, color: 'text-green-600', bg: 'bg-green-100' },
-      { label: 'Total Orders', value: totalOrders.toString(), icon: ShoppingBag, color: 'text-blue-600', bg: 'bg-blue-100' },
-      { label: 'Registered Users', value: totalUsers.toString(), icon: Users, color: 'text-purple-600', bg: 'bg-purple-100' },
-      { label: 'Network Status', value: 'Live', icon: Globe, color: 'text-amber-600', bg: 'bg-amber-100' },
+      { label: 'Today', value: `₹${todayRev.toLocaleString()}`, icon: Zap, color: 'text-primary', bg: 'bg-primary/10' },
+      { label: 'This Week', value: `₹${weekRev.toLocaleString()}`, icon: CalendarDays, color: 'text-blue-600', bg: 'bg-blue-100' },
+      { label: 'This Month', value: `₹${monthRev.toLocaleString()}`, icon: CalendarRange, color: 'text-indigo-600', bg: 'bg-indigo-100' },
+      { label: 'Total Revenue', value: `₹${totalRev.toLocaleString()}`, icon: IndianRupee, color: 'text-green-600', bg: 'bg-green-100' },
     ];
-  }, [orders, users]);
+  }, [orders]);
 
   const handleTestAlert = async () => {
     setIsTesting(true);
@@ -122,6 +151,7 @@ export default function AdminOverview() {
     });
 
     orders.forEach(order => {
+      if (order.status === 'Cancelled') return;
       let orderDate: string | null = null;
       if (order.createdAt?.seconds) {
         orderDate = new Date(order.createdAt.seconds * 1000).toDateString();
@@ -142,8 +172,26 @@ export default function AdminOverview() {
   return (
     <div className="space-y-8 pb-20 animate-in fade-in duration-700">
       
+      {/* 4 REVENUE ANALYTICS BOXES */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {stats.map((stat, i) => (
+          <Card key={i} className="border-none shadow-sm rounded-3xl overflow-hidden bg-white border border-border/40 hover:shadow-xl transition-all">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">{stat.label}</CardTitle>
+              <div className={`${stat.bg} ${stat.color} p-2.5 rounded-xl`}>
+                <stat.icon className="h-5 w-5" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-black italic tracking-tighter">{stat.value}</div>
+              <p className="text-[7px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Real-time synced</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
       {/* TEST BACKGROUND ALERTS CARD */}
-      <div className="bg-[#0B0B0B] p-8 rounded-[3rem] border border-white/10 shadow-2xl relative overflow-hidden text-white mb-6">
+      <div className="bg-[#0B0B0B] p-8 rounded-[3rem] border border-white/10 shadow-2xl relative overflow-hidden text-white transform-gpu">
          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex items-center gap-5">
                <div className="h-16 w-16 bg-primary/20 rounded-[1.5rem] flex items-center justify-center text-primary border border-primary/20">
@@ -173,7 +221,7 @@ export default function AdminOverview() {
                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                      <TrendingUp className="h-6 w-6 text-primary" />
-                     <h3 className="text-xl font-black italic uppercase tracking-tighter">Weekly Sales</h3>
+                     <h3 className="text-xl font-black italic uppercase tracking-tighter">Weekly Sales Trend</h3>
                   </div>
                   <Badge className="bg-primary text-white font-black text-[10px]">LIVE</Badge>
                </div>
@@ -239,20 +287,20 @@ export default function AdminOverview() {
          </Card>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, i) => (
-          <Card key={i} className="border-none shadow-sm rounded-2xl overflow-hidden bg-white border border-border/40">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{stat.label}</CardTitle>
-              <div className={`${stat.bg} ${stat.color} p-2 rounded-xl`}>
-                <stat.icon className="h-4 w-4" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-black">{stat.value}</div>
-            </CardContent>
-          </Card>
-        ))}
+      {/* SECONDARY STATS */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+         <Card className="rounded-3xl border border-border shadow-sm p-6 flex items-center gap-5">
+            <div className="h-12 w-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center"><Users className="h-6 w-6" /></div>
+            <div><p className="text-[9px] font-black text-gray-400 uppercase">Registered Customers</p><h4 className="text-2xl font-black italic">{users?.length || 0}</h4></div>
+         </Card>
+         <Card className="rounded-3xl border border-border shadow-sm p-6 flex items-center gap-5">
+            <div className="h-12 w-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center"><ShoppingBag className="h-6 w-6" /></div>
+            <div><p className="text-[9px] font-black text-gray-400 uppercase">Total Completed Tasks</p><h4 className="text-2xl font-black italic">{orders?.filter((o:any)=>o.status==='Delivered').length || 0}</h4></div>
+         </Card>
+         <Card className="rounded-3xl border border-border shadow-sm p-6 flex items-center gap-5">
+            <div className="h-12 w-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center"><Globe className="h-6 w-6" /></div>
+            <div><p className="text-[9px] font-black text-gray-400 uppercase">Network Status</p><h4 className="text-2xl font-black italic text-green-600">LIVE</h4></div>
+         </Card>
       </div>
     </div>
   );
