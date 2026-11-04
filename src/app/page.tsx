@@ -12,8 +12,9 @@ export const revalidate = 3600; // Revalidate every hour
 async function getInitialData() {
   const emptyData = { banners: [], categories: [], stores: [], products: [], zones: [], coupons: [] };
   
-  // Safety check for build environment
-  if (process.env.NEXT_PHASE === 'phase-production-build') {
+  // Skip SSR fetch in development to prevent slow server starts and timeout errors.
+  // The data will still be loaded client-side via Firestore hooks.
+  if (process.env.NODE_ENV === 'development') {
     return emptyData;
   }
 
@@ -21,9 +22,9 @@ async function getInitialData() {
     const { firestore } = initializeFirebase();
     if (!firestore) return emptyData;
 
-    // RACE CONDITION PROTECTION: Timeout data fetch if it takes longer than 4 seconds
+    // RESILIENT FETCH: Attempt to bake data for static export
     const fetchWithTimeout = async (promise: Promise<any>) => {
-      const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 4000));
+      const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 8000));
       return Promise.race([promise, timeout]);
     };
 
