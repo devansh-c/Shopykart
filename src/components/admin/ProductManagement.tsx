@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useRef, useMemo } from 'react';
@@ -49,6 +50,12 @@ export default function ProductManagement() {
   }, [firestore]);
   const { data: vendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery, 'admin_vendors_master');
 
+  const categoriesQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'categories');
+  }, [firestore]);
+  const { data: categories } = useCollection<any>(categoriesQuery);
+
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -96,7 +103,7 @@ export default function ProductManagement() {
       restaurantName: vendor?.storeName || 'Store',
       imageUrl: selectedImage || 'https://picsum.photos/seed/food/300/300',
       options: options.filter(opt => opt.name.trim() !== ''),
-      isVarietyRequired: isVarietyRequired,
+      isVarietyRequired: isVarietyRequired || options.length > 0,
       updatedAt: serverTimestamp(),
       isDeleted: false,
     };
@@ -195,7 +202,12 @@ export default function ProductManagement() {
                   </div>
                   <div className="space-y-1">
                      <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Category</label>
-                     <Input value={category} onChange={e => setCategory(e.target.value)} placeholder="e.g. Burger" className="h-12 rounded-xl font-bold bg-muted/20 border-none" />
+                     <Select value={category} onValueChange={setCategory}>
+                        <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold"><SelectValue placeholder="Select" /></SelectTrigger>
+                        <SelectContent className="rounded-2xl max-h-[300px]">
+                           {categories?.map((c: any) => <SelectItem key={c.id} value={c.name.toLowerCase()} className="font-bold py-3 uppercase text-xs">{c.name}</SelectItem>)}
+                        </SelectContent>
+                     </Select>
                   </div>
                   <div className="space-y-1">
                      <label className="text-[9px] font-black uppercase text-teal-600 ml-1 flex items-center gap-1"><Timer className="h-3 w-3" /> Prep Time</label>
@@ -224,7 +236,7 @@ export default function ProductManagement() {
                           <Input 
                             placeholder="Variant Name (e.g. Full)" 
                             value={opt.name}
-                            onChange={e => updateOption(idx, 'name', e.target.value)}
+                            onChange={e => updateOption(idx, 'name', e.target.value.toUpperCase())}
                             className="h-10 rounded-xl bg-white border-none font-bold text-xs uppercase flex-[2]"
                           />
                           <div className="relative flex-1">
@@ -274,7 +286,7 @@ export default function ProductManagement() {
 
                <div className="space-y-1">
                   <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Short Description</label>
-                  <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Product features..." className="rounded-xl h-24 bg-muted/20 border-none p-4" />
+                  <Textarea value={description} onChange={e => setDescription(e.target.value.toUpperCase())} placeholder="Product features..." className="rounded-xl h-24 bg-muted/20 border-none p-4" />
                </div>
 
                <Button onClick={handleSave} disabled={isProcessing} className="w-full h-18 bg-primary text-white rounded-[2.5rem] font-black uppercase italic text-xl shadow-xl shadow-primary/20 transition-all">

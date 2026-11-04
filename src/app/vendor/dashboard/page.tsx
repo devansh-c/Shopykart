@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -28,7 +29,9 @@ import {
   QrCode,
   Sparkle,
   Settings,
-  Phone
+  Phone,
+  ListTree,
+  X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -40,9 +43,9 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { format, startOfDay, startOfWeek, startOfMonth, isAfter } from 'date-fns';
 import { compressImage } from '@/lib/image-utils';
-import { extractAndGenerateMenu } from '@/ai/flows/bulk-menu-extraction-flow';
 
 type MainTab = 'orders' | 'catalog' | 'payouts' | 'account';
 type OrderFilter = 'NEW ORDERS' | 'DELIVERED' | 'CANCELLED';
@@ -53,7 +56,6 @@ export default function VendorDashboard() {
   const { user, loading: authLoading } = useUser();
   const { toast } = useToast();
   const router = useRouter();
-  const menuInputRef = useRef<HTMLInputElement>(null);
   const manualImageInputRef = useRef<HTMLInputElement>(null);
   
   const [activeMainTab, setActiveMainTab] = useState<MainTab>('orders');
@@ -64,14 +66,14 @@ export default function VendorDashboard() {
   const [isUpiModalOpen, setIsUpiModalOpen] = useState(false);
   const [isManualAddOpen, setIsManualAddOpen] = useState(false);
   const [isWithdrawLoading, setIsWithdrawLoading] = useState(false);
-  const [isScanning, setIsScanning] = useState(false);
 
   const [manualProduct, setManualProduct] = useState({
     name: '',
     price: '',
     category: '',
     description: '',
-    imageUrl: ''
+    imageUrl: '',
+    options: [] as { name: string; price: number }[]
   });
 
   const [upiForm, setUpiForm] = useState({
@@ -100,6 +102,9 @@ export default function VendorDashboard() {
 
   const productsQuery = useMemoFirebase(() => (firestore && user) ? query(collection(firestore, 'products'), where('vendorId', '==', user.uid)) : null, [firestore, user]);
   const { data: products } = useCollection<any>(productsQuery);
+
+  const categoriesQuery = useMemoFirebase(() => (firestore) ? query(collection(firestore, 'categories')) : null, [firestore]);
+  const { data: categories } = useCollection<any>(categoriesQuery);
 
   const payoutHistoryQuery = useMemoFirebase(() => (firestore && user) ? query(collection(firestore, 'vendors', user.uid, 'payout_history'), orderBy('date', 'desc')) : null, [firestore, user]);
   const { data: payoutHistory } = useCollection<any>(payoutHistoryQuery);
@@ -171,6 +176,30 @@ export default function VendorDashboard() {
     reader.readAsDataURL(file);
   };
 
+  const handleAddVariety = () => {
+    setManualProduct(prev => ({
+      ...prev,
+      options: [...prev.options, { name: '', price: 0 }]
+    }));
+  };
+
+  const handleRemoveVariety = (index: number) => {
+    setManualProduct(prev => ({
+      ...prev,
+      options: prev.options.filter((_, i) => i !== index)
+    }));
+  };
+
+  const updateVariety = (index: number, field: 'name' | 'price', value: string) => {
+    const newOptions = [...manualProduct.options];
+    if (field === 'price') {
+      newOptions[index].price = parseFloat(value) || 0;
+    } else {
+      newOptions[index].name = value;
+    }
+    setManualProduct(prev => ({ ...prev, options: newOptions }));
+  };
+
   const handleManualAddProduct = async () => {
     if (!firestore || !user || !manualProduct.name || !manualProduct.price) return;
     setIsProcessing(true);
@@ -187,6 +216,7 @@ export default function VendorDashboard() {
         isAvailable: true,
         isVeg: true,
         isDeleted: false,
+        isVarietyRequired: manualProduct.options.length > 0,
         slug: slugify(manualProduct.name),
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
@@ -195,35 +225,10 @@ export default function VendorDashboard() {
       await setDoc(doc(firestore, 'vendors', user.uid, 'products', productRef.id), pData);
       
       setIsManualAddOpen(false);
-      setManualProduct({ name: '', price: '', category: '', description: '', imageUrl: '' });
+      setManualProduct({ name: '', price: '', category: '', description: '', imageUrl: '', options: [] });
       toast({ title: "Item Added! ✅" });
     } catch (err) { toast({ variant: "destructive", title: "Add Failed" }); }
     finally { setIsProcessing(false); }
-  };
-
-  const handleMenuScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !firestore || !user || !vendorProfile) return;
-    setIsScanning(true);
-    toast({ title: "AI Scanning Menu..." });
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      try {
-        const result = await extractAndGenerateMenu({ photoDataUri: reader.result as string, vendorCategory: vendorProfile.category || 'Food' });
-        if (result.items.length > 0) {
-          const batch = writeBatch(firestore);
-          result.items.forEach((item) => {
-            const productRef = doc(collection(firestore, 'products'));
-            const pData = { ...item, id: productRef.id, vendorId: user.uid, restaurantName: vendorProfile.storeName, zoneId: vendorProfile.zoneId || 'global', town: vendorProfile.town || 'Local', isAvailable: true, isVeg: true, isDeleted: false, slug: slugify(item.name), createdAt: serverTimestamp(), updatedAt: serverTimestamp() };
-            batch.set(productRef, pData);
-          });
-          await batch.commit();
-          toast({ title: "Menu Imported! ✨" });
-        }
-      } catch (err) { toast({ variant: "destructive", title: "AI Error" }); }
-      finally { setIsScanning(false); }
-    };
-    reader.readAsDataURL(file);
   };
 
   const handleLogout = async () => {
@@ -233,6 +238,11 @@ export default function VendorDashboard() {
       router.replace('/vendor/login');
     }
   };
+
+  const currentTypeCategories = useMemo(() => {
+    if (!categories) return [];
+    return categories.filter(c => (c.serviceType || 'Food') === (vendorProfile?.category || 'Food'));
+  }, [categories, vendorProfile]);
 
   if (!isMounted || authLoading || (profileLoading && !vendorProfile)) return <div className="h-screen bg-white flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
 
@@ -272,16 +282,6 @@ export default function VendorDashboard() {
                  </div>
               </div>
 
-              <div className="bg-[#0B0B0B] p-6 rounded-[2.5rem] text-white relative overflow-hidden shadow-2xl active:scale-95 transition-all">
-                <div className="relative z-10 flex items-center justify-between">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-primary"><Sparkle className="h-4 w-4 animate-pulse" /><h4 className="text-xs font-black uppercase italic tracking-widest">Get Highlighted?</h4></div>
-                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Boost sales by creating local ads</p>
-                  </div>
-                  <Megaphone className="h-5 w-5 text-primary" />
-                </div>
-              </div>
-
               <div className="flex bg-white rounded-2xl p-1 shadow-sm border">
                 {['NEW ORDERS', 'DELIVERED', 'CANCELLED'].map(f => (
                   <button key={f} onClick={() => setOrderFilter(f as OrderFilter)} className={cn("flex-1 py-3 text-[9px] font-black rounded-xl transition-all", orderFilter === f ? "bg-[#EF4444] text-white" : "text-gray-400")}>{f}</button>
@@ -304,7 +304,7 @@ export default function VendorDashboard() {
                    <div className="bg-muted/30 rounded-3xl p-5 mb-4 space-y-2">
                       <div className="flex items-center gap-2 border-b pb-2"><User className="h-3.5 w-3.5 text-primary" /><span className="text-xs font-black uppercase">{o.customerName}</span></div>
                       {o.items?.filter((it:any) => String(it.vendorId) === String(user?.uid)).map((item:any, i:number) => (
-                        <div key={i} className="flex justify-between text-[11px] font-black uppercase italic"><span>{item.quantity}x {item.name}</span><span>₹{item.price * item.quantity}</span></div>
+                        <div key={i} className="flex justify-between text-[11px] font-black uppercase italic"><span>{item.quantity}x {item.name} {item.selectedOption ? `(${item.selectedOption.name})` : ''}</span><span>₹{item.price * item.quantity}</span></div>
                       ))}
                    </div>
                    <div className="flex flex-col gap-2">
@@ -321,11 +321,7 @@ export default function VendorDashboard() {
            <div className="p-4 space-y-6">
               <div className="flex items-center justify-between px-2">
                  <h2 className="text-xl font-black italic uppercase">Menu</h2>
-                 <div className="flex gap-2">
-                    <button onClick={() => menuInputRef.current?.click()} disabled={isScanning} className="bg-[#0B0B0B] text-white px-4 h-10 rounded-xl font-black uppercase text-[9px] flex items-center gap-2 active:scale-95 disabled:opacity-50">AI MENU SCAN</button>
-                    <input type="file" ref={menuInputRef} className="hidden" onChange={handleMenuScan} />
-                    <button onClick={() => setIsManualAddOpen(true)} className="h-10 w-10 bg-white border rounded-xl flex items-center justify-center text-primary active:scale-90 shadow-sm"><Plus className="h-5 w-5" /></button>
-                 </div>
+                 <button onClick={() => setIsManualAddOpen(true)} className="h-12 px-6 bg-primary text-white rounded-xl font-black uppercase italic text-xs shadow-lg active:scale-90 flex items-center gap-2"><Plus className="h-5 w-5" /> ADD NEW ITEM</button>
               </div>
               <div className="grid grid-cols-1 gap-4">
                  {products?.filter(p => !p.isDeleted).map(p => (
@@ -349,7 +345,7 @@ export default function VendorDashboard() {
               <div className="bg-[#EF4444] p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[180px]">
                  <div className="relative z-10 space-y-1"><span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Payout Due</span><div className="text-5xl font-black italic">₹ {vendorProfile?.walletBalance?.toFixed(2) || '0.00'}</div></div>
                  <div className="relative z-10 flex justify-end mt-4">
-                    <Button onClick={handleWithdrawRequest} disabled={isWithdrawLoading || (vendorProfile?.walletBalance || 0) <= 0} className="bg-white text-primary rounded-xl h-10 px-6 font-black uppercase text-[10px] italic">Withdraw</Button>
+                    <Button onClick={() => { if(!vendorProfile.upiId) setIsUpiModalOpen(true); else if((vendorProfile.walletBalance||0)>0) setIsWithdrawLoading(true); }} disabled={isWithdrawLoading || (vendorProfile?.walletBalance || 0) <= 0} className="bg-white text-primary rounded-xl h-10 px-6 font-black uppercase text-[10px] italic">Withdraw</Button>
                  </div>
                  <Wallet2 className="absolute bottom-4 right-4 h-24 w-24 text-white opacity-10" />
               </div>
@@ -387,14 +383,60 @@ export default function VendorDashboard() {
          )}
 
          <Dialog open={isManualAddOpen} onOpenChange={setIsManualAddOpen}>
-           <DialogContent className="rounded-[2.5rem] max-w-md p-8 border-none shadow-2xl bg-white focus:outline-none">
-              <DialogHeader><DialogTitle className="font-black italic uppercase text-center text-xl">Add Product</DialogTitle></DialogHeader>
-              <div className="space-y-4 pt-4">
+           <DialogContent className="rounded-[2.5rem] max-w-md p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none flex flex-col max-h-[90vh]">
+              <DialogHeader className="p-8 pb-4"><DialogTitle className="font-black italic uppercase text-center text-xl">Add Product</DialogTitle></DialogHeader>
+              <div className="flex-1 overflow-y-auto no-scrollbar p-8 pt-0 space-y-6">
                  <div onClick={() => manualImageInputRef.current?.click()} className="h-32 border-2 border-dashed rounded-2xl flex items-center justify-center bg-muted/20 cursor-pointer overflow-hidden">{manualProduct.imageUrl ? <img src={manualProduct.imageUrl} className="h-full w-full object-cover" /> : <ImageIcon className="opacity-20" />}</div>
                  <input type="file" ref={manualImageInputRef} className="hidden" onChange={handleManualImageSelect} />
-                 <Input placeholder="ITEM NAME" value={manualProduct.name} onChange={e => setManualProduct({...manualProduct, name: e.target.value.toUpperCase()})} className="h-12 rounded-xl border-none bg-muted/20 font-bold" />
-                 <div className="grid grid-cols-2 gap-4"><Input type="number" placeholder="PRICE ₹" value={manualProduct.price} onChange={e => setManualProduct({...manualProduct, price: e.target.value})} className="h-12 rounded-xl border-none bg-muted/20 font-black" /><Input placeholder="CATEGORY" value={manualProduct.category} onChange={e => setManualProduct({...manualProduct, category: e.target.value.toUpperCase()})} className="h-12 rounded-xl border-none bg-muted/20 font-bold" /></div>
-                 <Button onClick={handleManualAddProduct} disabled={isProcessing || !manualProduct.name} className="w-full h-16 bg-primary text-white rounded-2xl font-black uppercase italic shadow-xl">{isProcessing ? <Loader2 className="animate-spin" /> : "PUBLISH ITEM"}</Button>
+                 
+                 <div className="space-y-4">
+                    <div className="space-y-1">
+                       <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Item Name</label>
+                       <Input placeholder="ITEM NAME" value={manualProduct.name} onChange={e => setManualProduct({...manualProduct, name: e.target.value.toUpperCase()})} className="h-12 rounded-xl border-none bg-muted/20 font-bold" />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                       <div className="space-y-1">
+                          <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Base Price ₹</label>
+                          <Input type="number" placeholder="0.00" value={manualProduct.price} onChange={e => setManualProduct({...manualProduct, price: e.target.value})} className="h-12 rounded-xl border-none bg-muted/20 font-black" />
+                       </div>
+                       <div className="space-y-1">
+                          <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Category</label>
+                          <Select value={manualProduct.category} onValueChange={v => setManualProduct({...manualProduct, category: v})}>
+                             <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold"><SelectValue placeholder="Select" /></SelectTrigger>
+                             <SelectContent className="rounded-2xl max-h-[300px]">
+                                {currentTypeCategories.map(c => <SelectItem key={c.id} value={c.name} className="font-bold py-3 uppercase text-xs">{c.name}</SelectItem>)}
+                             </SelectContent>
+                          </Select>
+                       </div>
+                    </div>
+
+                    <div className="space-y-4 p-5 bg-gray-50 rounded-[1.5rem] border-2 border-dashed">
+                       <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-black uppercase text-gray-500">Varieties / Sizes</span>
+                          <button onClick={handleAddVariety} className="text-[10px] font-black text-primary uppercase bg-white px-3 py-1 rounded-lg border shadow-sm">+ ADD</button>
+                       </div>
+                       <div className="space-y-3">
+                          {manualProduct.options.map((opt, idx) => (
+                            <div key={idx} className="flex gap-2 items-center">
+                               <Input placeholder="NAME" value={opt.name} onChange={e => updateVariety(idx, 'name', e.target.value.toUpperCase())} className="h-10 rounded-lg bg-white border-none text-[10px] font-bold flex-1" />
+                               <Input type="number" placeholder="₹" value={opt.price} onChange={e => updateVariety(idx, 'price', e.target.value)} className="h-10 w-20 rounded-lg bg-white border-none text-[10px] font-black text-center" />
+                               <button onClick={() => handleRemoveVariety(idx)} className="text-red-500 p-1"><X className="h-4 w-4" /></button>
+                            </div>
+                          ))}
+                       </div>
+                    </div>
+
+                    <div className="space-y-1">
+                       <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Description</label>
+                       <Textarea placeholder="SHORT DETAILS" value={manualProduct.description} onChange={e => setManualProduct({...manualProduct, description: e.target.value.toUpperCase()})} className="rounded-xl h-20 bg-muted/20 border-none p-4" />
+                    </div>
+                 </div>
+              </div>
+              <div className="p-8 bg-muted/5 border-t">
+                 <Button onClick={handleManualAddProduct} disabled={isProcessing || !manualProduct.name} className="w-full h-16 bg-primary text-white rounded-2xl font-black uppercase italic shadow-xl">
+                   {isProcessing ? <Loader2 className="animate-spin" /> : "PUBLISH ITEM"}
+                 </Button>
               </div>
            </DialogContent>
          </Dialog>
@@ -404,7 +446,7 @@ export default function VendorDashboard() {
               <DialogHeader><DialogTitle className="font-black italic uppercase text-center text-xl">Withdraw Settings</DialogTitle></DialogHeader>
               <div className="space-y-4 pt-4">
                  <div className="space-y-1"><label className="text-[10px] font-black uppercase text-primary">UPI ID</label><Input value={upiForm.upiId} onChange={e => setUpiForm({...upiForm, upiId: e.target.value.toLowerCase()})} placeholder="store@upi" className="h-14 rounded-2xl bg-gray-50 border-none font-bold" /></div>
-                 <Button onClick={handleSaveUpi} disabled={isProcessing || !upiForm.upiId} className="w-full h-16 bg-primary text-white rounded-[1.5rem] font-black uppercase italic shadow-xl">SAVE SETTINGS</Button>
+                 <Button onClick={async () => { if(!firestore||!user) return; setIsProcessing(true); await updateDoc(doc(firestore, 'vendors', user.uid), {...upiForm}); setIsUpiModalOpen(false); toast({title:"Updated"}); setIsProcessing(false); }} disabled={isProcessing || !upiForm.upiId} className="w-full h-16 bg-primary text-white rounded-[1.5rem] font-black uppercase italic shadow-xl">SAVE SETTINGS</Button>
               </div>
            </DialogContent>
          </Dialog>
