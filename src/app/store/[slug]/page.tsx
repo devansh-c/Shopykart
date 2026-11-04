@@ -1,4 +1,3 @@
-
 import { Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 import MenuContent from '@/components/menu/MenuContent';
@@ -8,10 +7,11 @@ export const dynamicParams = true;
 
 /**
  * @fileOverview Optimized Store Page for Static Export.
- * Removed generateStaticParams to avoid bloat. Page handles data fetching on client.
+ * Removed generateStaticParams logic to avoid massive file generation during build.
+ * This keeps the APK size small (~20MB) by handling dynamic data on the client.
  */
 export async function generateStaticParams() {
-  // Return empty or dummy to prevent massive file generation
+  // Return just one dummy entry to satisfy the static requirement without bloat
   return [{ slug: 'view' }];
 }
 

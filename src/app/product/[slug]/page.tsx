@@ -1,4 +1,3 @@
-
 import { Suspense } from 'react';
 import ProductDetailsClient from '@/components/product/ProductDetailsClient';
 import { Loader2 } from 'lucide-react';
@@ -11,7 +10,6 @@ export const dynamicParams = true;
  * Pruned generateStaticParams to keep APK size small (~20MB).
  */
 export async function generateStaticParams() {
-  // Pruned for APK size optimization
   return [{ slug: 'view' }];
 }
 

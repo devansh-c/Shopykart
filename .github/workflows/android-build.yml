@@ -35,12 +35,6 @@ jobs:
         run: |
           test -f android/app/release.jks || keytool -genkey -noprompt -alias shopykart -dname "CN=ShopyKart, OU=IT, O=ShopyKart, L=Ranipur, S=UP, C=IN" -keystore android/app/release.jks -storepass shopykart123 -keypass shopykart123 -keyalg RSA -keysize 2048 -validity 10000
 
-      # BACKUP ORIGINAL ASSETS
-      - name: Backup Original Assets
-        run: |
-          cp assets/icon.png assets/icon-default.png || true
-          if [ -f "assets/splash.png" ]; then cp assets/splash.png assets/splash-default.png; fi
-
       # BUILD 1: CUSTOMER APP (co.in.shopykart.app)
       - name: Build Web (Customer)
         run: npm run build:static
@@ -52,15 +46,7 @@ jobs:
 
       - name: Configure Customer Identity
         run: |
-          cp assets/icon-default.png assets/icon.png
-          npx @capacitor/assets generate --android --assetPath assets
-          
           sed -i "s/appId: [\"'].*[\"']/appId: \"co.in.shopykart.app\"/" capacitor.config.ts
-          sed -i "s/appName: [\"'].*[\"']/appName: \"ShopyKart\"/" capacitor.config.ts
-          sed -i 's/package_name">.*<\/string>/package_name">co.in.shopykart.app<\/string>/' android/app/src/main/res/values/strings.xml
-          sed -i 's/app_name">.*<\/string>/app_name">ShopyKart<\/string>/' android/app/src/main/res/values/strings.xml
-          sed -i 's/title_activity_main">.*<\/string>/title_activity_main">ShopyKart<\/string>/' android/app/src/main/res/values/strings.xml
-          sed -i "s/applicationId [\"'].*[\"']/applicationId \"co.in.shopykart.app\"/" android/app/build.gradle
           npx cap sync android
 
       - name: Build Android (Customer)
@@ -83,20 +69,7 @@ jobs:
 
       - name: Configure Admin Identity
         run: |
-          if [ -f "assets/icon-admin.png" ]; then
-            cp assets/icon-admin.png assets/icon.png
-            npx @capacitor/assets generate --android --assetPath assets
-          else
-            cp assets/icon-default.png assets/icon.png
-            npx @capacitor/assets generate --android --assetPath assets
-          fi
-          
           sed -i "s/appId: [\"'].*[\"']/appId: \"co.in.shopykart.admin\"/" capacitor.config.ts
-          sed -i "s/appName: [\"'].*[\"']/appName: \"ShopyKart Admin\"/" capacitor.config.ts
-          sed -i 's/package_name">.*<\/string>/package_name">co.in.shopykart.admin<\/string>/' android/app/src/main/res/values/strings.xml
-          sed -i 's/app_name">.*<\/string>/app_name">ShopyKart Admin<\/string>/' android/app/src/main/res/values/strings.xml
-          sed -i 's/title_activity_main">.*<\/string>/title_activity_main">ShopyKart Admin<\/string>/' android/app/src/main/res/values/strings.xml
-          sed -i "s/applicationId [\"'].*[\"']/applicationId \"co.in.shopykart.admin\"/" android/app/build.gradle
           npx cap sync android
 
       - name: Build Android (Admin)
@@ -108,90 +81,12 @@ jobs:
           cp android/app/build/outputs/apk/release/app-release.apk admin.shopykart.apk
           cp android/app/build/outputs/bundle/release/app-release.aab admin.shopykart.aab
 
-      # BUILD 3: BIZ APP (co.in.shopykart.biz)
-      - name: Build Web (Biz)
-        run: npm run build:biz
-      
-      - name: Prune Heavy Static Assets (Biz)
-        run: |
-          rm -rf out/store out/product out/page out/index.txt
-          rm -rf android/app/src/main/assets/public/store android/app/src/main/assets/public/product android/app/src/main/assets/public/page android/app/src/main/assets/public/index.txt || true
-
-      - name: Configure Biz Identity
-        run: |
-          if [ -f "assets/icon-biz.png" ]; then
-            cp assets/icon-biz.png assets/icon.png
-            npx @capacitor/assets generate --android --assetPath assets
-          else
-            cp assets/icon-default.png assets/icon.png
-            npx @capacitor/assets generate --android --assetPath assets
-          fi
-          
-          sed -i "s/appId: [\"'].*[\"']/appId: \"co.in.shopykart.biz\"/" capacitor.config.ts
-          sed -i "s/appName: [\"'].*[\"']/appName: \"ShopyKart Store\"/" capacitor.config.ts
-          sed -i 's/package_name">.*<\/string>/package_name">co.in.shopykart.biz<\/string>/' android/app/src/main/res/values/strings.xml
-          sed -i 's/app_name">.*<\/string>/app_name">ShopyKart Store<\/string>/' android/app/src/main/res/values/strings.xml
-          sed -i 's/title_activity_main">.*<\/string>/title_activity_main">ShopyKart Store<\/string>/' android/app/src/main/res/values/strings.xml
-          sed -i "s/applicationId [\"'].*[\"']/applicationId \"co.in.shopykart.biz\"/" android/app/build.gradle
-          npx cap sync android
-
-      - name: Build Android (Biz)
-        working-directory: android
-        run: chmod +x gradlew && ./gradlew bundleRelease assembleRelease
-
-      - name: Archive Biz
-        run: |
-          cp android/app/build/outputs/apk/release/app-release.apk biz.shopykart.apk
-          cp android/app/build/outputs/bundle/release/app-release.aab biz.shopykart.aab
-
-      # BUILD 4: TOW APP (co.in.shopykart.tow)
-      - name: Build Web (Tow)
-        run: npm run build:tow
-      
-      - name: Prune Heavy Static Assets (Tow)
-        run: |
-          rm -rf out/store out/product out/page out/index.txt
-          rm -rf android/app/src/main/assets/public/store android/app/src/main/assets/public/product android/app/src/main/assets/public/page android/app/src/main/assets/public/index.txt || true
-
-      - name: Configure Tow Identity
-        run: |
-          if [ -f "assets/icon-tow.png" ]; then
-            cp assets/icon-tow.png assets/icon.png
-            npx @capacitor/assets generate --android --assetPath assets
-          else
-            cp assets/icon-default.png assets/icon.png
-            npx @capacitor/assets generate --android --assetPath assets
-          fi
-          
-          sed -i "s/appId: [\"'].*[\"']/appId: \"co.in.shopykart.tow\"/" capacitor.config.ts
-          sed -i "s/appName: [\"'].*[\"']/appName: \"ShopyKart Fleet\"/" capacitor.config.ts
-          sed -i 's/package_name">.*<\/string>/package_name">co.in.shopykart.tow<\/string>/' android/app/src/main/res/values/strings.xml
-          sed -i 's/app_name">.*<\/string>/app_name">ShopyKart Fleet<\/string>/' android/app/src/main/res/values/strings.xml
-          sed -i 's/title_activity_main">.*<\/string>/title_activity_main">ShopyKart Fleet<\/string>/' android/app/src/main/res/values/strings.xml
-          sed -i "s/applicationId [\"'].*[\"']/applicationId \"co.in.shopykart.tow\"/" android/app/build.gradle
-          npx cap sync android
-
-      - name: Build Android (Tow)
-        working-directory: android
-        run: chmod +x gradlew && ./gradlew bundleRelease assembleRelease
-
-      - name: Archive Tow
-        run: |
-          cp android/app/build/outputs/apk/release/app-release.apk tow.shopykart.apk
-          cp android/app/build/outputs/bundle/release/app-release.aab tow.shopykart.aab
-
-      # UPLOAD ALL 8 ARTIFACTS
+      # UPLOAD ARTIFACTS
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ShopyKart-Quad-Apps
           path: |
             app.shopykart.apk
-            app.shopykart.aab
             admin.shopykart.apk
-            admin.shopykart.aab
-            biz.shopykart.apk
-            biz.shopykart.aab
-            tow.shopykart.apk
-            tow.shopykart.aab
           if-no-files-found: error

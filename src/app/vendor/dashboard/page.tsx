@@ -450,12 +450,6 @@ export default function VendorDashboard() {
                       <button onClick={async () => { if(confirm("Delete Coupon?")) await deleteDoc(doc(firestore!, 'coupons', c.id)); }} className="h-10 w-10 text-red-500 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all bg-red-50"><Trash2 className="h-4 w-4" /></button>
                    </div>
                  ))}
-                 {(!coupons || coupons.length === 0) && (
-                   <div className="text-center py-20 opacity-20">
-                      <Ticket className="h-12 w-12 mx-auto mb-2" />
-                      <p className="font-black uppercase text-xs">No active store coupons</p>
-                   </div>
-                 )}
               </div>
            </div>
          )}
@@ -517,15 +511,15 @@ export default function VendorDashboard() {
 
                     <div className="grid grid-cols-2 gap-4">
                        <div className="space-y-1">
-                          <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Base Price ₹</label>
-                          <Input type="number" placeholder="0.00" value={manualProduct.price} onChange={e => setManualProduct({...manualProduct, price: e.target.value})} className="h-12 rounded-xl font-black text-lg bg-muted/20 border-none" />
+                          <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Base Price ₹</label>
+                          <Input type="number" value={manualProduct.price} onChange={e => setManualProduct({...manualProduct, price: e.target.value})} placeholder="0.00" className="h-12 rounded-xl font-black text-lg bg-muted/20 border-none" />
                        </div>
                        <div className="space-y-1">
                           <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Category</label>
                           <Select value={manualProduct.category} onValueChange={v => setManualProduct({...manualProduct, category: v})}>
                              <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold"><SelectValue placeholder="Select" /></SelectTrigger>
                              <SelectContent className="rounded-2xl max-h-[300px]">
-                                {categories?.filter(c => (c.serviceType||'Food') === 'Food').map(c => <SelectItem key={c.id} value={c.name.toLowerCase()} className="font-bold py-3 uppercase text-xs">{c.name}</SelectItem>)}
+                                {categories?.map(c => <SelectItem key={c.id} value={c.name.toLowerCase()} className="font-bold py-3 uppercase text-xs">{c.name}</SelectItem>)}
                              </SelectContent>
                           </Select>
                        </div>
@@ -648,7 +642,7 @@ export default function VendorDashboard() {
       <nav className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto w-full bg-[#0F172A] pt-4 pb-8 px-6 flex justify-around border-t border-white/5 z-50 rounded-t-[2.5rem]">
         {[{id:'orders',label:'Queue',icon:ShoppingBag},{id:'catalog',label:'Menu',icon:Layers},{id:'coupons',label:'Offers',icon:Ticket},{id:'payouts',label:'Wallet',icon:Wallet2},{id:'account',label:'Profile',icon:UserCircle2}].map(item => (
           <button key={item.id} onClick={() => setActiveMainTab(item.id as MainTab)} className="flex flex-col items-center gap-1.5 active:scale-90 outline-none">
-            <item.icon className={cn("h-5 w-5", activeMainTab === item.id ? "text-primary" : "text-gray-500")} />
+            <item.icon className={cn("h-5 w-5", activeMainTab === item.id ? "text-primary" : "text-gray-50")} />
             <span className={cn("text-[8px] font-black uppercase tracking-widest", activeMainTab === item.id ? "text-white" : "text-gray-500")}>{item.label}</span>
           </button>
         ))}
