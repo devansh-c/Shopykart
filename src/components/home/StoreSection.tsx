@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -27,8 +26,10 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
 
   React.useEffect(() => {
     const updateZone = () => {
-      setActiveZoneId(localStorage.getItem('active_zone_id'));
-      setActiveTown(localStorage.getItem('user_address'));
+      if (typeof window !== 'undefined') {
+        setActiveZoneId(localStorage.getItem('active_zone_id'));
+        setActiveTown(localStorage.getItem('user_address'));
+      }
     };
     updateZone();
     window.addEventListener('user-address-updated', updateZone);
@@ -39,10 +40,11 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
     };
     syncTime();
 
-    setTimeout(() => setInitialSync(true), 1200);
+    const timer = setTimeout(() => setInitialSync(true), 1200);
     
     return () => {
       window.removeEventListener('user-address-updated', updateZone);
+      clearTimeout(timer);
     };
   }, []);
 
@@ -51,18 +53,17 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
     return query(collection(firestore, 'vendors'), limit(50));
   }, [firestore]);
 
-  const { data: dbVendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery, 'home_vendors_v5_stable', initialData);
+  const { data: dbVendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery, 'home_vendors_v6_stable', initialData);
 
   const filteredVendors = React.useMemo(() => {
-    const list = dbVendors || initialData || [];
-    if (list.length === 0) return [];
+    const list = (dbVendors && dbVendors.length > 0) ? dbVendors : initialData;
+    if (!list || list.length === 0) return [];
 
     const currentMode = activeMode.toLowerCase();
 
     return list.filter(v => {
       if (activeZoneId) {
         const zoneMatch = v.zoneId === activeZoneId || v.zoneId === 'global';
-        // FIXED: Strict town matching using exact comparison
         const townMatch = activeTown && v.town?.toLowerCase().trim() === activeTown.toLowerCase().trim();
         
         if (!zoneMatch && !townMatch && v.zoneId) {
@@ -86,13 +87,13 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
       const onlineA = a.isOnline !== false && isStoreScheduleOpen(a, currentTimeMins) ? 1 : 0;
       const onlineB = b.isOnline !== false && isStoreScheduleOpen(b, currentTimeMins) ? 1 : 0;
       if (onlineA !== onlineB) return onlineB - onlineA;
-      return (b.rating || 0) - (a.rating || 0);
+      return (Number(b.rating) || 0) - (Number(a.rating) || 0);
     });
   }, [dbVendors, initialData, activeMode, activeZoneId, activeTown, currentTimeMins]);
 
-  const isInitialLoading = vendorsLoading || !initialSync;
+  const isInitialLoading = (vendorsLoading || !initialSync) && filteredVendors.length === 0;
 
-  if (isInitialLoading && filteredVendors.length === 0) {
+  if (isInitialLoading) {
     return (
       <div className="py-4 px-6 space-y-4">
         <Skeleton className="h-6 w-32 rounded-full" />
@@ -104,7 +105,7 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
     );
   }
 
-  if (filteredVendors.length === 0) return null;
+  if (filteredVendors.length === 0 && initialSync) return null;
 
   return (
     <div className="py-4 overflow-hidden bg-white content-visibility-auto">

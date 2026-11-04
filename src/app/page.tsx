@@ -5,23 +5,17 @@ import { collection, getDocs, limit, query } from 'firebase/firestore';
 /**
  * @fileOverview Optimized Server-Side Entry Point.
  * BAKES Firestore data into HTML at build time for 0.0ms instant loading.
- * Optimized with Development Bypass to prevent server compilation hangs.
+ * RESTORED: Removed dev-skip to ensure data is always present on first paint.
  */
 
 export const revalidate = 86400; // 24 Hours
 
 async function getInitialData() {
-  // ⚡ SPEED FIX: Skip SSR data fetching in development mode to make server start instantly.
-  // Data will be fetched by Client Components via cache/hooks.
-  if (process.env.NODE_ENV === 'development') {
-    return { banners: [], categories: [], stores: [], products: [], zones: [], coupons: [] };
-  }
-
   try {
     const { firestore } = initializeFirebase();
     if (!firestore) return { banners: [], categories: [], stores: [], products: [], zones: [], coupons: [] };
 
-    // Parallelize all fetches for production export
+    // Parallelize all fetches for maximum speed
     const snaps = await Promise.all([
       getDocs(collection(firestore, 'banners')),
       getDocs(collection(firestore, 'categories')),
@@ -47,7 +41,7 @@ async function getInitialData() {
       coupons
     }));
   } catch (error) {
-    console.error("Server-side data fetch skipped:", error);
+    console.error("Server-side data fetch error:", error);
     return { banners: [], categories: [], stores: [], products: [], zones: [], coupons: [] };
   }
 }

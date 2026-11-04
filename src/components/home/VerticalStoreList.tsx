@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo, useState, useEffect, memo } from 'react';
@@ -100,7 +99,7 @@ export const VerticalStoreList = memo(({
       setCurrentTimeMins(d.getHours() * 60 + d.getMinutes());
     }, 60000);
 
-    const timer = setTimeout(() => setInitialSync(true), 800);
+    const timer = setTimeout(() => setInitialSync(true), 1200);
 
     return () => {
       window.removeEventListener('user-address-updated', updateLocation);
@@ -113,13 +112,13 @@ export const VerticalStoreList = memo(({
     if (!firestore) return null;
     return query(collection(firestore, 'vendors'), limit(50));
   }, [firestore]);
-  const { data: dbVendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery, 'home_vstores_v16', initialData);
+  const { data: dbVendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery, 'home_vstores_v17', initialData);
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'products'), limit(1000));
   }, [firestore]);
-  const { data: dbAllProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_strip_products_v22', initialProducts);
+  const { data: dbAllProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_strip_products_v23', initialProducts);
 
   const filteredVendors = useMemo(() => {
     const list = (dbVendors && dbVendors.length > 0) ? dbVendors : initialData;
@@ -167,8 +166,7 @@ export const VerticalStoreList = memo(({
   }, [dbVendors, initialData, activeZoneId, activeTown, searchQuery, activeMode, currentTimeMins]);
 
   // Priority to show content immediately if we have initialData
-  const hasContent = filteredVendors.length > 0;
-  const isActuallyLoading = vendorsLoading && !hasContent;
+  const isActuallyLoading = (vendorsLoading || !initialSync) && filteredVendors.length === 0;
 
   if (isActuallyLoading) {
     return (
@@ -186,7 +184,7 @@ export const VerticalStoreList = memo(({
     );
   }
 
-  if (filteredVendors.length === 0 && !vendorsLoading) {
+  if (filteredVendors.length === 0 && !vendorsLoading && initialSync) {
     return (
       <div className="px-4 py-24 bg-white text-center opacity-20 flex flex-col items-center">
          <StoreIcon className="h-16 w-16 mb-4" />
@@ -208,7 +206,6 @@ export const VerticalStoreList = memo(({
             const isOpen = isStoreScheduleOpen(store, currentTimeMins);
             const isOffline = store.isOnline === false || !isOpen;
             
-            // Use dbAllProducts with fallback to initialProducts for instant strip rendering
             const productPool = (dbAllProducts && dbAllProducts.length > 0) ? dbAllProducts : initialProducts;
             const storeProducts = productPool.filter((p: any) => String(p.vendorId) === String(store.id) && p.isDeleted !== true).slice(0, 10);
 
