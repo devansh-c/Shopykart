@@ -13,6 +13,9 @@ import AnnouncementBanner from '@/components/home/AnnouncementBanner';
 import { Under49Products } from '@/components/home/Under49Products';
 import LocationRequest from '@/components/shared/LocationRequest';
 
+/**
+ * @fileOverview HomeClient optimized for rapid startup.
+ */
 function HomeContent({ 
   initialBanners = [], 
   initialCategories = [], 
@@ -32,8 +35,10 @@ function HomeContent({
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const [searchQuery, setSearchQuery] = useState('');
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
+    setIsClient(true);
     const isAdmin = process.env.NEXT_PUBLIC_ADMIN_APP === 'true';
     const isBiz = process.env.NEXT_PUBLIC_BIZ_APP === 'true';
     const isTow = process.env.NEXT_PUBLIC_TOW_APP === 'true';
@@ -62,6 +67,9 @@ function HomeContent({
   const handleModeChange = (mode: string) => {
     updateUrlParam('mode', mode);
   };
+
+  // Prevent heavy rendering until hydration is complete
+  if (!isClient) return <div className="min-h-screen bg-white" />;
 
   return (
     <div className="min-h-screen bg-white transform-gpu">
