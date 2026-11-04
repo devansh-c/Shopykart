@@ -2,46 +2,17 @@
 import { Suspense } from 'react';
 import ProductDetailsClient from '@/components/product/ProductDetailsClient';
 import { Loader2 } from 'lucide-react';
-import { initializeFirebase } from '@/firebase/init';
-import { collection, getDocs, limit, query } from 'firebase/firestore';
-import { slugify } from '@/lib/utils';
 
 export const dynamic = 'force-static';
-export const dynamicParams = false;
+export const dynamicParams = true;
 
 /**
- * @fileOverview Automated Static Params for popular products.
- * Fetches top 100 products from Firestore at build time for APK static pages.
+ * @fileOverview Optimized Product Page for Static Export.
+ * Pruned generateStaticParams to keep APK size small (~20MB).
  */
 export async function generateStaticParams() {
-  try {
-    const { firestore } = initializeFirebase();
-    if (!firestore) return [];
-
-    // Limit to 100 most popular items to keep build time reasonable
-    const q = query(collection(firestore, 'products'), limit(100));
-    const snap = await getDocs(q);
-    
-    const params = snap.docs.map(doc => {
-      const data = doc.data();
-      const id = doc.id;
-      const slug = data.slug || slugify(data.name) || id;
-      
-      return [
-        { slug: id },
-        { slug: slug }
-      ];
-    }).flat();
-
-    return [
-      ...params,
-      { slug: 'featured-dish' },
-      { slug: 'classic-burger' }
-    ];
-  } catch (err) {
-    console.error("Failed to generate product params:", err);
-    return [];
-  }
+  // Pruned for APK size optimization
+  return [{ slug: 'view' }];
 }
 
 export default async function ProductPage(props: { params: Promise<{ slug: string }> }) {

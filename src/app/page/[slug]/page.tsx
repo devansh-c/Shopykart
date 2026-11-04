@@ -1,20 +1,16 @@
+
 import { Suspense } from 'react';
 import StaticPageView from '@/components/shared/StaticPageView';
 import { Loader2 } from 'lucide-react';
 
 export const dynamic = 'force-static';
-export const dynamicParams = false;
+export const dynamicParams = true;
 
 /**
- * @fileOverview Static export configuration for Policy Pages.
+ * @fileOverview Static export shell for Policy Pages.
  */
 export async function generateStaticParams() {
-  return [
-    { slug: 'cancellation-policy' },
-    { slug: 'terms-and-conditions' },
-    { slug: 'privacy-policy' },
-    { slug: 'return-policy' }
-  ];
+  return [{ slug: 'view' }];
 }
 
 export default async function GenericPage(props: { params: Promise<{ slug: string }> }) {

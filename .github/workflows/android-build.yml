@@ -30,7 +30,7 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      # CREATE DUMMY KEYSTORE FOR BUILD (User must replace for real store upload)
+      # CREATE DUMMY KEYSTORE FOR BUILD
       - name: Create Dummy Keystore
         run: |
           test -f android/app/release.jks || keytool -genkey -noprompt -alias shopykart -dname "CN=ShopyKart, OU=IT, O=ShopyKart, L=Ranipur, S=UP, C=IN" -keystore android/app/release.jks -storepass shopykart123 -keypass shopykart123 -keyalg RSA -keysize 2048 -validity 10000
@@ -45,9 +45,13 @@ jobs:
       - name: Build Web (Customer)
         run: npm run build:static
       
+      - name: Prune Heavy Static Assets (Customer)
+        run: |
+          rm -rf out/store out/product out/page out/index.txt
+          rm -rf android/app/src/main/assets/public/store android/app/src/main/assets/public/product android/app/src/main/assets/public/page android/app/src/main/assets/public/index.txt || true
+
       - name: Configure Customer Identity
         run: |
-          # Reset to default icon
           cp assets/icon-default.png assets/icon.png
           npx @capacitor/assets generate --android --assetPath assets
           
@@ -72,9 +76,13 @@ jobs:
       - name: Build Web (Admin)
         run: npm run build:admin
       
+      - name: Prune Heavy Static Assets (Admin)
+        run: |
+          rm -rf out/store out/product out/page out/index.txt
+          rm -rf android/app/src/main/assets/public/store android/app/src/main/assets/public/product android/app/src/main/assets/public/page android/app/src/main/assets/public/index.txt || true
+
       - name: Configure Admin Identity
         run: |
-          # Use Admin Icon if exists
           if [ -f "assets/icon-admin.png" ]; then
             cp assets/icon-admin.png assets/icon.png
             npx @capacitor/assets generate --android --assetPath assets
@@ -104,9 +112,13 @@ jobs:
       - name: Build Web (Biz)
         run: npm run build:biz
       
+      - name: Prune Heavy Static Assets (Biz)
+        run: |
+          rm -rf out/store out/product out/page out/index.txt
+          rm -rf android/app/src/main/assets/public/store android/app/src/main/assets/public/product android/app/src/main/assets/public/page android/app/src/main/assets/public/index.txt || true
+
       - name: Configure Biz Identity
         run: |
-          # Use Biz Icon if exists
           if [ -f "assets/icon-biz.png" ]; then
             cp assets/icon-biz.png assets/icon.png
             npx @capacitor/assets generate --android --assetPath assets
@@ -136,9 +148,13 @@ jobs:
       - name: Build Web (Tow)
         run: npm run build:tow
       
+      - name: Prune Heavy Static Assets (Tow)
+        run: |
+          rm -rf out/store out/product out/page out/index.txt
+          rm -rf android/app/src/main/assets/public/store android/app/src/main/assets/public/product android/app/src/main/assets/public/page android/app/src/main/assets/public/index.txt || true
+
       - name: Configure Tow Identity
         run: |
-          # Use Tow Icon if exists
           if [ -f "assets/icon-tow.png" ]; then
             cp assets/icon-tow.png assets/icon.png
             npx @capacitor/assets generate --android --assetPath assets
