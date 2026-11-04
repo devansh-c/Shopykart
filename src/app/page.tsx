@@ -5,32 +5,43 @@ import { collection, getDocs, limit, query } from 'firebase/firestore';
 /**
  * @fileOverview Optimized Server-Side Entry Point.
  * BAKES Firestore data into HTML at build time for 0.0ms instant loading.
- * Always fetches data to ensure the app is never empty on first load.
  */
 
 export const revalidate = 3600; // Revalidate every hour
 
 async function getInitialData() {
+  const emptyData = { banners: [], categories: [], stores: [], products: [], zones: [], coupons: [] };
+  
+  // Safety check for build environment
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    return emptyData;
+  }
+
   try {
     const { firestore } = initializeFirebase();
-    if (!firestore) return { banners: [], categories: [], stores: [], products: [], zones: [], coupons: [] };
+    if (!firestore) return emptyData;
 
-    // Parallel fetching for performance
+    // RACE CONDITION PROTECTION: Timeout data fetch if it takes longer than 4 seconds
+    const fetchWithTimeout = async (promise: Promise<any>) => {
+      const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 4000));
+      return Promise.race([promise, timeout]);
+    };
+
     const [bannersSnap, categoriesSnap, vendorsSnap, productsSnap, zonesSnap, couponsSnap] = await Promise.all([
-      getDocs(collection(firestore, 'banners')),
-      getDocs(collection(firestore, 'categories')),
-      getDocs(query(collection(firestore, 'vendors'), limit(50))),
-      getDocs(query(collection(firestore, 'products'), limit(100))),
-      getDocs(collection(firestore, 'zones')),
-      getDocs(collection(firestore, 'coupons'))
+      fetchWithTimeout(getDocs(collection(firestore, 'banners'))),
+      fetchWithTimeout(getDocs(collection(firestore, 'categories'))),
+      fetchWithTimeout(getDocs(query(collection(firestore, 'vendors'), limit(50)))),
+      fetchWithTimeout(getDocs(query(collection(firestore, 'products'), limit(100)))),
+      fetchWithTimeout(getDocs(collection(firestore, 'zones'))),
+      fetchWithTimeout(getDocs(collection(firestore, 'coupons')))
     ]);
 
-    const banners = bannersSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    const categories = categoriesSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    const stores = vendorsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    const products = productsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    const zones = zonesSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    const coupons = couponsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const banners = bannersSnap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+    const categories = categoriesSnap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+    const stores = vendorsSnap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+    const products = productsSnap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+    const zones = zonesSnap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+    const coupons = couponsSnap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
 
     return JSON.parse(JSON.stringify({
       banners,
@@ -41,8 +52,8 @@ async function getInitialData() {
       coupons
     }));
   } catch (error) {
-    console.error("Server-side data fetch error:", error);
-    return { banners: [], categories: [], stores: [], products: [], zones: [], coupons: [] };
+    console.error("Server-side data fetch error (falling back to client load):", error);
+    return emptyData;
   }
 }
 

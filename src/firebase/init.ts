@@ -1,6 +1,6 @@
 import { initializeApp, getApps, FirebaseApp, getApp } from 'firebase/app';
 import { firebaseConfig } from './config';
-import { initializeFirestore, persistentLocalCache, Firestore } from 'firebase/firestore';
+import { initializeFirestore, memoryLocalCache, Firestore } from 'firebase/firestore';
 import { getAuth, Auth, setPersistence, browserLocalPersistence } from 'firebase/auth';
 
 /**
@@ -12,7 +12,7 @@ let authInstance: Auth | null = null;
 
 /**
  * Optimized Firebase initialization for Mobile/Static Export.
- * Removed Multi-Tab Manager to prevent deadlocks in Android WebViews.
+ * USES Memory Cache to prevent startup deadlocks in Android WebViews.
  */
 export function initializeFirebase() {
   // 1. Initialize App
@@ -22,12 +22,11 @@ export function initializeFirebase() {
     appInstance = getApp();
   }
 
-  // 2. Initialize Firestore with Lite Persistence
+  // 2. Initialize Firestore with High Reliability
   if (!firestoreInstance) {
     if (typeof window !== 'undefined') {
       firestoreInstance = initializeFirestore(appInstance, {
-        localCache: persistentLocalCache({}), // Simplified cache for single-tab WebView
-        experimentalForceLongPolling: true 
+        localCache: memoryLocalCache(), // Switch to memory cache for zero startup lag
       });
     } else {
       const { getFirestore } = require('firebase/firestore');

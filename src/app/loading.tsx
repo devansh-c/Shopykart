@@ -1,72 +1,22 @@
-import { Skeleton } from "@/components/ui/skeleton";
+import { Loader2 } from "lucide-react";
 
 /**
- * @fileOverview Premium Pure White FAST Shimmer Loading UI.
- * Top padding reduced to 2px for consistency.
+ * @fileOverview Premium Pure White FAST Loading UI.
+ * Highly simplified to prevent rendering delays.
  */
 export default function Loading() {
   return (
-    <div className="min-h-screen bg-white">
-      {/* Header Skeleton */}
-      <div className="pt-[2px] px-4 pb-4 space-y-4">
-        <div className="flex justify-between items-center pt-4">
-          <Skeleton className="h-10 w-[160px] rounded-full" />
-          <Skeleton className="h-10 w-10 rounded-xl" />
+    <div className="fixed inset-0 flex flex-col items-center justify-center bg-white z-[1000000]">
+      <div className="relative">
+        <div className="h-16 w-16 rounded-[1.5rem] bg-primary/5 flex items-center justify-center text-primary border border-primary/10 shadow-inner">
+          <Loader2 className="h-8 w-8 animate-spin" />
         </div>
-        <Skeleton className="h-12 w-full rounded-full" />
+        <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 whitespace-nowrap">
+          <p className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-400 italic animate-pulse">
+            ShopyKart Premium
+          </p>
+        </div>
       </div>
-
-      <main className="space-y-8 pb-32">
-        {/* Banner Skeleton */}
-        <div className="px-4">
-          <Skeleton className="aspect-[18/9] w-full rounded-[2.5rem]" />
-        </div>
-
-        {/* Explore Hub Skeleton - Matching Grid Removal */}
-        <div className="space-y-4">
-          <div className="px-6 flex justify-between items-center">
-            <Skeleton className="h-5 w-32 rounded-full" />
-            <Skeleton className="h-3 w-16 rounded-full" />
-          </div>
-          <div className="grid grid-cols-2 gap-4 px-6">
-            <Skeleton className="h-44 w-full rounded-[2.5rem]" />
-            <Skeleton className="h-44 w-full rounded-[2.5rem]" />
-          </div>
-        </div>
-
-        {/* Category List Skeleton */}
-        <div className="flex gap-4 px-6 overflow-hidden py-4 border-b border-gray-50">
-          {[1, 2, 3, 4, 5].map(i => (
-            <div key={i} className="flex flex-col items-center gap-2">
-              <Skeleton className="h-16 w-16 rounded-full" />
-              <Skeleton className="h-2 w-10 rounded-full" />
-            </div>
-          ))}
-        </div>
-
-        {/* Product Grid Skeleton */}
-        <div className="px-4 space-y-6">
-          <div className="flex justify-between px-2">
-            <Skeleton className="h-8 w-40 rounded-full" />
-            <Skeleton className="h-6 w-16 rounded-full" />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            {[1, 2, 3, 4].map(i => (
-              <div key={i} className="space-y-3 bg-white p-3 rounded-[2.5rem]">
-                <Skeleton className="aspect-square w-full rounded-[1.5rem]" />
-                <div className="space-y-2 px-1">
-                  <Skeleton className="h-2 w-2/3 rounded-full" />
-                  <Skeleton className="h-3 w-full rounded-full" />
-                  <div className="flex justify-between pt-2">
-                    <Skeleton className="h-6 w-12 rounded-full" />
-                    <Skeleton className="h-8 w-16 rounded-full" />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </main>
     </div>
   );
 }
