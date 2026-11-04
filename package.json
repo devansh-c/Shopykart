@@ -9,7 +9,7 @@
     "dev": "next dev --turbo",
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
-    "build": "next build",
+    "build": "next build && rm -rf out/store out/product out/index.txt",
     "build:static": "NEXT_PUBLIC_STATIC_EXPORT=true next build",
     "build:admin": "NEXT_PUBLIC_STATIC_EXPORT=true NEXT_PUBLIC_ADMIN_APP=true next build",
     "build:biz": "NEXT_PUBLIC_STATIC_EXPORT=true NEXT_PUBLIC_BIZ_APP=true next build",
