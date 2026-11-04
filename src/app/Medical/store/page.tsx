@@ -33,7 +33,10 @@ import {
   HeartPulse,
   ListTree,
   X,
-  Clock
+  Clock,
+  Ticket,
+  Percent,
+  IndianRupee
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -49,7 +52,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { format, startOfDay, startOfWeek, startOfMonth, isAfter } from 'date-fns';
 import { compressImage } from '@/lib/image-utils';
 
-type MainTab = 'orders' | 'catalog' | 'payouts' | 'account';
+type MainTab = 'orders' | 'catalog' | 'coupons' | 'payouts' | 'account';
 type OrderFilter = 'NEW ORDERS' | 'DELIVERED' | 'CANCELLED';
 
 const TIME_SLOTS = [
@@ -73,6 +76,7 @@ export default function MedicalDashboard() {
   const [isUpiModalOpen, setIsUpiModalOpen] = useState(false);
   const [isTimingModalOpen, setIsTimingModalOpen] = useState(false);
   const [isManualAddOpen, setIsManualAddOpen] = useState(false);
+  const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
 
   const [manualProduct, setManualProduct] = useState({
     name: '',
@@ -82,6 +86,13 @@ export default function MedicalDashboard() {
     imageUrl: '',
     isVarietyRequired: false,
     options: [] as { name: string; price: number }[]
+  });
+
+  const [couponForm, setCouponForm] = useState({
+    code: '',
+    discountValue: '',
+    discountType: 'percentage' as 'percentage' | 'fixed',
+    minOrderValue: ''
   });
 
   const [upiForm, setUpiForm] = useState({
@@ -98,7 +109,6 @@ export default function MedicalDashboard() {
 
   useEffect(() => { setIsMounted(true); }, []);
 
-  // STICKY SESSION PROTECTION
   useEffect(() => {
     if (!isMounted || authLoading) return;
     const sessionActive = localStorage.getItem('shopykart_session_active') === 'true';
@@ -124,6 +134,9 @@ export default function MedicalDashboard() {
 
   const productsQuery = useMemoFirebase(() => (firestore && user) ? query(collection(firestore, 'products'), where('vendorId', '==', user.uid)) : null, [firestore, user]);
   const { data: products } = useCollection<any>(productsQuery);
+
+  const couponsQuery = useMemoFirebase(() => (firestore && user) ? query(collection(firestore, 'coupons'), where('vendorId', '==', user.uid)) : null, [firestore, user]);
+  const { data: coupons } = useCollection<any>(couponsQuery);
 
   const categoriesQuery = useMemoFirebase(() => (firestore) ? query(collection(firestore, 'categories')) : null, [firestore]);
   const { data: categories } = useCollection<any>(categoriesQuery);
@@ -179,28 +192,6 @@ export default function MedicalDashboard() {
     } catch (e) { toast({ variant: "destructive", title: "Failed" }); }
   };
 
-  const handleManualImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      const compressed = await compressImage(reader.result as string, 400, 400);
-      setManualProduct(prev => ({ ...prev, imageUrl: compressed }));
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleAddVariety = () => {
-    setManualProduct(prev => ({ ...prev, options: [...prev.options, { name: '', price: 0 }] }));
-  };
-
-  const updateVariety = (index: number, field: 'name' | 'price', value: string) => {
-    const newOptions = [...manualProduct.options];
-    if (field === 'price') newOptions[index].price = parseFloat(value) || 0;
-    else newOptions[index].name = value;
-    setManualProduct(prev => ({ ...prev, options: newOptions }));
-  };
-
   const handleManualAddProduct = async () => {
     if (!firestore || !user || !manualProduct.name || !manualProduct.price) return;
     setIsProcessing(true);
@@ -230,16 +221,22 @@ export default function MedicalDashboard() {
     finally { setIsProcessing(false); }
   };
 
-  const handleSaveTimings = async () => {
-    if (!firestore || !user) return;
+  const handleCreateCoupon = async () => {
+    if (!firestore || !user || !couponForm.code || !couponForm.discountValue) return;
     setIsProcessing(true);
     try {
-      await updateDoc(doc(firestore, 'vendors', user.uid), {
-        ...timings,
-        updatedAt: serverTimestamp()
+      await addDoc(collection(firestore, 'coupons'), {
+        code: couponForm.code.toUpperCase().trim(),
+        discountValue: parseFloat(couponForm.discountValue),
+        discountType: couponForm.discountType,
+        minOrderValue: parseFloat(couponForm.minOrderValue) || 0,
+        vendorId: user.uid,
+        storeName: vendorProfile?.storeName || 'Pharmacy',
+        createdAt: serverTimestamp()
       });
-      setIsTimingModalOpen(false);
-      toast({ title: "Timings Updated! ⏰" });
+      setIsCouponModalOpen(false);
+      setCouponForm({ code: '', discountValue: '', discountType: 'percentage', minOrderValue: '' });
+      toast({ title: "Coupon Created! 🎫" });
     } catch (err) { toast({ variant: "destructive", title: "Failed" }); }
     finally { setIsProcessing(false); }
   };
@@ -347,6 +344,39 @@ export default function MedicalDashboard() {
            </div>
          )}
 
+         {activeMainTab === 'coupons' && (
+           <div className="p-4 space-y-6">
+              <div className="flex items-center justify-between px-2">
+                 <h2 className="text-xl font-black italic uppercase">Offers</h2>
+                 <button onClick={() => setIsCouponModalOpen(true)} className="h-12 px-6 bg-teal-600 text-white rounded-xl font-black uppercase italic text-xs shadow-lg active:scale-90 flex items-center gap-2"><Plus className="h-5 w-5" /> CREATE COUPON</button>
+              </div>
+              <div className="grid grid-cols-1 gap-4">
+                 {coupons?.map((c: any) => (
+                   <div key={c.id} className="bg-white p-6 rounded-[2rem] border-2 border-dashed border-teal-200 shadow-sm flex items-center justify-between group">
+                      <div className="flex items-center gap-4">
+                         <div className="h-12 w-12 rounded-xl bg-teal-50 flex items-center justify-center text-teal-600 border border-teal-100 shrink-0">
+                            <Ticket className="h-6 w-6" />
+                         </div>
+                         <div>
+                            <h4 className="font-black text-base text-gray-900 uppercase tracking-widest">{c.code}</h4>
+                            <p className="text-[10px] font-bold text-teal-600 uppercase">
+                              {c.discountValue}{c.discountType === 'percentage' ? '%' : '₹'} OFF • Min ₹{c.minOrderValue || 0}
+                            </p>
+                         </div>
+                      </div>
+                      <button onClick={async () => { if(confirm("Delete Coupon?")) await deleteDoc(doc(firestore!, 'coupons', c.id)); }} className="h-10 w-10 text-red-500 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all bg-red-50"><Trash2 className="h-4 w-4" /></button>
+                   </div>
+                 ))}
+                 {(!coupons || coupons.length === 0) && (
+                   <div className="text-center py-20 opacity-20">
+                      <Ticket className="h-12 w-12 mx-auto mb-2" />
+                      <p className="font-black uppercase text-xs">No active pharmacy coupons</p>
+                   </div>
+                 )}
+              </div>
+           </div>
+         )}
+
          {activeMainTab === 'payouts' && (
            <div className="p-4 space-y-6">
               <h2 className="text-xl font-black italic uppercase ml-2">Wallet</h2>
@@ -358,12 +388,8 @@ export default function MedicalDashboard() {
                  <Wallet2 className="absolute bottom-4 right-4 h-24 w-24 text-white opacity-10" />
               </div>
               <div className="grid grid-cols-2 gap-4">
-                 <div className="bg-white p-5 rounded-[2rem] border shadow-sm flex flex-col gap-2"><ArrowDownLeft className="h-4 w-4 text-blue-500" /><div><span className="text-[8px] font-black text-gray-400 uppercase block mb-0.5">Cash in Hand</span><h4 className="text-lg font-black italic">₹ 0.00</h4></div></div>
-                 <div className="bg-white p-5 rounded-[2rem] border shadow-sm flex flex-col gap-2"><Timer className="h-4 w-4 text-amber-500" /><div><span className="text-[8px] font-black text-gray-400 uppercase block mb-0.5">Settling</span><h4 className="text-lg font-black italic">₹ {pendingRequests?.reduce((s:any,r:any)=>s+r.amount, 0).toFixed(0) || '0.00'}</h4></div></div>
-              </div>
-              <div className="bg-white rounded-[2rem] p-6 border shadow-sm flex flex-col items-center gap-4">
-                 <QrCode className="h-10 w-10 text-teal-300 opacity-30" />
-                 <Button onClick={() => { setUpiForm({ upiId: vendorProfile.upiId || '', accountNumber: vendorProfile.accountNumber || '', ifscCode: vendorProfile.ifscCode || '', accountHolderName: vendorProfile.accountHolderName || '' }); setIsUpiModalOpen(true); }} variant="outline" className="w-full font-black uppercase text-xs">UPDATE PAYMENT UPI</Button>
+                 <div className="bg-white p-5 rounded-[2rem] border border-blue-100 shadow-sm flex flex-col gap-2"><ArrowDownLeft className="h-4 w-4 text-blue-500" /><div><span className="text-[8px] font-black text-gray-400 uppercase block mb-0.5">Cash in Hand</span><h4 className="text-lg font-black italic">₹ 0.00</h4></div></div>
+                 <div className="bg-white p-5 rounded-[2rem] border border-amber-100 shadow-sm flex flex-col gap-2"><Timer className="h-4 w-4 text-amber-500" /><div><span className="text-[8px] font-black text-gray-400 uppercase block mb-0.5">Settling</span><h4 className="text-lg font-black italic">₹ {pendingRequests?.reduce((s:any,r:any)=>s+r.amount, 0).toFixed(0) || '0.00'}</h4></div></div>
               </div>
            </div>
          )}
@@ -380,7 +406,7 @@ export default function MedicalDashboard() {
                   </div>
                </div>
                <div className="space-y-4">
-                  <div className="bg-white p-6 rounded-[2.5rem] border shadow-sm space-y-5">
+                  <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-5">
                      <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4"><div className="bg-teal-500/5 p-2 rounded-xl text-teal-600"><Clock className="h-5 w-5" /></div><div><span className="text-[10px] font-black text-gray-400 uppercase">Hub Timings</span><span className="text-sm font-black uppercase italic text-gray-800 block">{vendorProfile?.openingTime} - {vendorProfile?.closingTime}</span></div></div>
                         <button onClick={() => setIsTimingModalOpen(true)} className="text-[10px] font-black text-teal-600 uppercase">EDIT</button>
@@ -458,6 +484,47 @@ export default function MedicalDashboard() {
            </DialogContent>
          </Dialog>
 
+         <Dialog open={isCouponModalOpen} onOpenChange={setIsCouponModalOpen}>
+           <DialogContent className="rounded-[2.5rem] max-w-md p-8 border-none shadow-2xl bg-white focus:outline-none">
+              <DialogHeader><DialogTitle className="font-black italic uppercase text-center text-xl">Create Pharmacy Coupon</DialogTitle></DialogHeader>
+              <div className="space-y-6 pt-6">
+                 <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Coupon Code</label>
+                    <Input placeholder="E.G. MED10" value={couponForm.code} onChange={e => setCouponForm({...couponForm, code: e.target.value.toUpperCase().replace(/\s/g,'')})} className="h-14 rounded-2xl bg-gray-50 border-none font-black text-xl italic" />
+                 </div>
+                 
+                 <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                       <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Discount Mode</label>
+                       <Select value={couponForm.discountType} onValueChange={(v: any) => setCouponForm({...couponForm, discountType: v})}>
+                          <SelectTrigger className="h-14 rounded-2xl bg-gray-50 border-none font-bold"><SelectValue /></SelectTrigger>
+                          <SelectContent className="rounded-2xl">
+                             <SelectItem value="percentage" className="font-bold py-3 uppercase italic text-xs">Percent (%)</SelectItem>
+                             <SelectItem value="fixed" className="font-bold py-3 uppercase italic text-xs">Rupees (₹)</SelectItem>
+                          </SelectContent>
+                       </Select>
+                    </div>
+                    <div className="space-y-1">
+                       <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Value</label>
+                       <div className="relative">
+                          {couponForm.discountType === 'percentage' ? <Percent className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-teal-600" /> : <IndianRupee className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-teal-600" />}
+                          <Input type="number" placeholder="0" value={couponForm.discountValue} onChange={e => setCouponForm({...couponForm, discountValue: e.target.value})} className="h-14 pl-12 rounded-2xl bg-gray-50 border-none font-black text-xl text-teal-600" />
+                       </div>
+                    </div>
+                 </div>
+
+                 <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Min. Order Value (₹)</label>
+                    <Input type="number" placeholder="499" value={couponForm.minOrderValue} onChange={e => setCouponForm({...couponForm, minOrderValue: e.target.value})} className="h-14 rounded-2xl bg-gray-50 border-none font-bold" />
+                 </div>
+
+                 <Button onClick={handleCreateCoupon} disabled={isProcessing || !couponForm.code || !couponForm.discountValue} className="w-full h-18 bg-teal-600 text-white rounded-[1.5rem] font-black uppercase italic shadow-xl">
+                   {isProcessing ? <Loader2 className="animate-spin" /> : "ACTIVATE MEDICINE COUPON"}
+                 </Button>
+              </div>
+           </DialogContent>
+         </Dialog>
+
          <Dialog open={isUpiModalOpen} onOpenChange={setIsUpiModalOpen}>
            <DialogContent className="rounded-[2.5rem] max-w-md p-8 bg-white border-none shadow-2xl">
               <DialogHeader><DialogTitle className="font-black italic uppercase text-center text-xl">Withdraw Settings</DialogTitle></DialogHeader>
@@ -495,7 +562,7 @@ export default function MedicalDashboard() {
       </main>
 
       <nav className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto w-full bg-[#0F172A] pt-4 pb-8 px-6 flex justify-around border-t border-white/5 z-50 rounded-t-[2.5rem]">
-        {[{id:'orders',label:'Queue',icon:ShoppingBag},{id:'catalog',label:'Menu',icon:Layers},{id:'payouts',label:'Wallet',icon:Wallet2},{id:'account',label:'Profile',icon:UserCircle2}].map(item => (
+        {[{id:'orders',label:'Queue',icon:ShoppingBag},{id:'catalog',label:'Menu',icon:Layers},{id:'coupons',label:'Offers',icon:Ticket},{id:'payouts',label:'Wallet',icon:Wallet2},{id:'account',label:'Profile',icon:UserCircle2}].map(item => (
           <button key={item.id} onClick={() => setActiveMainTab(item.id as MainTab)} className="flex flex-col items-center gap-1.5 active:scale-90 outline-none">
             <item.icon className={cn("h-5 w-5", activeMainTab === item.id ? "text-teal-500" : "text-gray-500")} />
             <span className={cn("text-[8px] font-black uppercase tracking-widest", activeMainTab === item.id ? "text-white" : "text-gray-500")}>{item.label}</span>
@@ -504,4 +571,12 @@ export default function MedicalDashboard() {
       </nav>
     </div>
   );
+}
+
+function handleAddVariety() {
+  throw new Error('Function not implemented.');
+}
+
+function updateVariety(index: number, field: string, value: string) {
+  throw new Error('Function not implemented.');
 }

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -146,6 +147,21 @@ export default function CartPage() {
         toast({ variant: "destructive", title: "Invalid Coupon", description: "This code is not valid." });
       } else {
         const data = snap.docs[0].data();
+        
+        // VENDOR SPECIFIC CHECK
+        if (data.vendorId) {
+          const cartVendorIds = Array.from(new Set(cart.map(item => String(item.vendorId))));
+          if (!cartVendorIds.includes(String(data.vendorId))) {
+             toast({ 
+               variant: "destructive", 
+               title: "Invalid Store", 
+               description: `This coupon is only valid for ${data.storeName || 'specific store'}.` 
+             });
+             setIsValidatingCoupon(false);
+             return;
+          }
+        }
+
         if (totalPrice < (data.minOrderValue || 0)) {
           toast({ variant: "destructive", title: "Minimum order not met", description: `Add ₹${(data.minOrderValue || 0) - totalPrice} more.` });
         } else {
