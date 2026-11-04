@@ -36,7 +36,9 @@ import {
   IndianRupee,
   Store,
   XCircle,
-  Timer
+  Timer,
+  ShoppingBag,
+  ListPlus
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -123,11 +125,11 @@ const TaskCard = memo(({ order, onUpdate, userData, onPass }: any) => {
   };
 
   return (
-    <div className="bg-white rounded-[2rem] border border-gray-100 shadow-xl shadow-gray-100/50 overflow-hidden mb-6 animate-in fade-in slide-in-from-bottom-4 duration-500 transform-gpu">
+    <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-xl shadow-gray-200/50 overflow-hidden mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500 transform-gpu">
        <div className="p-5 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
           <div className="flex items-center gap-2">
              <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-             <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Order ID #{order.customerOrderNumber}</span>
+             <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Task ID #{order.customerOrderNumber}</span>
           </div>
           {isMyTask && !['Delivered', 'Cancelled'].includes(order.status) && (
              <div className={cn(
@@ -140,33 +142,55 @@ const TaskCard = memo(({ order, onUpdate, userData, onPass }: any) => {
           )}
           <Badge className={cn("border-none text-[8px] font-black uppercase px-2 py-0.5 rounded-lg", 
             isMyTask ? "bg-primary text-white" : "bg-gray-200 text-gray-600")}>
-            {isMyTask ? 'MY TASK' : 'AVAILABLE'}
+            {isMyTask ? 'MY TASK' : 'NEW TASK'}
           </Badge>
        </div>
 
-       <div className="p-6 space-y-6">
+       <div className="p-6 space-y-8">
+          {/* STORE SECTION */}
           <div className="flex items-start gap-4">
-             <div className="h-12 w-12 rounded-2xl bg-primary/5 flex items-center justify-center text-primary shrink-0">
-                <Store className="h-6 w-6" />
+             <div className="h-14 w-14 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 shrink-0 border border-blue-100">
+                <Store className="h-7 w-7" />
              </div>
              <div className="flex-1 min-w-0 text-left">
-                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Pick from</p>
-                <h3 className="text-lg font-black uppercase italic tracking-tighter truncate text-gray-900">{order.restaurantName}</h3>
+                <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest leading-none mb-1.5">Pick From (Hub)</p>
+                <h3 className="text-xl font-black uppercase italic tracking-tighter truncate text-gray-900 leading-none mb-1">{order.restaurantName}</h3>
+                <p className="text-[10px] font-bold text-gray-400 uppercase italic truncate">{order.vendorAddress || order.town || 'Local Hub'}</p>
              </div>
              {isMyTask && order.vendorPhone && (
                <button onClick={() => window.open(`tel:${order.vendorPhone}`)} className="h-12 w-12 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-blue-100 active:scale-90 transition-transform">
-                 <Store className="h-5 w-5" />
+                 <Phone className="h-5 w-5" />
                </button>
              )}
           </div>
 
+          {/* ITEMS TO PICKUP SECTION */}
+          <div className="bg-muted/30 rounded-[2rem] p-6 border border-border/40">
+             <div className="flex items-center gap-2 mb-4 border-b border-white pb-3">
+                <ListPlus className="h-4 w-4 text-primary" />
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-500">Items to Carry</h4>
+             </div>
+             <div className="space-y-3">
+                {order.items?.map((item: any, idx: number) => (
+                   <div key={idx} className="flex justify-between items-center bg-white/60 p-3 rounded-xl border border-white">
+                      <span className="text-[11px] font-black uppercase italic text-gray-800">
+                         <span className="text-primary">{item.quantity}x</span> {item.name} {item.selectedOption ? `(${item.selectedOption.name})` : ''}
+                      </span>
+                      <Badge className="bg-gray-100 text-gray-400 border-none text-[8px] font-black">PKD</Badge>
+                   </div>
+                ))}
+             </div>
+          </div>
+
+          {/* CUSTOMER SECTION */}
           <div className="flex items-start gap-4">
-             <div className="h-12 w-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
-                <MapPin className="h-6 w-6" />
+             <div className="h-14 w-14 rounded-2xl bg-primary/5 flex items-center justify-center text-primary shrink-0 border border-primary/10">
+                <User className="h-7 w-7" />
              </div>
              <div className="flex-1 min-w-0 text-left">
-                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Deliver to</p>
-                <p className="text-xs font-bold text-gray-700 leading-tight uppercase italic line-clamp-2">{order.address}</p>
+                <p className="text-[9px] font-black text-primary uppercase tracking-widest leading-none mb-1.5">Deliver To</p>
+                <h3 className="text-xl font-black uppercase italic tracking-tighter truncate text-gray-900 leading-none mb-1">{order.customerName}</h3>
+                <p className="text-[10px] font-bold text-gray-500 leading-tight uppercase italic line-clamp-2">{order.address}</p>
              </div>
              {isMyTask && (
                <button onClick={() => window.open(`tel:${order.customerPhone}`)} className="h-12 w-12 bg-green-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-green-100 active:scale-90 transition-transform">
@@ -175,74 +199,68 @@ const TaskCard = memo(({ order, onUpdate, userData, onPass }: any) => {
              )}
           </div>
 
-          {isMyTask && (
-             <div className="bg-muted/30 p-4 rounded-2xl flex justify-around items-center border border-border/30">
-                <div className="flex flex-col items-center gap-1">
-                   <button onClick={() => window.open(`tel:${order.vendorPhone}`)} className="h-14 w-14 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center shadow-sm active:scale-90 transition-all border border-blue-100">
-                      <Store className="h-6 w-6" />
-                   </button>
-                   <span className="text-[8px] font-black uppercase text-blue-600">CALL STORE</span>
-                </div>
-                <div className="h-10 w-[1px] bg-border/50" />
-                <div className="flex flex-col items-center gap-1">
-                   <button onClick={() => window.open(`tel:${order.customerPhone}`)} className="h-14 w-14 bg-green-50 text-green-600 rounded-full flex items-center justify-center shadow-sm active:scale-90 transition-all border border-green-100">
-                      <User className="h-6 w-6" />
-                   </button>
-                   <span className="text-[8px] font-black uppercase text-green-600">CALL CUSTOMER</span>
-                </div>
+          {/* PAYMENT/TOTAL SECTION */}
+          <div className="bg-[#0B0B0B] p-6 rounded-[2rem] flex items-center justify-between text-white shadow-2xl relative overflow-hidden">
+             <div className="relative z-10">
+                <span className="text-[8px] font-black text-primary uppercase tracking-[0.2em] block mb-1">Collection Amount</span>
+                <div className="text-3xl font-black italic tracking-tighter">₹ {order.total?.toFixed(0)}</div>
              </div>
-          )}
+             <div className="relative z-10 text-right">
+                <Badge className="bg-white/10 text-white border-none font-black text-[9px] uppercase tracking-widest">{order.paymentMethod || 'COD'}</Badge>
+             </div>
+             <Banknote className="absolute top-0 right-0 h-24 w-24 text-white opacity-5 -rotate-12 translate-x-4 -translate-y-4" />
+          </div>
 
-          <div className="pt-4 mt-2">
+          <div className="pt-2">
              {!isMyTask ? (
-               <div className="flex gap-3">
-                  <button onClick={() => onPass(order.id)} className="flex-1 h-16 rounded-2xl bg-gray-50 text-gray-400 font-black uppercase text-[10px] tracking-widest border border-gray-100">PASS</button>
-                  <button onClick={handleAction} className="flex-[2] h-16 rounded-2xl bg-[#0B0B0B] text-white font-black uppercase italic text-sm shadow-xl active:scale-95 transition-all">ACCEPT TASK</button>
+               <div className="flex gap-4">
+                  <button onClick={() => onPass(order.id)} className="flex-1 h-18 rounded-[1.75rem] bg-gray-50 text-gray-400 font-black uppercase text-[10px] tracking-widest border border-gray-100 active:scale-95 transition-all">PASS TASK</button>
+                  <button onClick={handleAction} className="flex-[2] h-18 rounded-[1.75rem] bg-[#0B0B0B] text-white font-black uppercase italic text-lg shadow-xl active:scale-95 transition-all border-b-4 border-gray-800">ACCEPT TASK</button>
                </div>
              ) : (
                <div className="space-y-4 animate-in slide-in-from-top-2">
                   {isReadyForPickup && (
                     <div className="space-y-4">
-                       <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10">
-                          <label className="text-[9px] font-black text-primary uppercase block mb-3 text-center tracking-widest">Enter Store Pickup OTP</label>
+                       <div className="bg-primary/5 p-5 rounded-[2rem] border border-primary/10">
+                          <label className="text-[10px] font-black text-primary uppercase block mb-4 text-center tracking-[0.2em]">Enter Store Pickup OTP</label>
                           <Input 
                             type="tel" maxLength={4} placeholder="0 0 0 0" 
                             value={pickupCode} onChange={e => setPickupCode(e.target.value.replace(/\D/g,''))}
-                            className="h-16 rounded-xl border-none bg-white text-center font-black text-3xl tracking-[0.5em] text-primary"
+                            className="h-20 rounded-2xl border-none bg-white text-center font-black text-4xl tracking-[0.5em] text-primary shadow-inner"
                           />
                        </div>
-                       <Button onClick={handleAction} disabled={pickupCode.length !== 4} className="w-full h-16 bg-primary text-white rounded-2xl font-black uppercase italic text-lg shadow-xl shadow-primary/20">CONFIRM PICKUP</Button>
+                       <Button onClick={handleAction} disabled={pickupCode.length !== 4} className="w-full h-20 bg-primary text-white rounded-[2rem] font-black uppercase italic text-xl shadow-xl shadow-primary/20">CONFIRM PICKUP</Button>
                     </div>
                   )}
 
                   {isPickedUp && (
-                    <Button onClick={handleAction} className="w-full h-20 bg-blue-600 text-white rounded-2xl font-black uppercase italic text-xl shadow-xl shadow-blue-200 flex items-center justify-center gap-3">
-                       <Navigation className="h-6 w-6" /> START DELIVERY
+                    <Button onClick={handleAction} className="w-full h-24 bg-blue-600 text-white rounded-[2.5rem] font-black uppercase italic text-2xl shadow-xl shadow-blue-200 flex items-center justify-center gap-4">
+                       <Navigation className="h-8 w-8" /> START DELIVERY
                     </Button>
                   )}
 
                   {isOutForDelivery && (
                     <div className="space-y-6">
-                       <button onClick={() => setShowQr(true)} className="w-full h-14 bg-gray-900 text-white rounded-2xl font-black uppercase italic text-xs flex items-center justify-center gap-2 shadow-xl"><QrCode className="h-4 w-4" /> COLLECT PAYMENT</button>
+                       <button onClick={() => setShowQr(true)} className="w-full h-16 bg-gray-900 text-white rounded-[1.75rem] font-black uppercase italic text-sm flex items-center justify-center gap-3 shadow-xl"><QrCode className="h-6 w-6" /> SHOW COLLECTION QR</button>
                        
-                       <div className="grid grid-cols-2 gap-3">
-                          <button onClick={() => setCollectionMethod('Online')} className={cn("h-14 rounded-2xl border-2 flex flex-col items-center justify-center gap-1", collectionMethod === 'Online' ? "bg-primary/5 border-primary text-primary" : "bg-gray-50 border-transparent text-gray-400")}>
-                             <CreditCard className="h-4 w-4" /><span className="text-[9px] font-black uppercase">Online</span>
+                       <div className="grid grid-cols-2 gap-4">
+                          <button onClick={() => setCollectionMethod('Online')} className={cn("h-16 rounded-2xl border-2 flex flex-col items-center justify-center gap-1 transition-all", collectionMethod === 'Online' ? "bg-primary/5 border-primary text-primary" : "bg-gray-50 border-transparent text-gray-400")}>
+                             <CreditCard className="h-5 w-5" /><span className="text-[10px] font-black uppercase">Online</span>
                           </button>
-                          <button onClick={() => setCollectionMethod('Cash')} className={cn("h-14 rounded-2xl border-2 flex flex-col items-center justify-center gap-1", collectionMethod === 'Cash' ? "bg-amber-50 border-amber-500 text-amber-700" : "bg-gray-50 border-transparent text-gray-400")}>
-                             <Banknote className="h-4 w-4" /><span className="text-[9px] font-black uppercase">Cash</span>
+                          <button onClick={() => setCollectionMethod('Cash')} className={cn("h-16 rounded-2xl border-2 flex flex-col items-center justify-center gap-1 transition-all", collectionMethod === 'Cash' ? "bg-amber-50 border-amber-500 text-amber-700" : "bg-gray-50 border-transparent text-gray-400")}>
+                             <Banknote className="h-5 w-5" /><span className="text-[10px] font-black uppercase">Cash</span>
                           </button>
                        </div>
 
                        {collectionMethod && (
-                         <div className="space-y-4 pt-2 animate-in zoom-in">
-                            <label className="text-[9px] font-black text-green-600 uppercase text-center block tracking-widest">Enter Customer Delivery OTP</label>
+                         <div className="space-y-5 pt-2 animate-in zoom-in duration-500">
+                            <label className="text-[10px] font-black text-green-600 uppercase text-center block tracking-[0.2em]">Enter Customer Delivery OTP</label>
                             <Input 
                               type="tel" maxLength={6} placeholder="0 0 0 0 0 0" 
                               value={enteredCode} onChange={e => setEnteredCode(e.target.value.replace(/\D/g,''))}
-                              className="h-16 rounded-xl border-none bg-green-50 text-center font-black text-3xl tracking-[0.3em] text-green-700"
+                              className="h-20 rounded-2xl border-none bg-green-50 text-center font-black text-4xl tracking-[0.4em] text-green-700 shadow-inner"
                             />
-                            <Button onClick={handleAction} disabled={enteredCode.length !== 6} className="w-full h-20 bg-green-600 text-white rounded-2xl font-black uppercase italic text-xl shadow-xl shadow-green-100">MARK DELIVERED</Button>
+                            <Button onClick={handleAction} disabled={enteredCode.length !== 6} className="w-full h-24 bg-green-600 text-white rounded-[2.5rem] font-black uppercase italic text-2xl shadow-xl shadow-green-100">MARK DELIVERED</Button>
                          </div>
                        )}
                     </div>
@@ -253,16 +271,16 @@ const TaskCard = memo(({ order, onUpdate, userData, onPass }: any) => {
        </div>
 
        <Dialog open={showQr} onOpenChange={setShowQr}>
-          <DialogContent className="rounded-[3rem] max-w-sm p-8 text-center space-y-6 bg-white border-none shadow-2xl focus:outline-none">
+          <DialogContent className="rounded-[3rem] max-w-sm p-10 text-center space-y-8 bg-white border-none shadow-2xl focus:outline-none">
              <DialogHeader>
-                <DialogTitle className="font-black italic uppercase text-2xl tracking-tighter">Scan to Pay</DialogTitle>
+                <DialogTitle className="font-black italic uppercase text-3xl tracking-tighter">Collect Payment</DialogTitle>
                 <DialogDescription className="sr-only">UPI QR Code for collection</DialogDescription>
              </DialogHeader>
-             <div className="bg-gray-50 p-6 rounded-[2rem] border-2 border-dashed border-gray-200">
-                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`upi://pay?pa=9450355709@axl&pn=ShopyKart&am=${order.total}&cu=INR`)}`} className="h-48 w-48 mx-auto" alt="QR" />
-                <p className="mt-4 text-2xl font-black italic text-gray-900">₹{order.total?.toFixed(0)}</p>
+             <div className="bg-gray-50 p-8 rounded-[2.5rem] border-4 border-dashed border-gray-200">
+                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`upi://pay?pa=9450355709@axl&pn=ShopyKart&am=${order.total}&cu=INR`)}`} className="h-56 w-56 mx-auto" alt="QR" />
+                <p className="mt-6 text-4xl font-black italic text-gray-900 tracking-tighter">₹{order.total?.toFixed(0)}</p>
              </div>
-             <Button onClick={() => setShowQr(false)} className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic">CLOSE</Button>
+             <Button onClick={() => setShowQr(false)} className="w-full h-16 bg-black text-white rounded-2xl font-black uppercase italic">CLOSE QR</Button>
           </DialogContent>
        </Dialog>
     </div>
@@ -303,7 +321,6 @@ export default function DeliveryDashboard() {
     }
 
     if (!profileLoading && !partnerProfile && user) {
-      // 3-second grace period to allow Firestore data to sync after registration
       const timer = setTimeout(() => {
         if (!partnerProfile) {
           toast({ variant: "destructive", title: "Access Denied", description: "Identity not recognized as Delivery Partner." });
@@ -450,9 +467,9 @@ export default function DeliveryDashboard() {
               </div>
 
               <div className="flex items-center justify-between px-2">
-                 <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900">Live Queue</h2>
+                 <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900">Task Queue</h2>
                  <Badge variant="outline" className="rounded-full border-gray-200 text-gray-400 font-black uppercase text-[10px]">
-                   {taskOrders.length} TASKS
+                   {taskOrders.length} PENDING
                  </Badge>
               </div>
 

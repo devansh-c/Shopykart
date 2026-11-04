@@ -179,6 +179,7 @@ export default function CartPage() {
         vendorIds: allVendorIds, 
         vendorId: allVendorIds[0], 
         vendorPhone: firstVendor?.phone || '',
+        vendorAddress: firstVendor?.town || firstVendor?.city || 'Local Hub',
         deliveryOTP: Math.floor(100000 + Math.random() * 900000).toString(),
         deliveryFee, 
         deliveryTip, 
