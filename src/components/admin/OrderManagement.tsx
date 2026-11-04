@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -127,7 +128,7 @@ export default function OrderManagement() {
         <div style="margin-bottom: 12px; border-bottom: 1px dashed #eee; padding-bottom: 5px;">
            <div style="font-size: 8px; font-weight: 900; color: #666; margin-bottom: 2px;">FROM: ${item.restaurantName || order.restaurantName || 'ShopyKart'}</div>
           <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: 900;">
-            <span style="flex: 2;">${item.name}</span>
+            <span style="flex: 2;">${item.name} ${item.selectedOption ? `(${item.selectedOption.name})` : ''}</span>
             <span style="flex: 0.5; text-align: center;">X${item.quantity}</span>
             <span style="flex: 1; text-align: right;">${(item.price * item.quantity).toFixed(2)}</span>
           </div>
@@ -196,7 +197,7 @@ export default function OrderManagement() {
                  </div>
               </div>
 
-              {/* NEW: PREPARATION EFFICIENCY REPORT FOR ADMIN */}
+              {/* PREPARATION EFFICIENCY REPORT FOR ADMIN */}
               {order.preparationMinutes && (
                 <div className="mb-6 px-2">
                    <div className={cn(
@@ -228,7 +229,7 @@ export default function OrderManagement() {
                        <div className="h-10 w-10 rounded-xl bg-white flex items-center justify-center shadow-sm text-green-500 shrink-0"><Phone className="h-5 w-5" /></div>
                        <div>
                          <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block">Contact</span>
-                         <span className="text-sm font-black text-gray-900">{order.customerPhone}</span>
+                         <span className="text-sm font-black uppercase italic text-gray-900">{order.customerPhone}</span>
                        </div>
                     </div>
                  </div>
@@ -284,13 +285,26 @@ export default function OrderManagement() {
                       </div>
                     ))}
                  </div>
+
+                 {order.cookingInstructions && (
+                    <div className="mt-4 p-5 bg-amber-50 rounded-2xl border border-amber-100 space-y-2">
+                       <div className="flex items-center gap-2 text-amber-600">
+                          <MessageSquare className="h-3.5 w-3.5" />
+                          <span className="text-[9px] font-black uppercase tracking-widest">Kitchen Instructions</span>
+                       </div>
+                       <p className="text-xs font-bold text-amber-900 italic uppercase">"{order.cookingInstructions}"</p>
+                    </div>
+                 )}
                  
                  <div className="flex justify-between items-center pt-4 border-t-2 border-dashed border-gray-200 font-black italic text-2xl text-gray-900 px-2">
                     <div className="flex flex-col">
                        <span className="text-[8px] font-black uppercase tracking-tighter text-gray-400 not-italic">Order Total</span>
                        <span>₹{order.total?.toFixed(0)}</span>
                     </div>
-                    <Badge className="bg-green-100 text-green-700 border-none font-black text-[9px] uppercase">{order.paymentMethod || 'COD'}</Badge>
+                    <div className="text-right">
+                       <Badge className="bg-green-100 text-green-700 border-none font-black text-[9px] uppercase">{order.paymentMethod || 'COD'}</Badge>
+                       {order.deliveryTip > 0 && <p className="text-[8px] font-black text-primary uppercase mt-1">Tip: ₹{order.deliveryTip}</p>}
+                    </div>
                  </div>
               </div>
 

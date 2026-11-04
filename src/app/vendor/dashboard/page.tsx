@@ -36,7 +36,8 @@ import {
   Ticket,
   Percent,
   IndianRupee,
-  Edit2
+  Edit2,
+  MessageSquare
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -272,7 +273,7 @@ export default function VendorDashboard() {
         restaurantName: vendorProfile?.storeName || 'Store',
         zoneId: vendorProfile?.zoneId || 'global',
         town: vendorProfile?.town || 'Local',
-        isAvailable: manualProduct.imageUrl ? true : (editingId ? true : true), 
+        isAvailable: true, 
         isVeg: true,
         isDeleted: false,
         slug: slugify(manualProduct.name),
@@ -378,6 +379,15 @@ export default function VendorDashboard() {
                       {o.items?.filter((it:any) => String(it.vendorId) === String(user?.uid)).map((item:any, i:number) => (
                         <div key={i} className="flex justify-between text-[11px] font-black uppercase italic"><span>{item.quantity}x {item.name} {item.selectedOption ? `(${item.selectedOption.name})` : ''}</span><span>₹{item.price * item.quantity}</span></div>
                       ))}
+                      {o.cookingInstructions && (
+                        <div className="mt-3 pt-3 border-t border-white/50 space-y-1">
+                          <div className="flex items-center gap-1.5 text-primary">
+                             <MessageSquare className="h-3 w-3" />
+                             <span className="text-[8px] font-black uppercase tracking-widest">Kitchen Note</span>
+                          </div>
+                          <p className="text-[10px] font-bold text-gray-800 italic uppercase">"{o.cookingInstructions}"</p>
+                        </div>
+                      )}
                    </div>
                    <div className="flex flex-col gap-2">
                       {o.status === 'Placed' && <Button onClick={() => handleUpdateStatus(o.id, 'Accepted')} className="h-14 bg-green-600 text-white rounded-2xl font-black uppercase">ACCEPT ORDER</Button>}
@@ -508,7 +518,7 @@ export default function VendorDashboard() {
                     <div className="grid grid-cols-2 gap-4">
                        <div className="space-y-1">
                           <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Base Price ₹</label>
-                          <Input type="number" placeholder="0.00" value={manualProduct.price} onChange={e => setManualProduct({...manualProduct, price: e.target.value})} className="h-12 rounded-xl border-none bg-muted/20 font-black" />
+                          <Input type="number" placeholder="0.00" value={manualProduct.price} onChange={e => setManualProduct({...manualProduct, price: e.target.value})} className="h-12 rounded-xl font-black text-lg bg-muted/20 border-none" />
                        </div>
                        <div className="space-y-1">
                           <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Category</label>

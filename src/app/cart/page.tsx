@@ -28,7 +28,8 @@ import {
   Zap,
   MessageSquare,
   Clock,
-  Store
+  Store,
+  Heart
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -61,7 +62,6 @@ export default function CartPage() {
   const [deliveryTip, setDeliveryTip] = useState(0);
   const [isRedeemingCoins, setIsRedeemingCoins] = useState(false);
   const [isDonating, setIsDonating] = useState(false);
-  const [noCutlery, setNoCutlery] = useState(false);
   const [isContactless, setIsContactless] = useState(false);
   const [cookingNote, setCookingNote] = useState('');
 
@@ -190,7 +190,6 @@ export default function CartPage() {
         zoneId: activeZoneId, 
         customerOrderNumber: Math.floor(1000 + Math.random() * 9000),
         cookingInstructions: cookingNote.trim().toUpperCase(),
-        noCutlery,
         isDonationEnabled: isDonating,
         isContactless,
         totalSaved,
@@ -317,7 +316,39 @@ export default function CartPage() {
            </div>
         </section>
 
-        {/* SECTION 4: DELIVERY PREFERENCES */}
+        {/* SECTION 4: DELIVERY TIP */}
+        <section className="bg-white rounded-[2rem] border border-gray-100 p-6 space-y-4 shadow-sm">
+           <div className="flex items-center gap-2 mb-1">
+              <Heart className="h-4 w-4 text-primary fill-primary" />
+              <h2 className="text-xs font-black uppercase italic">Appreciate Rider</h2>
+           </div>
+           <p className="text-[9px] font-bold text-muted-foreground uppercase leading-tight">Add a tip for your delivery hero. 100% of this goes to the rider.</p>
+           <div className="flex flex-wrap gap-2 pt-2">
+              {[10, 20, 30, 50].map((amt) => (
+                <button 
+                  key={amt}
+                  onClick={() => setDeliveryTip(deliveryTip === amt ? 0 : amt)}
+                  className={cn(
+                    "h-10 px-4 rounded-xl border-2 font-black text-[10px] transition-all",
+                    deliveryTip === amt ? "bg-primary border-primary text-white" : "bg-white border-gray-100 text-gray-600"
+                  )}
+                >
+                  ₹{amt}
+                </button>
+              ))}
+              <button 
+                onClick={() => setDeliveryTip(0)}
+                className={cn(
+                  "h-10 px-4 rounded-xl border-2 font-black text-[10px] transition-all",
+                  deliveryTip === 0 ? "hidden" : "bg-gray-50 border-gray-200 text-gray-400"
+                )}
+              >
+                CLEAR
+              </button>
+           </div>
+        </section>
+
+        {/* SECTION 5: DELIVERY PREFERENCES */}
         <section className="bg-white rounded-[2rem] border border-gray-100 p-6 space-y-6 shadow-sm">
            <div className="flex items-center gap-2 mb-1">
               <Zap className="h-4 w-4 text-primary" />
@@ -335,25 +366,20 @@ export default function CartPage() {
                  />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                 <div className="p-4 bg-gray-50 rounded-2xl flex items-center justify-between border border-gray-100">
-                    <div className="flex flex-col"><span className="text-[9px] font-black text-gray-800">NO CUTLERY</span><span className="text-[7px] font-bold text-green-600 uppercase">SAVE PLASTIC</span></div>
-                    <Switch checked={noCutlery} onCheckedChange={setNoCutlery} className="data-[state=checked]:bg-green-600 scale-75" />
-                 </div>
-                 <div className="p-4 bg-gray-50 rounded-2xl flex items-center justify-between border border-gray-100">
-                    <div className="flex flex-col"><span className="text-[9px] font-black text-gray-800">SAFE DROP</span><span className="text-[7px] font-bold text-blue-600 uppercase">CONTACTLESS</span></div>
-                    <Switch checked={isContactless} onCheckedChange={setIsContactless} className="data-[state=checked]:bg-blue-600 scale-75" />
-                 </div>
+              <div className="p-4 bg-gray-50 rounded-2xl flex items-center justify-between border border-gray-100">
+                <div className="flex flex-col"><span className="text-[9px] font-black text-gray-800 uppercase">SAFE DROP</span><span className="text-[7px] font-bold text-blue-600 uppercase">CONTACTLESS DELIVERY</span></div>
+                <Switch checked={isContactless} onCheckedChange={setIsContactless} className="data-[state=checked]:bg-blue-600 scale-75" />
               </div>
            </div>
         </section>
 
-        {/* SECTION 5: BILL & PAYMENT */}
+        {/* SECTION 6: BILL & PAYMENT */}
         <section className="bg-white rounded-[2.5rem] border border-gray-100 p-8 space-y-8 shadow-sm">
            <div className="space-y-3">
               <h3 className="text-xs font-black uppercase italic tracking-tighter mb-4">Final Bill</h3>
               <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase"><span>Item Total</span><span className="text-gray-900 font-black">₹{totalPrice.toFixed(0)}</span></div>
               <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase"><span>Logistics Fee</span><span className="text-gray-900 font-black">₹{deliveryFee.toFixed(0)}</span></div>
+              {deliveryTip > 0 && <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase"><span>Rider Tip</span><span className="text-gray-900 font-black">₹{deliveryTip}</span></div>}
               {applicableExtraCharges.map((charge, idx) => (
                 <div key={idx} className="flex justify-between text-[10px] font-bold text-gray-400 uppercase"><span>{charge.name}</span><span className="text-gray-900 font-black">₹{charge.calculatedAmount.toFixed(0)}</span></div>
               ))}
