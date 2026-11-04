@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 /**
  * @fileOverview LOUD RINGING ALERT HANDLER (Advanced Zomato-Style).
  * Triggers continuous ringing for new orders until they are accepted.
+ * Updated: Now uses local /sounds/order_alert.mp3 for easy replacement.
  */
 export default function NotificationHandler() {
   const { user } = useUser();
@@ -23,10 +24,10 @@ export default function NotificationHandler() {
   const isFleetApp = process.env.NEXT_PUBLIC_TOW_APP === 'true';
 
   useEffect(() => {
-    // 1. Initialize Audio Object
+    // 1. Initialize Audio Object with Local File
     if (typeof window !== 'undefined' && !audioRef.current) {
-      // Use a loud, clear alarm sound
-      const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/951/951-preview.mp3'); 
+      // Points to public/sounds/order_alert.mp3
+      const audio = new Audio('/sounds/order_alert.mp3'); 
       audio.loop = true;
       audioRef.current = audio;
     }
@@ -131,7 +132,7 @@ export default function NotificationHandler() {
 
   return (
     <div className="fixed inset-0 z-[2147483647] flex items-center justify-center p-6 bg-black/90 backdrop-blur-2xl animate-in fade-in duration-500">
-      <div className="relative bg-white rounded-[4rem] p-12 w-full max-w-sm flex flex-col items-center text-center shadow-[0_0_100px_rgba(239,68,68,0.4)] animate-in zoom-in duration-700 border-4 border-primary/20">
+      <div className="relative bg-white rounded-[4rem] p-12 w-full max-sm flex flex-col items-center text-center shadow-[0_0_100px_rgba(239,68,68,0.4)] animate-in zoom-in duration-700 border-4 border-primary/20">
         
         <div className="absolute -top-10 flex justify-center w-full">
            <div className="bg-primary text-white px-6 py-2 rounded-full font-black uppercase text-[10px] tracking-widest shadow-2xl animate-bounce">

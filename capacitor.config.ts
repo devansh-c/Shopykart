@@ -19,7 +19,7 @@ const config: CapacitorConfig = {
     LocalNotifications: { 
       smallIcon: "ic_stat_notification", 
       iconColor: "#EF4444",
-      sound: "order_alert.mp3"
+      sound: "order_alert"
     },
   }
 };
