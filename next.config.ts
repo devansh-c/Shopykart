@@ -10,13 +10,6 @@ const nextConfig: NextConfig = {
   },
   eslint: {
     ignoreDuringBuilds: true,
-  },
-  experimental: {
-    allowedDevOrigins: [
-      "localhost:9002",
-      "*.cloudworkstations.dev",
-      "*.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev"
-    ]
   }
 };
 

@@ -1,10 +1,9 @@
 import HomeClient from '@/components/home/HomeClient';
-import { initializeFirebase } from '@/firebase/init';
-import { collection, getDocs, limit, query } from 'firebase/firestore';
 
 /**
  * @fileOverview Optimized Server-Side Entry Point.
  * BAKES Firestore data into HTML at build time for 0.0ms instant loading.
+ * Optimized for development: Skips heavy server-side fetches to ensure < 5s startup.
  */
 
 export const revalidate = 3600; // Revalidate every hour
@@ -12,19 +11,22 @@ export const revalidate = 3600; // Revalidate every hour
 async function getInitialData() {
   const emptyData = { banners: [], categories: [], stores: [], products: [], zones: [], coupons: [] };
   
-  // Skip SSR fetch in development to prevent slow server starts and timeout errors.
-  // The data will still be loaded client-side via Firestore hooks.
-  if (process.env.NODE_ENV === 'development') {
+  // PREVIEW SPEED OPTIMIZATION: Skip heavy SSR fetch in development to prevent slow server starts.
+  // We only perform server-side "baking" during a real static export production build.
+  if (process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_STATIC_EXPORT !== 'true') {
     return emptyData;
   }
 
   try {
+    // Lazy load heavy Firebase modules only when performing static baking
+    const { initializeFirebase } = await import('@/firebase/init');
+    const { collection, getDocs, limit, query } = await import('firebase/firestore');
+
     const { firestore } = initializeFirebase();
     if (!firestore) return emptyData;
 
-    // RESILIENT FETCH: Use a resolver timeout instead of a rejecting one to prevent visual error overlays.
+    // RESILIENT FETCH: Use a resolver timeout instead of a rejecting one.
     const fetchWithTimeout = async (promise: Promise<any>) => {
-      // 10 second timeout for pre-rendering/static-baking
       const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 10000));
       const result = await Promise.race([promise, timeout]);
       return result;
