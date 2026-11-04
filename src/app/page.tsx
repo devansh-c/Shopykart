@@ -5,13 +5,14 @@ import { collection, getDocs, limit, query } from 'firebase/firestore';
 /**
  * @fileOverview Optimized Server-Side Entry Point.
  * BAKES Firestore data into HTML at build time for 0.0ms instant loading.
- * DEVELOPMENT FIX: Skips fetching in dev mode to prevent server startup hang.
+ * DEVELOPMENT OPTIMIZATION: Skips fetching in dev mode to prevent server startup hang.
  */
 
 export const revalidate = 86400; // 24 Hours
 
 async function getInitialData() {
-  // Speed up dev server by returning empty initial data
+  // Speed up dev server by returning empty initial data immediately
+  // This prevents the server from hanging on Firestore connection timeouts
   if (process.env.NODE_ENV === 'development') {
     return { banners: [], categories: [], stores: [], products: [], zones: [], coupons: [] };
   }
@@ -20,6 +21,7 @@ async function getInitialData() {
     const { firestore } = initializeFirebase();
     if (!firestore) return { banners: [], categories: [], stores: [], products: [], zones: [], coupons: [] };
 
+    // Parallel fetching for performance during build
     const snaps = await Promise.all([
       getDocs(collection(firestore, 'banners')),
       getDocs(collection(firestore, 'categories')),

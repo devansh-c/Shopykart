@@ -489,7 +489,7 @@ export default function VendorDashboard() {
                         <button onClick={() => setIsTimingModalOpen(true)} className="text-[10px] font-black text-primary uppercase">EDIT</button>
                      </div>
                      <div className="flex items-center gap-4"><div className="bg-blue-50 p-2 rounded-xl text-blue-600"><Globe className="h-5 w-5" /></div><div><span className="text-[10px] font-black text-gray-400 uppercase">Region</span><span className="text-sm font-black uppercase italic text-gray-800 block">{vendorProfile?.town}</span></div></div>
-                     <div className="flex items-center gap-4"><div className="bg-green-50 p-2 rounded-xl text-green-600"><Phone className="h-5 w-5" /></div><div><span className="text-[10px] font-black text-gray-400 uppercase">Mobile</span><span className="text-sm font-black uppercase italic text-gray-800 block">{vendorProfile?.phone}</span></div></div>
+                     <div className="flex items-center gap-4"><div className="bg-green-50 p-2 rounded-xl text-green-600"><Phone className="h-5 w-5" /></div><div><span className="text-[10px] font-black uppercase text-gray-800 block">{vendorProfile?.phone}</span></div></div>
                   </div>
                   <button onClick={handleLogout} className="w-full h-18 bg-white border border-red-50 text-red-500 rounded-[2.2rem] flex items-center justify-center gap-3 font-black uppercase italic text-sm shadow-sm active:scale-95 transition-all"><LogOut className="h-5 w-5" /> DISCONNECT ACCOUNT</button>
                </div>
