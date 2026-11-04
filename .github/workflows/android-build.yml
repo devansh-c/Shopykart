@@ -1,4 +1,3 @@
-
 name: Build ShopyKart Quad Apps
 
 on:
@@ -8,7 +7,7 @@ on:
 
 jobs:
   build:
-    name: Generate Quad App APKs
+    name: Generate Quad App Bundle
     runs-on: ubuntu-latest
 
     steps:
@@ -30,7 +29,7 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      # CREATE DUMMY KEYSTORE FOR BUILD
+      # CREATE DUMMY KEYSTORE FOR SIGNING
       - name: Create Dummy Keystore
         run: |
           test -f android/app/release.jks || keytool -genkey -noprompt -alias shopykart -dname "CN=ShopyKart, OU=IT, O=ShopyKart, L=Ranipur, S=UP, C=IN" -keystore android/app/release.jks -storepass shopykart123 -keypass shopykart123 -keyalg RSA -keysize 2048 -validity 10000
@@ -39,12 +38,12 @@ jobs:
       - name: Build Web (Customer)
         run: npm run build:static
       
-      - name: Prune Heavy Static Assets (Customer)
+      - name: Prune Static Assets (Customer)
         run: |
           rm -rf out/store out/product out/page out/index.txt
-          rm -rf android/app/src/main/assets/public/store android/app/src/main/assets/public/product android/app/src/main/assets/public/page android/app/src/main/assets/public/index.txt || true
+          rm -rf android/app/src/main/assets/public/store android/app/src/main/assets/public/product android/app/src/main/assets/public/page || true
 
-      - name: Configure Customer Identity
+      - name: Sync Customer
         run: |
           sed -i "s/appId: [\"'].*[\"']/appId: \"co.in.shopykart.app\"/" capacitor.config.ts
           npx cap sync android
@@ -55,19 +54,19 @@ jobs:
 
       - name: Archive Customer
         run: |
-          cp android/app/build/outputs/apk/release/app-release.apk app.shopykart.apk
-          cp android/app/build/outputs/bundle/release/app-release.aab app.shopykart.aab
+          cp android/app/build/outputs/apk/release/app-release.apk customer.shopykart.apk
+          cp android/app/build/outputs/bundle/release/app-release.aab customer.shopykart.aab
 
       # BUILD 2: ADMIN APP (co.in.shopykart.admin)
       - name: Build Web (Admin)
         run: npm run build:admin
       
-      - name: Prune Heavy Static Assets (Admin)
+      - name: Prune Static Assets (Admin)
         run: |
           rm -rf out/store out/product out/page out/index.txt
-          rm -rf android/app/src/main/assets/public/store android/app/src/main/assets/public/product android/app/src/main/assets/public/page android/app/src/main/assets/public/index.txt || true
+          rm -rf android/app/src/main/assets/public/store android/app/src/main/assets/public/product android/app/src/main/assets/public/page || true
 
-      - name: Configure Admin Identity
+      - name: Sync Admin
         run: |
           sed -i "s/appId: [\"'].*[\"']/appId: \"co.in.shopykart.admin\"/" capacitor.config.ts
           npx cap sync android
@@ -81,12 +80,64 @@ jobs:
           cp android/app/build/outputs/apk/release/app-release.apk admin.shopykart.apk
           cp android/app/build/outputs/bundle/release/app-release.aab admin.shopykart.aab
 
-      # UPLOAD ARTIFACTS
-      - name: Upload Artifacts
+      # BUILD 3: STORE/BIZ APP (co.in.shopykart.biz)
+      - name: Build Web (Biz)
+        run: npm run build:biz
+      
+      - name: Prune Static Assets (Biz)
+        run: |
+          rm -rf out/store out/product out/page out/index.txt
+          rm -rf android/app/src/main/assets/public/store android/app/src/main/assets/public/product android/app/src/main/assets/public/page || true
+
+      - name: Sync Biz
+        run: |
+          sed -i "s/appId: [\"'].*[\"']/appId: \"co.in.shopykart.biz\"/" capacitor.config.ts
+          npx cap sync android
+
+      - name: Build Android (Biz)
+        working-directory: android
+        run: chmod +x gradlew && ./gradlew bundleRelease assembleRelease
+
+      - name: Archive Biz
+        run: |
+          cp android/app/build/outputs/apk/release/app-release.apk store.shopykart.apk
+          cp android/app/build/outputs/bundle/release/app-release.aab store.shopykart.aab
+
+      # BUILD 4: DELIVERY/TOW APP (co.in.shopykart.tow)
+      - name: Build Web (Tow)
+        run: npm run build:tow
+      
+      - name: Prune Static Assets (Tow)
+        run: |
+          rm -rf out/store out/product out/page out/index.txt
+          rm -rf android/app/src/main/assets/public/store android/app/src/main/assets/public/product android/app/src/main/assets/public/page || true
+
+      - name: Sync Tow
+        run: |
+          sed -i "s/appId: [\"'].*[\"']/appId: \"co.in.shopykart.tow\"/" capacitor.config.ts
+          npx cap sync android
+
+      - name: Build Android (Tow)
+        working-directory: android
+        run: chmod +x gradlew && ./gradlew bundleRelease assembleRelease
+
+      - name: Archive Tow
+        run: |
+          cp android/app/build/outputs/apk/release/app-release.apk delivery.shopykart.apk
+          cp android/app/build/outputs/bundle/release/app-release.aab delivery.shopykart.aab
+
+      # UPLOAD ALL ARTIFACTS
+      - name: Upload Quad Bundle
         uses: actions/upload-artifact@v4
         with:
           name: ShopyKart-Quad-Apps
           path: |
-            app.shopykart.apk
+            customer.shopykart.apk
+            customer.shopykart.aab
             admin.shopykart.apk
+            admin.shopykart.aab
+            store.shopykart.apk
+            store.shopykart.aab
+            delivery.shopykart.apk
+            delivery.shopykart.aab
           if-no-files-found: error
