@@ -36,7 +36,8 @@ import {
   Clock,
   Ticket,
   Percent,
-  IndianRupee
+  IndianRupee,
+  Edit2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -77,6 +78,7 @@ export default function BeautyDashboard() {
   const [isTimingModalOpen, setIsTimingModalOpen] = useState(false);
   const [isManualAddOpen, setIsManualAddOpen] = useState(false);
   const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const [manualProduct, setManualProduct] = useState({
     name: '',
@@ -188,7 +190,6 @@ export default function BeautyDashboard() {
     return myOrders.filter((o: any) => activeStatuses.includes(o.status));
   }, [rawOrders, user, orderFilter]);
 
-  // LOGIC IMPLEMENTATION
   const handleManualImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -245,11 +246,25 @@ export default function BeautyDashboard() {
     } catch (e) { toast({ variant: "destructive", title: "Failed" }); }
   };
 
+  const handleEditProduct = (p: any) => {
+    setEditingId(p.id);
+    setManualProduct({
+      name: p.name,
+      price: p.price.toString(),
+      category: p.category || '',
+      description: p.description || '',
+      imageUrl: p.imageUrl || '',
+      isVarietyRequired: p.isVarietyRequired || false,
+      options: p.options || []
+    });
+    setIsManualAddOpen(true);
+  };
+
   const handleManualAddProduct = async () => {
     if (!firestore || !user || !manualProduct.name || !manualProduct.price) return;
     setIsProcessing(true);
     try {
-      const productRef = doc(collection(firestore, 'products'));
+      const productRef = editingId ? doc(firestore, 'products', editingId) : doc(collection(firestore, 'products'));
       const pData = {
         ...manualProduct,
         id: productRef.id,
@@ -263,13 +278,14 @@ export default function BeautyDashboard() {
         isDeleted: false,
         serviceMode: 'Beauty',
         slug: slugify(manualProduct.name),
-        createdAt: serverTimestamp(),
+        createdAt: editingId ? serverTimestamp() : serverTimestamp(),
         updatedAt: serverTimestamp()
       };
-      await setDoc(productRef, pData);
+      await setDoc(productRef, pData, { merge: true });
       setIsManualAddOpen(false);
+      setEditingId(null);
       setManualProduct({ name: '', price: '', category: '', description: '', imageUrl: '', isVarietyRequired: false, options: [] });
-      toast({ title: "Product Added! ✅" });
+      toast({ title: editingId ? "Product Updated! ✅" : "Product Added! ✅" });
     } catch (err) { toast({ variant: "destructive", title: "Add Failed" }); }
     finally { setIsProcessing(false); }
   };
@@ -379,7 +395,7 @@ export default function BeautyDashboard() {
            <div className="p-4 space-y-6">
               <div className="flex items-center justify-between px-2">
                  <h2 className="text-xl font-black italic uppercase">Catalog</h2>
-                 <button onClick={() => setIsManualAddOpen(true)} className="h-12 px-6 bg-rose-600 text-white rounded-xl font-black uppercase italic text-xs shadow-lg active:scale-90 flex items-center gap-2"><Plus className="h-5 w-5" /> ADD NEW ITEM</button>
+                 <button onClick={() => { setEditingId(null); setManualProduct({name:'',price:'',category:'',description:'',imageUrl:'',isVarietyRequired:false,options:[]}); setIsManualAddOpen(true); }} className="h-12 px-6 bg-rose-600 text-white rounded-xl font-black uppercase italic text-xs shadow-lg active:scale-90 flex items-center gap-2"><Plus className="h-5 w-5" /> ADD NEW ITEM</button>
               </div>
               <div className="grid grid-cols-1 gap-4">
                  {products?.filter(p => !p.isDeleted).map(p => (
@@ -388,7 +404,13 @@ export default function BeautyDashboard() {
                       <div className="flex-1 min-w-0 pr-10">
                          <h4 className="font-black text-sm uppercase italic truncate">{p.name}</h4>
                          <p className="text-[10px] font-black text-rose-600">₹{p.price}</p>
-                         <Switch checked={p.isAvailable !== false} onCheckedChange={() => updateDoc(doc(firestore!, 'products', p.id), { isAvailable: !p.isAvailable })} className="scale-75 mt-1 data-[state=checked]:bg-rose-600" />
+                         <div className="flex items-center gap-4 mt-2">
+                           <div className="flex items-center gap-1.5">
+                             <Switch checked={p.isAvailable !== false} onCheckedChange={() => updateDoc(doc(firestore!, 'products', p.id), { isAvailable: !p.isAvailable })} className="scale-75 data-[state=checked]:bg-rose-600" />
+                             <span className="text-[8px] font-black uppercase text-muted-foreground">{p.isAvailable !== false ? 'Available' : 'Unavailable'}</span>
+                           </div>
+                           <button onClick={() => handleEditProduct(p)} className="h-8 w-8 bg-gray-50 rounded-lg flex items-center justify-center text-blue-600 border border-blue-50 active:scale-90 transition-transform"><Edit2 className="h-3.5 w-3.5" /></button>
+                         </div>
                       </div>
                       <button onClick={async () => { if(confirm("Remove?")) await updateDoc(doc(firestore!, 'products', p.id), {isDeleted: true}); }} className="absolute top-4 right-4 h-8 w-8 text-red-500 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100"><Trash2 className="h-4 w-4" /></button>
                    </div>
@@ -468,7 +490,7 @@ export default function BeautyDashboard() {
 
          <Dialog open={isManualAddOpen} onOpenChange={setIsManualAddOpen}>
            <DialogContent className="rounded-[2.5rem] max-w-md p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none flex flex-col max-h-[90vh]">
-              <DialogHeader className="p-8 pb-4"><DialogTitle className="font-black italic uppercase text-center text-xl">Add Product</DialogTitle></DialogHeader>
+              <DialogHeader className="p-8 pb-4"><DialogTitle className="font-black italic uppercase text-center text-xl">{editingId ? 'Edit Product' : 'Add Product'}</DialogTitle></DialogHeader>
               <div className="flex-1 overflow-y-auto no-scrollbar p-8 pt-0 space-y-6">
                  <div onClick={() => manualImageInputRef.current?.click()} className="h-32 border-2 border-dashed rounded-2xl flex items-center justify-center bg-muted/20 cursor-pointer overflow-hidden">{manualProduct.imageUrl ? <img src={manualProduct.imageUrl} className="h-full w-full object-cover" /> : <ImageIcon className="opacity-20" />}</div>
                  <input type="file" ref={manualImageInputRef} className="hidden" onChange={handleManualImageSelect} />
@@ -525,7 +547,7 @@ export default function BeautyDashboard() {
               </div>
               <div className="p-8 bg-muted/5 border-t">
                  <Button onClick={handleManualAddProduct} disabled={isProcessing || !manualProduct.name} className="w-full h-16 bg-rose-600 text-white rounded-2xl font-black uppercase italic shadow-xl">
-                   {isProcessing ? <Loader2 className="animate-spin" /> : "PUBLISH PRODUCT"}
+                   {isProcessing ? <Loader2 className="animate-spin" /> : editingId ? "UPDATE PRODUCT" : "PUBLISH PRODUCT"}
                  </Button>
               </div>
            </DialogContent>
