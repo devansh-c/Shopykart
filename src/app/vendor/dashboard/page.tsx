@@ -59,7 +59,7 @@ type OrderFilter = 'NEW ORDERS' | 'DELIVERED' | 'CANCELLED';
 const TIME_SLOTS = [
   "06:00 AM", "07:00 AM", "08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM",
   "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM", "05:00 PM", "06:00 PM", "07:00 PM",
-  "08:00 PM", "08:15 PM", "08:30 PM", "09:00 PM", "10:00 PM", "11:00 PM", "12:00 AM"
+  "08:00 PM", "08:15 PM", "08:30 PM", "09:00 PM", "10:10 PM", "11:00 PM", "12:00 AM"
 ];
 
 export default function VendorDashboard() {
@@ -369,7 +369,7 @@ export default function VendorDashboard() {
               )}
 
               {filteredOrders.length > 0 ? filteredOrders.map(o => (
-                <div key={o.id} className="bg-white p-6 rounded-[2.5rem] border shadow-sm mb-4">
+                <div key={o.id} className="bg-white p-6 rounded-[2.5rem] border border-border shadow-sm mb-4">
                    <div className="flex justify-between items-start mb-4">
                       <div><span className="text-2xl font-black italic">#{o.customerOrderNumber}</span><p className="text-[8px] font-black text-gray-400 uppercase mt-1">{format(new Date(o.createdAt?.seconds * 1000 || Date.now()), 'hh:mm a')}</p></div>
                       <Badge className={cn("border-none font-black text-[8px] uppercase", o.status === 'Cancelled' ? 'bg-red-50 text-red-600' : 'bg-primary/5 text-primary')}>{o.status}</Badge>
@@ -407,7 +407,7 @@ export default function VendorDashboard() {
               </div>
               <div className="grid grid-cols-1 gap-4">
                  {products?.filter(p => !p.isDeleted).map(p => (
-                   <div key={p.id} className="bg-white p-4 rounded-[2rem] border shadow-sm flex items-center gap-4 relative group">
+                   <div key={p.id} className="bg-white p-4 rounded-[2rem] border border-border shadow-sm flex items-center gap-4 relative group">
                       <img src={p.imageUrl} className="h-20 w-20 rounded-2xl object-cover shrink-0" alt="" />
                       <div className="flex-1 min-w-0 pr-10">
                          <h4 className="font-black text-sm uppercase italic truncate">{p.name}</h4>
@@ -466,7 +466,7 @@ export default function VendorDashboard() {
               <div className="bg-[#EF4444] p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[180px]">
                  <div className="relative z-10 space-y-1"><span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Payout Due</span><div className="text-5xl font-black italic">₹ {vendorProfile?.walletBalance?.toFixed(2) || '0.00'}</div></div>
                  <div className="relative z-10 flex justify-end mt-4">
-                    <Button onClick={() => { if(!vendorProfile.upiId) setIsUpiModalOpen(true); else if((vendorProfile.walletBalance||0)>0) setIsProcessing(true); }} disabled={isProcessing || (vendorProfile?.walletBalance || 0) <= 0} className="bg-white text-primary rounded-xl h-10 px-6 font-black uppercase text-[10px] italic">Withdraw</Button>
+                    <button onClick={() => { if(!vendorProfile.upiId) setIsUpiModalOpen(true); else if((vendorProfile.walletBalance||0)>0) setIsProcessing(true); }} disabled={isProcessing || (vendorProfile?.walletBalance || 0) <= 0} className="bg-white text-primary rounded-xl h-10 px-6 font-black uppercase text-[10px] italic">Withdraw</button>
                  </div>
                  <Wallet2 className="absolute bottom-4 right-4 h-24 w-24 text-white opacity-10" />
               </div>

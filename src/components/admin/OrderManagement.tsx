@@ -26,7 +26,8 @@ import {
   ShoppingBag,
   Timer,
   AlertTriangle,
-  ShieldCheck
+  ShieldCheck,
+  Heart
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -197,21 +198,11 @@ export default function OrderManagement() {
                  </div>
               </div>
 
-              {/* PREPARATION EFFICIENCY REPORT FOR ADMIN */}
-              {order.preparationMinutes && (
-                <div className="mb-6 px-2">
-                   <div className={cn(
-                     "p-4 rounded-2xl flex items-center gap-3 border",
-                     (order.preparationPenalty || 0) > 0 ? "bg-red-50 border-red-100" : "bg-green-50 border-green-100"
-                   )}>
-                      {(order.preparationPenalty || 0) > 0 ? <AlertTriangle className="h-5 w-5 text-red-600" /> : <ShieldCheck className="h-5 w-5 text-green-600" />}
-                      <div>
-                         <p className="text-[10px] font-black uppercase opacity-60">Preparation Efficiency</p>
-                         <h4 className="text-sm font-black uppercase italic">
-                           Ready in {order.preparationMinutes} mins 
-                           {(order.preparationPenalty || 0) > 0 && ` • ₹${order.preparationPenalty} Penalty Applied`}
-                         </h4>
-                      </div>
+              {order.deliveryTip > 0 && (
+                <div className="mb-4 px-2">
+                   <div className="bg-amber-50 border border-amber-100 p-3 rounded-2xl flex items-center gap-3">
+                      <Heart className="h-4 w-4 text-amber-600 fill-amber-500" />
+                      <span className="text-[10px] font-black uppercase text-amber-800">Rider Tip: ₹{order.deliveryTip}</span>
                    </div>
                 </div>
               )}
@@ -245,18 +236,6 @@ export default function OrderManagement() {
                  </div>
               </div>
 
-              {order.status === 'Delivered' && order.totalDeliveryDuration && (
-                <div className="mb-6 px-4">
-                   <div className="bg-blue-50 border border-blue-100 p-4 rounded-2xl flex items-center gap-3">
-                      <Timer className="h-5 w-5 text-blue-600" />
-                      <div>
-                         <p className="text-[10px] font-black text-blue-400 uppercase leading-none mb-1">Efficiency Report</p>
-                         <h4 className="text-sm font-black text-blue-900 uppercase italic">Order Delivered in {order.totalDeliveryDuration} mins</h4>
-                      </div>
-                   </div>
-                </div>
-              )}
-
               <div className="bg-gray-50 rounded-[2.5rem] p-6 mb-6 space-y-4 border border-border/20">
                  <div className="flex items-center gap-2 mb-2 px-1">
                     <ShoppingBag className="h-4 w-4 text-primary" />
@@ -272,16 +251,9 @@ export default function OrderManagement() {
                          </div>
                          
                          <div className="flex justify-between items-center text-xs font-black italic">
-                            <span className="text-gray-800"><span className="text-primary">{item.quantity}x</span> {item.name}</span>
+                            <span className="text-gray-800"><span className="text-primary">{item.quantity}x</span> {item.name} {item.selectedOption ? `(${item.selectedOption.name})` : ''}</span>
                             <span className="text-gray-900">₹{(item.price * item.quantity).toFixed(0)}</span>
                          </div>
-                         
-                         {item.selectedOption && (
-                           <div className="mt-1 flex items-center gap-1.5">
-                              <ListTree className="h-2.5 w-2.5 text-primary opacity-50" />
-                              <span className="text-[8px] font-black text-primary uppercase tracking-widest">Variety: {item.selectedOption.name}</span>
-                           </div>
-                         )}
                       </div>
                     ))}
                  </div>
@@ -303,7 +275,6 @@ export default function OrderManagement() {
                     </div>
                     <div className="text-right">
                        <Badge className="bg-green-100 text-green-700 border-none font-black text-[9px] uppercase">{order.paymentMethod || 'COD'}</Badge>
-                       {order.deliveryTip > 0 && <p className="text-[8px] font-black text-primary uppercase mt-1">Tip: ₹{order.deliveryTip}</p>}
                     </div>
                  </div>
               </div>
