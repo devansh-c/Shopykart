@@ -15,20 +15,19 @@ export function useUser() {
 
   useEffect(() => {
     if (!auth) {
-      // If auth is not ready, we wait but check localStorage as a secondary signal
       return;
     }
 
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
         setUser(firebaseUser);
-        // SYNC SESSION FLAG: Critical for preventing login popups on reload
+        // UNIFIED SESSION FLAG: Consolidating all session flags to one
         if (typeof window !== 'undefined') {
           localStorage.setItem('shopykart_session_active', 'true');
         }
       } else {
         setUser(null);
-        // We don't clear the flag here to prevent flickering during slow network re-auth
+        // Note: We don't forcefully clear the flag here to prevent flickering during slow re-auth
       }
       setLoading(false);
     });

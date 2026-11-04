@@ -1,6 +1,6 @@
 import { initializeApp, getApps, FirebaseApp, getApp } from 'firebase/app';
 import { firebaseConfig } from './config';
-import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, Firestore } from 'firebase/firestore';
+import { initializeFirestore, persistentLocalCache, Firestore } from 'firebase/firestore';
 import { getAuth, Auth, setPersistence, browserLocalPersistence } from 'firebase/auth';
 
 /**
@@ -12,8 +12,7 @@ let authInstance: Auth | null = null;
 
 /**
  * Optimized Firebase initialization for Mobile/Static Export.
- * FIXED: Switched to persistentLocalCache to prevent repeated logins.
- * tabManager: undefined is used for mobile/single-tab environments to avoid deadlocks.
+ * Uses persistentLocalCache and explicit browserLocalPersistence to fix login loss.
  */
 export function initializeFirebase() {
   // 1. Initialize App
@@ -23,12 +22,12 @@ export function initializeFirebase() {
     appInstance = getApp();
   }
 
-  // 2. Initialize Firestore with Persistent Local Cache (Fixes Login Persistence)
+  // 2. Initialize Firestore with Persistent Local Cache
   if (!firestoreInstance) {
     if (typeof window !== 'undefined') {
       firestoreInstance = initializeFirestore(appInstance, {
         localCache: persistentLocalCache({
-          tabManager: undefined // Optimized for single-tab (Mobile APK) use
+          tabManager: undefined // Best for Mobile/Single-tab environments
         }),
       });
     } else {
@@ -41,7 +40,10 @@ export function initializeFirebase() {
   if (!authInstance) {
     authInstance = getAuth(appInstance);
     if (typeof window !== 'undefined') {
-      setPersistence(authInstance, browserLocalPersistence).catch(() => {});
+      // Explicitly set persistence to LOCAL to survive app restarts
+      setPersistence(authInstance, browserLocalPersistence).catch((err) => {
+        console.error("Auth Persistence Error:", err);
+      });
     }
   }
 

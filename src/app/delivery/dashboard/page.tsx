@@ -1,8 +1,7 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
-import { collection, doc, updateDoc, query, where, orderBy, serverTimestamp, limit, getDoc } from 'firebase/firestore';
+import { collection, doc, updateDoc, query, where, orderBy, serverTimestamp, getDoc } from 'firebase/firestore';
 import { 
   Navigation, 
   Package, 
@@ -312,40 +311,43 @@ export default function DeliveryDashboard() {
   useEffect(() => {
     if (!isMounted || authLoading) return;
 
+    const hasActiveSession = localStorage.getItem('shopykart_session_active') === 'true';
+
     if (!user) {
-      const hasActiveSession = localStorage.getItem('delivery_session_active') === 'true';
       if (!hasActiveSession) {
         router.replace('/delivery/login');
       }
       return;
     }
 
+    // Patient profile loading check
     if (!profileLoading && !partnerProfile && user) {
+      // Small buffer to ensure Firestore data is truly missing
       const timer = setTimeout(() => {
         if (!partnerProfile) {
-          toast({ variant: "destructive", title: "Access Denied", description: "Identity not recognized as Delivery Partner." });
+          toast({ variant: "destructive", title: "Access Denied", description: "Identity not recognized in Fleet." });
           signOut(auth!).then(() => {
-            localStorage.removeItem('delivery_session_active');
+            localStorage.removeItem('shopykart_session_active');
             router.replace('/delivery/login');
           });
         }
-      }, 3000);
+      }, 5000); // 5s buffer for slow mobile networks
       return () => clearTimeout(timer);
     }
   }, [isMounted, user, authLoading, profileLoading, partnerProfile, router, auth, toast]);
 
-  const ordersQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'orders'), orderBy('createdAt', 'desc'), limit(100)) : null, [firestore]);
+  const ordersQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'orders'), orderBy('createdAt', 'desc')) : null, [firestore]);
   const { data: allOrders } = useCollection<any>(ordersQuery);
 
   const taskOrders = useMemo(() => {
-    if (!allOrders || !partnerProfile || !user) return [];
+    if (!allOrders || !user) return [];
     return allOrders.filter(order => {
       if (dismissedTasks.includes(order.id)) return false;
       const isAvailable = (order.status === 'Ready for Pickup') && !order.deliveryPartnerId;
       const isMyTask = order.deliveryPartnerId === user.uid && !['Delivered', 'Cancelled'].includes(order.status);
       return isAvailable || isMyTask;
     });
-  }, [allOrders, partnerProfile, user, dismissedTasks]);
+  }, [allOrders, user, dismissedTasks]);
 
   const historyOrders = useMemo(() => {
     if (!allOrders || !user) return [];
@@ -377,7 +379,7 @@ export default function DeliveryDashboard() {
 
       if (collectionMethod) updateData.paymentCollectionMethod = collectionMethod;
       await updateDoc(orderRef, updateData);
-      toast({ title: `Order ${status}` });
+      toast({ title: `Task ${status}` });
     } catch (e) { 
       toast({ variant: "destructive", title: "Update Failed" }); 
     }
@@ -392,31 +394,13 @@ export default function DeliveryDashboard() {
 
   const handleTestAlert = async () => {
     setIsTesting(true);
-    toast({ title: "Ringing Check! 📱", description: "Phone 10s me bajega." });
+    toast({ title: "Ringing Check! 📱", description: "Phone 5s me bajega." });
     await scheduleTestNotification();
     setTimeout(() => setIsTesting(false), 5000);
   };
 
-  if (!isMounted || authLoading || (profileLoading && !partnerProfile)) {
-    return (
-      <div className="h-screen bg-white">
-        <div className="p-6 space-y-8">
-           <div className="flex justify-between items-center">
-              <Skeleton className="h-12 w-12 rounded-2xl" />
-              <div className="space-y-2 flex-1 ml-4 pr-10">
-                 <Skeleton className="h-5 w-32" />
-                 <Skeleton className="h-3 w-20" />
-              </div>
-              <Skeleton className="h-8 w-12 rounded-full" />
-           </div>
-           <Skeleton className="h-28 w-full rounded-[2rem]" />
-           <div className="space-y-6">
-              <Skeleton className="h-64 w-full rounded-[2rem]" />
-              <Skeleton className="h-64 w-full rounded-[2rem]" />
-           </div>
-        </div>
-      </div>
-    );
+  if (!isMounted || authLoading || (profileLoading && !partnerProfile && user)) {
+    return <div className="h-screen bg-white flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
   }
 
   return (
@@ -547,9 +531,6 @@ export default function DeliveryDashboard() {
                       )}
                       <div className="absolute inset-0 border-[2px] border-black/5 rounded-[3rem] pointer-events-none" />
                     </div>
-                    <div className="absolute -bottom-2 right-0 bg-[#0B0B0B] text-white p-3 rounded-2xl shadow-xl border-4 border-white active:scale-90 transition-transform">
-                       <ArrowUpRight className="h-5 w-5 text-primary" />
-                    </div>
                   </div>
                   <div>
                     <h2 className="text-3xl font-black italic uppercase tracking-tighter text-gray-900 leading-none">{partnerProfile?.fullName}</h2>
@@ -577,7 +558,7 @@ export default function DeliveryDashboard() {
                   </div>
 
                   <button 
-                    onClick={() => { localStorage.removeItem('delivery_session_active'); signOut(auth!); router.replace('/'); }}
+                    onClick={() => { localStorage.removeItem('shopykart_session_active'); signOut(auth!).then(() => router.replace('/')); }}
                     className="w-full h-18 bg-white border border-red-50 text-red-500 rounded-[2.2rem] flex items-center justify-center gap-3 font-black uppercase italic text-sm shadow-sm active:scale-95 transition-all"
                   >
                     <LogOut className="h-5 w-5" /> DISCONNECT ACCOUNT
@@ -587,7 +568,7 @@ export default function DeliveryDashboard() {
          )}
       </main>
 
-      <nav className="fixed bottom-4 left-1/2 -translate-x-1/2 w-[92%] max-w-[440px] bg-[#0F172A]/90 backdrop-blur-xl pt-4 pb-4 px-6 flex justify-around border border-white/10 z-[1000000] rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)]">
+      <nav className="fixed bottom-4 left-1/2 -translate-x-1/2 w-[92%] max-w-[440px] bg-[#0F172A]/90 backdrop-blur-xl pt-4 pb-4 px-6 flex justify-around border border-white/10 z-[1000] rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)]">
         {[
           {id:'tasks',label:'TASKS',icon:LayoutDashboard},
           {id:'history',label:'HISTORY',icon:History},
