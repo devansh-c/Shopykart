@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -148,15 +149,19 @@ const TaskCard = memo(({ order, onUpdate, userData, onPass }: any) => {
        <div className="p-6 space-y-8">
           {/* STORE SECTION */}
           <div className="flex items-start gap-4">
-             <div className="h-14 w-14 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 shrink-0 border border-blue-100">
-                <Store className="h-7 w-7" />
+             <div className="h-14 w-14 rounded-2xl overflow-hidden bg-blue-50 flex items-center justify-center text-blue-600 shrink-0 border border-blue-100 shadow-inner">
+                {order.vendorImageUrl ? (
+                  <img src={order.vendorImageUrl} className="h-full w-full object-cover" alt="Hub" />
+                ) : (
+                  <Store className="h-7 w-7" />
+                )}
              </div>
              <div className="flex-1 min-w-0 text-left">
                 <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest leading-none mb-1.5">Pick From (Hub)</p>
                 <h3 className="text-xl font-black uppercase italic tracking-tighter truncate text-gray-900 leading-none mb-1">{order.restaurantName}</h3>
                 <p className="text-[10px] font-bold text-gray-400 uppercase italic truncate">{order.vendorAddress || order.town || 'Local Hub'}</p>
              </div>
-             {isMyTask && order.vendorPhone && (
+             {order.vendorPhone && (
                <button onClick={() => window.open(`tel:${order.vendorPhone}`)} className="h-12 w-12 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-blue-100 active:scale-90 transition-transform">
                  <Phone className="h-5 w-5" />
                </button>

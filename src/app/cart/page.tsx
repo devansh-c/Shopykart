@@ -180,6 +180,7 @@ export default function CartPage() {
         vendorId: allVendorIds[0], 
         vendorPhone: firstVendor?.phone || '',
         vendorAddress: firstVendor?.town || firstVendor?.city || 'Local Hub',
+        vendorImageUrl: firstVendor?.imageUrl || '',
         deliveryOTP: Math.floor(100000 + Math.random() * 900000).toString(),
         deliveryFee, 
         deliveryTip, 
