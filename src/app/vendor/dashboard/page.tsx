@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -111,11 +110,15 @@ export default function VendorDashboard() {
 
   useEffect(() => { setIsMounted(true); }, []);
 
+  // SESSION GUARD: Fixed logic to prevent repeated login redirection
   useEffect(() => {
     if (!isMounted || authLoading) return;
+    
     const sessionActive = localStorage.getItem('shopykart_session_active') === 'true';
-    if (!user && !authLoading) {
-      if (!sessionActive) router.replace('/vendor/login');
+    
+    // Only redirect to login if there's no active session AND no user
+    if (!user && !sessionActive) {
+      router.replace('/vendor/login');
     }
   }, [user, authLoading, router, isMounted]);
 
@@ -317,7 +320,7 @@ export default function VendorDashboard() {
     }
   };
 
-  if (!isMounted || authLoading || (profileLoading && !vendorProfile)) return <div className="h-screen bg-white flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
+  if (!isMounted || (profileLoading && !vendorProfile)) return <div className="h-screen bg-white flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
 
   return (
     <div className="h-screen bg-[#F9FAFB] flex flex-col max-lg mx-auto shadow-2xl relative overflow-hidden">

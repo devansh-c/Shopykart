@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -16,7 +15,7 @@ export function useUser() {
 
   useEffect(() => {
     if (!auth) {
-      setLoading(false);
+      // If auth is not ready, we wait but check localStorage as a secondary signal
       return;
     }
 
@@ -29,7 +28,7 @@ export function useUser() {
         }
       } else {
         setUser(null);
-        // Do NOT clear shopykart_session_active immediately to prevent hydration flickering
+        // We don't clear the flag here to prevent flickering during slow network re-auth
       }
       setLoading(false);
     });

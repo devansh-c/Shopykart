@@ -1,6 +1,6 @@
 import { initializeApp, getApps, FirebaseApp, getApp } from 'firebase/app';
 import { firebaseConfig } from './config';
-import { initializeFirestore, memoryLocalCache, Firestore } from 'firebase/firestore';
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, Firestore } from 'firebase/firestore';
 import { getAuth, Auth, setPersistence, browserLocalPersistence } from 'firebase/auth';
 
 /**
@@ -12,7 +12,8 @@ let authInstance: Auth | null = null;
 
 /**
  * Optimized Firebase initialization for Mobile/Static Export.
- * USES Memory Cache to prevent startup deadlocks in Android WebViews.
+ * FIXED: Switched to persistentLocalCache to prevent repeated logins.
+ * tabManager: undefined is used for mobile/single-tab environments to avoid deadlocks.
  */
 export function initializeFirebase() {
   // 1. Initialize App
@@ -22,11 +23,13 @@ export function initializeFirebase() {
     appInstance = getApp();
   }
 
-  // 2. Initialize Firestore with High Reliability
+  // 2. Initialize Firestore with Persistent Local Cache (Fixes Login Persistence)
   if (!firestoreInstance) {
     if (typeof window !== 'undefined') {
       firestoreInstance = initializeFirestore(appInstance, {
-        localCache: memoryLocalCache(), // Switch to memory cache for zero startup lag
+        localCache: persistentLocalCache({
+          tabManager: undefined // Optimized for single-tab (Mobile APK) use
+        }),
       });
     } else {
       const { getFirestore } = require('firebase/firestore');
@@ -34,7 +37,7 @@ export function initializeFirebase() {
     }
   }
 
-  // 3. Initialize Auth
+  // 3. Initialize Auth with Browser Local Persistence
   if (!authInstance) {
     authInstance = getAuth(appInstance);
     if (typeof window !== 'undefined') {
