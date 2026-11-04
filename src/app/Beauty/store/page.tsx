@@ -126,6 +126,12 @@ export default function BeautyDashboard() {
         openingTime: vendorProfile.openingTime || '10:00 AM',
         closingTime: vendorProfile.closingTime || '08:15 PM'
       });
+      setUpiForm({
+        upiId: vendorProfile.upiId || '',
+        accountNumber: vendorProfile.accountNumber || '',
+        ifscCode: vendorProfile.ifscCode || '',
+        accountHolderName: vendorProfile.accountHolderName || ''
+      });
     }
   }, [vendorProfile]);
 
@@ -181,6 +187,53 @@ export default function BeautyDashboard() {
     const activeStatuses = ['Placed', 'Accepted', 'Preparing', 'Ready for Pickup', 'Picked Up', 'Out for Delivery'];
     return myOrders.filter((o: any) => activeStatuses.includes(o.status));
   }, [rawOrders, user, orderFilter]);
+
+  // LOGIC IMPLEMENTATION
+  const handleManualImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      try {
+        const compressed = await compressImage(reader.result as string, 400, 400);
+        setManualProduct(prev => ({ ...prev, imageUrl: compressed }));
+      } catch (err) {
+        toast({ variant: "destructive", title: "Image Error" });
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleAddVariety = () => {
+    setManualProduct(prev => ({
+      ...prev,
+      options: [...prev.options, { name: '', price: 0 }]
+    }));
+  };
+
+  const updateVariety = (index: number, field: string, value: any) => {
+    const newOptions = [...manualProduct.options];
+    (newOptions[index] as any)[field] = field === 'price' ? parseFloat(value) || 0 : value;
+    setManualProduct(prev => ({ ...prev, options: newOptions }));
+  };
+
+  const handleSaveTimings = async () => {
+    if (!firestore || !user) return;
+    setIsProcessing(true);
+    try {
+      await updateDoc(doc(firestore, 'vendors', user.uid), {
+        openingTime: timings.openingTime,
+        closingTime: timings.closingTime,
+        updatedAt: serverTimestamp()
+      });
+      setIsTimingModalOpen(false);
+      toast({ title: "Hub Timings Updated! ⏰" });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Failed to save timings" });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   const handleUpdateStatus = async (orderId: string, newStatus: string) => {
     if (!firestore) return;
@@ -565,16 +618,4 @@ export default function BeautyDashboard() {
       </nav>
     </div>
   );
-}
-
-function handleManualImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
-  throw new Error('Function not implemented.');
-}
-
-function handleAddVariety() {
-  throw new Error('Function not implemented.');
-}
-
-function updateVariety(index: number, field: string, value: string) {
-  throw new Error('Function not implemented.');
 }

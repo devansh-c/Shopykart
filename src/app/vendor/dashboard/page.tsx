@@ -125,6 +125,12 @@ export default function VendorDashboard() {
         openingTime: vendorProfile.openingTime || '10:00 AM',
         closingTime: vendorProfile.closingTime || '08:15 PM'
       });
+      setUpiForm({
+        upiId: vendorProfile.upiId || '',
+        accountNumber: vendorProfile.accountNumber || '',
+        ifscCode: vendorProfile.ifscCode || '',
+        accountHolderName: vendorProfile.accountHolderName || ''
+      });
     }
   }, [vendorProfile]);
 
@@ -180,6 +186,53 @@ export default function VendorDashboard() {
     const activeStatuses = ['Placed', 'Accepted', 'Preparing', 'Ready for Pickup', 'Picked Up', 'Out for Delivery'];
     return myOrders.filter((o: any) => activeStatuses.includes(o.status));
   }, [rawOrders, user, orderFilter]);
+
+  // LOGIC FUNCTIONS
+  const handleManualImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      try {
+        const compressed = await compressImage(reader.result as string, 400, 400);
+        setManualProduct(prev => ({ ...prev, imageUrl: compressed }));
+      } catch (err) {
+        toast({ variant: "destructive", title: "Image Error" });
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleAddVariety = () => {
+    setManualProduct(prev => ({
+      ...prev,
+      options: [...prev.options, { name: '', price: 0 }]
+    }));
+  };
+
+  const updateVariety = (index: number, field: string, value: any) => {
+    const newOptions = [...manualProduct.options];
+    (newOptions[index] as any)[field] = field === 'price' ? parseFloat(value) || 0 : value;
+    setManualProduct(prev => ({ ...prev, options: newOptions }));
+  };
+
+  const handleSaveTimings = async () => {
+    if (!firestore || !user) return;
+    setIsProcessing(true);
+    try {
+      await updateDoc(doc(firestore, 'vendors', user.uid), {
+        openingTime: timings.openingTime,
+        closingTime: timings.closingTime,
+        updatedAt: serverTimestamp()
+      });
+      setIsTimingModalOpen(false);
+      toast({ title: "Timings Updated! ⏰" });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Failed to save timings" });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   const handleUpdateStatus = async (orderId: string, newStatus: string) => {
     if (!firestore) return;
@@ -333,7 +386,7 @@ export default function VendorDashboard() {
                       <div className="flex-1 min-w-0 pr-10">
                          <h4 className="font-black text-sm uppercase italic truncate">{p.name}</h4>
                          <p className="text-[10px] font-black text-primary">₹{p.price}</p>
-                         <Switch checked={p.isAvailable !== false} onCheckedChange={() => updateDoc(doc(firestore!, 'products', p.id), { isAvailable: !p.isAvailable })} className="scale-75 mt-1" />
+                         <Switch checked={p.isAvailable !== false} onCheckedChange={() => updateDoc(doc(firestore!, 'products', p.id), { isAvailable: !p.isAvailable })} className="scale-75 mt-1 data-[state=checked]:bg-primary" />
                       </div>
                       <button onClick={async () => { if(confirm("Remove?")) await updateDoc(doc(firestore!, 'products', p.id), {isDeleted: true}); }} className="absolute top-4 right-4 h-8 w-8 text-red-500 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100"><Trash2 className="h-4 w-4" /></button>
                    </div>
@@ -570,12 +623,4 @@ export default function VendorDashboard() {
       </nav>
     </div>
   );
-}
-
-function handleAddVariety() {
-  throw new Error('Function not implemented.');
-}
-
-function updateVariety(index: number, field: string, value: string) {
-  throw new Error('Function not implemented.');
 }
