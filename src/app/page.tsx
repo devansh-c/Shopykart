@@ -5,32 +5,31 @@ import { collection, getDocs, limit, query } from 'firebase/firestore';
 /**
  * @fileOverview Optimized Server-Side Entry Point.
  * BAKES Firestore data into HTML at build time for 0.0ms instant loading.
- * Optimized with Timeout Race to prevent server-side build manifest hangs.
+ * Optimized with Development Bypass to prevent server compilation hangs.
  */
 
 export const revalidate = 86400; // 24 Hours
 
 async function getInitialData() {
-  // 15s Timeout to prevent NextJS dev server from hanging during manifest generation
-  const timeoutPromise = new Promise((_, reject) => 
-    setTimeout(() => reject(new Error('Firestore Fetch Timeout')), 15000)
-  );
+  // ⚡ SPEED FIX: Skip SSR data fetching in development mode to make server start instantly.
+  // Data will be fetched by Client Components via cache/hooks.
+  if (process.env.NODE_ENV === 'development') {
+    return { banners: [], categories: [], stores: [], products: [], zones: [], coupons: [] };
+  }
 
   try {
     const { firestore } = initializeFirebase();
     if (!firestore) return { banners: [], categories: [], stores: [], products: [], zones: [], coupons: [] };
 
-    // Parallelize all fetches with reduced product limit for dev stability
-    const dataPromise = Promise.all([
+    // Parallelize all fetches for production export
+    const snaps = await Promise.all([
       getDocs(collection(firestore, 'banners')),
       getDocs(collection(firestore, 'categories')),
       getDocs(query(collection(firestore, 'vendors'), limit(50))),
-      getDocs(query(collection(firestore, 'products'), limit(100))), // Reduced from 500 for speed
+      getDocs(query(collection(firestore, 'products'), limit(100))),
       getDocs(collection(firestore, 'zones')),
       getDocs(collection(firestore, 'coupons'))
     ]);
-
-    const snaps = await Promise.race([dataPromise, timeoutPromise]) as any[];
 
     const banners = snaps[0].docs.map((d: any) => ({ id: d.id, ...d.data() }));
     const categories = snaps[1].docs.map((d: any) => ({ id: d.id, ...d.data() }));
@@ -39,7 +38,6 @@ async function getInitialData() {
     const zones = snaps[4].docs.map((d: any) => ({ id: d.id, ...d.data() }));
     const coupons = snaps[5].docs.map((d: any) => ({ id: d.id, ...d.data() }));
 
-    // Stringify timestamps for serialization safety
     return JSON.parse(JSON.stringify({
       banners,
       categories,
@@ -49,7 +47,7 @@ async function getInitialData() {
       coupons
     }));
   } catch (error) {
-    console.error("Server-side data fetch skipped or timed out:", error);
+    console.error("Server-side data fetch skipped:", error);
     return { banners: [], categories: [], stores: [], products: [], zones: [], coupons: [] };
   }
 }
@@ -57,7 +55,6 @@ async function getInitialData() {
 export default async function ShopyKartApp() {
   const initialData = await getInitialData();
 
-  // Structured Data for SEO
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "DeliveryService",
