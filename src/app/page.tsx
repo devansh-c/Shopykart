@@ -3,7 +3,7 @@ import HomeClient from '@/components/home/HomeClient';
 /**
  * @fileOverview Optimized Server-Side Entry Point.
  * BAKES Firestore data into HTML at build time for 0.0ms instant loading.
- * Optimized for development: Skips heavy server-side fetches to ensure < 3s startup.
+ * Optimized for development: Skips heavy server-side fetches to ensure < 5s startup.
  */
 
 export const revalidate = 3600; // Revalidate every hour
@@ -11,26 +11,23 @@ export const revalidate = 3600; // Revalidate every hour
 async function getInitialData() {
   const emptyData = { banners: [], categories: [], stores: [], products: [], zones: [], coupons: [] };
   
-  // TURBO STARTUP: Strictly skip heavy SSR fetch in dev/preview to prevent slow server starts (50s+).
-  // We only perform server-side "baking" during a real production static export.
-  const isProdExport = process.env.NEXT_PUBLIC_STATIC_EXPORT === 'true';
-  const isDev = process.env.NODE_ENV === 'development';
-
-  if (isDev || !isProdExport) {
+  // PREVIEW SPEED OPTIMIZATION: Skip heavy SSR fetch in development to prevent slow server starts.
+  // We only perform server-side "baking" during a real static export production build.
+  if (process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_STATIC_EXPORT !== 'true') {
     return emptyData;
   }
 
   try {
-    // Dynamic imports to prevent heavy modules from loading in dev mode
+    // Lazy load heavy Firebase modules only when performing static baking
     const { initializeFirebase } = await import('@/firebase/init');
     const { collection, getDocs, limit, query } = await import('firebase/firestore');
 
     const { firestore } = initializeFirebase();
     if (!firestore) return emptyData;
 
-    // RESILIENT FETCH: Fast timeout to prevent hanging the entire deployment
+    // RESILIENT FETCH: Use a resolver timeout instead of a rejecting one.
     const fetchWithTimeout = async (promise: Promise<any>) => {
-      const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 8000));
+      const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 10000));
       const result = await Promise.race([promise, timeout]);
       return result;
     };
@@ -89,7 +86,7 @@ export default async function ShopyKartApp() {
         initialStores={initialData.stores}
         initialProducts={initialData.products}
         initialZones={initialData.zones}
-        initialCoupons={initialData.initialCoupons}
+        initialCoupons={initialData.coupons}
       />
     </>
   );
