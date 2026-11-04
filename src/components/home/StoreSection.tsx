@@ -22,7 +22,6 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
   const [activeZoneId, setActiveZoneId] = React.useState<string | null>(null);
   const [activeTown, setActiveTown] = React.useState<string | null>(null);
   const [currentTimeMins, setCurrentTimeMins] = React.useState<number | null>(null);
-  const [initialSync, setInitialSync] = React.useState(false);
 
   React.useEffect(() => {
     const updateZone = () => {
@@ -34,17 +33,11 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
     updateZone();
     window.addEventListener('user-address-updated', updateZone);
     
-    const syncTime = () => {
-      const now = new Date();
-      setCurrentTimeMins(now.getHours() * 60 + now.getMinutes());
-    };
-    syncTime();
-
-    const timer = setTimeout(() => setInitialSync(true), 1200);
+    const now = new Date();
+    setCurrentTimeMins(now.getHours() * 60 + now.getMinutes());
     
     return () => {
       window.removeEventListener('user-address-updated', updateZone);
-      clearTimeout(timer);
     };
   }, []);
 
@@ -53,10 +46,10 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
     return query(collection(firestore, 'vendors'), limit(50));
   }, [firestore]);
 
-  const { data: dbVendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery, 'home_vendors_v6_stable', initialData);
+  const { data: dbVendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery, 'home_vendors_v7_stable', initialData);
 
   const filteredVendors = React.useMemo(() => {
-    const list = (dbVendors && dbVendors.length > 0) ? dbVendors : initialData;
+    const list = (dbVendors !== null) ? dbVendors : initialData;
     if (!list || list.length === 0) return [];
 
     const currentMode = activeMode.toLowerCase();
@@ -65,10 +58,7 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
       if (activeZoneId) {
         const zoneMatch = v.zoneId === activeZoneId || v.zoneId === 'global';
         const townMatch = activeTown && v.town?.toLowerCase().trim() === activeTown.toLowerCase().trim();
-        
-        if (!zoneMatch && !townMatch && v.zoneId) {
-          return false;
-        }
+        if (!zoneMatch && !townMatch && v.zoneId) return false;
       }
       
       const storeCat = (v.category || 'Food').toLowerCase();
@@ -76,8 +66,6 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
         if (storeCat !== 'medical') return false;
       } else if (currentMode === 'beauty') {
         if (storeCat !== 'beauty') return false;
-      } else if (currentMode === 'grocery') {
-        if (storeCat !== 'grocery') return false;
       } else {
         if (['medical', 'beauty', 'grocery'].includes(storeCat)) return false;
       }
@@ -91,9 +79,10 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
     });
   }, [dbVendors, initialData, activeMode, activeZoneId, activeTown, currentTimeMins]);
 
-  const isInitialLoading = (vendorsLoading || !initialSync) && filteredVendors.length === 0;
+  // Only show skeletons if we have absolutely nothing to show yet
+  const showLoading = vendorsLoading && (!filteredVendors || filteredVendors.length === 0);
 
-  if (isInitialLoading) {
+  if (showLoading) {
     return (
       <div className="py-4 px-6 space-y-4">
         <Skeleton className="h-6 w-32 rounded-full" />
@@ -105,7 +94,7 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
     );
   }
 
-  if (filteredVendors.length === 0 && initialSync) return null;
+  if (filteredVendors.length === 0) return null;
 
   return (
     <div className="py-4 overflow-hidden bg-white content-visibility-auto">

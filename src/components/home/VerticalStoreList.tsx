@@ -70,7 +70,7 @@ export const VerticalStoreList = memo(({
 }: { 
   searchQuery?: string, 
   activeMode?: string, 
-  initialData?: any[],
+  initialData?: any[], 
   initialProducts?: any[]
 }) => {
   const router = useRouter();
@@ -79,7 +79,6 @@ export const VerticalStoreList = memo(({
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
   const [activeTown, setActiveTown] = useState<string | null>(null);
   const [currentTimeMins, setCurrentTimeMins] = useState<number | null>(null);
-  const [initialSync, setInitialSync] = useState(false);
 
   useEffect(() => {
     const updateLocation = () => {
@@ -91,20 +90,17 @@ export const VerticalStoreList = memo(({
     updateLocation();
     window.addEventListener('user-address-updated', updateLocation);
     
-    const now = new Date();
-    setCurrentTimeMins(now.getHours() * 60 + now.getMinutes());
+    const d = new Date();
+    setCurrentTimeMins(d.getHours() * 60 + d.getMinutes());
     
     const interval = setInterval(() => {
-      const d = new Date();
-      setCurrentTimeMins(d.getHours() * 60 + d.getMinutes());
+      const now = new Date();
+      setCurrentTimeMins(now.getHours() * 60 + now.getMinutes());
     }, 60000);
-
-    const timer = setTimeout(() => setInitialSync(true), 1200);
 
     return () => {
       window.removeEventListener('user-address-updated', updateLocation);
       clearInterval(interval);
-      clearTimeout(timer);
     };
   }, []);
 
@@ -112,16 +108,17 @@ export const VerticalStoreList = memo(({
     if (!firestore) return null;
     return query(collection(firestore, 'vendors'), limit(50));
   }, [firestore]);
-  const { data: dbVendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery, 'home_vstores_v17', initialData);
+  const { data: dbVendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery, 'home_vstores_v18', initialData);
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'products'), limit(1000));
   }, [firestore]);
-  const { data: dbAllProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_strip_products_v23', initialProducts);
+  const { data: dbAllProducts } = useCollection<any>(productsQuery, 'home_strip_products_v24', initialProducts);
 
   const filteredVendors = useMemo(() => {
-    const list = (dbVendors && dbVendors.length > 0) ? dbVendors : initialData;
+    // If we have live data, use it; otherwise fallback to SSR data
+    const list = (dbVendors !== null) ? dbVendors : initialData;
     if (!list || list.length === 0) return [];
     
     const searchLower = searchQuery.toLowerCase().trim();
@@ -131,14 +128,10 @@ export const VerticalStoreList = memo(({
       if (activeZoneId) {
         const zoneMatch = v.zoneId === activeZoneId || v.zoneId === 'global';
         const townMatch = activeTown && v.town?.toLowerCase().trim() === activeTown.toLowerCase().trim();
-        
-        if (!zoneMatch && !townMatch && v.zoneId) {
-          return false;
-        }
+        if (!zoneMatch && !townMatch && v.zoneId) return false;
       }
 
       const storeCat = (v.category || 'Food').toLowerCase();
-      
       if (currentMode === 'medical') {
         if (storeCat !== 'medical') return false;
       } else if (currentMode === 'beauty') {
@@ -151,24 +144,19 @@ export const VerticalStoreList = memo(({
         v.storeName?.toLowerCase().includes(searchLower) || 
         v.category?.toLowerCase().includes(searchLower);
       
-      const isApproved = v.status === 'approved' || !v.status;
-      
-      return matchesSearch && isApproved;
+      return matchesSearch && (v.status === 'approved' || !v.status);
     }).sort((a, b) => {
       const isOpenA = a.isOnline !== false && isStoreScheduleOpen(a, currentTimeMins);
       const isOpenB = b.isOnline !== false && isStoreScheduleOpen(b, currentTimeMins);
-
       if (isOpenA !== isOpenB) return isOpenA ? -1 : 1;
-      const ratingA = Number(a.rating) || 0;
-      const ratingB = Number(b.rating) || 0;
-      return ratingB - ratingA;
+      return (Number(b.rating) || 0) - (Number(a.rating) || 0);
     });
   }, [dbVendors, initialData, activeZoneId, activeTown, searchQuery, activeMode, currentTimeMins]);
 
-  // Priority to show content immediately if we have initialData
-  const isActuallyLoading = (vendorsLoading || !initialSync) && filteredVendors.length === 0;
+  // Only show loading if we have absolutely no data to show
+  const showLoading = vendorsLoading && (!filteredVendors || filteredVendors.length === 0);
 
-  if (isActuallyLoading) {
+  if (showLoading) {
     return (
       <div className="px-4 py-6 bg-white space-y-16">
         {[1, 2].map(i => (
@@ -184,7 +172,7 @@ export const VerticalStoreList = memo(({
     );
   }
 
-  if (filteredVendors.length === 0 && !vendorsLoading && initialSync) {
+  if (!vendorsLoading && filteredVendors.length === 0) {
     return (
       <div className="px-4 py-24 bg-white text-center opacity-20 flex flex-col items-center">
          <StoreIcon className="h-16 w-16 mb-4" />
@@ -206,7 +194,7 @@ export const VerticalStoreList = memo(({
             const isOpen = isStoreScheduleOpen(store, currentTimeMins);
             const isOffline = store.isOnline === false || !isOpen;
             
-            const productPool = (dbAllProducts && dbAllProducts.length > 0) ? dbAllProducts : initialProducts;
+            const productPool = (dbAllProducts !== null) ? dbAllProducts : initialProducts;
             const storeProducts = productPool.filter((p: any) => String(p.vendorId) === String(store.id) && p.isDeleted !== true).slice(0, 10);
 
             return (

@@ -5,24 +5,18 @@ import { collection, getDocs, limit, query } from 'firebase/firestore';
 /**
  * @fileOverview Optimized Server-Side Entry Point.
  * BAKES Firestore data into HTML at build time for 0.0ms instant loading.
- * DEVELOPMENT OPTIMIZATION: Skips fetching in dev mode to prevent server startup hang.
+ * Always fetches data to ensure the app is never empty on first load.
  */
 
-export const revalidate = 86400; // 24 Hours
+export const revalidate = 3600; // Revalidate every hour
 
 async function getInitialData() {
-  // Speed up dev server by returning empty initial data immediately
-  // This prevents the server from hanging on Firestore connection timeouts during dev/compilation
-  if (process.env.NODE_ENV === 'development') {
-    return { banners: [], categories: [], stores: [], products: [], zones: [], coupons: [] };
-  }
-
   try {
     const { firestore } = initializeFirebase();
     if (!firestore) return { banners: [], categories: [], stores: [], products: [], zones: [], coupons: [] };
 
-    // Parallel fetching for performance during build
-    const snaps = await Promise.all([
+    // Parallel fetching for performance
+    const [bannersSnap, categoriesSnap, vendorsSnap, productsSnap, zonesSnap, couponsSnap] = await Promise.all([
       getDocs(collection(firestore, 'banners')),
       getDocs(collection(firestore, 'categories')),
       getDocs(query(collection(firestore, 'vendors'), limit(50))),
@@ -31,12 +25,12 @@ async function getInitialData() {
       getDocs(collection(firestore, 'coupons'))
     ]);
 
-    const banners = snaps[0].docs.map((d: any) => ({ id: d.id, ...d.data() }));
-    const categories = snaps[1].docs.map((d: any) => ({ id: d.id, ...d.data() }));
-    const stores = snaps[2].docs.map((d: any) => ({ id: d.id, ...d.data() }));
-    const products = snaps[3].docs.map((d: any) => ({ id: d.id, ...d.data() }));
-    const zones = snaps[4].docs.map((d: any) => ({ id: d.id, ...d.data() }));
-    const coupons = snaps[5].docs.map((d: any) => ({ id: d.id, ...d.data() }));
+    const banners = bannersSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const categories = categoriesSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const stores = vendorsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const products = productsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const zones = zonesSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const coupons = couponsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
     return JSON.parse(JSON.stringify({
       banners,
