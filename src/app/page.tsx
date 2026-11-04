@@ -22,10 +22,12 @@ async function getInitialData() {
     const { firestore } = initializeFirebase();
     if (!firestore) return emptyData;
 
-    // RESILIENT FETCH: Attempt to bake data for static export
+    // RESILIENT FETCH: Use a resolver timeout instead of a rejecting one to prevent visual error overlays.
     const fetchWithTimeout = async (promise: Promise<any>) => {
-      const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 8000));
-      return Promise.race([promise, timeout]);
+      // 10 second timeout for pre-rendering/static-baking
+      const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 10000));
+      const result = await Promise.race([promise, timeout]);
+      return result;
     };
 
     const [bannersSnap, categoriesSnap, vendorsSnap, productsSnap, zonesSnap, couponsSnap] = await Promise.all([
@@ -37,12 +39,12 @@ async function getInitialData() {
       fetchWithTimeout(getDocs(collection(firestore, 'coupons')))
     ]);
 
-    const banners = bannersSnap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
-    const categories = categoriesSnap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
-    const stores = vendorsSnap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
-    const products = productsSnap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
-    const zones = zonesSnap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
-    const coupons = couponsSnap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+    const banners = bannersSnap?.docs ? bannersSnap.docs.map((d: any) => ({ id: d.id, ...d.data() })) : [];
+    const categories = categoriesSnap?.docs ? categoriesSnap.docs.map((d: any) => ({ id: d.id, ...d.data() })) : [];
+    const stores = vendorsSnap?.docs ? vendorsSnap.docs.map((d: any) => ({ id: d.id, ...d.data() })) : [];
+    const products = productsSnap?.docs ? productsSnap.docs.map((d: any) => ({ id: d.id, ...d.data() })) : [];
+    const zones = zonesSnap?.docs ? zonesSnap.docs.map((d: any) => ({ id: d.id, ...d.data() })) : [];
+    const coupons = couponsSnap?.docs ? couponsSnap.docs.map((d: any) => ({ id: d.id, ...d.data() })) : [];
 
     return JSON.parse(JSON.stringify({
       banners,
@@ -53,7 +55,7 @@ async function getInitialData() {
       coupons
     }));
   } catch (error) {
-    console.error("Server-side data fetch error (falling back to client load):", error);
+    console.warn("Server-side data fetch bypassed (falling back to client load):", error);
     return emptyData;
   }
 }
