@@ -32,7 +32,8 @@ import {
   Phone,
   Sparkles,
   ListTree,
-  X
+  X,
+  Clock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -51,6 +52,12 @@ import { compressImage } from '@/lib/image-utils';
 type MainTab = 'orders' | 'catalog' | 'payouts' | 'account';
 type OrderFilter = 'NEW ORDERS' | 'DELIVERED' | 'CANCELLED';
 
+const TIME_SLOTS = [
+  "06:00 AM", "07:00 AM", "08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM",
+  "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM", "05:00 PM", "06:00 PM", "07:00 PM",
+  "08:00 PM", "08:15 PM", "08:30 PM", "09:00 PM", "10:00 PM", "11:00 PM", "12:00 AM"
+];
+
 export default function BeautyDashboard() {
   const firestore = useFirestore();
   const auth = useAuth();
@@ -61,12 +68,11 @@ export default function BeautyDashboard() {
   
   const [activeMainTab, setActiveMainTab] = useState<MainTab>('orders');
   const [orderFilter, setOrderFilter] = useState<OrderFilter>('NEW ORDERS');
-  const [walletTab, setWalletTab] = useState<'request' | 'history' | 'transactions'>('request');
   const [isMounted, setIsMounted] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isUpiModalOpen, setIsUpiModalOpen] = useState(false);
+  const [isTimingModalOpen, setIsTimingModalOpen] = useState(false);
   const [isManualAddOpen, setIsManualAddOpen] = useState(false);
-  const [isWithdrawLoading, setIsWithdrawLoading] = useState(false);
 
   const [manualProduct, setManualProduct] = useState({
     name: '',
@@ -74,6 +80,7 @@ export default function BeautyDashboard() {
     category: '',
     description: '',
     imageUrl: '',
+    isVarietyRequired: false,
     options: [] as { name: string; price: number }[]
   });
 
@@ -82,6 +89,11 @@ export default function BeautyDashboard() {
     accountNumber: '',
     ifscCode: '',
     accountHolderName: ''
+  });
+
+  const [timings, setTimings] = useState({
+    openingTime: '10:00 AM',
+    closingTime: '08:15 PM'
   });
 
   useEffect(() => { setIsMounted(true); }, []);
@@ -98,6 +110,15 @@ export default function BeautyDashboard() {
   const vendorRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'vendors', user.uid) : null, [firestore, user]);
   const { data: vendorProfile, loading: profileLoading } = useDoc<any>(vendorRef);
 
+  useEffect(() => {
+    if (vendorProfile) {
+      setTimings({
+        openingTime: vendorProfile.openingTime || '10:00 AM',
+        closingTime: vendorProfile.closingTime || '08:15 PM'
+      });
+    }
+  }, [vendorProfile]);
+
   const ordersQuery = useMemoFirebase(() => (firestore && user) ? query(collection(firestore, 'orders'), orderBy('createdAt', 'desc')) : null, [firestore, user]);
   const { data: rawOrders } = useCollection<any>(ordersQuery);
 
@@ -107,16 +128,12 @@ export default function BeautyDashboard() {
   const categoriesQuery = useMemoFirebase(() => (firestore) ? query(collection(firestore, 'categories')) : null, [firestore]);
   const { data: categories } = useCollection<any>(categoriesQuery);
 
-  const payoutHistoryQuery = useMemoFirebase(() => (firestore && user) ? query(collection(firestore, 'vendors', user.uid, 'payout_history'), orderBy('date', 'desc')) : null, [firestore, user]);
-  const { data: payoutHistory } = useCollection<any>(payoutHistoryQuery);
-
   const pendingRequestsQuery = useMemoFirebase(() => (firestore && user) ? query(collection(firestore, 'payout_requests'), where('vendorId', '==', user.uid), where('status', '==', 'Pending')) : null, [firestore, user]);
   const { data: pendingRequests } = useCollection<any>(pendingRequestsQuery);
 
   const earnings = useMemo(() => {
     if (!rawOrders || !user) return { today: 0, thisWeek: 0, thisMonth: 0, totalDelivered: 0, totalCancelled: 0 };
     let today = 0, week = 0, month = 0, totalDelivered = 0, totalCancelled = 0;
-    
     const now = new Date();
     const dayStart = startOfDay(now);
     const weekStart = startOfWeek(now, { weekStartsOn: 1 });
@@ -124,7 +141,7 @@ export default function BeautyDashboard() {
 
     rawOrders.forEach((o: any) => {
       const vId = String(user.uid);
-      const isForMe = String(o.vendorId) === vId || (Array.isArray(o.vendorIds) && o.vendorIds.includes(vId)) || o.items?.some((it: any) => String(it.vendorId) === vId);
+      const isForMe = String(o.vendorId) === vId || (Array.isArray(o.vendorIds) && o.vendorIds.includes(vId));
       if (!isForMe) return;
 
       const amt = Number(o.total) || 0;
@@ -145,11 +162,7 @@ export default function BeautyDashboard() {
 
   const filteredOrders = useMemo(() => {
     if (!rawOrders || !user) return [];
-    const myOrders = rawOrders.filter((o: any) => {
-      const vId = String(user.uid);
-      return String(o.vendorId) === vId || (Array.isArray(o.vendorIds) && o.vendorIds.includes(vId)) || o.items?.some((it: any) => String(it.vendorId) === vId);
-    });
-
+    const myOrders = rawOrders.filter((o: any) => String(o.vendorId) === String(user.uid));
     if (orderFilter === 'DELIVERED') return myOrders.filter((o: any) => o.status === 'Delivered');
     if (orderFilter === 'CANCELLED') return myOrders.filter((o: any) => o.status === 'Cancelled');
     const activeStatuses = ['Placed', 'Accepted', 'Preparing', 'Ready for Pickup', 'Picked Up', 'Out for Delivery'];
@@ -178,26 +191,13 @@ export default function BeautyDashboard() {
   };
 
   const handleAddVariety = () => {
-    setManualProduct(prev => ({
-      ...prev,
-      options: [...prev.options, { name: '', price: 0 }]
-    }));
-  };
-
-  const handleRemoveVariety = (index: number) => {
-    setManualProduct(prev => ({
-      ...prev,
-      options: prev.options.filter((_, i) => i !== index)
-    }));
+    setManualProduct(prev => ({ ...prev, options: [...prev.options, { name: '', price: 0 }] }));
   };
 
   const updateVariety = (index: number, field: 'name' | 'price', value: string) => {
     const newOptions = [...manualProduct.options];
-    if (field === 'price') {
-      newOptions[index].price = parseFloat(value) || 0;
-    } else {
-      newOptions[index].name = value;
-    }
+    if (field === 'price') newOptions[index].price = parseFloat(value) || 0;
+    else newOptions[index].name = value;
     setManualProduct(prev => ({ ...prev, options: newOptions }));
   };
 
@@ -218,18 +218,29 @@ export default function BeautyDashboard() {
         isVeg: true,
         isDeleted: false,
         serviceMode: 'Beauty',
-        isVarietyRequired: manualProduct.options.length > 0,
         slug: slugify(manualProduct.name),
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       };
       await setDoc(productRef, pData);
-      await setDoc(doc(firestore, 'vendors', user.uid, 'products', productRef.id), pData);
-      
       setIsManualAddOpen(false);
-      setManualProduct({ name: '', price: '', category: '', description: '', imageUrl: '', options: [] });
+      setManualProduct({ name: '', price: '', category: '', description: '', imageUrl: '', isVarietyRequired: false, options: [] });
       toast({ title: "Product Added! ✅" });
     } catch (err) { toast({ variant: "destructive", title: "Add Failed" }); }
+    finally { setIsProcessing(false); }
+  };
+
+  const handleSaveTimings = async () => {
+    if (!firestore || !user) return;
+    setIsProcessing(true);
+    try {
+      await updateDoc(doc(firestore, 'vendors', user.uid), {
+        ...timings,
+        updatedAt: serverTimestamp()
+      });
+      setIsTimingModalOpen(false);
+      toast({ title: "Timings Updated! ⏰" });
+    } catch (err) { toast({ variant: "destructive", title: "Failed" }); }
     finally { setIsProcessing(false); }
   };
 
@@ -240,11 +251,6 @@ export default function BeautyDashboard() {
       router.replace('/vendor/login?type=Beauty');
     }
   };
-
-  const currentTypeCategories = useMemo(() => {
-    if (!categories) return [];
-    return categories.filter(c => (c.serviceType || 'Food') === (vendorProfile?.category || 'Beauty'));
-  }, [categories, vendorProfile]);
 
   if (!isMounted || authLoading || (profileLoading && !vendorProfile)) return <div className="h-screen bg-white flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-rose-600" /></div>;
 
@@ -347,7 +353,7 @@ export default function BeautyDashboard() {
               <div className="bg-rose-600 p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[180px]">
                  <div className="relative z-10 space-y-1"><span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Payout Due</span><div className="text-5xl font-black italic">₹ {vendorProfile?.walletBalance?.toFixed(2) || '0.00'}</div></div>
                  <div className="relative z-10 flex justify-end mt-4">
-                    <Button onClick={() => { if(!vendorProfile.upiId) setIsUpiModalOpen(true); else if((vendorProfile.walletBalance||0)>0) setIsWithdrawLoading(true); }} disabled={isWithdrawLoading || (vendorProfile?.walletBalance || 0) <= 0} className="bg-white text-rose-600 rounded-xl h-10 px-6 font-black uppercase text-[10px] italic">Withdraw</Button>
+                    <Button onClick={() => { if(!vendorProfile.upiId) setIsUpiModalOpen(true); else if((vendorProfile.walletBalance||0)>0) setIsProcessing(true); }} disabled={isProcessing || (vendorProfile?.walletBalance || 0) <= 0} className="bg-white text-rose-600 rounded-xl h-10 px-6 font-black uppercase text-[10px] italic">Withdraw</Button>
                  </div>
                  <Wallet2 className="absolute bottom-4 right-4 h-24 w-24 text-white opacity-10" />
               </div>
@@ -375,7 +381,10 @@ export default function BeautyDashboard() {
                </div>
                <div className="space-y-4">
                   <div className="bg-white p-6 rounded-[2.5rem] border shadow-sm space-y-5">
-                     <div className="flex items-center gap-4"><div className="bg-rose-500/5 p-2 rounded-xl text-rose-600"><Sparkles className="h-5 w-5" /></div><div><span className="text-[10px] font-black text-gray-400 uppercase">Hub Type</span><span className="text-sm font-black uppercase italic text-gray-800 block">BEAUTY / COSMETICS</span></div></div>
+                     <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4"><div className="bg-rose-500/5 p-2 rounded-xl text-rose-600"><Clock className="h-5 w-5" /></div><div><span className="text-[10px] font-black text-gray-400 uppercase">Hub Timings</span><span className="text-sm font-black uppercase italic text-gray-800 block">{vendorProfile?.openingTime} - {vendorProfile?.closingTime}</span></div></div>
+                        <button onClick={() => setIsTimingModalOpen(true)} className="text-[10px] font-black text-rose-600 uppercase">EDIT</button>
+                     </div>
                      <div className="flex items-center gap-4"><div className="bg-blue-50 p-2 rounded-xl text-blue-600"><Globe className="h-5 w-5" /></div><div><span className="text-[10px] font-black text-gray-400 uppercase">Region</span><span className="text-sm font-black uppercase italic text-gray-800 block">{vendorProfile?.town}</span></div></div>
                      <div className="flex items-center gap-4"><div className="bg-green-50 p-2 rounded-xl text-green-600"><Phone className="h-5 w-5" /></div><div><span className="text-[10px] font-black text-gray-400 uppercase">Mobile</span><span className="text-sm font-black uppercase italic text-gray-800 block">{vendorProfile?.phone}</span></div></div>
                   </div>
@@ -407,7 +416,7 @@ export default function BeautyDashboard() {
                           <Select value={manualProduct.category} onValueChange={v => setManualProduct({...manualProduct, category: v})}>
                              <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold"><SelectValue placeholder="Select" /></SelectTrigger>
                              <SelectContent className="rounded-2xl max-h-[300px]">
-                                {currentTypeCategories.map(c => <SelectItem key={c.id} value={c.name} className="font-bold py-3 uppercase text-xs">{c.name}</SelectItem>)}
+                                {categories?.filter(c => (c.serviceType||'Food') === 'Beauty').map(c => <SelectItem key={c.id} value={c.name.toLowerCase()} className="font-bold py-3 uppercase text-xs">{c.name}</SelectItem>)}
                              </SelectContent>
                           </Select>
                        </div>
@@ -415,7 +424,13 @@ export default function BeautyDashboard() {
 
                     <div className="space-y-4 p-5 bg-rose-50/30 rounded-[1.5rem] border-2 border-dashed border-rose-100">
                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-black uppercase text-rose-600">Varieties / Sizes</span>
+                          <div className="flex flex-col">
+                             <span className="text-[10px] font-black uppercase text-rose-600">Varieties / Sizes</span>
+                             <div className="flex items-center gap-2 mt-1">
+                                <span className="text-[8px] font-bold text-muted-foreground">Selection Required?</span>
+                                <Switch checked={manualProduct.isVarietyRequired} onCheckedChange={(v) => setManualProduct({...manualProduct, isVarietyRequired: v})} className="scale-75 data-[state=checked]:bg-rose-600" />
+                             </div>
+                          </div>
                           <button onClick={handleAddVariety} className="text-[10px] font-black text-rose-600 uppercase bg-white px-3 py-1 rounded-lg border shadow-sm">+ ADD</button>
                        </div>
                        <div className="space-y-3">
@@ -423,7 +438,7 @@ export default function BeautyDashboard() {
                             <div key={idx} className="flex gap-2 items-center">
                                <Input placeholder="E.G. 100ML" value={opt.name} onChange={e => updateVariety(idx, 'name', e.target.value.toUpperCase())} className="h-10 rounded-lg bg-white border-none text-[10px] font-bold flex-1" />
                                <Input type="number" placeholder="₹" value={opt.price} onChange={e => updateVariety(idx, 'price', e.target.value)} className="h-10 w-20 rounded-lg bg-white border-none text-[10px] font-black text-center" />
-                               <button onClick={() => handleRemoveVariety(idx)} className="text-red-500 p-1"><X className="h-4 w-4" /></button>
+                               <button onClick={() => setManualProduct(prev => ({...prev, options: prev.options.filter((_, i) => i !== idx)}))} className="text-red-500 p-1"><X className="h-4 w-4" /></button>
                             </div>
                           ))}
                        </div>
@@ -449,6 +464,31 @@ export default function BeautyDashboard() {
               <div className="space-y-4 pt-4">
                  <div className="space-y-1"><label className="text-[10px] font-black uppercase text-rose-600">UPI ID</label><Input value={upiForm.upiId} onChange={e => setUpiForm({...upiForm, upiId: e.target.value.toLowerCase()})} placeholder="store@upi" className="h-14 rounded-2xl bg-gray-50 border-none font-bold" /></div>
                  <Button onClick={async () => { if(!firestore||!user) return; setIsProcessing(true); await updateDoc(doc(firestore, 'vendors', user.uid), {...upiForm}); setIsUpiModalOpen(false); toast({title:"Updated"}); setIsProcessing(false); }} disabled={isProcessing || !upiForm.upiId} className="w-full h-16 bg-rose-600 text-white rounded-[1.5rem] font-black uppercase italic shadow-xl">SAVE SETTINGS</Button>
+              </div>
+           </DialogContent>
+         </Dialog>
+
+         <Dialog open={isTimingModalOpen} onOpenChange={setIsTimingModalOpen}>
+           <DialogContent className="rounded-[2.5rem] max-w-md p-8 bg-white border-none shadow-2xl">
+              <DialogHeader><DialogTitle className="font-black italic uppercase text-center text-xl">Hub Timing Settings</DialogTitle></DialogHeader>
+              <div className="space-y-6 pt-6">
+                 <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                       <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Opening Time</label>
+                       <Select value={timings.openingTime} onValueChange={(val) => setTimings({...timings, openingTime: val})}>
+                          <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold"><SelectValue /></SelectTrigger>
+                          <SelectContent className="rounded-2xl">{TIME_SLOTS.map(t => <SelectItem key={t} value={t} className="font-bold text-xs">{t}</SelectItem>)}</SelectContent>
+                       </Select>
+                    </div>
+                    <div className="space-y-1">
+                       <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Closing Time</label>
+                       <Select value={timings.closingTime} onValueChange={(val) => setTimings({...timings, closingTime: val})}>
+                          <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold"><SelectValue /></SelectTrigger>
+                          <SelectContent className="rounded-2xl">{TIME_SLOTS.map(t => <SelectItem key={t} value={t} className="font-bold text-xs">{t}</SelectItem>)}</SelectContent>
+                       </Select>
+                    </div>
+                 </div>
+                 <Button onClick={handleSaveTimings} disabled={isProcessing} className="w-full h-16 bg-black text-white rounded-[1.5rem] font-black uppercase italic shadow-xl">SAVE TIMINGS</Button>
               </div>
            </DialogContent>
          </Dialog>
