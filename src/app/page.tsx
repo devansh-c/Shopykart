@@ -12,7 +12,7 @@ export const revalidate = 86400; // 24 Hours
 
 async function getInitialData() {
   // Speed up dev server by returning empty initial data immediately
-  // This prevents the server from hanging on Firestore connection timeouts
+  // This prevents the server from hanging on Firestore connection timeouts during dev/compilation
   if (process.env.NODE_ENV === 'development') {
     return { banners: [], categories: [], stores: [], products: [], zones: [], coupons: [] };
   }

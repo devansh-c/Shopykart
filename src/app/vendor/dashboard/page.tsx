@@ -596,7 +596,7 @@ export default function VendorDashboard() {
                  </div>
 
                  <Button onClick={handleCreateCoupon} disabled={isProcessing || !couponForm.code || !couponForm.discountValue} className="w-full h-18 bg-green-600 text-white rounded-[1.5rem] font-black uppercase italic shadow-xl">
-                   {isProcessing ? <Loader2 className="animate-spin" /> : "ACTIVATE COUPON"}
+                   {isProcessing ? <Loader2 className="h-6 w-6 animate-spin" /> : "ACTIVATE COUPON"}
                  </Button>
               </div>
            </DialogContent>
