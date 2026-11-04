@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useRef } from 'react';
@@ -6,8 +5,7 @@ import { useUser, useFirestore } from '@/firebase';
 import { requestPushToken, syncTokenToFirestore } from '@/firebase/messaging';
 
 /**
- * @fileOverview Permission Manager - Handles Native Ringing via System Notifications.
- * Ensures the 'order_alert' sound plays through the system alert tray.
+ * @fileOverview Permission Manager - Configures Max Priority Channels for Ringing.
  */
 export default function PermissionManager() {
   const { user } = useUser();
@@ -36,37 +34,19 @@ export default function PermissionManager() {
           const { PushNotifications } = await import('@capacitor/push-notifications');
           const { LocalNotifications } = await import('@capacitor/local-notifications');
 
-          // CREATE LOUD CHANNEL (Bypasses system quiet modes)
-          const channelConfig = {
+          // CREATE RINGING CHANNEL (IMPORTANCE_MAX = 5)
+          const ringingChannel = {
             id: 'new_order_channel',
-            name: 'High Priority Alerts',
-            description: 'Loud sound for new orders and fleet tasks',
-            sound: 'order_alert', // Must exist in res/raw/order_alert.mp3
-            importance: 5, // MAX IMPORTANCE
+            name: 'Order Ringing Alerts',
+            description: 'Loud continuous ringing for new tasks',
+            sound: 'order_alert', 
+            importance: 5, 
             visibility: 1,
             vibration: true,
           };
 
-          // Reinforce channel every time to ensure sound is linked
-          await PushNotifications.createChannel(channelConfig);
-          await LocalNotifications.createChannel(channelConfig);
-
-          // FORWARD PUSH TO SYSTEM TRAY WITH SOUND
-          await PushNotifications.addListener('pushNotificationReceived', async (notification) => {
-            await LocalNotifications.schedule({
-              notifications: [
-                {
-                  title: notification.title || '🚨 SHOPYKART ALERT',
-                  body: notification.body || 'Check your dashboard now.',
-                  id: Math.floor(Date.now() % 100000),
-                  channelId: 'new_order_channel',
-                  smallIcon: 'ic_stat_notification',
-                  sound: 'order_alert',
-                  extra: notification.data
-                }
-              ]
-            });
-          });
+          await PushNotifications.createChannel(ringingChannel);
+          await LocalNotifications.createChannel(ringingChannel);
 
           PushNotifications.addListener('registration', async (token) => {
             localStorage.setItem('shopykart_fcm_token', token.value);
@@ -108,10 +88,9 @@ export async function scheduleTestNotification() {
   try {
     const { LocalNotifications } = await import('@capacitor/local-notifications');
     
-    // First, make sure channel exists
     await LocalNotifications.createChannel({
       id: 'new_order_channel',
-      name: 'High Priority Alerts',
+      name: 'Order Ringing Alerts',
       sound: 'order_alert',
       importance: 5,
       visibility: 1,
@@ -121,13 +100,12 @@ export async function scheduleTestNotification() {
     await LocalNotifications.schedule({
       notifications: [
         {
-          title: "🚨 LOUD SYSTEM ALERT",
-          body: "Aapka phone background mein baj raha hai!",
-          id: 8888,
-          schedule: { at: new Date(Date.now() + 10000) }, // 10s delay
+          title: "🚨 RINGING TEST",
+          body: "Loud alert system check successful!",
+          id: 7777,
+          schedule: { at: new Date(Date.now() + 5000) }, 
           channelId: 'new_order_channel',
-          sound: 'order_alert',
-          extra: { test: true }
+          sound: 'order_alert'
         }
       ]
     });
