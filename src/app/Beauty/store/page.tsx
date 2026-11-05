@@ -111,11 +111,14 @@ export default function BeautyDashboard() {
 
   useEffect(() => { setIsMounted(true); }, []);
 
+  // SESSION GUARD: Strictly patient logic to survive Firebase refresh cycles
   useEffect(() => {
     if (!isMounted || authLoading) return;
+    
     const sessionActive = localStorage.getItem('shopykart_session_active') === 'true';
-    if (!user && !authLoading) {
-      if (!sessionActive) router.replace('/vendor/login?type=Beauty');
+    
+    if (!user && !sessionActive) {
+      router.replace('/vendor/login?type=Beauty');
     }
   }, [user, authLoading, router, isMounted]);
 
@@ -153,7 +156,9 @@ export default function BeautyDashboard() {
   const { data: pendingRequests } = useCollection<any>(pendingRequestsQuery);
 
   const earnings = useMemo(() => {
-    if (!rawOrders || !user) return { today: 0, thisWeek: 0, thisMonth: 0, totalDelivered: 0, totalCancelled: 0 };
+    const fallback = { today: 0, thisWeek: 0, thisMonth: 0, totalDelivered: 0, totalCancelled: 0 };
+    if (!rawOrders || !user) return fallback;
+
     let today = 0, week = 0, month = 0, totalDelivered = 0, totalCancelled = 0;
     const now = new Date();
     const dayStart = startOfDay(now);
@@ -318,7 +323,11 @@ export default function BeautyDashboard() {
     }
   };
 
-  if (!isMounted || authLoading || (profileLoading && !vendorProfile)) return <div className="h-screen bg-white flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-rose-600" /></div>;
+  const isSessionActive = typeof window !== 'undefined' && localStorage.getItem('shopykart_session_active') === 'true';
+
+  if (!isMounted || (authLoading && isSessionActive) || (profileLoading && !vendorProfile)) {
+    return <div className="h-screen bg-white flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-rose-600" /></div>;
+  }
 
   return (
     <div className="h-screen bg-[#F9FAFB] flex flex-col max-lg mx-auto shadow-2xl relative overflow-hidden">
@@ -333,7 +342,7 @@ export default function BeautyDashboard() {
             </div>
          </div>
          <div className="flex items-center gap-2">
-           <Switch checked={vendorProfile?.isOnline !== false} onCheckedChange={async (o) => { await updateDoc(doc(firestore!, 'vendors', user!.uid), { isOnline: o }); }} className="scale-75 data-[state=checked]:bg-green-500" />
+           <Switch checked={vendorProfile?.isOnline !== false} onCheckedChange={async (o) => { if(firestore && user) await updateDoc(doc(firestore, 'vendors', user.uid), { isOnline: o }); }} className="scale-75 data-[state=checked]:bg-green-500" />
            <button onClick={() => setActiveMainTab('account')} className="h-8 w-8 bg-gray-50 text-gray-400 rounded-lg flex items-center justify-center active:scale-90 transition-transform"><Settings className="h-4 w-4" /></button>
          </div>
       </header>
@@ -481,7 +490,7 @@ export default function BeautyDashboard() {
                         <button onClick={() => setIsTimingModalOpen(true)} className="text-[10px] font-black text-rose-600 uppercase">EDIT</button>
                      </div>
                      <div className="flex items-center gap-4"><div className="bg-blue-50 p-2 rounded-xl text-blue-600"><Globe className="h-5 w-5" /></div><div><span className="text-[10px] font-black text-gray-400 uppercase">Region</span><span className="text-sm font-black uppercase italic text-gray-800 block">{vendorProfile?.town}</span></div></div>
-                     <div className="flex items-center gap-4"><div className="bg-green-50 p-2 rounded-xl text-green-600"><Phone className="h-5 w-5" /></div><div><span className="text-[10px] font-black text-gray-400 uppercase">Mobile</span><span className="text-sm font-black uppercase italic text-gray-800 block">{vendorProfile?.phone}</span></div></div>
+                     <div className="flex items-center gap-4"><div className="bg-green-50 p-2 rounded-xl text-green-600"><Phone className="h-5 w-5" /></div><div><span className="text-[10px] font-black uppercase italic text-gray-800 block">{vendorProfile?.phone}</span></div></div>
                   </div>
                   <button onClick={handleLogout} className="w-full h-18 bg-white border border-red-50 text-red-500 rounded-[2.2rem] flex items-center justify-center gap-3 font-black uppercase italic text-sm shadow-sm active:scale-95 transition-all"><LogOut className="h-5 w-5" /> DISCONNECT ACCOUNT</button>
                </div>

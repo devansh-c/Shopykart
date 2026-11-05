@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -110,13 +111,12 @@ export default function VendorDashboard() {
 
   useEffect(() => { setIsMounted(true); }, []);
 
-  // SESSION GUARD: Fixed logic to prevent repeated login redirection
+  // SESSION GUARD: Strictly patient logic to survive Firebase refresh cycles
   useEffect(() => {
     if (!isMounted || authLoading) return;
     
     const sessionActive = localStorage.getItem('shopykart_session_active') === 'true';
     
-    // Only redirect to login if there's no active session AND no user
     if (!user && !sessionActive) {
       router.replace('/vendor/login');
     }
@@ -156,7 +156,9 @@ export default function VendorDashboard() {
   const { data: pendingRequests } = useCollection<any>(pendingRequestsQuery);
 
   const earnings = useMemo(() => {
-    if (!rawOrders || !user) return { today: 0, thisWeek: 0, thisMonth: 0, totalDelivered: 0, totalCancelled: 0 };
+    const fallback = { today: 0, thisWeek: 0, thisMonth: 0, totalDelivered: 0, totalCancelled: 0 };
+    if (!rawOrders || !user) return fallback;
+
     let today = 0, week = 0, month = 0, totalDelivered = 0, totalCancelled = 0;
     const now = new Date();
     const dayStart = startOfDay(now);
@@ -320,7 +322,11 @@ export default function VendorDashboard() {
     }
   };
 
-  if (!isMounted || (profileLoading && !vendorProfile)) return <div className="h-screen bg-white flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
+  const isSessionActive = typeof window !== 'undefined' && localStorage.getItem('shopykart_session_active') === 'true';
+
+  if (!isMounted || (authLoading && isSessionActive) || (profileLoading && !vendorProfile)) {
+    return <div className="h-screen bg-white flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
+  }
 
   return (
     <div className="h-screen bg-[#F9FAFB] flex flex-col max-lg mx-auto shadow-2xl relative overflow-hidden">
@@ -335,7 +341,7 @@ export default function VendorDashboard() {
             </div>
          </div>
          <div className="flex items-center gap-2">
-           <Switch checked={vendorProfile?.isOnline !== false} onCheckedChange={async (o) => { await updateDoc(doc(firestore!, 'vendors', user!.uid), { isOnline: o }); }} className="scale-75 data-[state=checked]:bg-green-500" />
+           <Switch checked={vendorProfile?.isOnline !== false} onCheckedChange={async (o) => { if(firestore && user) await updateDoc(doc(firestore, 'vendors', user.uid), { isOnline: o }); }} className="scale-75 data-[state=checked]:bg-green-500" />
            <button onClick={() => setActiveMainTab('account')} className="h-8 w-8 bg-gray-50 text-gray-400 rounded-lg flex items-center justify-center active:scale-90 transition-transform"><Settings className="h-4 w-4" /></button>
          </div>
       </header>

@@ -111,11 +111,14 @@ export default function MedicalDashboard() {
 
   useEffect(() => { setIsMounted(true); }, []);
 
+  // SESSION GUARD: Strictly patient logic to survive Firebase refresh cycles
   useEffect(() => {
     if (!isMounted || authLoading) return;
+    
     const sessionActive = localStorage.getItem('shopykart_session_active') === 'true';
-    if (!user && !authLoading) {
-      if (!sessionActive) router.replace('/vendor/login?type=Medical');
+    
+    if (!user && !sessionActive) {
+      router.replace('/vendor/login?type=Medical');
     }
   }, [user, authLoading, router, isMounted]);
 
@@ -153,7 +156,9 @@ export default function MedicalDashboard() {
   const { data: pendingRequests } = useCollection<any>(pendingRequestsQuery);
 
   const earnings = useMemo(() => {
-    if (!rawOrders || !user) return { today: 0, thisWeek: 0, thisMonth: 0, totalDelivered: 0, totalCancelled: 0 };
+    const fallback = { today: 0, thisWeek: 0, thisMonth: 0, totalDelivered: 0, totalCancelled: 0 };
+    if (!rawOrders || !user) return fallback;
+
     let today = 0, week = 0, month = 0, totalDelivered = 0, totalCancelled = 0;
     const now = new Date();
     const dayStart = startOfDay(now);
@@ -318,7 +323,11 @@ export default function MedicalDashboard() {
     }
   };
 
-  if (!isMounted || authLoading || (profileLoading && !vendorProfile)) return <div className="h-screen bg-white flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-teal-600" /></div>;
+  const isSessionActive = typeof window !== 'undefined' && localStorage.getItem('shopykart_session_active') === 'true';
+
+  if (!isMounted || (authLoading && isSessionActive) || (profileLoading && !vendorProfile)) {
+    return <div className="h-screen bg-white flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-teal-600" /></div>;
+  }
 
   return (
     <div className="h-screen bg-[#F9FAFB] flex flex-col max-lg mx-auto shadow-2xl relative overflow-hidden">
@@ -333,7 +342,7 @@ export default function MedicalDashboard() {
             </div>
          </div>
          <div className="flex items-center gap-2">
-           <Switch checked={vendorProfile?.isOnline !== false} onCheckedChange={async (o) => { await updateDoc(doc(firestore!, 'vendors', user!.uid), { isOnline: o }); }} className="scale-75 data-[state=checked]:bg-green-500" />
+           <Switch checked={vendorProfile?.isOnline !== false} onCheckedChange={async (o) => { if(firestore && user) await updateDoc(doc(firestore, 'vendors', user.uid), { isOnline: o }); }} className="scale-75 data-[state=checked]:bg-green-500" />
            <button onClick={() => setActiveMainTab('account')} className="h-8 w-8 bg-gray-50 text-gray-400 rounded-lg flex items-center justify-center active:scale-90 transition-transform"><Settings className="h-4 w-4" /></button>
          </div>
       </header>
@@ -487,7 +496,7 @@ export default function MedicalDashboard() {
                         <button onClick={() => setIsTimingModalOpen(true)} className="text-[10px] font-black text-teal-600 uppercase">EDIT</button>
                      </div>
                      <div className="flex items-center gap-4"><div className="bg-blue-50 p-2 rounded-xl text-blue-600"><Globe className="h-5 w-5" /></div><div><span className="text-[10px] font-black text-gray-400 uppercase">Region</span><span className="text-sm font-black uppercase italic text-gray-800 block">{vendorProfile?.town}</span></div></div>
-                     <div className="flex items-center gap-4"><div className="bg-green-50 p-2 rounded-xl text-green-600"><Phone className="h-5 w-5" /></div><div><span className="text-[10px] font-black text-gray-400 uppercase">Mobile</span><span className="text-sm font-black uppercase italic text-gray-800 block">{vendorProfile?.phone}</span></div></div>
+                     <div className="flex items-center gap-4"><div className="bg-green-50 p-2 rounded-xl text-green-600"><Phone className="h-5 w-5" /></div><div><span className="text-[10px] font-black uppercase italic text-gray-800 block">{vendorProfile?.phone}</span></div></div>
                   </div>
                   <button onClick={handleLogout} className="w-full h-18 bg-white border border-red-50 text-red-500 rounded-[2.2rem] flex items-center justify-center gap-3 font-black uppercase italic text-sm shadow-sm active:scale-95 transition-all"><LogOut className="h-5 w-5" /> DISCONNECT ACCOUNT</button>
                </div>
@@ -510,7 +519,7 @@ export default function MedicalDashboard() {
                     <div className="grid grid-cols-2 gap-4">
                        <div className="space-y-1">
                           <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Base Price ₹</label>
-                          <Input type="number" placeholder="0.00" value={manualProduct.price} onChange={e => setManualProduct({...manualProduct, price: e.target.value})} className="h-12 rounded-xl border-none bg-muted/20 font-black" />
+                          <Input type="number" placeholder="0.00" value={manualProduct.price} onChange={e => setManualProduct({...manualProduct, price: e.target.value})} className="h-12 rounded-xl font-black" />
                        </div>
                        <div className="space-y-1">
                           <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Category</label>
@@ -639,7 +648,7 @@ export default function MedicalDashboard() {
       <nav className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto w-full bg-[#0F172A] pt-4 pb-8 px-6 flex justify-around border-t border-white/5 z-50 rounded-t-[2.5rem]">
         {[{id:'orders',label:'Queue',icon:ShoppingBag},{id:'catalog',label:'Menu',icon:Layers},{id:'coupons',label:'Offers',icon:Ticket},{id:'payouts',label:'Wallet',icon:Wallet2},{id:'account',label:'Profile',icon:UserCircle2}].map(item => (
           <button key={item.id} onClick={() => setActiveMainTab(item.id as MainTab)} className="flex flex-col items-center gap-1.5 active:scale-90 outline-none">
-            <item.icon className={cn("h-5 w-5", activeMainTab === item.id ? "text-teal-500" : "text-gray-500")} />
+            <item.icon className={cn("h-5 w-5", activeMainTab === item.id ? "text-teal-500" : "text-gray-50")} />
             <span className={cn("text-[8px] font-black uppercase tracking-widest", activeMainTab === item.id ? "text-white" : "text-gray-500")}>{item.label}</span>
           </button>
         ))}
