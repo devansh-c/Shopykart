@@ -22,7 +22,7 @@ export default function Loading() {
         gap: '20px' 
       }}>
         {/* CSS-only spinner that works even if JS/Hydration is locked */}
-        <div style={{
+        <div className="main-app-spinner" style={{
           width: '50px',
           height: '50px',
           border: '5px solid rgba(239, 68, 68, 0.1)',

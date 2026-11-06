@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useCallback, useEffect, Suspense } from 'react';
@@ -14,7 +15,7 @@ import { Under49Products } from '@/components/home/Under49Products';
 import LocationRequest from '@/components/shared/LocationRequest';
 
 /**
- * @fileOverview HomeClient optimized for rapid startup.
+ * @fileOverview HomeClient optimized for rapid startup and Multi-App switching.
  */
 function HomeContent({ 
   initialBanners = [], 
@@ -40,15 +41,15 @@ function HomeContent({
   useEffect(() => {
     setIsClient(true);
     
-    // Check for App Mode in localStorage or URL (for dev preview only)
-    const storedAppType = localStorage.getItem('shopykart_dev_app_type');
-    const isProdAdmin = process.env.NEXT_PUBLIC_ADMIN_APP === 'true';
-    const isProdBiz = process.env.NEXT_PUBLIC_BIZ_APP === 'true';
-    const isProdTow = process.env.NEXT_PUBLIC_TOW_APP === 'true';
+    // DETECT APP MODE: Priority 1: Production Baked Key, Priority 2: Dev Override
+    const isAdmin = process.env.NEXT_PUBLIC_ADMIN_APP === 'true' || localStorage.getItem('shopykart_dev_app_type') === 'admin';
+    const isBiz = process.env.NEXT_PUBLIC_BIZ_APP === 'true' || localStorage.getItem('shopykart_dev_app_type') === 'biz';
+    const isFleet = process.env.NEXT_PUBLIC_TOW_APP === 'true' || localStorage.getItem('shopykart_dev_app_type') === 'tow';
 
-    if (isProdAdmin || storedAppType === 'admin') router.replace('/admin/dashboard');
-    else if (isProdBiz || storedAppType === 'biz') router.replace('/vendor/dashboard');
-    else if (isProdTow || storedAppType === 'tow') router.replace('/delivery/dashboard');
+    if (isAdmin) router.replace('/admin/dashboard');
+    else if (isBiz) router.replace('/vendor/dashboard');
+    else if (isFleet) router.replace('/delivery/dashboard');
+    
   }, [router]);
 
   const activeMode = searchParams.get('mode') || 'Food';

@@ -2,8 +2,8 @@
 import HomeClient from '@/components/home/HomeClient';
 
 /**
- * @fileOverview Optimized Server-Side Entry Point for v1.4.
- * High-speed bypass for development mode to ensure zero startup hangups.
+ * @fileOverview Optimized Entry Point for v1.4.
+ * FORCE BYPASS: No Firestore on Server-side in Dev to prevent compilation hangups.
  */
 
 export const revalidate = 3600;
@@ -11,7 +11,7 @@ export const revalidate = 3600;
 async function getInitialData() {
   const emptyData = { banners: [], categories: [], stores: [], products: [], zones: [], coupons: [] };
   
-  // FORCE BYPASS IN DEV: No Firestore on Server-side to prevent 25s compilation delays
+  // IN DEV PREVIEW: Return empty immediately. All data loads client-side.
   if (process.env.NODE_ENV !== 'production') return emptyData;
 
   try {
@@ -21,6 +21,7 @@ async function getInitialData() {
     const { firestore } = initializeFirebase();
     if (!firestore) return emptyData;
 
+    // Production Build Only: Bake initial data for speed
     const [bannersSnap, categoriesSnap, vendorsSnap, productsSnap, zonesSnap, couponsSnap] = await Promise.all([
       getDocs(query(collection(firestore, 'banners'), limit(5))),
       getDocs(query(collection(firestore, 'categories'), limit(15))),
