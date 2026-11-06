@@ -23,16 +23,24 @@ export function initializeFirebase() {
     appInstance = getApp();
   }
 
-  // 2. Initialize Firestore
+  // 2. Initialize Firestore with Fail-Safe Persistence
   if (!firestoreInstance) {
     if (typeof window !== 'undefined') {
-      firestoreInstance = initializeFirestore(appInstance, {
-        localCache: persistentLocalCache({
-          tabManager: undefined 
-        }),
-      });
+      try {
+        firestoreInstance = initializeFirestore(appInstance, {
+          localCache: persistentLocalCache({
+            tabManager: undefined 
+          }),
+        });
+      } catch (e) {
+        // Fallback to memory cache if indexedDB is restricted (Common in some WebViews)
+        console.warn("Firebase Persistence failed, falling back to memory.");
+        firestoreInstance = initializeFirestore(appInstance, {
+          localCache: memoryLocalCache()
+        });
+      }
     } else {
-      // Server side uses memory cache to avoid ENOENT errors during compilation
+      // Server side always uses memory cache
       firestoreInstance = initializeFirestore(appInstance, {
         localCache: memoryLocalCache()
       });

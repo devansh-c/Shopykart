@@ -8,7 +8,7 @@ import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 import { EmailAuth } from '@/components/auth/EmailAuth';
 import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
-import React, { ReactNode, useState, useEffect, useMemo, memo } from 'react';
+import React, { ReactNode, useState, useEffect, useMemo, memo, Suspense } from 'react';
 import FirebaseClientProvider from '@/firebase/client-provider';
 import { ZoneGuard } from '@/components/shared/ZoneGuard';
 import { useJsApiLoader } from '@react-google-maps/api';
@@ -70,12 +70,18 @@ const AuthGuard = memo(({ children }: { children: ReactNode }) => {
 AuthGuard.displayName = "AuthGuard";
 
 export function ClientLayout({ children }: { children: ReactNode }) {
-  const router = useRouter();
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
+  const [loadBackgroundServices, setLoadBackgroundServices] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    
+    // DE-BLOCKING STRATEGY: Load heavy background services after 2 seconds of mount
+    const timer = setTimeout(() => {
+      setLoadBackgroundServices(true);
+    }, 2000);
+
     const setupBackButton = async () => {
       try {
         const { App: CapacitorApp } = await import("@capacitor/app");
@@ -95,13 +101,8 @@ export function ClientLayout({ children }: { children: ReactNode }) {
     };
     
     setupBackButton();
+    return () => clearTimeout(timer);
   }, []);
-
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script-global',
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
-    libraries: ['places', 'geometry'],
-  });
 
   const isExcludedPath = useMemo(() => {
     if (!pathname) return false;
@@ -114,36 +115,38 @@ export function ClientLayout({ children }: { children: ReactNode }) {
   const isFleetApp = process.env.NEXT_PUBLIC_TOW_APP === 'true';
   const isBusinessApp = isAdminApp || isStoreApp || isFleetApp;
 
-  const showPaddingTop = mounted && !isExcludedPath;
-  const showPaddingBottom = mounted && !isExcludedPath;
-
   return (
     <FirebaseClientProvider>
       <CartProvider>
         <div className="relative min-h-screen bg-[#F3F4F6] md:bg-gray-100 overflow-x-hidden">
+          {/* CRITICAL SERVICES */}
           <BrandingLoader />
           <FirebaseErrorListener />
-          <PermissionManager />
           
-          {isBusinessApp ? <NotificationHandler /> : <CustomerNotificationHandler />}
+          {/* DEFERRED BACKGROUND SERVICES (TO PREVENT STARTUP FREEZE) */}
+          {loadBackgroundServices && (
+            <>
+              <PermissionManager />
+              {isBusinessApp ? <NotificationHandler /> : <CustomerNotificationHandler />}
+              <TelegramNotifier />
+              <TawkChat />
+            </>
+          )}
           
           <AuthGuard>
             <div className={cn(
               "relative min-h-screen flex flex-col max-w-lg mx-auto w-full bg-white shadow-2xl border-x border-gray-100 overflow-y-auto no-scrollbar",
-              showPaddingTop && "pt-[2px]"
+              mounted && !isExcludedPath && "pt-[2px]"
             )}>
-              <main className={cn("flex-1", showPaddingBottom && "pb-32")}>
-                <TelegramNotifier />
+              <main className={cn("flex-1", mounted && !isExcludedPath && "pb-32")}>
                 <WelcomeBonusOverlay />
-                
                 {!isExcludedPath ? (
                   <ZoneGuard>{children}</ZoneGuard>
                 ) : (
                   <>{children}</>
                 )}
               </main>
-              {!isExcludedPath && <BottomNav />}
-              {!isExcludedPath && <TawkChat />}
+              {mounted && !isExcludedPath && <BottomNav />}
             </div>
           </AuthGuard>
           <Toaster />
