@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, memo } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { Search, X, Clock, MapPin, Loader2, Store, Plus, Heart, Megaphone, Tag } from 'lucide-react';
+import { Search, X, Clock, MapPin, Loader2, Store, Plus, Heart, Megaphone, Tag, ShoppingBag } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
