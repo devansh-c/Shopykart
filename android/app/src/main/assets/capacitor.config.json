@@ -1,9 +1,9 @@
 {
 	"appId": "co.in.shopykart.app",
-	"appName": "ShopyKart",
+	"appName": "Shopykart",
 	"webDir": "out",
 	"server": {
-		"androidScheme": "https",
+		"androidScheme": "http",
 		"cleartext": true,
 		"allowNavigation": [
 			"shopykart.co.in",
@@ -11,6 +11,15 @@
 		]
 	},
 	"plugins": {
+		"SplashScreen": {
+			"launchShowDuration": 1500,
+			"launchAutoHide": true,
+			"backgroundColor": "#ffffff",
+			"androidScaleType": "CENTER_CROP",
+			"showSpinner": false,
+			"splashFullScreen": true,
+			"splashImmersive": true
+		},
 		"PushNotifications": {
 			"presentationOptions": [
 				"badge",

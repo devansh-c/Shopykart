@@ -13,7 +13,10 @@ async function getInitialData() {
   
   // PREVIEW SPEED OPTIMIZATION: Strictly bypass heavy SSR fetch in development.
   // This prevents the 50s+ compilation delay and ENOENT manifest errors.
-  if (process.env.NODE_ENV !== 'production' || process.env.NEXT_PUBLIC_STATIC_EXPORT !== 'true') {
+  const isDev = process.env.NODE_ENV === 'development';
+  const isExport = process.env.NEXT_PUBLIC_STATIC_EXPORT === 'true';
+
+  if (isDev || !isExport) {
     return emptyData;
   }
 
@@ -24,27 +27,22 @@ async function getInitialData() {
     const { firestore } = initializeFirebase();
     if (!firestore) return emptyData;
 
-    const fetchWithTimeout = async (promise: Promise<any>) => {
-      const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 10000));
-      const result = await Promise.race([promise, timeout]);
-      return result;
-    };
-
+    // Use a very light fetch for build time
     const [bannersSnap, categoriesSnap, vendorsSnap, productsSnap, zonesSnap, couponsSnap] = await Promise.all([
-      fetchWithTimeout(getDocs(collection(firestore, 'banners'))),
-      fetchWithTimeout(getDocs(collection(firestore, 'categories'))),
-      fetchWithTimeout(getDocs(query(collection(firestore, 'vendors'), limit(50)))),
-      fetchWithTimeout(getDocs(query(collection(firestore, 'products'), limit(100)))),
-      fetchWithTimeout(getDocs(collection(firestore, 'zones'))),
-      fetchWithTimeout(getDocs(collection(firestore, 'coupons')))
+      getDocs(query(collection(firestore, 'banners'), limit(5))),
+      getDocs(query(collection(firestore, 'categories'), limit(10))),
+      getDocs(query(collection(firestore, 'vendors'), limit(20))),
+      getDocs(query(collection(firestore, 'products'), limit(20))),
+      getDocs(collection(firestore, 'zones')),
+      getDocs(query(collection(firestore, 'coupons'), limit(10)))
     ]);
 
-    const banners = bannersSnap?.docs ? bannersSnap.docs.map((d: any) => ({ id: d.id, ...d.data() })) : [];
-    const categories = categoriesSnap?.docs ? categoriesSnap.docs.map((d: any) => ({ id: d.id, ...d.data() })) : [];
-    const stores = vendorsSnap?.docs ? vendorsSnap.docs.map((d: any) => ({ id: d.id, ...d.data() })) : [];
-    const products = productsSnap?.docs ? productsSnap.docs.map((d: any) => ({ id: d.id, ...d.data() })) : [];
-    const zones = zonesSnap?.docs ? zonesSnap.docs.map((d: any) => ({ id: d.id, ...d.data() })) : [];
-    const coupons = couponsSnap?.docs ? couponsSnap.docs.map((d: any) => ({ id: d.id, ...d.data() })) : [];
+    const banners = bannersSnap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+    const categories = categoriesSnap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+    const stores = vendorsSnap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+    const products = productsSnap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+    const zones = zonesSnap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+    const coupons = couponsSnap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
 
     return JSON.parse(JSON.stringify({
       banners,
@@ -69,19 +67,6 @@ export default async function ShopyKartApp() {
     "url": "https://shopykart.co.in",
     "logo": "https://shopykart.co.in/logo.png"
   };
-
-  // Skip SSR logic entirely in dev mode for maximum startup speed
-  if (process.env.NODE_ENV !== 'production' && process.env.NEXT_PUBLIC_STATIC_EXPORT !== 'true') {
-    return (
-      <>
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
-        />
-        <HomeClient />
-      </>
-    );
-  }
 
   const initialData = await getInitialData();
 

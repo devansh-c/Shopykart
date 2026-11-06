@@ -10,7 +10,9 @@ const nextConfig: NextConfig = {
   },
   eslint: {
     ignoreDuringBuilds: true,
-  }
+  },
+  // Prevent double rendering issues that can lead to manifest race conditions
+  reactStrictMode: false,
 };
 
 export default nextConfig;

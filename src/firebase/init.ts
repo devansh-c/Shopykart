@@ -1,6 +1,6 @@
 import { initializeApp, getApps, FirebaseApp, getApp } from 'firebase/app';
 import { firebaseConfig } from './config';
-import { initializeFirestore, persistentLocalCache, Firestore } from 'firebase/firestore';
+import { initializeFirestore, persistentLocalCache, Firestore, memoryLocalCache } from 'firebase/firestore';
 import { getAuth, Auth, setPersistence, browserLocalPersistence } from 'firebase/auth';
 
 /**
@@ -12,7 +12,6 @@ let authInstance: Auth | null = null;
 
 /**
  * Optimized Firebase initialization for Mobile/Static Export.
- * Uses persistentLocalCache and explicit browserLocalPersistence to fix login loss.
  */
 export function initializeFirebase() {
   // 1. Initialize App
@@ -22,28 +21,28 @@ export function initializeFirebase() {
     appInstance = getApp();
   }
 
-  // 2. Initialize Firestore with Persistent Local Cache
+  // 2. Initialize Firestore
   if (!firestoreInstance) {
     if (typeof window !== 'undefined') {
       firestoreInstance = initializeFirestore(appInstance, {
+        // Use persistent cache only on client to avoid server manifest errors
         localCache: persistentLocalCache({
-          tabManager: undefined // Best for Mobile/Single-tab environments
+          tabManager: undefined 
         }),
       });
     } else {
-      const { getFirestore } = require('firebase/firestore');
-      firestoreInstance = getFirestore(appInstance);
+      // Server side uses memory cache to avoid ENOENT errors
+      firestoreInstance = initializeFirestore(appInstance, {
+        localCache: memoryLocalCache()
+      });
     }
   }
 
-  // 3. Initialize Auth with Browser Local Persistence
+  // 3. Initialize Auth
   if (!authInstance) {
     authInstance = getAuth(appInstance);
     if (typeof window !== 'undefined') {
-      // Explicitly set persistence to LOCAL to survive app restarts
-      setPersistence(authInstance, browserLocalPersistence).catch((err) => {
-        console.error("Auth Persistence Error:", err);
-      });
+      setPersistence(authInstance, browserLocalPersistence).catch(() => {});
     }
   }
 
