@@ -3,7 +3,7 @@ import HomeClient from '@/components/home/HomeClient';
 /**
  * @fileOverview Optimized Server-Side Entry Point.
  * BAKES Firestore data into HTML at build time for 0.0ms instant loading.
- * Optimized for development: Skips heavy server-side fetches to ensure < 5s startup.
+ * Optimized for development: Skips heavy server-side fetches to ensure < 2s startup.
  */
 
 export const revalidate = 3600; // Revalidate every hour
@@ -11,21 +11,19 @@ export const revalidate = 3600; // Revalidate every hour
 async function getInitialData() {
   const emptyData = { banners: [], categories: [], stores: [], products: [], zones: [], coupons: [] };
   
-  // PREVIEW SPEED OPTIMIZATION: Skip heavy SSR fetch in development to prevent slow server starts.
-  // We only perform server-side "baking" during a real static export production build.
-  if (process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_STATIC_EXPORT !== 'true') {
+  // PREVIEW SPEED OPTIMIZATION: Strictly bypass heavy SSR fetch in development.
+  // This prevents the 50s+ compilation delay and ENOENT manifest errors.
+  if (process.env.NODE_ENV !== 'production' || process.env.NEXT_PUBLIC_STATIC_EXPORT !== 'true') {
     return emptyData;
   }
 
   try {
-    // Lazy load heavy Firebase modules only when performing static baking
     const { initializeFirebase } = await import('@/firebase/init');
     const { collection, getDocs, limit, query } = await import('firebase/firestore');
 
     const { firestore } = initializeFirebase();
     if (!firestore) return emptyData;
 
-    // RESILIENT FETCH: Use a resolver timeout instead of a rejecting one.
     const fetchWithTimeout = async (promise: Promise<any>) => {
       const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 10000));
       const result = await Promise.race([promise, timeout]);
@@ -57,14 +55,12 @@ async function getInitialData() {
       coupons
     }));
   } catch (error) {
-    console.warn("Server-side data fetch bypassed (falling back to client load):", error);
+    console.warn("Static data baking bypassed:", error);
     return emptyData;
   }
 }
 
 export default async function ShopyKartApp() {
-  const initialData = await getInitialData();
-
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "DeliveryService",
@@ -73,6 +69,21 @@ export default async function ShopyKartApp() {
     "url": "https://shopykart.co.in",
     "logo": "https://shopykart.co.in/logo.png"
   };
+
+  // Skip SSR logic entirely in dev mode for maximum startup speed
+  if (process.env.NODE_ENV !== 'production' && process.env.NEXT_PUBLIC_STATIC_EXPORT !== 'true') {
+    return (
+      <>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        />
+        <HomeClient />
+      </>
+    );
+  }
+
+  const initialData = await getInitialData();
 
   return (
     <>
