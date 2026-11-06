@@ -2,10 +2,10 @@ import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: "co.in.shopykart.app",
-  appName: "ShopyKart",
+  appName: "Shopykart",
   webDir: "out",
   server: {
-    androidScheme: "https",
+    androidScheme: "http",
     cleartext: true,
     allowNavigation: [
       "shopykart.co.in",
@@ -13,14 +13,23 @@ const config: CapacitorConfig = {
     ]
   },
   plugins: {
-    PushNotifications: { 
-      presentationOptions: ["badge", "sound", "alert"] 
+    SplashScreen: {
+      launchShowDuration: 1500,
+      launchAutoHide: true,
+      backgroundColor: "#ffffff",
+      androidScaleType: "CENTER_CROP",
+      showSpinner: false,
+      splashFullScreen: true,
+      splashImmersive: true
     },
-    LocalNotifications: { 
-      smallIcon: "ic_stat_notification", 
+    PushNotifications: {
+      presentationOptions: ["badge", "sound", "alert"]
+    },
+    LocalNotifications: {
+      smallIcon: "ic_stat_notification",
       iconColor: "#EF4444",
       sound: "order_alert"
-    },
+    }
   }
 };
 
