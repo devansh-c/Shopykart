@@ -46,6 +46,7 @@ jobs:
       - name: Sync Customer
         run: |
           sed -i "s/appId: [\"'].*[\"']/appId: \"co.in.shopykart.app\"/" capacitor.config.ts
+          sed -i "s/appName: [\"'].*[\"']/appName: \"Shopykart\"/" capacitor.config.ts
           npx cap sync android
 
       - name: Build Android (Customer)
@@ -69,6 +70,7 @@ jobs:
       - name: Sync Admin
         run: |
           sed -i "s/appId: [\"'].*[\"']/appId: \"co.in.shopykart.admin\"/" capacitor.config.ts
+          sed -i "s/appName: [\"'].*[\"']/appName: \"Shopykart CEO\"/" capacitor.config.ts
           npx cap sync android
 
       - name: Build Android (Admin)
@@ -92,6 +94,7 @@ jobs:
       - name: Sync Biz
         run: |
           sed -i "s/appId: [\"'].*[\"']/appId: \"co.in.shopykart.biz\"/" capacitor.config.ts
+          sed -i "s/appName: [\"'].*[\"']/appName: \"Shopykart Business\"/" capacitor.config.ts
           npx cap sync android
 
       - name: Build Android (Biz)
@@ -115,6 +118,7 @@ jobs:
       - name: Sync Tow
         run: |
           sed -i "s/appId: [\"'].*[\"']/appId: \"co.in.shopykart.tow\"/" capacitor.config.ts
+          sed -i "s/appName: [\"'].*[\"']/appName: \"Shopykart Tow\"/" capacitor.config.ts
           npx cap sync android
 
       - name: Build Android (Tow)
@@ -130,7 +134,7 @@ jobs:
       - name: Upload Quad Bundle
         uses: actions/upload-artifact@v4
         with:
-          name: ShopyKart-Quad-Apps
+          name: ShopyKart-v1.4-Apps
           path: |
             customer.shopykart.apk
             customer.shopykart.aab
