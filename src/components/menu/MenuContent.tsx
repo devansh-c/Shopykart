@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useMemo, useEffect, memo } from 'react';
@@ -98,20 +97,31 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
       if (!firestore || !rawSlug) return;
       setVendorLoading(true);
       try {
-        const idRef = doc(firestore, 'vendors', rawSlug);
-        const idSnap = await getDoc(idRef);
-        if (idSnap.exists()) {
-          setVendorProfile({ id: idSnap.id, ...idSnap.data() });
-          setVendorLoading(false);
-          return;
+        // First try finding by ID if rawSlug looks like a Firestore ID
+        if (rawSlug.length >= 20) {
+          const idRef = doc(firestore, 'vendors', rawSlug);
+          const idSnap = await getDoc(idRef);
+          if (idSnap.exists()) {
+            setVendorProfile({ id: idSnap.id, ...idSnap.data() });
+            setVendorLoading(false);
+            return;
+          }
         }
 
+        // Search by SEO Slug
         const slugQ = query(collection(firestore, 'vendors'), where('slug', '==', rawSlug), limit(1));
         const slugSnap = await getDocs(slugQ);
         if (!slugSnap.empty) {
           setVendorProfile({ id: slugSnap.docs[0].id, ...slugSnap.docs[0].data() });
           setVendorLoading(false);
           return;
+        }
+
+        // Final fallback: try ID match even if short
+        const idRefFallback = doc(firestore, 'vendors', rawSlug);
+        const idSnapFallback = await getDoc(idRefFallback);
+        if (idSnapFallback.exists()) {
+          setVendorProfile({ id: idSnapFallback.id, ...idSnapFallback.data() });
         }
       } catch (err) {
         console.error("Vendor resolution error:", err);

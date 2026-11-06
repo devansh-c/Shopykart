@@ -3,11 +3,10 @@ import ProductDetailsClient from '@/components/product/ProductDetailsClient';
 import { Loader2 } from 'lucide-react';
 
 export const dynamic = 'force-static';
-export const dynamicParams = false;
+// Removed dynamicParams = false to prevent 404 on new products
 
 /**
  * @fileOverview Optimized Product Page for Static Export.
- * Pruned generateStaticParams to keep APK size small (~20MB).
  */
 export async function generateStaticParams() {
   return [{ slug: 'view' }];

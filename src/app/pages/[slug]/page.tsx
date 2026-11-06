@@ -4,7 +4,7 @@ import { Loader2 } from 'lucide-react';
 import type { Metadata } from 'next';
 
 export const dynamic = 'force-static';
-export const dynamicParams = false;
+// Removed dynamicParams = false to support dynamic slugs
 
 /**
  * @fileOverview Static export compatibility for custom policy pages.

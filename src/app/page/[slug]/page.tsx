@@ -1,10 +1,9 @@
-
 import { Suspense } from 'react';
 import StaticPageView from '@/components/shared/StaticPageView';
 import { Loader2 } from 'lucide-react';
 
 export const dynamic = 'force-static';
-export const dynamicParams = false;
+// Removed dynamicParams = false to allow new policy pages
 
 /**
  * @fileOverview Static export shell for Policy Pages.

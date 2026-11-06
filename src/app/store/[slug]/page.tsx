@@ -3,15 +3,13 @@ import { Loader2 } from 'lucide-react';
 import MenuContent from '@/components/menu/MenuContent';
 
 export const dynamic = 'force-static';
-export const dynamicParams = false;
+// Removed dynamicParams = false to prevent 404 on new/unknown slugs
 
 /**
  * @fileOverview Optimized Store Page for Static Export.
- * Removed generateStaticParams logic to avoid massive file generation during build.
- * This keeps the APK size small (~20MB) by handling dynamic data on the client.
+ * Providing a shell for static structure while allowing dynamic resolution.
  */
 export async function generateStaticParams() {
-  // Return just one dummy entry to satisfy the static requirement without bloat
   return [{ slug: 'view' }];
 }
 
