@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo, useState, useEffect, memo } from 'react';
@@ -109,18 +110,18 @@ export const VerticalStoreList = memo(({
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'vendors'), limit(50));
+    return query(collection(firestore, 'vendors'), limit(30));
   }, [firestore]);
-  const { data: dbVendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery, 'home_vstores_v18', initialData);
+  const { data: dbVendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery, 'home_vstores_v19', initialData);
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'products'), limit(500));
+    return query(collection(firestore, 'products'), limit(100));
   }, [firestore]);
-  const { data: dbAllProducts } = useCollection<any>(productsQuery, 'home_strip_products_v24', initialProducts);
+  const { data: dbAllProducts } = useCollection<any>(productsQuery, 'home_strip_products_v25', initialProducts);
 
   const filteredVendors = useMemo(() => {
-    const list = (dbVendors !== null) ? dbVendors : initialData;
+    const list = (dbVendors !== null && dbVendors.length > 0) ? dbVendors : initialData;
     if (!list || list.length === 0) return [];
     
     const searchLower = searchQuery.toLowerCase().trim();
@@ -184,7 +185,7 @@ export const VerticalStoreList = memo(({
             const isOpen = isStoreScheduleOpen(store, currentTimeMins);
             const isOffline = store.isOnline === false || !isOpen;
             
-            const productPool = (dbAllProducts !== null) ? dbAllProducts : initialProducts;
+            const productPool = (dbAllProducts !== null && dbAllProducts.length > 0) ? dbAllProducts : initialProducts;
             const storeProducts = productPool.filter((p: any) => String(p.vendorId) === String(store.id) && p.isDeleted !== true).slice(0, 8);
 
             return (

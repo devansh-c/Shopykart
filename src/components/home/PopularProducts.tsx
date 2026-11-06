@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useState, useEffect, memo, useCallback } from "react"
@@ -119,7 +120,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
         setActiveTown(localStorage.getItem('user_address'));
       }
     };
-    updateLocation(); 
+    updateZone(); 
     window.addEventListener('user-address-updated', updateZone);
     const syncTime = () => { const d = new Date(); setCurrentTimeMinutes(d.getHours() * 60 + d.getMinutes()); };
     syncTime(); 
@@ -130,11 +131,11 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   }, []);
 
   const productsQuery = useMemoFirebase(() => 
-    firestore ? query(collection(firestore, 'products'), limit(500)) : null, 
+    firestore ? query(collection(firestore, 'products'), limit(100)) : null, 
     [firestore]
   );
   
-  const { data: dbProducts, loading: queryLoading } = useCollection<any>(productsQuery, 'home_products_full_v2');
+  const { data: dbProducts, loading: queryLoading } = useCollection<any>(productsQuery, 'home_products_full_v3', initialData);
   const vendorsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'vendors') : null, [firestore]);
   const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v6_stable', initialStores);
 
@@ -167,7 +168,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       const rankA = (Number(vA?.rating) || 0) + (Number(a.rating) || 0);
       const rankB = (Number(vB?.rating) || 0) + (Number(b.rating) || 0);
       return rankB - rankA;
-    }).slice(0, 40); // Performance: Limit rendered items
+    }).slice(0, 40); 
   }, [dbProducts, initialData, vendors, initialStores, searchQuery, category, activeMode, activeZoneId, activeTown, currentTimeMinutes]);
 
   const handleShare = useCallback((e: React.MouseEvent, product: any) => {
@@ -186,7 +187,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
         </Badge>
       </div>
       
-      {queryLoading && !dbProducts ? (
+      {queryLoading && (!productsToDisplay || productsToDisplay.length === 0) ? (
         <div className="grid grid-cols-2 gap-4 animate-in fade-in duration-500">
            {[1, 2, 3, 4].map(i => (
              <div key={i} className="space-y-3 bg-white p-3 rounded-[1.5rem] border border-gray-100">
