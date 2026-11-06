@@ -14,6 +14,14 @@ const nextConfig: NextConfig = {
   },
   // Disable strict mode to prevent double-initialization in development
   reactStrictMode: false,
+  // Fix Cross-Origin issues in cloud development environments
+  experimental: {
+    allowedDevOrigins: [
+      '*.cloudworkstations.dev',
+      '*.firebaseapp.com',
+      '*.shopykart.co.in'
+    ]
+  }
 };
 
 export default nextConfig;

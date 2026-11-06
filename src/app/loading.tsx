@@ -1,6 +1,7 @@
+
 /**
- * @fileOverview Atomic Fast Loading UI with Inline Recovery Styles.
- * Uses inline-css to ensure centering even if globals.css is blocked during hydration.
+ * @fileOverview Atomic Fast Loading UI for v1.4.
+ * Uses strictly inline-css to prevent "Top-Left Freeze" during hydration.
  */
 export default function Loading() {
   return (
@@ -12,41 +13,50 @@ export default function Loading() {
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: '#ffffff',
-      zIndex: 999999
+      zIndex: 2147483647
     }}>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center', 
+        gap: '20px' 
+      }}>
+        {/* CSS-only spinner that works even if JS/Hydration is locked */}
         <div style={{
-          width: '48px',
-          height: '48px',
-          border: '4px solid #f3f3f3',
-          borderTop: '4px solid #EF4444',
+          width: '50px',
+          height: '50px',
+          border: '5px solid rgba(239, 68, 68, 0.1)',
+          borderTop: '5px solid #EF4444',
           borderRadius: '50%',
-          animation: 'spin 0.8s linear infinite'
+          animation: 'spin-loader 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite'
         }} />
+        
         <style dangerouslySetInnerHTML={{ __html: `
-          @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+          @keyframes spin-loader { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         `}} />
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+
+        <div style={{ textAlign: 'center' }}>
           <p style={{
-            fontSize: '10px',
+            fontSize: '11px',
             fontWeight: 900,
             textTransform: 'uppercase',
-            letterSpacing: '0.4em',
+            letterSpacing: '0.5em',
             color: '#111827',
             fontStyle: 'italic',
             margin: 0
           }}>
-            ShopyKart
+            SHOPYKART
           </p>
           <p style={{
             fontSize: '7px',
             fontWeight: 700,
             textTransform: 'uppercase',
-            letterSpacing: '0.1em',
+            letterSpacing: '0.2em',
             color: '#9CA3AF',
-            marginTop: '4px',
-            margin: '4px 0 0 0'
-          }}>Gourmet Delivery Network</p>
+            marginTop: '6px'
+          }}>
+            GOURMET NETWORK v1.4
+          </p>
         </div>
       </div>
     </div>
