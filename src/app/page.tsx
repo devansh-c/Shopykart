@@ -10,7 +10,8 @@ export const revalidate = 3600;
 async function getInitialData() {
   const emptyData = { banners: [], categories: [], stores: [], products: [], zones: [], coupons: [] };
   
-  // Dev mode always bypasses to prevent hydration locks in the editor
+  // STRICT BYPASS FOR DEV: No Firestore on Server-side in preview
+  // This eliminates the 1.5s delay and prevents manifest/ENOENT crashes
   if (process.env.NODE_ENV === 'development') return emptyData;
 
   try {

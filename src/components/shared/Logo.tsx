@@ -1,4 +1,3 @@
-
 "use client"
 
 import { cn } from "@/lib/utils";
@@ -8,8 +7,7 @@ import { useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 
 /**
- * @fileOverview Logo component using dynamic branding or fallback placeholder.
- * Supports Store-App specific branding via environment flags.
+ * @fileOverview Logo component with Advanced Multi-App Switching for Preview mode.
  */
 export function Logo({ className }: { className?: string }) {
   const [taps, setTaps] = useState(0);
@@ -24,27 +22,36 @@ export function Logo({ className }: { className?: string }) {
 
   const { data: branding } = useDoc<any>(brandingRef);
 
-  // LOGO DIFFERENTIATION LOGIC
+  const currentAppType = useMemo(() => {
+    if (typeof window === 'undefined') return 'customer';
+    if (process.env.NEXT_PUBLIC_ADMIN_APP === 'true') return 'admin';
+    if (process.env.NEXT_PUBLIC_BIZ_APP === 'true') return 'biz';
+    if (process.env.NEXT_PUBLIC_TOW_APP === 'true') return 'tow';
+    return localStorage.getItem('shopykart_dev_app_type') || 'customer';
+  }, []);
+
   const displayLogo = useMemo(() => {
     if (!branding) return null;
-    
-    // Check if the current app is the Store (Biz) app
-    const isBizApp = process.env.NEXT_PUBLIC_BIZ_APP === 'true';
-    
-    // Priority: Store-Specific Logo (for Biz app) > Main Logo > Fallback Text
-    if (isBizApp && branding.bizLogoUrl) {
-      return branding.bizLogoUrl;
-    }
-    
+    if (currentAppType === 'biz' && branding.bizLogoUrl) return branding.bizLogoUrl;
     return branding.logoUrl || null;
-  }, [branding]);
+  }, [branding, currentAppType]);
 
   const handleTap = () => {
     if (timerRef.current) clearTimeout(timerRef.current);
     const nextTaps = taps + 1;
+    
     if (nextTaps >= 5) {
       setTaps(0);
-      router.push('/admin/dashboard');
+      // For Dev Preview: Cycle through app types on 5 taps
+      if (process.env.NODE_ENV === 'development') {
+        const types = ['customer', 'admin', 'biz', 'tow'];
+        const nextType = types[(types.indexOf(currentAppType) + 1) % types.length];
+        localStorage.setItem('shopykart_dev_app_type', nextType);
+        alert(`Preview Mode Switched to: ${nextType.toUpperCase()}`);
+        window.location.reload();
+      } else {
+        router.push('/admin/dashboard');
+      }
     } else {
       setTaps(nextTaps);
       timerRef.current = setTimeout(() => {
@@ -71,7 +78,7 @@ export function Logo({ className }: { className?: string }) {
         <div className="flex flex-col items-center">
            <span className="text-white font-black italic text-sm tracking-tighter leading-none">SHOPYKART</span>
            <span className="text-[6px] font-black text-primary uppercase tracking-[0.3em]">
-             {process.env.NEXT_PUBLIC_BIZ_APP === 'true' ? 'STORE PARTNER' : 'Premium Delivery'}
+             {currentAppType === 'biz' ? 'STORE PARTNER' : currentAppType === 'admin' ? 'CEO CONTROL' : currentAppType === 'tow' ? 'FLEET PANEL' : 'Premium Delivery'}
            </span>
         </div>
       )}

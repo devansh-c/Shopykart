@@ -39,13 +39,16 @@ function HomeContent({
 
   useEffect(() => {
     setIsClient(true);
-    const isAdmin = process.env.NEXT_PUBLIC_ADMIN_APP === 'true';
-    const isBiz = process.env.NEXT_PUBLIC_BIZ_APP === 'true';
-    const isTow = process.env.NEXT_PUBLIC_TOW_APP === 'true';
+    
+    // Check for App Mode in localStorage or URL (for dev preview only)
+    const storedAppType = localStorage.getItem('shopykart_dev_app_type');
+    const isProdAdmin = process.env.NEXT_PUBLIC_ADMIN_APP === 'true';
+    const isProdBiz = process.env.NEXT_PUBLIC_BIZ_APP === 'true';
+    const isProdTow = process.env.NEXT_PUBLIC_TOW_APP === 'true';
 
-    if (isAdmin) router.replace('/admin/dashboard');
-    else if (isBiz) router.replace('/vendor/dashboard');
-    else if (isTow) router.replace('/delivery/dashboard');
+    if (isProdAdmin || storedAppType === 'admin') router.replace('/admin/dashboard');
+    else if (isProdBiz || storedAppType === 'biz') router.replace('/vendor/dashboard');
+    else if (isProdTow || storedAppType === 'tow') router.replace('/delivery/dashboard');
   }, [router]);
 
   const activeMode = searchParams.get('mode') || 'Food';
@@ -67,9 +70,6 @@ function HomeContent({
   const handleModeChange = (mode: string) => {
     updateUrlParam('mode', mode);
   };
-
-  // Prevent heavy rendering until hydration is complete
-  
 
   return (
     <div className="min-h-screen bg-white transform-gpu">
