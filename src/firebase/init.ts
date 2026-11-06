@@ -1,3 +1,4 @@
+
 import { initializeApp, getApps, FirebaseApp, getApp } from 'firebase/app';
 import { firebaseConfig } from './config';
 import { initializeFirestore, persistentLocalCache, Firestore, memoryLocalCache } from 'firebase/firestore';
@@ -12,6 +13,7 @@ let authInstance: Auth | null = null;
 
 /**
  * Optimized Firebase initialization for Mobile/Static Export.
+ * Effectively handles both server and client environments.
  */
 export function initializeFirebase() {
   // 1. Initialize App
@@ -25,13 +27,12 @@ export function initializeFirebase() {
   if (!firestoreInstance) {
     if (typeof window !== 'undefined') {
       firestoreInstance = initializeFirestore(appInstance, {
-        // Use persistent cache only on client to avoid server manifest errors
         localCache: persistentLocalCache({
           tabManager: undefined 
         }),
       });
     } else {
-      // Server side uses memory cache to avoid ENOENT errors
+      // Server side uses memory cache to avoid ENOENT errors during compilation
       firestoreInstance = initializeFirestore(appInstance, {
         localCache: memoryLocalCache()
       });

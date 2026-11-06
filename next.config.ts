@@ -1,3 +1,4 @@
+
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
@@ -11,7 +12,7 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // Prevent double rendering issues that can lead to manifest race conditions
+  // Disable strict mode to prevent double-initialization in development
   reactStrictMode: false,
 };
 

@@ -157,27 +157,54 @@ export default function CartPage() {
   };
 
   const finalizeOrder = async () => {
-    if (!user) { window.dispatchEvent(new CustomEvent('open-auth-overlay')); return; }
-    if (!isMinOrderMet) { toast({ variant: "destructive", title: `Min order ₹${minOrderValue} required.` }); return; }
-    if (!recipientForm.name || !recipientForm.address || recipientForm.phone.length !== 10) { setIsAddressModalOpen(true); return; }
-    if (paymentMethod === 'UPI' && !utrNumber) { setIsUpiModalOpen(true); return; }
+    if (!user) { 
+      window.dispatchEvent(new CustomEvent('open-auth-overlay')); 
+      return; 
+    }
+    
+    if (cart.length === 0) {
+      toast({ variant: "destructive", title: "Cart is empty" });
+      return;
+    }
+
+    if (!isMinOrderMet) { 
+      toast({ variant: "destructive", title: `Min order ₹${minOrderValue} required.` }); 
+      return; 
+    }
+
+    if (!recipientForm.name || !recipientForm.address || recipientForm.phone.length !== 10) { 
+      setIsAddressModalOpen(true); 
+      return; 
+    }
+
+    if (paymentMethod === 'UPI' && !utrNumber) { 
+      setIsUpiModalOpen(true); 
+      return; 
+    }
 
     setIsPlacing(true);
     try {
       const allVendorIds = Array.from(new Set(cart.map(item => String(item.vendorId)).filter(Boolean)));
       const firstVendor = vendors?.find(v => String(v.id) === String(allVendorIds[0]));
       
+      // Get precise location from storage or defaults
+      const lat = localStorage.getItem('user_lat') ? parseFloat(localStorage.getItem('user_lat')!) : 25.2443;
+      const lng = localStorage.getItem('user_lng') ? parseFloat(localStorage.getItem('user_lng')!) : 79.0838;
+
       const orderData = {
         userId: user.uid, 
-        customerName: recipientForm.name, 
+        customerName: recipientForm.name.toUpperCase(), 
         customerPhone: recipientForm.phone, 
-        address: recipientForm.address,
+        address: recipientForm.address.toUpperCase(),
+        customerLat: lat,
+        customerLng: lng,
         items: cart, 
-        total: totalPayable, 
+        total: Math.round(totalPayable), 
         status: 'Placed', 
         createdAt: serverTimestamp(),
         vendorIds: allVendorIds, 
         vendorId: allVendorIds[0], 
+        restaurantName: firstVendor?.storeName || 'Store Hub',
         vendorPhone: firstVendor?.phone || '',
         vendorAddress: firstVendor?.town || firstVendor?.city || 'Local Hub',
         vendorImageUrl: firstVendor?.imageUrl || '',
@@ -195,17 +222,34 @@ export default function CartPage() {
         isDonationEnabled: isDonating,
         isContactless,
         totalSaved,
-        couponId: appliedCoupon?.id || null
+        couponId: appliedCoupon?.id || null,
+        updatedAt: serverTimestamp()
       };
 
-      await addDoc(collection(firestore!, 'orders'), orderData);
-      if (isRedeemingCoins) await updateDoc(doc(firestore!, 'users', user.uid), { coins: increment(-coinDiscount) });
+      if (!firestore) throw new Error("Firestore not initialized");
+
+      const docRef = await addDoc(collection(firestore, 'orders'), orderData);
+      
+      // Update coins if redeemed
+      if (isRedeemingCoins && coinDiscount > 0) {
+        await updateDoc(doc(firestore, 'users', user.uid), { 
+          coins: increment(-coinDiscount) 
+        });
+      }
 
       setShowSuccessOverlay(true);
-      setTimeout(() => { clearCart(); router.replace('/orders'); }, 2000);
-    } catch (e) { 
+      setTimeout(() => { 
+        clearCart(); 
+        router.replace('/orders'); 
+      }, 2000);
+    } catch (e: any) { 
+      console.error("Order placement failed:", e);
       setIsPlacing(false); 
-      toast({ variant: "destructive", title: "Order Failed" }); 
+      toast({ 
+        variant: "destructive", 
+        title: "Order Failed", 
+        description: "Check your internet connection and try again." 
+      }); 
     }
   };
 
@@ -392,7 +436,7 @@ export default function CartPage() {
                     <span className="text-[9px] font-black uppercase text-primary mb-1">Payable</span>
                     <div className="flex items-center gap-1 text-4xl font-black italic text-gray-900 tracking-tighter">
                        <IndianRupee className="h-6 w-6 text-primary" strokeWidth={3} />
-                       <span>{totalPayable.toFixed(0)}</span>
+                       <span>{Math.round(totalPayable)}</span>
                     </div>
                  </div>
               </div>
@@ -432,8 +476,8 @@ export default function CartPage() {
            <div className="text-center space-y-8">
               <DialogTitle className="text-2xl font-black uppercase italic tracking-tighter">Scan & Pay</DialogTitle>
               <div className="bg-gray-50 p-6 rounded-[2.5rem] border-4 border-dashed border-gray-200">
-                 <img src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`upi://pay?pa=9450355709@axl&pn=ShopyKart&am=${totalPayable}&cu=INR`)}`} className="h-48 w-48 mx-auto" alt="UPI QR" />
-                 <h4 className="mt-4 text-3xl font-black italic">₹{totalPayable.toFixed(0)}</h4>
+                 <img src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`upi://pay?pa=9450355709@axl&pn=ShopyKart&am=${Math.round(totalPayable)}&cu=INR`)}`} className="h-48 w-48 mx-auto" alt="UPI QR" />
+                 <h4 className="mt-4 text-3xl font-black italic">₹{Math.round(totalPayable)}</h4>
               </div>
               <div className="space-y-4">
                  <Input placeholder="ENTER 12-DIGIT UTR" value={utrNumber} onChange={e => setUtrNumber(e.target.value.replace(/\D/g,'').slice(0, 12))} className="h-16 rounded-2xl bg-gray-50 border-none font-black text-2xl text-center tracking-[0.2em]" />
