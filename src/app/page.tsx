@@ -3,7 +3,8 @@ import HomeClient from '@/components/home/HomeClient';
 
 /**
  * @fileOverview Optimized Entry Point for v1.4.
- * FORCE BYPASS: No Firestore on Server-side in Dev to prevent compilation hangups.
+ * ZERO-SSR STRATEGY: Strictly bypasses Firestore on Server-side in Dev mode 
+ * to prevent Turbopack manifest errors and startup freezes.
  */
 
 export const revalidate = 3600;
@@ -11,7 +12,8 @@ export const revalidate = 3600;
 async function getInitialData() {
   const emptyData = { banners: [], categories: [], stores: [], products: [], zones: [], coupons: [] };
   
-  // IN DEV PREVIEW: Return empty immediately. All data loads client-side.
+  // IN DEV PREVIEW: Return empty immediately. 
+  // This is the #1 fix for "Frozen Spinner" during development.
   if (process.env.NODE_ENV !== 'production') return emptyData;
 
   try {
@@ -21,12 +23,12 @@ async function getInitialData() {
     const { firestore } = initializeFirebase();
     if (!firestore) return emptyData;
 
-    // Production Build Only: Bake initial data for speed
+    // Production Build Only: Bake initial data for high-speed mobile experience
     const [bannersSnap, categoriesSnap, vendorsSnap, productsSnap, zonesSnap, couponsSnap] = await Promise.all([
-      getDocs(query(collection(firestore, 'banners'), limit(5))),
-      getDocs(query(collection(firestore, 'categories'), limit(15))),
-      getDocs(query(collection(firestore, 'vendors'), limit(15))),
-      getDocs(query(collection(firestore, 'products'), limit(15))),
+      getDocs(query(collection(firestore, 'banners'), limit(10))),
+      getDocs(query(collection(firestore, 'categories'), limit(20))),
+      getDocs(query(collection(firestore, 'vendors'), limit(20))),
+      getDocs(query(collection(firestore, 'products'), limit(30))),
       getDocs(collection(firestore, 'zones')),
       getDocs(query(collection(firestore, 'coupons'), limit(5)))
     ]);
@@ -40,6 +42,7 @@ async function getInitialData() {
       coupons: couponsSnap.docs.map((d: any) => ({ id: d.id, ...d.data() }))
     };
   } catch (error) {
+    console.error("Initial data bake failed:", error);
     return emptyData;
   }
 }

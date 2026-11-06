@@ -53,7 +53,6 @@ function HomeContent({
   }, [router]);
 
   const activeMode = searchParams.get('mode') || 'Food';
-  const activeCategory = searchParams.get('cat') || 'all';
 
   const updateUrlParam = useCallback((key: string, value: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -116,7 +115,7 @@ function HomeContent({
           </div>
         ) : (
           <div className="animate-in fade-in duration-300">
-            {!searchQuery && activeCategory === 'all' && (
+            {!searchQuery && (
               <div className="pt-2">
                 <OfferSlider initialData={initialBanners} />
                 <AnnouncementBanner />
