@@ -69,7 +69,7 @@ function HomeContent({
   };
 
   // Prevent heavy rendering until hydration is complete
-  if (!isClient) return <div className="min-h-screen bg-white" />;
+  
 
   return (
     <div className="min-h-screen bg-white transform-gpu">
