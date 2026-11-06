@@ -13,17 +13,23 @@ import { FirestorePermissionError } from '../errors';
 
 /**
  * @fileOverview High-Performance Document Hook.
- * TWO-PASS RENDERING: Strictly prevents hydration errors by deferring cache lookup.
+ * REACTIVE FIX: Resets loading state when the reference path changes.
  */
 export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null, cacheKey?: string, initialData?: T) {
-  // Start strictly with SSR data or null to match the server-rendered HTML
   const [data, setData] = useState<T | null>(initialData || null);
-  const [loading, setLoading] = useState(() => !initialData && !!ref);
+  const [loading, setLoading] = useState(!initialData && !!ref);
   const [error, setError] = useState<FirestoreError | null>(null);
   const hasMounted = useRef(false);
   const refPath = ref?.path;
 
-  // Perform cache lookup ONLY after mount to ensure hydration sync
+  // Handle Ref Changes
+  useEffect(() => {
+    if (hasMounted.current && ref) {
+      setLoading(true);
+    }
+  }, [refPath]);
+
+  // Cache lookup after mount
   useEffect(() => {
     if (!hasMounted.current) {
       hasMounted.current = true;

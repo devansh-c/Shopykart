@@ -15,6 +15,7 @@ import { collection, query, where, limit, doc, getDoc, getDocs } from 'firebase/
 import { ProductQuickView } from '@/components/product/ProductQuickView';
 import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from '@/components/ui/skeleton';
 
 /**
  * @fileOverview Product Horizontal Item for Menu Page.
@@ -67,7 +68,6 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
   const searchParams = useSearchParams();
   const rawSlug = forcedSlug || (params?.slug as string) || searchParams.get('id');
   const router = useRouter();
-  const { toast } = useToast();
   
   const [searchQuery, setSearchQuery] = useState('');
   const [currentMinutes, setCurrentMinutes] = useState<number | null>(null);
@@ -94,10 +94,12 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
     }
     
     async function resolveVendor() {
-      if (!firestore || !rawSlug) return;
+      if (!firestore || !rawSlug) {
+        setVendorLoading(false);
+        return;
+      }
       setVendorLoading(true);
       try {
-        // First try finding by ID if rawSlug looks like a Firestore ID
         if (rawSlug.length >= 20) {
           const idRef = doc(firestore, 'vendors', rawSlug);
           const idSnap = await getDoc(idRef);
@@ -108,7 +110,6 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
           }
         }
 
-        // Search by SEO Slug
         const slugQ = query(collection(firestore, 'vendors'), where('slug', '==', rawSlug), limit(1));
         const slugSnap = await getDocs(slugQ);
         if (!slugSnap.empty) {
@@ -117,7 +118,6 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
           return;
         }
 
-        // Final fallback: try ID match even if short
         const idRefFallback = doc(firestore, 'vendors', rawSlug);
         const idSnapFallback = await getDoc(idRefFallback);
         if (idSnapFallback.exists()) {
@@ -134,19 +134,14 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore || !vendorProfile) return null;
-    return query(collection(firestore, 'products'), where('vendorId', '==', vendorProfile.id));
+    return query(collection(firestore, 'products'), where('vendorId', '==', String(vendorProfile.id)));
   }, [firestore, vendorProfile]);
-  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, `menu_v3_${vendorProfile?.id}`, initialProducts);
-
-  const storeCouponsQuery = useMemoFirebase(() => {
-    if (!firestore || !vendorProfile) return null;
-    return query(collection(firestore, 'coupons'), where('vendorId', '==', vendorProfile.id));
-  }, [firestore, vendorProfile]);
-  const { data: storeCoupons } = useCollection<any>(storeCouponsQuery);
+  
+  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, `menu_v4_${vendorProfile?.id}`, initialProducts);
 
   const categoriesWithProducts = useMemo(() => {
     const list = (dbProducts && dbProducts.length > 0) ? dbProducts : initialProducts;
-    if (!list) return [];
+    if (!list || list.length === 0) return [];
     
     const filtered = list.filter((product: any) => {
       if (product.isDeleted) return false;
@@ -179,7 +174,7 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
     );
   }
 
-  if (!vendorProfile) {
+  if (!vendorProfile && !vendorLoading) {
     return (
       <div className="h-screen bg-white flex flex-col items-center justify-center p-8 text-center">
         <div className="bg-muted/30 h-24 w-24 rounded-full flex items-center justify-center mb-6">
@@ -212,15 +207,6 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
         </div>
       </div>
 
-      {vendorProfile.isAnnouncementActive && vendorProfile.storeAnnouncement && (
-        <div className="px-6 py-4 animate-in fade-in duration-500">
-           <div className="bg-amber-50 border-2 border-amber-400 p-5 rounded-[2rem] shadow-xl flex items-start gap-4">
-              <div className="bg-amber-400 p-2 rounded-xl text-white shadow-sm shrink-0"><Megaphone className="h-5 w-5 animate-pulse" /></div>
-              <p className="text-xs font-black italic text-amber-900 leading-tight uppercase">"{vendorProfile.storeAnnouncement}"</p>
-           </div>
-        </div>
-      )}
-
       <div className="px-6 pt-12 pb-4 text-left">
         <h1 className="text-4xl font-black italic uppercase tracking-tighter">Premium Menu</h1>
         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest italic">Best quality ingredients guaranteed.</p>
@@ -239,26 +225,45 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
       </div>
 
       <div className="space-y-12">
-        {categoriesWithProducts.map((category) => (
-          <div key={category.name} className="animate-in fade-in duration-700">
-             <div className="px-6 mb-4 flex items-center justify-between">
-                <h2 className="text-xl font-black italic uppercase tracking-tighter text-gray-900 border-l-4 border-primary pl-3">{category.name}</h2>
-                <Badge variant="outline" className="rounded-full border-gray-100 text-gray-400 font-black uppercase text-[8px]">{category.items.length} ITEMS</Badge>
-             </div>
-             
-             <div className="px-6 overflow-x-auto no-scrollbar">
-                <div className="flex space-x-5 pb-4">
-                   {category.items.map((product) => (
-                     <ProductHorizontalItem 
-                      key={product.id} 
-                      product={{...product, restaurantName: vendorProfile.storeName}} 
-                      isOffline={isOffline} 
-                     />
-                   ))}
-                </div>
-             </div>
+        {productsLoading && categoriesWithProducts.length === 0 ? (
+          <div className="px-6 space-y-10">
+             {[1, 2].map(i => (
+               <div key={i} className="space-y-4">
+                  <Skeleton className="h-6 w-32 rounded-full" />
+                  <div className="flex gap-4 overflow-hidden">
+                    <Skeleton className="h-40 w-40 shrink-0 rounded-2xl" />
+                    <Skeleton className="h-40 w-40 shrink-0 rounded-2xl" />
+                  </div>
+               </div>
+             ))}
           </div>
-        ))}
+        ) : categoriesWithProducts.length > 0 ? (
+          categoriesWithProducts.map((category) => (
+            <div key={category.name} className="animate-in fade-in duration-700">
+               <div className="px-6 mb-4 flex items-center justify-between">
+                  <h2 className="text-xl font-black italic uppercase tracking-tighter text-gray-900 border-l-4 border-primary pl-3">{category.name}</h2>
+                  <Badge variant="outline" className="rounded-full border-gray-100 text-gray-400 font-black uppercase text-[8px]">{category.items.length} ITEMS</Badge>
+               </div>
+               
+               <div className="px-6 overflow-x-auto no-scrollbar">
+                  <div className="flex space-x-5 pb-4">
+                     {category.items.map((product) => (
+                       <ProductHorizontalItem 
+                        key={product.id} 
+                        product={{...product, restaurantName: vendorProfile.storeName}} 
+                        isOffline={isOffline} 
+                       />
+                     ))}
+                  </div>
+               </div>
+            </div>
+          ))
+        ) : (
+          <div className="text-center py-20 opacity-20 flex flex-col items-center">
+             <ShoppingBag className="h-16 w-16 mb-4" />
+             <p className="font-black italic uppercase text-xs">No products listed in this store</p>
+          </div>
+        )}
       </div>
     </div>
   );

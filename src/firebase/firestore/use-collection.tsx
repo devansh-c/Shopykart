@@ -13,20 +13,35 @@ import { FirestorePermissionError } from '../errors';
 
 /**
  * @fileOverview High-Performance Real-time Collection Hook.
- * TWO-PASS RENDERING: Strictly prevents hydration errors by deferring cache until after mount.
+ * REACTIVE FIX: Now correctly resets loading state when the query changes.
  */
 export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey?: string, initialData?: T[]) {
-  // Always start with server-safe values (initialData or null) for the first render
   const [data, setData] = useState<T[] | null>(() => {
     if (initialData && initialData.length > 0) return initialData;
     return null;
   });
-  const [loading, setLoading] = useState(() => !data && !!query);
+  const [loading, setLoading] = useState(!!query);
   const [error, setError] = useState<FirestoreError | null>(null);
   
   const hasMounted = useRef(false);
 
-  // Load from cache only after client-side hydration is complete
+  const stableQueryPath = useMemo(() => {
+    if (!query) return '';
+    try {
+      return (query as any)._query?.path?.segments?.join('/') || Math.random().toString();
+    } catch (e) {
+      return Math.random().toString();
+    }
+  }, [query]);
+
+  // Handle Query Changes
+  useEffect(() => {
+    if (hasMounted.current && query) {
+      setLoading(true);
+    }
+  }, [stableQueryPath]);
+
+  // Load from cache after mount
   useEffect(() => {
     if (!hasMounted.current) {
       hasMounted.current = true;
@@ -41,15 +56,6 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
       }
     }
   }, [cacheKey, data]);
-
-  const stableQueryPath = useMemo(() => {
-    if (!query) return '';
-    try {
-      return (query as any)._query?.path?.segments?.join('/') || Math.random().toString();
-    } catch (e) {
-      return Math.random().toString();
-    }
-  }, [query]);
 
   useEffect(() => {
     if (!query) {
@@ -67,8 +73,8 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
           
           Object.keys(cleanData).forEach(key => {
             const val = (cleanData as any)[key];
-            if (val && typeof val === 'object' && val.seconds !== undefined) {
-              (cleanData as any)[key] = new Date(val.seconds * 1000).toISOString();
+            if (val && typeof val === 'object' && (val as any).seconds !== undefined) {
+              (cleanData as any)[key] = new Date((val as any).seconds * 1000).toISOString();
             }
           });
           
