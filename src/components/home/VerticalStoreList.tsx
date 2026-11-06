@@ -23,10 +23,19 @@ const ProductStripItem = memo(({ product, isOffline }: any) => {
   return (
     <div 
       onClick={(e) => e.stopPropagation()} 
-      className={cn("min-w-[140px] max-w-[140px] flex flex-col group/item transition-all animate-in fade-in zoom-in duration-300", isOffline && "opacity-60")}
+      className={cn("min-w-[140px] max-w-[140px] flex flex-col group/item transition-opacity duration-300", isOffline && "opacity-60")}
+      style={{ contain: 'layout paint' }}
     >
        <div className="relative aspect-square w-full rounded-2xl overflow-hidden bg-muted mb-2 border border-black/[0.03]">
-          <Image src={product.imageUrl} alt={product.name} fill className="object-cover" unoptimized />
+          <Image 
+            src={product.imageUrl} 
+            alt={product.name} 
+            fill 
+            className="object-cover" 
+            unoptimized 
+            decoding="async"
+            loading="lazy"
+          />
           
           <div className="absolute top-2 left-2">
              <Badge className="bg-[#15803d] text-white border-none font-bold text-[7px] px-2 py-0.5 rounded-lg uppercase shadow-sm">Popular</Badge>
@@ -53,7 +62,7 @@ const ProductStripItem = memo(({ product, isOffline }: any) => {
              <Badge className="bg-rose-50 text-rose-600 border-none font-black text-[11px] italic px-2 py-0.5 rounded-lg">₹{displayPrice}</Badge>
           </div>
           
-          <p className="text-[8px] font-black text-[#D946EF] uppercase italic tracking-tighter flex items-center gap-1 mt-1 animate-pulse">
+          <p className="text-[8px] font-black text-[#D946EF] uppercase italic tracking-tighter flex items-center gap-1 mt-1">
              <Heart className="h-2 w-2 fill-[#D946EF]" /> Our app: {discount > 0 ? discount : '40'}% lower
           </p>
        </div>
@@ -93,14 +102,8 @@ export const VerticalStoreList = memo(({
     const d = new Date();
     setCurrentTimeMins(d.getHours() * 60 + d.getMinutes());
     
-    const interval = setInterval(() => {
-      const now = new Date();
-      setCurrentTimeMins(now.getHours() * 60 + now.getMinutes());
-    }, 60000);
-
     return () => {
       window.removeEventListener('user-address-updated', updateLocation);
-      clearInterval(interval);
     };
   }, []);
 
@@ -112,12 +115,11 @@ export const VerticalStoreList = memo(({
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'products'), limit(1000));
+    return query(collection(firestore, 'products'), limit(500));
   }, [firestore]);
   const { data: dbAllProducts } = useCollection<any>(productsQuery, 'home_strip_products_v24', initialProducts);
 
   const filteredVendors = useMemo(() => {
-    // If we have live data, use it; otherwise fallback to SSR data
     const list = (dbVendors !== null) ? dbVendors : initialData;
     if (!list || list.length === 0) return [];
     
@@ -153,10 +155,7 @@ export const VerticalStoreList = memo(({
     });
   }, [dbVendors, initialData, activeZoneId, activeTown, searchQuery, activeMode, currentTimeMins]);
 
-  // Only show loading if we have absolutely no data to show
-  const showLoading = vendorsLoading && (!filteredVendors || filteredVendors.length === 0);
-
-  if (showLoading) {
+  if (vendorsLoading && (!filteredVendors || filteredVendors.length === 0)) {
     return (
       <div className="px-4 py-6 bg-white space-y-16">
         {[1, 2].map(i => (
@@ -172,17 +171,8 @@ export const VerticalStoreList = memo(({
     );
   }
 
-  if (!vendorsLoading && filteredVendors.length === 0) {
-    return (
-      <div className="px-4 py-24 bg-white text-center opacity-20 flex flex-col items-center">
-         <StoreIcon className="h-16 w-16 mb-4" />
-         <p className="font-black italic uppercase text-sm tracking-widest text-center">No stores found in your zone</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="px-4 py-6 bg-white min-h-[500px]">
+    <div className="px-4 py-6 bg-white scroll-gpu">
       <div className="flex items-center justify-between mb-8 px-2">
         <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900 leading-none">Best <span className="text-primary">Hubs</span></h2>
         <Badge variant="outline" className="rounded-full border-gray-200 text-gray-400 font-black uppercase text-[10px]">{filteredVendors.length} STORES</Badge>
@@ -195,13 +185,20 @@ export const VerticalStoreList = memo(({
             const isOffline = store.isOnline === false || !isOpen;
             
             const productPool = (dbAllProducts !== null) ? dbAllProducts : initialProducts;
-            const storeProducts = productPool.filter((p: any) => String(p.vendorId) === String(store.id) && p.isDeleted !== true).slice(0, 10);
+            const storeProducts = productPool.filter((p: any) => String(p.vendorId) === String(store.id) && p.isDeleted !== true).slice(0, 8);
 
             return (
-              <div key={store.id} className={cn("flex flex-col space-y-4 animate-in fade-in duration-500", isOffline && "opacity-75 grayscale-[0.3]")}>
-                <div onClick={() => router.push(`/store/${store.slug || slugify(store.storeName)}/`)} className="w-full text-left bg-white transition-all active:scale-[0.98] group relative cursor-pointer">
+              <div key={store.id} className={cn("flex flex-col space-y-4", isOffline && "opacity-75 grayscale-[0.3]")} style={{ contain: 'content', minHeight: '320px' }}>
+                <div onClick={() => router.push(`/store/${store.slug || slugify(store.storeName)}/`)} className="w-full text-left bg-white transition-opacity active:opacity-70 group relative cursor-pointer">
                   <div className="relative w-full aspect-[18/9] rounded-[1.5rem] overflow-hidden border border-gray-100 bg-gray-50">
-                    <Image src={displayImage} alt={store.storeName} fill className="object-cover" unoptimized priority={false} />
+                    <Image 
+                      src={displayImage} 
+                      alt={store.storeName} 
+                      fill 
+                      className="object-cover" 
+                      unoptimized 
+                      decoding="async"
+                    />
                     {isOffline && (
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10">
                         <span className="text-white font-black text-xl uppercase italic border-2 border-white/30 px-6 py-2 rounded-2xl shadow-xl">Closed Now</span>
@@ -218,14 +215,14 @@ export const VerticalStoreList = memo(({
 
                   <div className="pt-5 px-3 flex justify-between items-start">
                     <div className="flex-1 min-w-0 pr-4">
-                      <h3 className="font-black text-2xl italic uppercase tracking-tighter text-gray-900 leading-none mb-1.5 truncate group-hover:text-primary transition-colors">{store.storeName}</h3>
+                      <h3 className="font-black text-2xl italic uppercase tracking-tighter text-gray-900 leading-none mb-1.5 truncate transition-colors">{store.storeName}</h3>
                       <div className="flex items-center gap-2">
                         <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest italic">{store.category || 'Premium Store'}</p>
                         <span className="h-1 w-1 bg-gray-200 rounded-full" />
                         <div className="flex items-center gap-1 text-[11px] font-bold text-gray-400 italic uppercase"><MapPin className="h-3.5 w-3.5 text-primary" />{store.town || 'Local'}</div>
                       </div>
                     </div>
-                    <div className="bg-[#15803d] text-white px-2.5 py-1.5 rounded-xl flex flex-col items-center gap-0 border border-green-700">
+                    <div className="bg-[#15803d] text-white px-2.5 py-1.5 rounded-xl flex flex-col items-center gap-0 border border-green-700 shadow-sm">
                       <div className="flex items-center gap-1"><span className="text-base font-black italic">{Number(store.rating || 4.0).toFixed(1)}</span><Star className="h-3 w-3 fill-white stroke-none" /></div>
                       <span className="text-[7px] font-black uppercase opacity-60 leading-none">Rating</span>
                     </div>

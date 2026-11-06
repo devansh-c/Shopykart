@@ -41,14 +41,22 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare }: any) => {
 
   return (
     <div className={cn(
-      "relative bg-[#0B0B0B] rounded-[1.5rem] p-3 border border-white/5 flex flex-col shadow-2xl transition-all transform-gpu hover:scale-[1.02] will-change-transform", 
+      "relative bg-[#0B0B0B] rounded-[1.5rem] p-3 border border-white/5 flex flex-col shadow-xl transition-opacity duration-300", 
       isOffline && "opacity-75 grayscale-[0.5]"
-    )}>
+    )} style={{ contain: 'layout paint' }}>
       <ProductQuickView product={product} vendorScheduleOpen={!isOffline}>
         <div className="flex flex-col h-full cursor-pointer">
           <div className="relative aspect-square w-full mb-3">
-             <div className="relative w-full h-full overflow-hidden rounded-[1.25rem] border border-white/10 shadow-inner">
-                <Image src={product.imageUrl} alt={product.name} fill className="object-cover" unoptimized priority={false} />
+             <div className="relative w-full h-full overflow-hidden rounded-[1.25rem] border border-white/10">
+                <Image 
+                  src={product.imageUrl} 
+                  alt={product.name} 
+                  fill 
+                  className="object-cover" 
+                  unoptimized 
+                  loading="lazy"
+                  decoding="async"
+                />
                 {isOffline && (
                   <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center p-2 text-center z-10">
                     <Store className="h-6 w-6 text-white/80 mb-1" />
@@ -111,20 +119,18 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
         setActiveTown(localStorage.getItem('user_address'));
       }
     };
-    updateZone(); 
+    updateLocation(); 
     window.addEventListener('user-address-updated', updateZone);
     const syncTime = () => { const d = new Date(); setCurrentTimeMinutes(d.getHours() * 60 + d.getMinutes()); };
     syncTime(); 
-    const interval = setInterval(syncTime, 60000);
 
     return () => { 
       window.removeEventListener('user-address-updated', updateZone); 
-      clearInterval(interval); 
     };
   }, []);
 
   const productsQuery = useMemoFirebase(() => 
-    firestore ? query(collection(firestore, 'products'), limit(1000)) : null, 
+    firestore ? query(collection(firestore, 'products'), limit(500)) : null, 
     [firestore]
   );
   
@@ -161,7 +167,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       const rankA = (Number(vA?.rating) || 0) + (Number(a.rating) || 0);
       const rankB = (Number(vB?.rating) || 0) + (Number(b.rating) || 0);
       return rankB - rankA;
-    });
+    }).slice(0, 40); // Performance: Limit rendered items
   }, [dbProducts, initialData, vendors, initialStores, searchQuery, category, activeMode, activeZoneId, activeTown, currentTimeMinutes]);
 
   const handleShare = useCallback((e: React.MouseEvent, product: any) => {
@@ -172,7 +178,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   }, [toast]);
 
   return (
-    <div className="px-4 py-6 bg-white min-h-[600px]">
+    <div className="px-4 py-6 bg-white min-h-[600px] scroll-gpu">
       <div className="flex items-center justify-between mb-6 px-2">
         <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900">Premium <span className="text-primary">Selection</span></h2>
         <Badge variant="outline" className="rounded-full border-gray-200 text-gray-400 font-black uppercase text-[10px]">
@@ -188,10 +194,6 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
                 <div className="space-y-2">
                    <Skeleton className="h-3 w-2/3 rounded-full" />
                    <Skeleton className="h-2 w-1/3 rounded-full" />
-                   <div className="flex justify-between pt-2">
-                      <Skeleton className="h-5 w-10 rounded-full" />
-                      <Skeleton className="h-8 w-16 rounded-full" />
-                   </div>
                 </div>
              </div>
            ))}
@@ -204,13 +206,6 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
             const isOffline = v ? (v.isOnline === false || !isStoreScheduleOpen(v, currentTimeMinutes)) : false;
             return <ProductItem key={product.id} product={{...product, restaurantName: v?.storeName}} quantity={quantity} isOffline={isOffline} onShare={handleShare} />;
           })}
-        </div>
-      )}
-      
-      {!queryLoading && productsToDisplay.length === 0 && (
-        <div className="text-center py-20 opacity-30 flex flex-col items-center">
-           <Store className="h-16 w-16 mb-4" />
-           <p className="font-black italic uppercase text-xs">No items in this zone</p>
         </div>
       )}
     </div>

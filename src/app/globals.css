@@ -36,8 +36,6 @@
   
   ::-webkit-scrollbar {
     display: none !important;
-    width: 0 !important;
-    height: 0 !important;
   }
 
   html {
@@ -58,6 +56,8 @@
     min-height: 100%;
     height: auto;
     -webkit-overflow-scrolling: touch !important; 
+    /* Prevent layout shifts */
+    overflow-anchor: none;
   }
 
   .no-scrollbar::-webkit-scrollbar {
@@ -68,8 +68,17 @@
     scrollbar-width: none;
   }
 
+  /* Optimized Scroll Container */
+  .scroll-gpu {
+    backface-visibility: hidden;
+    perspective: 1000;
+    transform: translateZ(0);
+    -webkit-overflow-scrolling: touch;
+  }
+
   .premium-card {
     @apply bg-white rounded-[2rem] border border-border/60 relative overflow-hidden;
+    contain: content;
   }
 
   nav.fixed {
@@ -106,4 +115,8 @@
 
 @keyframes shimmer {
   100% { transform: translateX(100%); }
+}
+
+.animate-shimmer {
+  animation: shimmer 1.5s infinite linear;
 }
