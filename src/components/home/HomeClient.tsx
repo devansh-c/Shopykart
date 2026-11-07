@@ -15,7 +15,7 @@ import { Under49Products } from '@/components/home/Under49Products';
 import LocationRequest from '@/components/shared/LocationRequest';
 
 /**
- * @fileOverview HomeClient optimized for rapid startup and Multi-App switching.
+ * @fileOverview HomeClient v1.4.0 - Optimized Identity Redirection.
  */
 function HomeContent({ 
   initialBanners = [], 
@@ -36,12 +36,9 @@ function HomeContent({
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const [searchQuery, setSearchQuery] = useState('');
-  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    setIsClient(true);
-    
-    // DETECT APP MODE: Using environment variables strictly
+    // FORCE REDIRECTION BASED ON BAKE-TIME ENVIRONMENT VARIABLES
     const isAdmin = process.env.NEXT_PUBLIC_ADMIN_APP === 'true';
     const isBiz = process.env.NEXT_PUBLIC_BIZ_APP === 'true';
     const isFleet = process.env.NEXT_PUBLIC_TOW_APP === 'true';
@@ -53,7 +50,6 @@ function HomeContent({
     } else if (isFleet) {
       router.replace('/delivery/dashboard');
     }
-    
   }, [router]);
 
   const activeMode = searchParams.get('mode') || 'Food';
@@ -76,7 +72,7 @@ function HomeContent({
   };
 
   return (
-    <div className="min-h-screen bg-white transform-gpu">
+    <div className="min-h-screen bg-white">
       <LocationRequest initialData={initialZones} />
       
       {activeMode !== 'Medical' && activeMode !== 'Beauty' && (
