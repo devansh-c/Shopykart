@@ -2,7 +2,7 @@ import { CapacitorConfig } from '@capacitor/cli';
 
 /**
  * @fileOverview Dynamic identity configuration for ShopyKart Multi-App ecosystem.
- * Environment variables are used during build/sync to assign correct IDs.
+ * Environment variables are used during build/sync to assign unique Package IDs and Names.
  */
 
 const isAdmin = process.env.NEXT_PUBLIC_ADMIN_APP === 'true';
@@ -39,7 +39,7 @@ const config: CapacitorConfig = {
   },
   plugins: {
     SplashScreen: {
-      launchShowDuration: 1500,
+      launchShowDuration: 2000,
       launchAutoHide: true,
       backgroundColor: "#ffffff",
       androidScaleType: "CENTER_CROP",
