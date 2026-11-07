@@ -2,8 +2,7 @@ import HomeClient from '@/components/home/HomeClient';
 
 /**
  * @fileOverview Pure CSR Entry Point for v1.4.0.
- * SSR FORCE-KILL: Removed all server-side data fetching to prevent Next.js 15 startup crashes.
- * App is now 100% Client-Side for maximum stability in APK/Web environments.
+ * SSR REMOVED: 100% Client-Side load to prevent startup crashes.
  */
 
 export const dynamic = 'force-static';

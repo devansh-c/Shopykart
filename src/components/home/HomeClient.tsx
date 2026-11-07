@@ -14,7 +14,7 @@ import { Under49Products } from '@/components/home/Under49Products';
 import LocationRequest from '@/components/shared/LocationRequest';
 
 /**
- * @fileOverview HomeClient v1.4.0 - Optimized Identity Redirection.
+ * @fileOverview HomeClient v1.4.0 - Bulletproof Identity Routing.
  */
 function HomeContent({ 
   initialBanners = [], 
@@ -35,17 +35,19 @@ function HomeContent({
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    // FORCE REDIRECTION BASED ON BAKE-TIME ENVIRONMENT VARIABLES
-    const isAdmin = process.env.NEXT_PUBLIC_ADMIN_APP === 'true';
-    const isBiz = process.env.NEXT_PUBLIC_BIZ_APP === 'true';
-    const isFleet = process.env.NEXT_PUBLIC_TOW_APP === 'true';
+    // 4-APP REDIRECTION LOGIC
+    if (typeof window !== 'undefined') {
+      const isAdmin = process.env.NEXT_PUBLIC_ADMIN_APP === 'true';
+      const isBiz = process.env.NEXT_PUBLIC_BIZ_APP === 'true';
+      const isFleet = process.env.NEXT_PUBLIC_TOW_APP === 'true';
 
-    if (isAdmin) {
-      router.replace('/admin/dashboard');
-    } else if (isBiz) {
-      router.replace('/vendor/dashboard');
-    } else if (isFleet) {
-      router.replace('/delivery/dashboard');
+      if (isAdmin) {
+        router.replace('/admin/dashboard');
+      } else if (isBiz) {
+        router.replace('/vendor/dashboard');
+      } else if (isFleet) {
+        router.replace('/delivery/dashboard');
+      }
     }
   }, [router]);
 
