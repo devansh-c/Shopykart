@@ -1,4 +1,3 @@
-
 import HomeClient from '@/components/home/HomeClient';
 
 /**

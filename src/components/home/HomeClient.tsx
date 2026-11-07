@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useCallback, useEffect, Suspense } from 'react';
@@ -21,9 +20,7 @@ function HomeContent({
   initialBanners = [], 
   initialCategories = [], 
   initialStores = [], 
-  initialProducts = [],
-  initialZones = [],
-  initialCoupons = []
+  initialProducts = []
 }: { 
   initialBanners?: any[], 
   initialCategories?: any[], 
@@ -73,7 +70,7 @@ function HomeContent({
 
   return (
     <div className="min-h-screen bg-white">
-      <LocationRequest initialData={initialZones} />
+      <LocationRequest />
       
       {activeMode !== 'Medical' && activeMode !== 'Beauty' && (
         <LocationHeader 
@@ -120,7 +117,7 @@ function HomeContent({
                 <OfferSlider initialData={initialBanners} />
                 <AnnouncementBanner />
                 <Under49Products />
-                <OffersSection initialData={initialCoupons} />
+                <OffersSection initialData={[]} />
               </div>
             )}
             

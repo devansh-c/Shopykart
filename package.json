@@ -1,4 +1,3 @@
-
 {
   "name": "nextn",
   "version": "1.4.0",
@@ -15,7 +14,10 @@
     "build:admin": "export NEXT_PUBLIC_STATIC_EXPORT=true && export NEXT_PUBLIC_ADMIN_APP=true && next build && rm -rf out/store out/product out/page out/index.txt",
     "build:biz": "export NEXT_PUBLIC_STATIC_EXPORT=true && export NEXT_PUBLIC_BIZ_APP=true && next build && rm -rf out/store out/product out/page out/index.txt",
     "build:tow": "export NEXT_PUBLIC_STATIC_EXPORT=true && export NEXT_PUBLIC_TOW_APP=true && next build && rm -rf out/store out/product out/page out/index.txt",
-    "admin:apk": "npm run build:admin && npx cap sync",
+    "cap-sync-admin": "npx cap sync android --admin=true",
+    "cap-sync-biz": "npx cap sync android --biz=true",
+    "cap-sync-tow": "npx cap sync android --tow=true",
+    "cap-sync-app": "npx cap sync android",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",

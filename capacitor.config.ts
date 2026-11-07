@@ -1,4 +1,3 @@
-
 import { CapacitorConfig } from '@capacitor/cli';
 
 /**
@@ -7,9 +6,9 @@ import { CapacitorConfig } from '@capacitor/cli';
  * Detects app identity during build process to assign correct package names and labels.
  */
 
-const isAdmin = process.env.NEXT_PUBLIC_ADMIN_APP === 'true';
-const isBiz = process.env.NEXT_PUBLIC_BIZ_APP === 'true';
-const isTow = process.env.NEXT_PUBLIC_TOW_APP === 'true';
+const isAdmin = process.env.NEXT_PUBLIC_ADMIN_APP === 'true' || process.env.npm_config_admin === 'true';
+const isBiz = process.env.NEXT_PUBLIC_BIZ_APP === 'true' || process.env.npm_config_biz === 'true';
+const isTow = process.env.NEXT_PUBLIC_TOW_APP === 'true' || process.env.npm_config_tow === 'true';
 
 const config: CapacitorConfig = {
   appId: isAdmin 
