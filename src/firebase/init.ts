@@ -1,4 +1,3 @@
-
 import { initializeApp, getApps, FirebaseApp, getApp } from 'firebase/app';
 import { firebaseConfig } from './config';
 import { initializeFirestore, persistentLocalCache, Firestore, memoryLocalCache } from 'firebase/firestore';
@@ -13,7 +12,7 @@ let authInstance: Auth | null = null;
 
 /**
  * Optimized Firebase initialization for Mobile/Static Export.
- * Effectively handles both server and client environments.
+ * FAIL-SAFE INIT: Switches to memory cache if persistent storage is locked.
  */
 export function initializeFirebase() {
   // 1. Initialize App
@@ -33,14 +32,12 @@ export function initializeFirebase() {
           }),
         });
       } catch (e) {
-        // Fallback to memory cache if indexedDB is restricted (Common in some WebViews)
         console.warn("Firebase Persistence failed, falling back to memory.");
         firestoreInstance = initializeFirestore(appInstance, {
           localCache: memoryLocalCache()
         });
       }
     } else {
-      // Server side always uses memory cache
       firestoreInstance = initializeFirestore(appInstance, {
         localCache: memoryLocalCache()
       });
