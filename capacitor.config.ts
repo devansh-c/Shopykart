@@ -3,7 +3,8 @@ import { CapacitorConfig } from '@capacitor/cli';
 
 /**
  * @fileOverview Dynamic Capacitor Config for ShopyKart Multi-App Build.
- * Detects app identity during build process to assign correct package names.
+ * Version: 1.4.0
+ * Detects app identity during build process to assign correct package names and labels.
  */
 
 const isAdmin = process.env.NEXT_PUBLIC_ADMIN_APP === 'true';
@@ -11,8 +12,20 @@ const isBiz = process.env.NEXT_PUBLIC_BIZ_APP === 'true';
 const isTow = process.env.NEXT_PUBLIC_TOW_APP === 'true';
 
 const config: CapacitorConfig = {
-  appId: isAdmin ? "co.in.shopykart.admin" : isBiz ? "co.in.shopykart.biz" : isTow ? "co.in.shopykart.tow" : "co.in.shopykart.app",
-  appName: isAdmin ? "Shopykart CEO" : isBiz ? "Shopykart Business" : isTow ? "Shopykart Tow" : "Shopykart",
+  appId: isAdmin 
+    ? "co.in.shopykart.admin" 
+    : isBiz 
+      ? "co.in.shopykart.biz" 
+      : isTow 
+        ? "co.in.shopykart.tow" 
+        : "co.in.shopykart.app",
+  appName: isAdmin 
+    ? "Shopykart CEO" 
+    : isBiz 
+      ? "Shopykart Business" 
+      : isTow 
+        ? "Shopykart Tow" 
+        : "Shopykart",
   webDir: "out",
   server: {
     androidScheme: "http",

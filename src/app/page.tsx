@@ -3,7 +3,7 @@ import HomeClient from '@/components/home/HomeClient';
 
 /**
  * @fileOverview Pure CSR Entry Point for v1.4.0.
- * SSR DISABLED: Removed all server-side logic to prevent Next.js 15 startup crashes.
+ * SSR DISABLED: Removed all server-side logic to prevent Next.js 15 startup crashes and loops.
  * App is now 100% Client-Side for maximum stability in APK/Web environments.
  */
 
