@@ -3,8 +3,8 @@ import HomeClient from '@/components/home/HomeClient';
 
 /**
  * @fileOverview Optimized Entry Point for v1.4.
- * ZERO-SSR STRATEGY: Strictly bypasses Firestore on Server-side in Dev mode 
- * to prevent Turbopack manifest errors and startup freezes.
+ * ZERO-SSR STRATEGY: Bypasses Firestore on Server-side in Dev mode 
+ * to ensure instant startup and prevent build-manifest errors.
  */
 
 export const revalidate = 3600;
@@ -12,8 +12,7 @@ export const revalidate = 3600;
 async function getInitialData() {
   const emptyData = { banners: [], categories: [], stores: [], products: [], zones: [], coupons: [] };
   
-  // IN DEV PREVIEW: Return empty immediately. 
-  // This is the #1 fix for "Frozen Spinner" during development.
+  // IN DEV PREVIEW: Force kill server-side fetch to prevent startup "Hang"
   if (process.env.NODE_ENV !== 'production') return emptyData;
 
   try {
@@ -23,7 +22,7 @@ async function getInitialData() {
     const { firestore } = initializeFirebase();
     if (!firestore) return emptyData;
 
-    // Production Build Only: Bake initial data for high-speed mobile experience
+    // Production Build Only: Pre-fetch data for mobile performance
     const [bannersSnap, categoriesSnap, vendorsSnap, productsSnap, zonesSnap, couponsSnap] = await Promise.all([
       getDocs(query(collection(firestore, 'banners'), limit(10))),
       getDocs(query(collection(firestore, 'categories'), limit(20))),
@@ -42,7 +41,7 @@ async function getInitialData() {
       coupons: couponsSnap.docs.map((d: any) => ({ id: d.id, ...d.data() }))
     };
   } catch (error) {
-    console.error("Initial data bake failed:", error);
+    console.error("Initial data fetch skipped:", error);
     return emptyData;
   }
 }

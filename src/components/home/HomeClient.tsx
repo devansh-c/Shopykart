@@ -41,14 +41,18 @@ function HomeContent({
   useEffect(() => {
     setIsClient(true);
     
-    // DETECT APP MODE: Priority 1: Production Baked Key, Priority 2: Dev Override
-    const isAdmin = process.env.NEXT_PUBLIC_ADMIN_APP === 'true' || localStorage.getItem('shopykart_dev_app_type') === 'admin';
-    const isBiz = process.env.NEXT_PUBLIC_BIZ_APP === 'true' || localStorage.getItem('shopykart_dev_app_type') === 'biz';
-    const isFleet = process.env.NEXT_PUBLIC_TOW_APP === 'true' || localStorage.getItem('shopykart_dev_app_type') === 'tow';
+    // DETECT APP MODE: Using environment variables strictly
+    const isAdmin = process.env.NEXT_PUBLIC_ADMIN_APP === 'true';
+    const isBiz = process.env.NEXT_PUBLIC_BIZ_APP === 'true';
+    const isFleet = process.env.NEXT_PUBLIC_TOW_APP === 'true';
 
-    if (isAdmin) router.replace('/admin/dashboard');
-    else if (isBiz) router.replace('/vendor/dashboard');
-    else if (isFleet) router.replace('/delivery/dashboard');
+    if (isAdmin) {
+      router.replace('/admin/dashboard');
+    } else if (isBiz) {
+      router.replace('/vendor/dashboard');
+    } else if (isFleet) {
+      router.replace('/delivery/dashboard');
+    }
     
   }, [router]);
 

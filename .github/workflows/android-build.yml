@@ -1,3 +1,4 @@
+
 name: Build ShopyKart Quad Apps
 
 on:
@@ -38,11 +39,6 @@ jobs:
       - name: Build Web (Customer)
         run: npm run build:static
       
-      - name: Prune Static Assets (Customer)
-        run: |
-          rm -rf out/store out/product out/page out/index.txt
-          rm -rf android/app/src/main/assets/public/store android/app/src/main/assets/public/product android/app/src/main/assets/public/page || true
-
       - name: Sync Customer
         run: |
           sed -i "s/appId: [\"'].*[\"']/appId: \"co.in.shopykart.app\"/" capacitor.config.ts
@@ -51,22 +47,16 @@ jobs:
 
       - name: Build Android (Customer)
         working-directory: android
-        run: chmod +x gradlew && ./gradlew bundleRelease assembleRelease
+        run: chmod +x gradlew && ./gradlew assembleRelease
 
       - name: Archive Customer
         run: |
           cp android/app/build/outputs/apk/release/app-release.apk customer.shopykart.apk
-          cp android/app/build/outputs/bundle/release/app-release.aab customer.shopykart.aab
 
       # BUILD 2: ADMIN APP (co.in.shopykart.admin)
       - name: Build Web (Admin)
         run: npm run build:admin
       
-      - name: Prune Static Assets (Admin)
-        run: |
-          rm -rf out/store out/product out/page out/index.txt
-          rm -rf android/app/src/main/assets/public/store android/app/src/main/assets/public/product android/app/src/main/assets/public/page || true
-
       - name: Sync Admin
         run: |
           sed -i "s/appId: [\"'].*[\"']/appId: \"co.in.shopykart.admin\"/" capacitor.config.ts
@@ -75,22 +65,16 @@ jobs:
 
       - name: Build Android (Admin)
         working-directory: android
-        run: chmod +x gradlew && ./gradlew bundleRelease assembleRelease
+        run: chmod +x gradlew && ./gradlew assembleRelease
 
       - name: Archive Admin
         run: |
           cp android/app/build/outputs/apk/release/app-release.apk admin.shopykart.apk
-          cp android/app/build/outputs/bundle/release/app-release.aab admin.shopykart.aab
 
       # BUILD 3: STORE/BIZ APP (co.in.shopykart.biz)
       - name: Build Web (Biz)
         run: npm run build:biz
       
-      - name: Prune Static Assets (Biz)
-        run: |
-          rm -rf out/store out/product out/page out/index.txt
-          rm -rf android/app/src/main/assets/public/store android/app/src/main/assets/public/product android/app/src/main/assets/public/page || true
-
       - name: Sync Biz
         run: |
           sed -i "s/appId: [\"'].*[\"']/appId: \"co.in.shopykart.biz\"/" capacitor.config.ts
@@ -99,22 +83,16 @@ jobs:
 
       - name: Build Android (Biz)
         working-directory: android
-        run: chmod +x gradlew && ./gradlew bundleRelease assembleRelease
+        run: chmod +x gradlew && ./gradlew assembleRelease
 
       - name: Archive Biz
         run: |
           cp android/app/build/outputs/apk/release/app-release.apk store.shopykart.apk
-          cp android/app/build/outputs/bundle/release/app-release.aab store.shopykart.aab
 
       # BUILD 4: DELIVERY/TOW APP (co.in.shopykart.tow)
       - name: Build Web (Tow)
         run: npm run build:tow
       
-      - name: Prune Static Assets (Tow)
-        run: |
-          rm -rf out/store out/product out/page out/index.txt
-          rm -rf android/app/src/main/assets/public/store android/app/src/main/assets/public/product android/app/src/main/assets/public/page || true
-
       - name: Sync Tow
         run: |
           sed -i "s/appId: [\"'].*[\"']/appId: \"co.in.shopykart.tow\"/" capacitor.config.ts
@@ -123,12 +101,11 @@ jobs:
 
       - name: Build Android (Tow)
         working-directory: android
-        run: chmod +x gradlew && ./gradlew bundleRelease assembleRelease
+        run: chmod +x gradlew && ./gradlew assembleRelease
 
       - name: Archive Tow
         run: |
           cp android/app/build/outputs/apk/release/app-release.apk delivery.shopykart.apk
-          cp android/app/build/outputs/bundle/release/app-release.aab delivery.shopykart.aab
 
       # UPLOAD ALL ARTIFACTS
       - name: Upload Quad Bundle
@@ -137,11 +114,7 @@ jobs:
           name: ShopyKart-v1.4-Apps
           path: |
             customer.shopykart.apk
-            customer.shopykart.aab
             admin.shopykart.apk
-            admin.shopykart.aab
             store.shopykart.apk
-            store.shopykart.aab
             delivery.shopykart.apk
-            delivery.shopykart.aab
           if-no-files-found: error

@@ -2,7 +2,7 @@
 /**
  * @fileOverview Atomic Fast Loading UI for v1.4.
  * Uses strictly inline-css with viewport centering to prevent "Top-Left Freeze".
- * No external dependencies or JS required for initial paint.
+ * Zero dependencies for initial paint.
  */
 export default function Loading() {
   return (
@@ -19,29 +19,30 @@ export default function Loading() {
       backgroundColor: '#ffffff',
       zIndex: 2147483647
     }}>
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes spin-loader { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes pulse-loader { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.95); } }
+      `}} />
+      
       <div style={{ 
         display: 'flex', 
         flexDirection: 'column', 
         alignItems: 'center', 
-        gap: '24px' 
+        gap: '32px' 
       }}>
-        {/* CSS-only spinner centered via Flexbox */}
+        {/* Centered Circular Spinner */}
         <div style={{
-          width: '56px',
-          height: '56px',
+          width: '64px',
+          height: '64px',
           border: '6px solid rgba(239, 68, 68, 0.08)',
           borderTop: '6px solid #EF4444',
           borderRadius: '50%',
-          animation: 'spin-loader 0.7s cubic-bezier(0.4, 0, 0.2, 1) infinite'
+          animation: 'spin-loader 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite'
         }} />
-        
-        <style dangerouslySetInnerHTML={{ __html: `
-          @keyframes spin-loader { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        `}} />
 
-        <div style={{ textAlign: 'center' }}>
+        <div style={{ textAlign: 'center', animation: 'pulse-loader 2s ease-in-out infinite' }}>
           <p style={{
-            fontSize: '13px',
+            fontSize: '14px',
             fontWeight: 900,
             textTransform: 'uppercase',
             letterSpacing: '0.4em',
@@ -55,10 +56,10 @@ export default function Loading() {
             width: '40px',
             height: '2px',
             backgroundColor: '#EF4444',
-            margin: '8px auto'
+            margin: '10px auto'
           }} />
           <p style={{
-            fontSize: '8px',
+            fontSize: '9px',
             fontWeight: 700,
             textTransform: 'uppercase',
             letterSpacing: '0.2em',
