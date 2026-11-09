@@ -1,23 +1,32 @@
-'use client';
-
 import React, { Suspense } from 'react';
-import { useParams, useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import MenuContent from '@/components/menu/MenuContent';
 
-function StoreView() {
-  const params = useParams();
-  const searchParams = useSearchParams();
-  
-  // URL params ya search query se slug/storeId nikalna
-  const rawSlug = params?.slug as string;
-  const querySlug = searchParams?.get('slug') || searchParams?.get('storeId') || searchParams?.get('id');
-  const activeSlug = (rawSlug && rawSlug !== 'view' && rawSlug !== 'hub') ? rawSlug : (querySlug || rawSlug);
+export const dynamic = 'error';
+export const dynamicParams = false;
 
-  return <MenuContent forcedSlug={activeSlug} />;
+export async function generateStaticParams() {
+  return [
+    { slug: 'view' },
+    { slug: 'hub' },
+    { slug: 'details' },
+    { slug: 'mr-burger' },
+    { slug: 'saurabh-sweet-house' },
+    { slug: 'chauhan-sweets' },
+    { slug: 'shopykart-store' },
+    { slug: 'kashyap-food' },
+    { slug: 'vishal-veg-appe' },
+    { slug: 'indorri-adda' }
+  ];
 }
 
-export default function StorePage() {
+interface PageProps {
+  params: Promise<{ slug: string }>;
+}
+
+export default async function StorePage({ params }: PageProps) {
+  const resolvedParams = await params;
+
   return (
     <Suspense
       fallback={
@@ -37,7 +46,7 @@ export default function StorePage() {
         </div>
       }
     >
-      <StoreView />
+      <MenuContent forcedSlug={resolvedParams.slug} />
     </Suspense>
   );
 }
