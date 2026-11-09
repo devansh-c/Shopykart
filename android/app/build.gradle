@@ -1,6 +1,9 @@
 apply plugin: 'com.android.application'
 
 android {
+    aaptOptions {
+        ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+    }
     namespace "co.in.shopykart.app"
     compileSdkVersion rootProject.ext.compileSdkVersion
     defaultConfig {
