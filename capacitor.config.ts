@@ -7,9 +7,9 @@ import type { CapacitorConfig } from '@capacitor/cli';
  */
 
 const getAppIdentity = () => {
+  // Check process.env and process.env.NEXT_PUBLIC_ prefix for maximum reliability across build systems
   const env = process.env;
   
-  // Checking both raw and NEXT_PUBLIC prefixed env vars for build-time reliability
   const isAdmin = env.ADMIN_APP === 'true' || env.NEXT_PUBLIC_ADMIN_APP === 'true';
   const isBiz = env.BIZ_APP === 'true' || env.NEXT_PUBLIC_BIZ_APP === 'true';
   const isTow = env.TOW_APP === 'true' || env.NEXT_PUBLIC_TOW_APP === 'true';

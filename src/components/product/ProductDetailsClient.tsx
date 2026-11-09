@@ -3,7 +3,7 @@
 
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useCart } from '@/components/cart/CartProvider';
-import { ChevronLeft, Minus, Plus, Share2, Loader2, Zap, ListTree } from 'lucide-react';
+import { ChevronLeft, Minus, Plus, Share2, Loader2, Zap, ListTree, ShoppingBag } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -30,11 +30,16 @@ export default function ProductDetailsClient({ forcedSlug }: { forcedSlug?: stri
 
   useEffect(() => {
     async function resolveProduct() {
-      if (!firestore || !rawSlug) return;
+      if (!firestore || !rawSlug) {
+        setLoading(false);
+        return;
+      }
       setLoading(true);
       try {
+        const cleanSlug = String(rawSlug).trim();
+
         // 1. DIRECT ID FETCH
-        const idRef = doc(firestore, 'products', rawSlug);
+        const idRef = doc(firestore, 'products', cleanSlug);
         const idSnap = await getDoc(idRef);
         if (idSnap.exists()) {
           setProduct({ id: idSnap.id, ...idSnap.data() });
@@ -43,12 +48,24 @@ export default function ProductDetailsClient({ forcedSlug }: { forcedSlug?: stri
         }
 
         // 2. SEO SLUG MATCH
-        const slugQ = query(collection(firestore, 'products'), where('slug', '==', rawSlug), limit(1));
+        const slugQ = query(collection(firestore, 'products'), where('slug', '==', cleanSlug), limit(1));
         const slugSnap = await getDocs(slugQ);
         if (!slugSnap.empty) {
           setProduct({ id: slugSnap.docs[0].id, ...slugSnap.docs[0].data() });
           setLoading(false);
           return;
+        }
+
+        // 3. DEEP SEARCH
+        const allProductsSnap = await getDocs(collection(firestore, 'products'));
+        const found = allProductsSnap.docs.find(d => {
+          const data = d.data();
+          const target = cleanSlug.toLowerCase();
+          return d.id === cleanSlug || data.slug === target || slugify(data.name || '') === target;
+        });
+
+        if (found) {
+          setProduct({ id: found.id, ...found.data() });
         }
 
         setLoading(false);
