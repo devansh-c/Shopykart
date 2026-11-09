@@ -1,6 +1,7 @@
+
 "use client"
 
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useCart } from '@/components/cart/CartProvider';
 import { ChevronLeft, Minus, Plus, Share2, Loader2, Zap, ListTree } from 'lucide-react';
 import Image from 'next/image';
@@ -11,12 +12,10 @@ import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase, useDoc, useUser } from '@/firebase';
 import { collection, query, where, limit, doc, getDoc, getDocs } from 'firebase/firestore';
 
-/**
- * @fileOverview ProductDetailsClient with persistent footer fix for mobile.
- */
 export default function ProductDetailsClient({ forcedSlug }: { forcedSlug?: string }) {
   const params = useParams();
-  const rawSlug = forcedSlug || (params?.slug as string);
+  const searchParams = useSearchParams();
+  const rawSlug = forcedSlug || (params?.slug as string) || searchParams.get('id');
   const router = useRouter();
   const { toast } = useToast();
   const { cart, addToCart } = useCart();
@@ -34,15 +33,7 @@ export default function ProductDetailsClient({ forcedSlug }: { forcedSlug?: stri
       if (!firestore || !rawSlug) return;
       setLoading(true);
       try {
-        const slugQ = query(collection(firestore, 'products'), where('slug', '==', rawSlug), limit(1));
-        const slugSnap = await getDocs(slugQ);
-
-        if (!slugSnap.empty) {
-          setProduct({ id: slugSnap.docs[0].id, ...slugSnap.docs[0].data() });
-          setLoading(false);
-          return;
-        }
-
+        // 1. DIRECT ID FETCH
         const idRef = doc(firestore, 'products', rawSlug);
         const idSnap = await getDoc(idRef);
         if (idSnap.exists()) {
@@ -50,9 +41,19 @@ export default function ProductDetailsClient({ forcedSlug }: { forcedSlug?: stri
           setLoading(false);
           return;
         }
+
+        // 2. SEO SLUG MATCH
+        const slugQ = query(collection(firestore, 'products'), where('slug', '==', rawSlug), limit(1));
+        const slugSnap = await getDocs(slugQ);
+        if (!slugSnap.empty) {
+          setProduct({ id: slugSnap.docs[0].id, ...slugSnap.docs[0].data() });
+          setLoading(false);
+          return;
+        }
+
+        setLoading(false);
       } catch (err) {
-        console.error("Resolution error:", err);
-      } finally {
+        console.error("Product resolution error:", err);
         setLoading(false);
       }
     }
@@ -82,9 +83,7 @@ export default function ProductDetailsClient({ forcedSlug }: { forcedSlug?: stri
     const base = product.price || 0;
     const optPrice = selectedOption ? selectedOption.price : 0;
     const totalBase = base + optPrice;
-
     if (isClosedMode) return totalBase;
-
     if (isSaleActive) {
       const val = Number(globalOffer.value) || 0;
       if (globalOffer.type === 'percentage') return totalBase * (1 - val / 100);
@@ -97,23 +96,18 @@ export default function ProductDetailsClient({ forcedSlug }: { forcedSlug?: stri
 
   const handleAddToCart = () => {
     if (!product || isOffline) return;
-    if (!user) {
-      window.dispatchEvent(new CustomEvent('open-auth-overlay'));
-      return;
-    }
-
+    if (!user) { window.dispatchEvent(new CustomEvent('open-auth-overlay')); return; }
     if (product.isVarietyRequired && !selectedOption) {
       toast({ variant: "destructive", title: "Pick a Variety", description: "Please select an option to add this item." });
       return;
     }
-
     const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/800/600`;
-    addToCart({ ...product, imageUrl, quantity: localQuantity, selectedOption, price: currentPrice });
+    addToCart({ ...product, imageUrl, quantity: localQuantity, selectedOption, price: currentPrice, restaurantName: vendor?.storeName });
     toast({ title: "Added to Cart" });
   };
 
   if (loading) return <div className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
-  if (!product && !loading) return <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8 text-center"><h2 className="text-xl font-black italic uppercase text-muted-foreground">Item Not Found</h2><Button onClick={() => router.push('/')} className="mt-8 bg-black rounded-xl">Back to Home</Button></div>;
+  if (!product && !loading) return <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8 text-center animate-in zoom-in duration-500"><div className="bg-muted/30 h-24 w-24 rounded-full flex items-center justify-center mb-8"><ShoppingBag className="h-10 w-10 text-muted-foreground/30" /></div><h2 className="text-2xl font-black italic uppercase text-gray-800 tracking-tighter">ITEM NOT FOUND</h2><Button onClick={() => router.push('/')} className="mt-8 bg-black text-white h-14 rounded-2xl px-8 font-black uppercase italic">BACK TO EXPLORE</Button></div>;
 
   return (
     <div className="min-h-screen bg-white pb-40">
@@ -122,24 +116,19 @@ export default function ProductDetailsClient({ forcedSlug }: { forcedSlug?: stri
         <h1 className="flex-1 text-center text-lg font-black uppercase italic tracking-tight">Details</h1>
         <button className="h-10 w-10 flex items-center justify-center rounded-xl hover:bg-muted text-foreground"><Share2 className="h-5 w-5" /></button>
       </div>
-
       <div className={cn("relative w-full aspect-[4/3] bg-muted", isOffline && "grayscale")}>
         <Image src={product?.imageUrl} alt={product?.name || 'Product'} fill className="object-cover" priority unoptimized />
       </div>
-
       <div className="relative z-10 -mt-8 bg-white rounded-t-[2.5rem] px-6 pt-8 pb-4">
         <div className="flex justify-between items-start mb-2">
           <h2 className="text-2xl font-black text-foreground leading-tight uppercase italic">{product?.name}</h2>
           {product?.isVeg && <div className="h-6 w-6 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5 mt-1"><div className="h-full w-full bg-green-600 rounded-full" /></div>}
         </div>
-
         <div className="flex items-baseline gap-3 mb-4">
            <div className="text-3xl font-black text-gray-900 italic">₹{(currentPrice || 0).toFixed(0)}</div>
            {isSaleActive && <div className="text-sm font-bold text-gray-400 line-through">₹{product?.price}</div>}
         </div>
-
         <p className="text-sm font-medium text-muted-foreground leading-relaxed mb-8 italic">{product?.description}</p>
-
         {product?.options && product.options.length > 0 && (
           <div className="space-y-5 mb-10 animate-in fade-in duration-500 bg-[#0B0B0B] p-6 rounded-[2.5rem] border border-white/5">
              <div className="flex items-center gap-2">
@@ -148,18 +137,9 @@ export default function ProductDetailsClient({ forcedSlug }: { forcedSlug?: stri
              </div>
              <div className="grid grid-cols-1 gap-3">
                 {product.options.map((opt: any, idx: number) => (
-                  <button 
-                    key={idx}
-                    onClick={() => setSelectedOption(opt)}
-                    className={cn(
-                      "flex items-center justify-between p-5 rounded-[1.75rem] border-2 transition-all active:scale-[0.98]",
-                      selectedOption?.name === opt.name ? "border-primary bg-primary/10" : "border-white/5 bg-white/5"
-                    )}
-                  >
+                  <button key={idx} onClick={() => setSelectedOption(opt)} className={cn("flex items-center justify-between p-5 rounded-[1.75rem] border-2 transition-all active:scale-[0.98]", selectedOption?.name === opt.name ? "border-primary bg-primary/10" : "border-white/5 bg-white/5")}>
                     <div className="flex items-center gap-4">
-                       <div className={cn("h-5 w-5 rounded-full border-2 flex items-center justify-center", selectedOption?.name === opt.name ? "border-primary" : "border-white/20")}>
-                          {selectedOption?.name === opt.name && <div className="h-2.5 w-2.5 rounded-full bg-primary" />}
-                       </div>
+                       <div className={cn("h-5 w-5 rounded-full border-2 flex items-center justify-center", selectedOption?.name === opt.name ? "border-primary" : "border-white/20")}>{selectedOption?.name === opt.name && <div className="h-2.5 w-2.5 rounded-full bg-primary" />}</div>
                        <span className={cn("text-sm font-black uppercase italic tracking-widest", selectedOption?.name === opt.name ? "text-white" : "text-gray-400")}>{opt.name}</span>
                     </div>
                     <span className="text-base font-black italic text-primary">+ ₹ {opt.price}</span>
@@ -168,7 +148,6 @@ export default function ProductDetailsClient({ forcedSlug }: { forcedSlug?: stri
              </div>
           </div>
         )}
-
         <div className="fixed bottom-0 left-0 right-0 z-[1000010] bg-white border-t border-border/50 p-6 pb-12 shadow-[0_-20px_50px_rgba(0,0,0,0.1)]">
           <div className="flex items-center gap-4 max-w-lg mx-auto">
             <div className="flex items-center bg-muted/50 rounded-2xl h-14 px-2">
@@ -176,11 +155,7 @@ export default function ProductDetailsClient({ forcedSlug }: { forcedSlug?: stri
               <span className="w-10 text-center text-lg font-black">{localQuantity}</span>
               <button onClick={() => setLocalQuantity(localQuantity + 1)} className="h-10 w-10 flex items-center justify-center bg-white rounded-lg shadow-sm active:scale-90"><Plus className="h-4 w-4" /></button>
             </div>
-            <button 
-              onClick={handleAddToCart} 
-              disabled={isOffline || (product?.isVarietyRequired && !selectedOption)}
-              className="flex-1 h-14 rounded-[1.25rem] bg-primary text-white font-black uppercase italic shadow-xl active:scale-95 transition-all text-sm"
-            >
+            <button onClick={handleAddToCart} disabled={isOffline || (product?.isVarietyRequired && !selectedOption)} className="flex-1 h-14 rounded-[1.25rem] bg-primary text-white font-black uppercase italic shadow-xl active:scale-95 transition-all text-sm">
               {isOffline ? 'OFFLINE' : (product?.isVarietyRequired && !selectedOption) ? 'PICK VARIETY' : `ADD • ₹${totalPrice.toFixed(0)}`}
             </button>
           </div>

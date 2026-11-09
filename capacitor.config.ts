@@ -4,7 +4,6 @@ import type { CapacitorConfig } from '@capacitor/cli';
 /**
  * @fileOverview Dynamic Capacitor Configuration for ShopyKart Quad-Apps.
  * Strictly resolves App ID and Name based on environment flags during build/sync.
- * Optimized for production environment variable detection in CI/CD.
  */
 
 const getAppIdentity = () => {

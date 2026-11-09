@@ -1,8 +1,9 @@
+
 "use client"
 
 import { useState, useMemo, useEffect, memo } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { Search, X, Clock, MapPin, Loader2, Store, Plus, Heart, Megaphone, Tag, ShoppingBag } from 'lucide-react';
+import { Search, X, Clock, MapPin, Loader2, Store, Plus, Heart, ShoppingBag } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,12 +15,8 @@ import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, limit, doc, getDoc, getDocs } from 'firebase/firestore';
 import { ProductQuickView } from '@/components/product/ProductQuickView';
 import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
-import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 
-/**
- * @fileOverview Product Horizontal Item for Menu Page.
- */
 const ProductHorizontalItem = memo(({ product, isOffline }: any) => {
   const { cart } = useCart();
   const quantity = cart.find(c => String(c.id) === String(product.id) && !c.selectedOption)?.quantity || 0;
@@ -31,29 +28,24 @@ const ProductHorizontalItem = memo(({ product, isOffline }: any) => {
     <div className={cn("min-w-[160px] max-w-[160px] flex flex-col group/item transition-all animate-in fade-in zoom-in duration-300", isOffline && "opacity-60")}>
        <div className="relative aspect-square w-full rounded-2xl overflow-hidden bg-muted mb-2 border border-black/[0.03]">
           <Image src={product.imageUrl} alt={product.name} fill className="object-cover group-hover/item:scale-105 transition-transform duration-500" unoptimized />
-          
           <div className="absolute top-2 left-2">
              <Badge className="bg-[#15803d] text-white border-none font-bold text-[7px] px-2 py-0.5 rounded-lg uppercase shadow-sm">Popular</Badge>
           </div>
-
           <ProductQuickView product={product} vendorScheduleOpen={!isOffline}>
              <button className="absolute bottom-2 right-2 h-9 w-9 bg-white text-primary rounded-full flex items-center justify-center shadow-xl active:scale-75 transition-transform z-20">
                 {quantity > 0 ? <span className="text-[10px] font-black text-primary">{quantity}</span> : <Plus className="h-4 w-4 stroke-[4]" />}
              </button>
           </ProductQuickView>
        </div>
-
        <div className="space-y-0.5 px-1 text-left">
           <div className="flex items-center gap-1 mb-1">
              <div className="h-2.5 w-2.5 border border-green-600 rounded-sm flex items-center justify-center p-0.5 shrink-0"><div className="h-full w-full bg-green-600 rounded-full" /></div>
              <h4 className="text-[11px] font-black text-gray-800 uppercase italic truncate tracking-tight">{product.name}</h4>
           </div>
-          
           <div className="flex items-center gap-2">
              <span className="text-[9px] font-bold text-gray-400 line-through">₹{mrp}</span>
              <Badge className="bg-rose-50 text-rose-600 border-none font-black text-[11px] italic px-2 py-0.5 rounded-lg">₹{displayPrice}</Badge>
           </div>
-          
           <p className="text-[8px] font-black text-[#D946EF] uppercase italic tracking-tighter flex items-center gap-1 mt-1 animate-pulse">
              <Heart className="h-2 w-2 fill-[#D946EF]" /> Our app: {discount > 0 ? discount : '40'}% lower
           </p>
@@ -100,16 +92,16 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
       }
       setVendorLoading(true);
       try {
-        if (rawSlug.length >= 20) {
-          const idRef = doc(firestore, 'vendors', rawSlug);
-          const idSnap = await getDoc(idRef);
-          if (idSnap.exists()) {
-            setVendorProfile({ id: idSnap.id, ...idSnap.data() });
-            setVendorLoading(false);
-            return;
-          }
+        // 1. DIRECT ID FETCH (Bulletproof)
+        const idRef = doc(firestore, 'vendors', rawSlug);
+        const idSnap = await getDoc(idRef);
+        if (idSnap.exists()) {
+          setVendorProfile({ id: idSnap.id, ...idSnap.data() });
+          setVendorLoading(false);
+          return;
         }
 
+        // 2. SEO SLUG MATCH
         const slugQ = query(collection(firestore, 'vendors'), where('slug', '==', rawSlug), limit(1));
         const slugSnap = await getDocs(slugQ);
         if (!slugSnap.empty) {
@@ -118,14 +110,18 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
           return;
         }
 
-        const idRefFallback = doc(firestore, 'vendors', rawSlug);
-        const idSnapFallback = await getDoc(idRefFallback);
-        if (idSnapFallback.exists()) {
-          setVendorProfile({ id: idSnapFallback.id, ...idSnapFallback.data() });
+        // 3. STORE ID MATCH (Custom IDs)
+        const storeIdQ = query(collection(firestore, 'vendors'), where('storeId', '==', rawSlug), limit(1));
+        const storeIdSnap = await getDocs(storeIdQ);
+        if (!storeIdSnap.empty) {
+          setVendorProfile({ id: storeIdSnap.docs[0].id, ...storeIdSnap.docs[0].data() });
+          setVendorLoading(false);
+          return;
         }
+
+        setVendorLoading(false);
       } catch (err) {
         console.error("Vendor resolution error:", err);
-      } finally {
         setVendorLoading(false);
       }
     }
@@ -137,7 +133,7 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
     return query(collection(firestore, 'products'), where('vendorId', '==', String(vendorProfile.id)));
   }, [firestore, vendorProfile]);
   
-  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, `menu_v4_${vendorProfile?.id}`, initialProducts);
+  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, `menu_v5_${vendorProfile?.id}`, initialProducts);
 
   const categoriesWithProducts = useMemo(() => {
     const list = (dbProducts && dbProducts.length > 0) ? dbProducts : initialProducts;
@@ -169,19 +165,20 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
     return (
       <div className="h-screen bg-white flex flex-col items-center justify-center gap-4">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Opening Store Hub...</p>
+        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Opening Hub...</p>
       </div>
     );
   }
 
   if (!vendorProfile && !vendorLoading) {
     return (
-      <div className="h-screen bg-white flex flex-col items-center justify-center p-8 text-center">
-        <div className="bg-muted/30 h-24 w-24 rounded-full flex items-center justify-center mb-6">
-           <Store className="h-12 w-12 text-muted-foreground/30" />
+      <div className="h-screen bg-white flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-500">
+        <div className="bg-muted/30 h-28 w-28 rounded-full flex items-center justify-center mb-10">
+           <Store className="h-14 w-14 text-muted-foreground/30" />
         </div>
-        <h2 className="text-xl font-black italic uppercase text-gray-800">Store Not Found</h2>
-        <Button onClick={() => router.push('/')} className="mt-8 bg-black rounded-xl font-black uppercase italic shadow-xl">Back to Explore</Button>
+        <h2 className="text-4xl font-black italic uppercase text-gray-800 tracking-tighter leading-none mb-4">STORE NOT FOUND</h2>
+        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-10 max-w-[240px]">This hub is currently offline or the link has expired.</p>
+        <Button onClick={() => router.push('/')} className="h-16 px-10 bg-black text-white rounded-[2rem] font-black uppercase italic shadow-2xl active:scale-95 transition-all">BACK TO EXPLORE</Button>
       </div>
     );
   }
@@ -206,24 +203,16 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
           </div>
         </div>
       </div>
-
       <div className="px-6 pt-12 pb-4 text-left">
         <h1 className="text-4xl font-black italic uppercase tracking-tighter">Premium Menu</h1>
         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest italic">Best quality ingredients guaranteed.</p>
       </div>
-
       <div className="px-6 mb-8">
         <div className="relative group">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-primary transition-colors" />
-          <Input 
-            value={searchQuery} 
-            onChange={(e) => setSearchQuery(e.target.value)} 
-            placeholder='Search deliciousness...' 
-            className="pl-12 h-14 bg-gray-50 border-none rounded-2xl text-lg shadow-inner focus-visible:ring-1 focus-visible:ring-primary/20 font-bold" 
-          />
+          <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder='Search deliciousness...' className="pl-12 h-14 bg-gray-50 border-none rounded-2xl text-lg shadow-inner focus-visible:ring-1 focus-visible:ring-primary/20 font-bold" />
         </div>
       </div>
-
       <div className="space-y-12">
         {productsLoading && categoriesWithProducts.length === 0 ? (
           <div className="px-6 space-y-10">
@@ -244,15 +233,10 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
                   <h2 className="text-xl font-black italic uppercase tracking-tighter text-gray-900 border-l-4 border-primary pl-3">{category.name}</h2>
                   <Badge variant="outline" className="rounded-full border-gray-100 text-gray-400 font-black uppercase text-[8px]">{category.items.length} ITEMS</Badge>
                </div>
-               
                <div className="px-6 overflow-x-auto no-scrollbar">
                   <div className="flex space-x-5 pb-4">
                      {category.items.map((product) => (
-                       <ProductHorizontalItem 
-                        key={product.id} 
-                        product={{...product, restaurantName: vendorProfile.storeName}} 
-                        isOffline={isOffline} 
-                       />
+                       <ProductHorizontalItem key={product.id} product={{...product, restaurantName: vendorProfile.storeName}} isOffline={isOffline} />
                      ))}
                   </div>
                </div>

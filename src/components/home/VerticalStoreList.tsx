@@ -19,7 +19,6 @@ const ProductStripItem = memo(({ product, isOffline }: any) => {
   const quantity = cart.find(c => String(c.id) === String(product.id) && !c.selectedOption)?.quantity || 0;
   const displayPrice = Number(product.price) || 0;
   const mrp = Number(product.mrp) || displayPrice + 15;
-  const discount = Math.round(((mrp - displayPrice) / (mrp || 1)) * 100);
 
   return (
     <div 
@@ -28,36 +27,21 @@ const ProductStripItem = memo(({ product, isOffline }: any) => {
       style={{ contain: 'layout paint' }}
     >
        <div className="relative aspect-square w-full rounded-2xl overflow-hidden bg-muted mb-2 border border-black/[0.03]">
-          <Image 
-            src={product.imageUrl} 
-            alt={product.name} 
-            fill 
-            className="object-cover" 
-            unoptimized 
-            decoding="async"
-            loading="lazy"
-          />
-          
+          <Image src={product.imageUrl} alt={product.name} fill className="object-cover" unoptimized decoding="async" loading="lazy" />
           <div className="absolute top-2 left-2">
              <Badge className="bg-[#15803d] text-white border-none font-bold text-[7px] px-2 py-0.5 rounded-lg uppercase shadow-sm">Popular</Badge>
           </div>
-
           <ProductQuickView product={product} vendorScheduleOpen={!isOffline}>
-             <button 
-              onClick={(e) => e.stopPropagation()}
-              className="absolute bottom-2 right-2 h-8 w-8 bg-white text-primary rounded-full flex items-center justify-center shadow-xl active:scale-75 transition-transform z-20"
-             >
+             <button onClick={(e) => e.stopPropagation()} className="absolute bottom-2 right-2 h-8 w-8 bg-white text-primary rounded-full flex items-center justify-center shadow-xl active:scale-75 transition-transform z-20">
                 {quantity > 0 ? <span className="text-[10px] font-black text-primary">{quantity}</span> : <Plus className="h-4 w-4 stroke-[4]" />}
              </button>
           </ProductQuickView>
        </div>
-
        <div className="space-y-0.5 px-1 text-left">
           <div className="flex items-center gap-1 mb-1">
              <div className="h-2.5 w-2.5 border border-green-600 rounded-sm flex items-center justify-center p-0.5 shrink-0"><div className="h-full w-full bg-green-600 rounded-full" /></div>
              <h4 className="text-[11px] font-black text-gray-800 uppercase italic truncate tracking-tight">{product.name}</h4>
           </div>
-          
           <div className="flex items-center gap-2">
              <span className="text-[9px] font-bold text-gray-400 line-through">₹{mrp}</span>
              <Badge className="bg-rose-50 text-rose-600 border-none font-black text-[11px] italic px-2 py-0.5 rounded-lg">₹{displayPrice}</Badge>
@@ -95,26 +79,22 @@ export const VerticalStoreList = memo(({
     };
     updateLocation();
     window.addEventListener('user-address-updated', updateLocation);
-    
     const d = new Date();
     setCurrentTimeMins(d.getHours() * 60 + d.getMinutes());
-    
-    return () => {
-      window.removeEventListener('user-address-updated', updateLocation);
-    };
+    return () => window.removeEventListener('user-address-updated', updateLocation);
   }, []);
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'vendors'), limit(50));
   }, [firestore]);
-  const { data: dbVendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery, 'home_vstores_v21', initialData);
+  const { data: dbVendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery, 'home_vstores_v25', initialData);
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'products'), limit(150));
   }, [firestore]);
-  const { data: dbAllProducts } = useCollection<any>(productsQuery, 'home_strip_products_v30', initialProducts);
+  const { data: dbAllProducts } = useCollection<any>(productsQuery, 'home_strip_products_v35', initialProducts);
 
   const filteredVendors = useMemo(() => {
     const list = (dbVendors !== null && dbVendors.length > 0) ? dbVendors : initialData;
@@ -124,26 +104,16 @@ export const VerticalStoreList = memo(({
     const currentMode = activeMode.toLowerCase();
 
     return list.filter(v => {
-      // Show stores if zone matches, OR if no zone is selected yet (for better landing UX)
       if (activeZoneId) {
         const zoneMatch = v.zoneId === activeZoneId || v.zoneId === 'global';
         const townMatch = activeTown && v.town?.toLowerCase().trim() === activeTown.toLowerCase().trim();
         if (!zoneMatch && !townMatch && v.zoneId) return false;
       }
-
       const storeCat = (v.category || 'Food').toLowerCase();
-      if (currentMode === 'medical') {
-        if (storeCat !== 'medical') return false;
-      } else if (currentMode === 'beauty') {
-        if (storeCat !== 'beauty') return false;
-      } else {
-        if (['medical', 'beauty', 'grocery'].includes(storeCat)) return false;
-      }
-
-      const matchesSearch = !searchLower || 
-        v.storeName?.toLowerCase().includes(searchLower) || 
-        v.category?.toLowerCase().includes(searchLower);
-      
+      if (currentMode === 'medical') { if (storeCat !== 'medical') return false; }
+      else if (currentMode === 'beauty') { if (storeCat !== 'beauty') return false; }
+      else { if (['medical', 'beauty', 'grocery'].includes(storeCat)) return false; }
+      const matchesSearch = !searchLower || v.storeName?.toLowerCase().includes(searchLower) || v.category?.toLowerCase().includes(searchLower);
       return matchesSearch && (v.status === 'approved' || !v.status);
     }).sort((a, b) => {
       const isOpenA = a.isOnline !== false && isStoreScheduleOpen(a, currentTimeMins);
@@ -157,9 +127,7 @@ export const VerticalStoreList = memo(({
     return (
       <div className="px-4 py-6 bg-white space-y-16">
         {[1, 2].map(i => (
-          <div key={i} className="space-y-6">
-            <Skeleton className="w-full aspect-[18/9] rounded-[1.5rem]" />
-          </div>
+          <div key={i} className="space-y-6"><Skeleton className="w-full aspect-[18/9] rounded-[1.5rem]" /></div>
         ))}
       </div>
     );
@@ -171,20 +139,17 @@ export const VerticalStoreList = memo(({
         <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900 leading-none">Best <span className="text-primary">Hubs</span></h2>
         <Badge variant="outline" className="rounded-full border-gray-200 text-gray-400 font-black uppercase text-[10px]">{filteredVendors.length} STORES</Badge>
       </div>
-
       <div className="space-y-16">
         {filteredVendors.map((store: any) => {
             const displayImage = store.bannerUrl || store.imageUrl || `https://picsum.photos/seed/${store.id}/800/400`;
             const isOpen = isStoreScheduleOpen(store, currentTimeMins);
             const isOffline = store.isOnline === false || !isOpen;
-            
             const productPool = (dbAllProducts !== null && dbAllProducts.length > 0) ? dbAllProducts : initialProducts;
             const storeProducts = productPool.filter((p: any) => String(p.vendorId) === String(store.id) && p.isDeleted !== true).slice(0, 8);
 
-            // STABLE NAVIGATION: Points to /store/view/?id=... to prevent 404 in static APK
             const navigateToStore = () => {
-              const id = store.slug || store.id;
-              router.push(`/store/view/?id=${id}`);
+              const identifier = store.slug || store.id;
+              router.push(`/store/view/?id=${identifier}`);
             };
 
             return (
@@ -198,7 +163,6 @@ export const VerticalStoreList = memo(({
                       </div>
                     )}
                   </div>
-
                   <div className="pt-5 px-3 flex justify-between items-start">
                     <div className="flex-1 min-w-0 pr-4">
                       <h3 className="font-black text-2xl italic uppercase tracking-tighter text-gray-900 leading-none mb-1.5 truncate">{store.storeName}</h3>
@@ -213,7 +177,6 @@ export const VerticalStoreList = memo(({
                     </div>
                   </div>
                 </div>
-
                 <div className="px-1 overflow-hidden">
                   <div className="flex overflow-x-auto space-x-4 no-scrollbar pb-4 pt-2">
                     {storeProducts.map((p: any) => <ProductStripItem key={p.id} product={{...p, restaurantName: store.storeName}} isOffline={isOffline} />)}
@@ -229,5 +192,4 @@ export const VerticalStoreList = memo(({
     </div>
   );
 });
-
 VerticalStoreList.displayName = "VerticalStoreList";
