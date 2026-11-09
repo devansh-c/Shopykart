@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo, useState, useEffect, memo } from 'react';
@@ -110,15 +109,15 @@ export const VerticalStoreList = memo(({
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'vendors'), limit(30));
+    return query(collection(firestore, 'vendors'), limit(50));
   }, [firestore]);
-  const { data: dbVendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery, 'home_vstores_v19', initialData);
+  const { data: dbVendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery, 'home_vstores_v21', initialData);
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'products'), limit(100));
+    return query(collection(firestore, 'products'), limit(150));
   }, [firestore]);
-  const { data: dbAllProducts } = useCollection<any>(productsQuery, 'home_strip_products_v25', initialProducts);
+  const { data: dbAllProducts } = useCollection<any>(productsQuery, 'home_strip_products_v30', initialProducts);
 
   const filteredVendors = useMemo(() => {
     const list = (dbVendors !== null && dbVendors.length > 0) ? dbVendors : initialData;
@@ -128,6 +127,7 @@ export const VerticalStoreList = memo(({
     const currentMode = activeMode.toLowerCase();
 
     return list.filter(v => {
+      // Zone filter only applies if activeZoneId is explicitly set
       if (activeZoneId) {
         const zoneMatch = v.zoneId === activeZoneId || v.zoneId === 'global';
         const townMatch = activeTown && v.town?.toLowerCase().trim() === activeTown.toLowerCase().trim();

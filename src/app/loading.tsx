@@ -1,7 +1,5 @@
 /**
- * @fileOverview Atomic Startup Loader with Strictly Inline Styles.
- * FIXED: Uses fixed positioning to prevent Top-Left frozen spinner bug.
- * Centered strictly using CSS to avoid hydration delays.
+ * @fileOverview Atomic Startup Loader - Centered strictly using Inline CSS to avoid hydration blocks.
  */
 export default function Loading() {
   return (
@@ -9,8 +7,6 @@ export default function Loading() {
       position: 'fixed',
       top: 0,
       left: 0,
-      right: 0,
-      bottom: 0,
       width: '100vw',
       height: '100vh',
       display: 'flex',
@@ -18,7 +14,7 @@ export default function Loading() {
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: '#ffffff',
-      zIndex: 2147483647,
+      zIndex: 9999999,
       pointerEvents: 'none'
     }}>
       <style dangerouslySetInnerHTML={{ __html: `
@@ -26,26 +22,26 @@ export default function Loading() {
           0% { transform: rotate(0deg); } 
           100% { transform: rotate(360deg); } 
         }
-        .startup-spinner {
-          width: 50px !important;
-          height: 50px !important;
-          border: 4px solid #f3f3f3 !important;
-          border-top: 4px solid #EF4444 !important;
-          border-radius: 50% !important;
-          animation: startup-spin 0.6s linear infinite !important;
-          margin-bottom: 20px !important;
-        }
-        .startup-text {
-          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
-          font-size: 10px !important;
-          font-weight: 900 !important;
-          color: #EF4444 !important;
-          text-transform: uppercase !important;
-          letter-spacing: 4px !important;
-        }
       `}} />
-      <div className="startup-spinner"></div>
-      <div className="startup-text">ShopyKart 1.4.0</div>
+      <div style={{
+        width: '40px',
+        height: '40px',
+        border: '3px solid #f3f3f3',
+        borderTop: '3px solid #EF4444',
+        borderRadius: '50%',
+        animation: 'startup-spin 0.8s linear infinite',
+        marginBottom: '20px'
+      }}></div>
+      <div style={{
+        fontFamily: 'sans-serif',
+        fontSize: '10px',
+        fontWeight: '900',
+        color: '#EF4444',
+        textTransform: 'uppercase',
+        letterSpacing: '4px'
+      }}>
+        ShopyKart 1.4.0
+      </div>
     </div>
   );
 }

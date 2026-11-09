@@ -2,7 +2,7 @@ import { CapacitorConfig } from '@capacitor/cli';
 
 /**
  * @fileOverview Dynamic identity configuration for ShopyKart Multi-App ecosystem.
- * Environment variables are used during build/sync to assign unique Package IDs and Names.
+ * Version: 1.4.0
  */
 
 const isAdmin = process.env.NEXT_PUBLIC_ADMIN_APP === 'true';
