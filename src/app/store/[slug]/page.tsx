@@ -1,15 +1,17 @@
 import React, { Suspense } from 'react';
+import { Loader2 } from 'lucide-react';
 import MenuContent from '@/components/menu/MenuContent';
 
 export const dynamic = 'error';
 export const dynamicParams = false;
 
-// Sabhi possible static slugs pre-render
+// Pre-render static paths for APK
 export async function generateStaticParams() {
   return [
     { slug: 'view' },
     { slug: 'hub' },
     { slug: 'details' },
+    { slug: 'hotel-bellevue' },
     { slug: 'mr-burger' },
     { slug: 'saurabh-sweet-house' },
     { slug: 'chauhan-sweets' },
@@ -20,10 +22,23 @@ export async function generateStaticParams() {
   ];
 }
 
-export default async function StorePage({ params }: { params: Promise<{ slug: string }> }) {
+interface PageProps {
+  params: Promise<{ slug: string }>;
+}
+
+export default async function StorePage({ params }: PageProps) {
   const resolved = await params;
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-white"><div className="w-8 h-8 border-4 border-red-500 border-t-transparent rounded-full animate-spin"></div></div>}>
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex flex-col items-center justify-center bg-white">
+          <Loader2 className="w-10 h-10 animate-spin text-red-500" />
+          <p className="mt-4 text-xs font-black uppercase tracking-widest text-gray-500">
+            Syncing with Store Hub...
+          </p>
+        </div>
+      }
+    >
       <MenuContent forcedSlug={resolved.slug} />
     </Suspense>
   );
