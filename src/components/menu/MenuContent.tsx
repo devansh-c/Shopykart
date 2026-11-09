@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useCart } from '@/components/cart/CartProvider';
 import { cn, slugify } from '@/lib/utils';
-import Link from 'next/link';
 import Image from 'next/image';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, limit, doc, getDoc, getDocs } from 'firebase/firestore';
@@ -54,9 +53,16 @@ ProductHorizontalItem.displayName = "ProductHorizontalItem";
 export default function MenuContent({ forcedSlug, initialVendor, initialProducts = [] }: { forcedSlug?: string, initialVendor?: any, initialProducts?: any[] }) {
   const params = useParams();
   const searchParams = useSearchParams();
-  const rawSlug = forcedSlug || (params?.slug as string) || searchParams.get('id');
-  const router = useRouter();
   
+  // ROBUST SLUG EXTRACTION: Optimized for both Dynamic Paths and Shell Routes
+  const rawSlug = useMemo(() => {
+    const fromProps = forcedSlug;
+    const fromSearch = searchParams.get('id');
+    const fromParams = params?.slug ? String(params.slug) : null;
+    return (fromProps || fromSearch || fromParams || '').trim();
+  }, [forcedSlug, params, searchParams]);
+
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [currentMinutes, setCurrentMinutes] = useState<number | null>(null);
   const [vendorProfile, setVendorProfile] = useState<any>(initialVendor);
@@ -76,19 +82,26 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
 
   useEffect(() => {
     let isMounted = true;
-    let attempts = 0;
+    let retryCount = 0;
+    const maxRetries = 4;
 
     async function resolveVendor() {
       if (!firestore || !rawSlug) {
-        if (isMounted) setVendorLoading(false);
+        // Delay loading stop for slow mobile networks
+        if (retryCount >= maxRetries) {
+          if (isMounted) setVendorLoading(false);
+        } else {
+          retryCount++;
+          setTimeout(resolveVendor, 500);
+        }
         return;
       }
 
       try {
-        const cleanSlug = String(rawSlug).trim();
+        const cleanSlug = String(rawSlug).toLowerCase();
 
-        // 1. Try Direct ID Fetch
-        const idRef = doc(firestore, 'vendors', cleanSlug);
+        // 1. STAGE 1: Direct Doc ID Search (UID)
+        const idRef = doc(firestore, 'vendors', rawSlug); 
         const idSnap = await getDoc(idRef);
         if (idSnap.exists()) {
           if (isMounted) {
@@ -98,8 +111,8 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
           return;
         }
 
-        // 2. Try SEO Slug Query
-        const slugQ = query(collection(firestore, 'vendors'), where('slug', '==', cleanSlug.toLowerCase()), limit(1));
+        // 2. STAGE 2: Query by SEO Slug
+        const slugQ = query(collection(firestore, 'vendors'), where('slug', '==', cleanSlug), limit(1));
         const slugSnap = await getDocs(slugQ);
         if (!slugSnap.empty) {
           if (isMounted) {
@@ -109,8 +122,8 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
           return;
         }
 
-        // 3. Try Store ID Query
-        const storeIdQ = query(collection(firestore, 'vendors'), where('storeId', '==', cleanSlug.toLowerCase()), limit(1));
+        // 3. STAGE 3: Search by StoreID field
+        const storeIdQ = query(collection(firestore, 'vendors'), where('storeId', '==', cleanSlug), limit(1));
         const storeIdSnap = await getDocs(storeIdQ);
         if (!storeIdSnap.empty) {
           if (isMounted) {
@@ -120,16 +133,25 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
           return;
         }
 
-        // 4. Retry Logic for Mobile Networks
-        if (attempts < 3) {
-          attempts++;
-          setTimeout(resolveVendor, 1000);
-          return;
-        }
+        // 4. STAGE 4: Full Hard-Sync Recursive Retry
+        if (retryCount < maxRetries) {
+          retryCount++;
+          setTimeout(resolveVendor, 800);
+        } else {
+          // FINAL ATTEMPT: Scan all (Extreme fallback)
+          const allVendors = await getDocs(collection(firestore, 'vendors'));
+          const found = allVendors.docs.find(d => {
+            const data = d.data();
+            return d.id === rawSlug || data.slug === cleanSlug || data.storeId?.toLowerCase() === cleanSlug;
+          });
 
-        if (isMounted) setVendorLoading(false);
+          if (found && isMounted) {
+            setVendorProfile({ id: found.id, ...found.data() });
+          }
+          if (isMounted) setVendorLoading(false);
+        }
       } catch (err) {
-        console.error("Vendor resolution failed:", err);
+        console.error("Hub resolution error:", err);
         if (isMounted) setVendorLoading(false);
       }
     }
@@ -143,7 +165,7 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
     return query(collection(firestore, 'products'), where('vendorId', '==', String(vendorProfile.id)));
   }, [firestore, vendorProfile]);
   
-  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, `menu_v7_${vendorProfile?.id}`, initialProducts);
+  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, `menu_v11_${vendorProfile?.id}`, initialProducts);
 
   const categoriesWithProducts = useMemo(() => {
     const list = (dbProducts && dbProducts.length > 0) ? dbProducts : initialProducts;
@@ -184,13 +206,13 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
 
   if (!vendorProfile && !vendorLoading) {
     return (
-      <div className="h-screen bg-white flex flex-col items-center justify-center p-8 text-center">
+      <div className="h-screen bg-white flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-500">
         <div className="bg-muted/30 h-28 w-28 rounded-full flex items-center justify-center mb-10">
            <Store className="h-14 w-14 text-muted-foreground/30" />
         </div>
-        <h2 className="text-3xl font-black italic uppercase text-gray-800 tracking-tighter">HUB NOT REACHABLE</h2>
+        <h2 className="text-3xl font-black italic uppercase text-gray-800 tracking-tighter leading-tight">HUB NOT REACHABLE</h2>
         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-4 mb-10">Please check your internet or try again.</p>
-        <Button onClick={() => router.push('/')} className="h-16 px-10 bg-black text-white rounded-2xl font-black uppercase italic shadow-xl">BACK TO HOME</Button>
+        <Button onClick={() => router.push('/')} className="h-16 px-10 bg-black text-white rounded-2xl font-black uppercase italic shadow-xl active:scale-95 transition-all">BACK TO HOME</Button>
       </div>
     );
   }

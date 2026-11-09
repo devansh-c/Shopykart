@@ -5,17 +5,18 @@ import { useState, useMemo, useEffect } from 'react';
 import { Search, MapPin, Store, Star, Clock, ChevronRight, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn, slugify } from '@/lib/utils';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
+import { collection } from 'firebase/firestore';
 import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 import { Skeleton } from '@/components/ui/skeleton';
 
 /**
- * @fileOverview StoresPage with strict location isolation.
+ * @fileOverview StoresPage with stable Shell Navigation for Static Export.
  */
 export default function StoresPage() {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
   const [activeTown, setActiveTown] = useState<string | null>(null);
@@ -51,7 +52,7 @@ export default function StoresPage() {
     return collection(firestore, 'vendors');
   }, [firestore]);
 
-  const { data: dbVendors, loading } = useCollection<any>(vendorsQuery, 'stores_list_v3');
+  const { data: dbVendors, loading } = useCollection<any>(vendorsQuery, 'stores_list_v4');
 
   const filteredVendors = useMemo(() => {
     if (!dbVendors) return [];
@@ -61,7 +62,6 @@ export default function StoresPage() {
     return dbVendors.filter(v => {
       if (activeZoneId) {
         const zoneMatch = v.zoneId === activeZoneId || v.zoneId === 'global';
-        // FIXED: Strict town matching for isolation
         const townMatch = activeTown && v.town?.toLowerCase().trim() === activeTown.toLowerCase().trim();
         
         if (!zoneMatch && !townMatch && v.zoneId) {
@@ -87,7 +87,6 @@ export default function StoresPage() {
     });
   }, [dbVendors, activeZoneId, activeTown, searchQuery, currentTimeMins]);
 
-  // Detereministic Loading State
   const isActuallyLoading = loading || !initialSync;
   const showEmptyState = !isActuallyLoading && filteredVendors.length === 0;
 
@@ -128,15 +127,18 @@ export default function StoresPage() {
             const isOffline = store.isOnline === false || !isOpen;
             const rating = store.rating || '4.0';
             
-            const storeSlug = store.slug || slugify(store.storeName) || store.id;
-            const storePath = `/store/${storeSlug}/`;
+            // BULLETPROOF NAVIGATION: Standard Query Param Shell
+            const handleNavigate = () => {
+              const identifier = store.slug || store.id;
+              router.push(`/store/view/?id=${identifier}`);
+            };
 
             return (
-              <Link 
-                href={storePath}
+              <div 
                 key={store.id} 
+                onClick={handleNavigate}
                 className={cn(
-                  "block bg-white rounded-3xl overflow-hidden shadow-sm border border-border/40 transition-all active:scale-[0.98] group",
+                  "block bg-white rounded-3xl overflow-hidden shadow-sm border border-border/40 transition-all active:scale-[0.98] group cursor-pointer",
                   isOffline && "opacity-80 grayscale-[0.2]"
                 )}
               >
@@ -179,7 +181,7 @@ export default function StoresPage() {
                      </div>
                   </div>
                 </div>
-              </Link>
+              </div>
             );
           })
         ) : showEmptyState && (

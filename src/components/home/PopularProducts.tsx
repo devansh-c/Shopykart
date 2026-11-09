@@ -42,7 +42,7 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare }: any) => {
   const router = useRouter();
   const displayPrice = Number(product.price) || 0;
 
-  // STABLE NAVIGATION: Points to /product/view/?id=...
+  // STABLE NAVIGATION: Always use the Shell pattern for products in APK
   const handleProductClick = () => {
     const id = product.slug || product.id;
     router.push(`/product/view/?id=${id}`);
@@ -190,7 +190,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     <div className="px-4 py-6 bg-white min-h-[600px] scroll-gpu">
       <div className="flex items-center justify-between mb-6 px-2">
         <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900">Premium <span className="text-primary">Selection</span></h2>
-        <Badge variant="outline" className="rounded-full border-gray-200 text-gray-400 font-black uppercase text-[10px]">
+        <Badge variant="outline" className="rounded-full border-gray-100 text-gray-400 font-black uppercase text-[10px]">
           {productsToDisplay.length} ITEMS
         </Badge>
       </div>

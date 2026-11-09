@@ -137,7 +137,7 @@ export const VerticalStoreList = memo(({
     <div className="px-4 py-6 bg-white scroll-gpu">
       <div className="flex items-center justify-between mb-8 px-2">
         <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900 leading-none">Best <span className="text-primary">Hubs</span></h2>
-        <Badge variant="outline" className="rounded-full border-gray-200 text-gray-400 font-black uppercase text-[10px]">{filteredVendors.length} STORES</Badge>
+        <Badge variant="outline" className="rounded-full border-gray-100 text-gray-400 font-black uppercase text-[10px]">{filteredVendors.length} STORES</Badge>
       </div>
       <div className="space-y-16">
         {filteredVendors.map((store: any) => {
@@ -148,6 +148,7 @@ export const VerticalStoreList = memo(({
             const storeProducts = productPool.filter((p: any) => String(p.vendorId) === String(store.id) && p.isDeleted !== true).slice(0, 8);
 
             const navigateToStore = () => {
+              // BULLETPROOF NAVIGATION: Standard Query Param Shell is best for static APK
               const identifier = store.slug || store.id;
               router.push(`/store/view/?id=${identifier}`);
             };

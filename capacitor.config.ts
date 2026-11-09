@@ -2,12 +2,12 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 /**
- * @fileOverview Bulletproof Dynamic Capacitor Configuration.
- * Optimized for Version 1.4.0 with explicit Package ID switching.
+ * @fileOverview Bulletproof Dynamic Capacitor Configuration for Version 1.4.0.
+ * Strictly switches Package IDs based on build-time environment flags.
  */
 
 const getAppIdentity = () => {
-  // Check environment flags during build or sync
+  // Check both process.env and global flags for maximum reliability in GH Actions
   const env = process.env;
   
   const isAdmin = env.NEXT_PUBLIC_ADMIN_APP === 'true' || env.ADMIN_APP === 'true';
