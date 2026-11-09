@@ -81,19 +81,23 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
       return;
     }
     
+    let isMounted = true;
+    let retryCount = 0;
+
     async function resolveVendor() {
       if (!firestore || !rawSlug) {
         return;
       }
 
-      setVendorLoading(true);
+      if (retryCount === 0) setVendorLoading(true);
+
       try {
         const cleanSlug = String(rawSlug).trim();
 
         // 1. DIRECT ID FETCH (Fastest)
         const idRef = doc(firestore, 'vendors', cleanSlug);
         const idSnap = await getDoc(idRef);
-        if (idSnap.exists()) {
+        if (idSnap.exists() && isMounted) {
           setVendorProfile({ id: idSnap.id, ...idSnap.data() });
           setVendorLoading(false);
           return;
@@ -102,7 +106,7 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
         // 2. SEO SLUG MATCH
         const slugQ = query(collection(firestore, 'vendors'), where('slug', '==', cleanSlug.toLowerCase()), limit(1));
         const slugSnap = await getDocs(slugQ);
-        if (!slugSnap.empty) {
+        if (!slugSnap.empty && isMounted) {
           setVendorProfile({ id: slugSnap.docs[0].id, ...slugSnap.docs[0].data() });
           setVendorLoading(false);
           return;
@@ -111,13 +115,13 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
         // 3. STORE ID MATCH
         const storeIdQ = query(collection(firestore, 'vendors'), where('storeId', '==', cleanSlug.toLowerCase()), limit(1));
         const storeIdSnap = await getDocs(storeIdQ);
-        if (!storeIdSnap.empty) {
+        if (!storeIdSnap.empty && isMounted) {
           setVendorProfile({ id: storeIdSnap.docs[0].id, ...storeIdSnap.docs[0].data() });
           setVendorLoading(false);
           return;
         }
 
-        // 4. DEEP SCAN FALLBACK (For links broken by slugify differences)
+        // 4. DEEP SCAN FALLBACK
         const allVendorsSnap = await getDocs(collection(firestore, 'vendors'));
         const foundVendor = allVendorsSnap.docs.find(d => {
           const data = d.data();
@@ -127,19 +131,29 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
                  slugify(data.storeName || '') === target;
         });
 
-        if (foundVendor) {
+        if (foundVendor && isMounted) {
           setVendorProfile({ id: foundVendor.id, ...foundVendor.data() });
+          setVendorLoading(false);
+          return;
         }
+
+        // 5. PATIENCE RETRY (Wait for Firestore sync in slow networks)
+        if (retryCount < 2) {
+          retryCount++;
+          setTimeout(resolveVendor, 800);
+          return;
+        }
+
+        if (isMounted) setVendorLoading(false);
         
       } catch (err) {
         console.error("Vendor resolution error:", err);
-      } finally {
-        // Wait at least 1.5s to ensure background fetches don't flicker the error screen
-        setTimeout(() => setVendorLoading(false), 1500);
+        if (isMounted) setVendorLoading(false);
       }
     }
 
     resolveVendor();
+    return () => { isMounted = false; };
   }, [firestore, rawSlug, initialVendor]);
 
   const productsQuery = useMemoFirebase(() => {
@@ -147,7 +161,7 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
     return query(collection(firestore, 'products'), where('vendorId', '==', String(vendorProfile.id)));
   }, [firestore, vendorProfile]);
   
-  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, `menu_v5_${vendorProfile?.id}`, initialProducts);
+  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, `menu_v6_${vendorProfile?.id}`, initialProducts);
 
   const categoriesWithProducts = useMemo(() => {
     const list = (dbProducts && dbProducts.length > 0) ? dbProducts : initialProducts;
@@ -183,7 +197,7 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
               <Store className="h-8 w-8 text-primary" />
            </div>
         </div>
-        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic animate-pulse">Syncing with Store Hub...</p>
+        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic animate-pulse">Establishing Hub Link...</p>
       </div>
     );
   }
@@ -194,8 +208,8 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
         <div className="bg-muted/30 h-28 w-28 rounded-full flex items-center justify-center mb-10">
            <Store className="h-14 w-14 text-muted-foreground/30" />
         </div>
-        <h2 className="text-4xl font-black italic uppercase text-gray-800 tracking-tighter leading-none mb-4">STORE NOT FOUND</h2>
-        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-10 max-w-[240px]">This hub is currently offline or the link has expired.</p>
+        <h2 className="text-4xl font-black italic uppercase text-gray-800 tracking-tighter leading-none mb-4">HUB NOT REACHABLE</h2>
+        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-10 max-w-[240px]">This store hub is currently offline or the link has expired.</p>
         <Button onClick={() => router.push('/')} className="h-16 px-10 bg-black text-white rounded-[2rem] font-black uppercase italic shadow-2xl active:scale-95 transition-all">BACK TO EXPLORE</Button>
       </div>
     );

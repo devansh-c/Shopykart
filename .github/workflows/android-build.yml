@@ -66,6 +66,7 @@ jobs:
       - name: Build Android (Admin)
         working-directory: android
         run: |
+          chmod +x gradlew
           ./gradlew assembleRelease
           ./gradlew bundleRelease
 
@@ -86,6 +87,7 @@ jobs:
       - name: Build Android (Biz)
         working-directory: android
         run: |
+          chmod +x gradlew
           ./gradlew assembleRelease
           ./gradlew bundleRelease
 
@@ -106,6 +108,7 @@ jobs:
       - name: Build Android (Tow)
         working-directory: android
         run: |
+          chmod +x gradlew
           ./gradlew assembleRelease
           ./gradlew bundleRelease
 
