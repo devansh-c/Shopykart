@@ -13,7 +13,7 @@ const inter = Inter({
 
 /**
  * @fileOverview Root Layout - UI Hydration Fix.
- * Strictly imports CSS first to prevent "unstyled" flicker.
+ * Strictly imports globals.css FIRST to prevent unstyled layout shifts.
  */
 
 export const viewport: Viewport = {
@@ -37,7 +37,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={inter.variable} suppressHydrationWarning>
-      <body className="antialiased bg-white text-foreground overflow-x-hidden" suppressHydrationWarning>
+      <head>
+        <link rel="icon" href="/favicon.ico" />
+      </head>
+      <body className="antialiased bg-white text-foreground overflow-x-hidden min-h-screen" suppressHydrationWarning>
         <OfflineScreen />
         <ClientLayout>{children}</ClientLayout>
       </body>

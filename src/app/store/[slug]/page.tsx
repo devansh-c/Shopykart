@@ -3,14 +3,18 @@ import { Loader2 } from 'lucide-react';
 import MenuContent from '@/components/menu/MenuContent';
 
 export const dynamic = 'force-static';
-// dynamicParams = false is implicit for output: export
+export const dynamicParams = false;
 
 /**
  * @fileOverview Optimized Store Page for Static Export.
- * Return 'view' as a valid static param to prevent build/runtime errors.
+ * Standardizes generateStaticParams to return a valid 'view' shell.
  */
 export async function generateStaticParams() {
-  return [{ slug: 'view' }];
+  return [
+    { slug: 'view' },
+    { slug: 'hub' },
+    { slug: 'details' }
+  ];
 }
 
 export default async function StorePage(props: { params: Promise<{ slug: string }> }) {
@@ -18,9 +22,17 @@ export default async function StorePage(props: { params: Promise<{ slug: string 
 
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-4">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Opening Store Hub...</p>
+      <div style={{
+        height: '100vh',
+        width: '100vw',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#ffffff'
+      }}>
+        <Loader2 style={{ width: '40px', height: '40px', animation: 'spin 1s linear infinite', color: '#EF4444' }} />
+        <p style={{ fontSize: '10px', fontWeight: '900', marginTop: '20px', color: '#666', textTransform: 'uppercase', letterSpacing: '2px' }}>Opening Store Hub...</p>
       </div>
     }>
       <MenuContent forcedSlug={slug} />

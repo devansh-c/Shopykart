@@ -3,13 +3,18 @@ import ProductDetailsClient from '@/components/product/ProductDetailsClient';
 import { Loader2 } from 'lucide-react';
 
 export const dynamic = 'force-static';
+export const dynamicParams = false;
 
 /**
  * @fileOverview Optimized Product Page for Static Export.
- * Providing 'view' shell for dynamic client-side resolution.
+ * Providing valid shells for dynamic client-side resolution.
  */
 export async function generateStaticParams() {
-  return [{ slug: 'view' }];
+  return [
+    { slug: 'view' },
+    { slug: 'details' },
+    { slug: 'item' }
+  ];
 }
 
 export default async function ProductPage(props: { params: Promise<{ slug: string }> }) {
@@ -17,9 +22,17 @@ export default async function ProductPage(props: { params: Promise<{ slug: strin
 
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-4">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Loading Gourmet Details...</p>
+      <div style={{
+        height: '100vh',
+        width: '100vw',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#ffffff'
+      }}>
+        <Loader2 style={{ width: '40px', height: '40px', animation: 'spin 1s linear infinite', color: '#EF4444' }} />
+        <p style={{ fontSize: '10px', fontWeight: '900', marginTop: '20px', color: '#666', textTransform: 'uppercase', letterSpacing: '2px' }}>Loading Gourmet Details...</p>
       </div>
     }>
       <ProductDetailsClient forcedSlug={slug} />

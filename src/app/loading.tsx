@@ -1,5 +1,5 @@
 /**
- * @fileOverview Atomic Startup Loader - Full Centered Fix.
+ * @fileOverview Atomic Startup Loader - Full Viewport Fix.
  * Uses strictly Inline CSS to bypass hydration locks and top-left freezing.
  */
 export default function Loading() {
@@ -25,21 +25,23 @@ export default function Loading() {
         }
       `}} />
       <div style={{
-        width: '40px',
-        height: '40px',
-        border: '3px solid #f3f3f3',
-        borderTop: '3px solid #EF4444',
+        width: '44px',
+        height: '44px',
+        border: '4px solid #f3f3f3',
+        borderTop: '4px solid #EF4444',
         borderRadius: '50%',
         animation: 'startup-spin 0.8s linear infinite',
-        marginBottom: '20px'
+        marginBottom: '24px',
+        boxShadow: '0 4px 15px rgba(239,68,68,0.1)'
       }}></div>
       <div style={{
-        fontFamily: 'sans-serif',
-        fontSize: '10px',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+        fontSize: '11px',
         fontWeight: '900',
         color: '#EF4444',
         textTransform: 'uppercase',
-        letterSpacing: '4px'
+        letterSpacing: '4px',
+        opacity: 0.8
       }}>
         ShopyKart 1.4.0
       </div>

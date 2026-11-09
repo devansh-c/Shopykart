@@ -3,13 +3,19 @@ import StaticPageView from '@/components/shared/StaticPageView';
 import { Loader2 } from 'lucide-react';
 
 export const dynamic = 'force-static';
-// Removed dynamicParams = false to allow new policy pages
+export const dynamicParams = false;
 
 /**
  * @fileOverview Static export shell for Policy Pages.
  */
 export async function generateStaticParams() {
-  return [{ slug: 'view' }];
+  return [
+    { slug: 'view' },
+    { slug: 'cancellation-policy' },
+    { slug: 'terms-and-conditions' },
+    { slug: 'privacy-policy' },
+    { slug: 'return-policy' }
+  ];
 }
 
 export default async function GenericPage(props: { params: Promise<{ slug: string }> }) {
@@ -17,9 +23,17 @@ export default async function GenericPage(props: { params: Promise<{ slug: strin
 
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-4">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Retrieving Information...</p>
+      <div style={{
+        height: '100vh',
+        width: '100vw',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#ffffff'
+      }}>
+        <Loader2 style={{ width: '40px', height: '40px', animation: 'spin 1s linear infinite', color: '#EF4444' }} />
+        <p style={{ fontSize: '10px', fontWeight: '900', marginTop: '20px', color: '#666', textTransform: 'uppercase', letterSpacing: '2px' }}>Retrieving Information...</p>
       </div>
     }>
       <StaticPageView forcedSlug={slug} />
