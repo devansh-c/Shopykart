@@ -2,18 +2,17 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 /**
- * @fileOverview Dynamic Capacitor Configuration for ShopyKart Quad-Apps.
- * Strictly resolves App ID and Name based on environment flags during build/sync.
- * Optimized for Version 1.4.0.
+ * @fileOverview Bulletproof Dynamic Capacitor Configuration.
+ * Optimized for Version 1.4.0 with explicit Package ID switching.
  */
 
 const getAppIdentity = () => {
-  // Check process.env and process.env.NEXT_PUBLIC_ prefix for maximum reliability across build systems
+  // Check environment flags during build or sync
   const env = process.env;
   
-  const isAdmin = env.ADMIN_APP === 'true' || env.NEXT_PUBLIC_ADMIN_APP === 'true';
-  const isBiz = env.BIZ_APP === 'true' || env.NEXT_PUBLIC_BIZ_APP === 'true';
-  const isTow = env.TOW_APP === 'true' || env.NEXT_PUBLIC_TOW_APP === 'true';
+  const isAdmin = env.NEXT_PUBLIC_ADMIN_APP === 'true' || env.ADMIN_APP === 'true';
+  const isBiz = env.NEXT_PUBLIC_BIZ_APP === 'true' || env.BIZ_APP === 'true';
+  const isTow = env.NEXT_PUBLIC_TOW_APP === 'true' || env.TOW_APP === 'true';
 
   if (isAdmin) {
     return {

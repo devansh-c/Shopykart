@@ -1,5 +1,5 @@
 
-name: Build ShopyKart Quad Apps
+name: Build ShopyKart Quad Apps (APK + AAB)
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    name: Generate Quad App Bundle
+    name: Generate Quad Apps (APK & AAB)
     runs-on: ubuntu-latest
 
     steps:
@@ -30,91 +30,96 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      # CREATE DUMMY KEYSTORE FOR SIGNING
       - name: Create Dummy Keystore
         run: |
           test -f android/app/release.jks || keytool -genkey -noprompt -alias shopykart -dname "CN=ShopyKart, OU=IT, O=ShopyKart, L=Ranipur, S=UP, C=IN" -keystore android/app/release.jks -storepass shopykart123 -keypass shopykart123 -keyalg RSA -keysize 2048 -validity 10000
 
       # BUILD 1: CUSTOMER APP (co.in.shopykart.app)
-      - name: Build Web (Customer)
-        run: npm run build:static
-      
-      - name: Sync Customer
+      - name: Build & Sync Customer
         run: |
+          npm run build:static
           sed -i "s/appId: [\"'].*[\"']/appId: \"co.in.shopykart.app\"/" capacitor.config.ts
           sed -i "s/appName: [\"'].*[\"']/appName: \"Shopykart\"/" capacitor.config.ts
           npx cap sync android
 
       - name: Build Android (Customer)
         working-directory: android
-        run: chmod +x gradlew && ./gradlew assembleRelease
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease
+          ./gradlew bundleRelease
 
-      - name: Archive Customer
+      - name: Archive Customer Files
         run: |
           cp android/app/build/outputs/apk/release/app-release.apk customer.shopykart.apk
+          cp android/app/build/outputs/bundle/release/app-release.aab customer.shopykart.aab
 
       # BUILD 2: ADMIN APP (co.in.shopykart.admin)
-      - name: Build Web (Admin)
-        run: npm run build:admin
-      
-      - name: Sync Admin
+      - name: Build & Sync Admin
         run: |
+          export NEXT_PUBLIC_ADMIN_APP=true
+          npm run build:admin
           sed -i "s/appId: [\"'].*[\"']/appId: \"co.in.shopykart.admin\"/" capacitor.config.ts
           sed -i "s/appName: [\"'].*[\"']/appName: \"Shopykart CEO\"/" capacitor.config.ts
           npx cap sync android
 
       - name: Build Android (Admin)
         working-directory: android
-        run: chmod +x gradlew && ./gradlew assembleRelease
+        run: |
+          ./gradlew assembleRelease
+          ./gradlew bundleRelease
 
-      - name: Archive Admin
+      - name: Archive Admin Files
         run: |
           cp android/app/build/outputs/apk/release/app-release.apk admin.shopykart.apk
+          cp android/app/build/outputs/bundle/release/app-release.aab admin.shopykart.aab
 
       # BUILD 3: STORE/BIZ APP (co.in.shopykart.biz)
-      - name: Build Web (Biz)
-        run: npm run build:biz
-      
-      - name: Sync Biz
+      - name: Build & Sync Biz
         run: |
+          export NEXT_PUBLIC_BIZ_APP=true
+          npm run build:biz
           sed -i "s/appId: [\"'].*[\"']/appId: \"co.in.shopykart.biz\"/" capacitor.config.ts
           sed -i "s/appName: [\"'].*[\"']/appName: \"Shopykart Business\"/" capacitor.config.ts
           npx cap sync android
 
       - name: Build Android (Biz)
         working-directory: android
-        run: chmod +x gradlew && ./gradlew assembleRelease
+        run: |
+          ./gradlew assembleRelease
+          ./gradlew bundleRelease
 
-      - name: Archive Biz
+      - name: Archive Biz Files
         run: |
           cp android/app/build/outputs/apk/release/app-release.apk store.shopykart.apk
+          cp android/app/build/outputs/bundle/release/app-release.aab store.shopykart.aab
 
       # BUILD 4: DELIVERY/TOW APP (co.in.shopykart.tow)
-      - name: Build Web (Tow)
-        run: npm run build:tow
-      
-      - name: Sync Tow
+      - name: Build & Sync Tow
         run: |
+          export NEXT_PUBLIC_TOW_APP=true
+          npm run build:tow
           sed -i "s/appId: [\"'].*[\"']/appId: \"co.in.shopykart.tow\"/" capacitor.config.ts
           sed -i "s/appName: [\"'].*[\"']/appName: \"Shopykart Tow\"/" capacitor.config.ts
           npx cap sync android
 
       - name: Build Android (Tow)
         working-directory: android
-        run: chmod +x gradlew && ./gradlew assembleRelease
+        run: |
+          ./gradlew assembleRelease
+          ./gradlew bundleRelease
 
-      - name: Archive Tow
+      - name: Archive Tow Files
         run: |
           cp android/app/build/outputs/apk/release/app-release.apk delivery.shopykart.apk
+          cp android/app/build/outputs/bundle/release/app-release.aab delivery.shopykart.aab
 
-      # UPLOAD ALL ARTIFACTS
-      - name: Upload Quad Bundle
+      # UPLOAD ALL ARTIFACTS (APK + AAB)
+      - name: Upload Complete Bundle
         uses: actions/upload-artifact@v4
         with:
-          name: ShopyKart-v1.4-Apps
+          name: ShopyKart-v1.4-Release-Files
           path: |
-            customer.shopykart.apk
-            admin.shopykart.apk
-            store.shopykart.apk
-            delivery.shopykart.apk
+            *.apk
+            *.aab
           if-no-files-found: error

@@ -3,7 +3,7 @@
 
 import { useState, useMemo, useEffect, memo } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { Search, X, Clock, MapPin, Loader2, Store, Plus, Heart, ShoppingBag } from 'lucide-react';
+import { Search, X, Clock, MapPin, Loader2, Store, Plus, Heart, ShoppingBag, ArrowLeft } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -83,18 +83,14 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
     
     async function resolveVendor() {
       if (!firestore || !rawSlug) {
-        // Only stop loading if we truly have no slug after some time
-        const timeout = setTimeout(() => {
-          if (!vendorProfile) setVendorLoading(false);
-        }, 3000);
-        return () => clearTimeout(timeout);
+        return;
       }
 
       setVendorLoading(true);
       try {
         const cleanSlug = String(rawSlug).trim();
 
-        // 1. DIRECT ID FETCH
+        // 1. DIRECT ID FETCH (Fastest)
         const idRef = doc(firestore, 'vendors', cleanSlug);
         const idSnap = await getDoc(idRef);
         if (idSnap.exists()) {
@@ -104,7 +100,7 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
         }
 
         // 2. SEO SLUG MATCH
-        const slugQ = query(collection(firestore, 'vendors'), where('slug', '==', cleanSlug), limit(1));
+        const slugQ = query(collection(firestore, 'vendors'), where('slug', '==', cleanSlug.toLowerCase()), limit(1));
         const slugSnap = await getDocs(slugQ);
         if (!slugSnap.empty) {
           setVendorProfile({ id: slugSnap.docs[0].id, ...slugSnap.docs[0].data() });
@@ -113,7 +109,7 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
         }
 
         // 3. STORE ID MATCH
-        const storeIdQ = query(collection(firestore, 'vendors'), where('storeId', '==', cleanSlug), limit(1));
+        const storeIdQ = query(collection(firestore, 'vendors'), where('storeId', '==', cleanSlug.toLowerCase()), limit(1));
         const storeIdSnap = await getDocs(storeIdQ);
         if (!storeIdSnap.empty) {
           setVendorProfile({ id: storeIdSnap.docs[0].id, ...storeIdSnap.docs[0].data() });
@@ -121,13 +117,12 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
           return;
         }
 
-        // 4. DEEP SEARCH (List match)
+        // 4. DEEP SCAN FALLBACK (For links broken by slugify differences)
         const allVendorsSnap = await getDocs(collection(firestore, 'vendors'));
         const foundVendor = allVendorsSnap.docs.find(d => {
           const data = d.data();
           const target = cleanSlug.toLowerCase();
-          return d.id === cleanSlug || 
-                 data.slug === target || 
+          return data.slug === target || 
                  data.storeId?.toLowerCase() === target || 
                  slugify(data.storeName || '') === target;
         });
@@ -139,7 +134,8 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
       } catch (err) {
         console.error("Vendor resolution error:", err);
       } finally {
-        setVendorLoading(false);
+        // Wait at least 1.5s to ensure background fetches don't flicker the error screen
+        setTimeout(() => setVendorLoading(false), 1500);
       }
     }
 
@@ -182,8 +178,12 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
   if (vendorLoading && !vendorProfile) {
     return (
       <div className="h-screen bg-white flex flex-col items-center justify-center gap-4">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Syncing with Store Hub...</p>
+        <div className="relative">
+           <div className="h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20 animate-pulse">
+              <Store className="h-8 w-8 text-primary" />
+           </div>
+        </div>
+        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic animate-pulse">Syncing with Store Hub...</p>
       </div>
     );
   }
@@ -206,7 +206,7 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
       <div className="relative h-72 w-full">
         <img src={vendorProfile?.bannerUrl || vendorProfile?.imageUrl || 'https://picsum.photos/seed/store/800/400'} className="w-full h-full object-cover" alt="Banner" />
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent flex flex-col justify-end p-6">
-          <Link href="/" className="absolute top-12 left-6 h-10 w-10 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20 active:scale-90 transition-transform"><X className="h-5 w-5" /></Link>
+          <button onClick={() => router.push('/')} className="absolute top-12 left-6 h-10 w-10 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20 active:scale-90 transition-transform"><ArrowLeft className="h-5 w-5" /></button>
           <div className="flex items-end gap-4">
             <div className="h-20 w-20 rounded-2xl overflow-hidden border-2 border-primary shadow-xl shrink-0 bg-white">
               <img src={vendorProfile?.imageUrl} className="h-full w-full object-cover" alt="Logo" />
