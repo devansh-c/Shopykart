@@ -54,7 +54,6 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
   const params = useParams();
   const searchParams = useSearchParams();
   
-  // ROBUST SLUG EXTRACTION: Optimized for both Dynamic Paths and Shell Routes
   const rawSlug = useMemo(() => {
     const fromProps = forcedSlug;
     const fromSearch = searchParams.get('id');
@@ -83,16 +82,15 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
   useEffect(() => {
     let isMounted = true;
     let retryCount = 0;
-    const maxRetries = 4;
+    const maxRetries = 6; // Increased retries for slow mobile APK networks
 
     async function resolveVendor() {
       if (!firestore || !rawSlug) {
-        // Delay loading stop for slow mobile networks
         if (retryCount >= maxRetries) {
           if (isMounted) setVendorLoading(false);
         } else {
           retryCount++;
-          setTimeout(resolveVendor, 500);
+          setTimeout(resolveVendor, 800);
         }
         return;
       }
@@ -100,7 +98,7 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
       try {
         const cleanSlug = String(rawSlug).toLowerCase();
 
-        // 1. STAGE 1: Direct Doc ID Search (UID)
+        // STAGE 1: Check UID
         const idRef = doc(firestore, 'vendors', rawSlug); 
         const idSnap = await getDoc(idRef);
         if (idSnap.exists()) {
@@ -111,9 +109,13 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
           return;
         }
 
-        // 2. STAGE 2: Query by SEO Slug
-        const slugQ = query(collection(firestore, 'vendors'), where('slug', '==', cleanSlug), limit(1));
-        const slugSnap = await getDocs(slugQ);
+        // STAGE 2: Query by slug or storeId
+        const vendorsRef = collection(firestore, 'vendors');
+        const [slugSnap, storeIdSnap] = await Promise.all([
+          getDocs(query(vendorsRef, where('slug', '==', cleanSlug), limit(1))),
+          getDocs(query(vendorsRef, where('storeId', '==', cleanSlug), limit(1)))
+        ]);
+
         if (!slugSnap.empty) {
           if (isMounted) {
             setVendorProfile({ id: slugSnap.docs[0].id, ...slugSnap.docs[0].data() });
@@ -122,9 +124,6 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
           return;
         }
 
-        // 3. STAGE 3: Search by StoreID field
-        const storeIdQ = query(collection(firestore, 'vendors'), where('storeId', '==', cleanSlug), limit(1));
-        const storeIdSnap = await getDocs(storeIdQ);
         if (!storeIdSnap.empty) {
           if (isMounted) {
             setVendorProfile({ id: storeIdSnap.docs[0].id, ...storeIdSnap.docs[0].data() });
@@ -133,13 +132,13 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
           return;
         }
 
-        // 4. STAGE 4: Full Hard-Sync Recursive Retry
+        // STAGE 3: Final recursive fallback
         if (retryCount < maxRetries) {
           retryCount++;
-          setTimeout(resolveVendor, 800);
+          setTimeout(resolveVendor, 1200);
         } else {
-          // FINAL ATTEMPT: Scan all (Extreme fallback)
-          const allVendors = await getDocs(collection(firestore, 'vendors'));
+          // Deep scan all vendors if multiple specific queries failed
+          const allVendors = await getDocs(vendorsRef);
           const found = allVendors.docs.find(d => {
             const data = d.data();
             return d.id === rawSlug || data.slug === cleanSlug || data.storeId?.toLowerCase() === cleanSlug;
@@ -165,7 +164,7 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
     return query(collection(firestore, 'products'), where('vendorId', '==', String(vendorProfile.id)));
   }, [firestore, vendorProfile]);
   
-  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, `menu_v11_${vendorProfile?.id}`, initialProducts);
+  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, `menu_v12_${vendorProfile?.id}`, initialProducts);
 
   const categoriesWithProducts = useMemo(() => {
     const list = (dbProducts && dbProducts.length > 0) ? dbProducts : initialProducts;

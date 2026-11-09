@@ -2,9 +2,9 @@
 import type { NextConfig } from "next";
 
 /**
- * @fileOverview Next.js Configuration optimized for ShopyKart.
+ * @fileOverview Next.js Configuration optimized for ShopyKart v1.4.0.
+ * FIXED: Removed deprecated devIndicators.
  * FIXED: 'output: export' handled correctly for Capacitor.
- * REMOVED: Deprecated keys to prevent server restart loops.
  */
 const nextConfig: NextConfig = {
   // Only use static export when explicitly building for Capacitor/Production
@@ -19,10 +19,6 @@ const nextConfig: NextConfig = {
   },
   eslint: {
     ignoreDuringBuilds: true,
-  },
-  // Suppress specific hydration warnings in logs
-  devIndicators: {
-    appIsrStatus: false,
   }
 };
 
