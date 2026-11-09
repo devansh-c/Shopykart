@@ -1,10 +1,10 @@
 import React, { Suspense } from 'react';
-import { Loader2 } from 'lucide-react';
 import MenuContent from '@/components/menu/MenuContent';
 
 export const dynamic = 'error';
 export const dynamicParams = false;
 
+// Sabhi possible static slugs pre-render
 export async function generateStaticParams() {
   return [
     { slug: 'view' },
@@ -20,33 +20,11 @@ export async function generateStaticParams() {
   ];
 }
 
-interface PageProps {
-  params: Promise<{ slug: string }>;
-}
-
-export default async function StorePage({ params }: PageProps) {
-  const resolvedParams = await params;
-
+export default async function StorePage({ params }: { params: Promise<{ slug: string }> }) {
+  const resolved = await params;
   return (
-    <Suspense
-      fallback={
-        <div style={{
-          height: '100vh',
-          width: '100vw',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: '#ffffff'
-        }}>
-          <Loader2 style={{ width: '40px', height: '40px', animation: 'spin 1s linear infinite', color: '#EF4444' }} />
-          <p style={{ fontSize: '10px', fontWeight: '900', marginTop: '20px', color: '#666', textTransform: 'uppercase', letterSpacing: '2px' }}>
-            Opening Store Hub...
-          </p>
-        </div>
-      }
-    >
-      <MenuContent forcedSlug={resolvedParams.slug} />
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-white"><div className="w-8 h-8 border-4 border-red-500 border-t-transparent rounded-full animate-spin"></div></div>}>
+      <MenuContent forcedSlug={resolved.slug} />
     </Suspense>
   );
 }
