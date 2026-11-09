@@ -46,9 +46,6 @@ const ProductHorizontalItem = memo(({ product, isOffline }: any) => {
              <span className="text-[9px] font-bold text-gray-400 line-through">₹{mrp}</span>
              <Badge className="bg-rose-50 text-rose-600 border-none font-black text-[11px] italic px-2 py-0.5 rounded-lg">₹{displayPrice}</Badge>
           </div>
-          <p className="text-[8px] font-black text-[#D946EF] uppercase italic tracking-tighter flex items-center gap-1 mt-1 animate-pulse">
-             <Heart className="h-2 w-2 fill-[#D946EF]" /> Our app: {discount > 0 ? discount : '40'}% lower
-          </p>
        </div>
     </div>
   );
@@ -92,7 +89,7 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
       }
       setVendorLoading(true);
       try {
-        // 1. DIRECT ID FETCH (Bulletproof)
+        // 1. DIRECT ID FETCH
         const idRef = doc(firestore, 'vendors', rawSlug);
         const idSnap = await getDoc(idRef);
         if (idSnap.exists()) {
@@ -110,7 +107,7 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
           return;
         }
 
-        // 3. STORE ID MATCH (Custom IDs)
+        // 3. STORE ID MATCH
         const storeIdQ = query(collection(firestore, 'vendors'), where('storeId', '==', rawSlug), limit(1));
         const storeIdSnap = await getDocs(storeIdQ);
         if (!storeIdSnap.empty) {
@@ -119,6 +116,17 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
           return;
         }
 
+        // 4. DEEP SEARCH FALLBACK (List comparison)
+        const allVendorsSnap = await getDocs(collection(firestore, 'vendors'));
+        const foundVendor = allVendorsSnap.docs.find(d => {
+          const data = d.data();
+          return d.id === rawSlug || data.slug === rawSlug || data.storeId === rawSlug || slugify(data.storeName) === rawSlug;
+        });
+
+        if (foundVendor) {
+          setVendorProfile({ id: foundVendor.id, ...foundVendor.data() });
+        }
+        
         setVendorLoading(false);
       } catch (err) {
         console.error("Vendor resolution error:", err);
