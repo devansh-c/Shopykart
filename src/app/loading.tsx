@@ -1,5 +1,6 @@
 /**
- * @fileOverview Atomic Startup Loader - Center synchronization fix.
+ * @fileOverview Atomic Startup Loader - Full Centered Fix.
+ * Uses strictly Inline CSS to bypass hydration locks and top-left freezing.
  */
 export default function Loading() {
   return (
@@ -14,7 +15,7 @@ export default function Loading() {
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: '#ffffff',
-      zIndex: 9999999,
+      zIndex: 2147483647,
       pointerEvents: 'none'
     }}>
       <style dangerouslySetInnerHTML={{ __html: `

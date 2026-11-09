@@ -3,11 +3,11 @@ import { Loader2 } from 'lucide-react';
 import MenuContent from '@/components/menu/MenuContent';
 
 export const dynamic = 'force-static';
-// Removed dynamicParams = false to prevent 404 on new/unknown slugs
+// dynamicParams = false is implicit for output: export
 
 /**
  * @fileOverview Optimized Store Page for Static Export.
- * Providing a shell for static structure while allowing dynamic resolution.
+ * Return 'view' as a valid static param to prevent build/runtime errors.
  */
 export async function generateStaticParams() {
   return [{ slug: 'view' }];

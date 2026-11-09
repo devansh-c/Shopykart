@@ -1,12 +1,59 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
+/**
+ * @fileOverview Dynamic Capacitor Configuration for ShopyKart Quad-Apps.
+ * Strictly resolves App ID and Name based on environment flags during build/sync.
+ */
+
+const getAppIdentity = () => {
+  // Check build-time flags passed from package.json
+  const isAdmin = process.env.NEXT_PUBLIC_ADMIN_APP === 'true';
+  const isBiz = process.env.NEXT_PUBLIC_BIZ_APP === 'true';
+  const isTow = process.env.NEXT_PUBLIC_TOW_APP === 'true';
+
+  if (isAdmin) {
+    return {
+      appId: 'co.in.shopykart.admin',
+      appName: 'Shopykart CEO'
+    };
+  }
+  if (isBiz) {
+    return {
+      appId: 'co.in.shopykart.biz',
+      appName: 'Shopykart Business'
+    };
+  }
+  if (isTow) {
+    return {
+      appId: 'co.in.shopykart.tow',
+      appName: 'Shopykart Tow'
+    };
+  }
+
+  // Default: Customer App
+  return {
+    appId: 'co.in.shopykart.app',
+    appName: 'Shopykart'
+  };
+};
+
+const identity = getAppIdentity();
+
 const config: CapacitorConfig = {
-  appId: 'co.in.shopykart.app',
-  appName: 'Shopykart',
+  appId: identity.appId,
+  appName: identity.appName,
   webDir: 'out',
   server: {
     androidScheme: 'http',
     cleartext: true
+  },
+  android: {
+    buildOptions: {
+      keystorePath: 'app/release.jks',
+      keystorePassword: 'shopykart123',
+      keystoreAlias: 'shopykart',
+      keystoreAliasPassword: 'shopykart123',
+    }
   }
 };
 

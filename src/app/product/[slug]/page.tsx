@@ -3,10 +3,10 @@ import ProductDetailsClient from '@/components/product/ProductDetailsClient';
 import { Loader2 } from 'lucide-react';
 
 export const dynamic = 'force-static';
-// Removed dynamicParams = false to prevent 404 on new products
 
 /**
  * @fileOverview Optimized Product Page for Static Export.
+ * Providing 'view' shell for dynamic client-side resolution.
  */
 export async function generateStaticParams() {
   return [{ slug: 'view' }];

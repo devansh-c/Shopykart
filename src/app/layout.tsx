@@ -12,7 +12,8 @@ const inter = Inter({
 });
 
 /**
- * @fileOverview Root Layout - Tailwind synchronization fix.
+ * @fileOverview Root Layout - UI Hydration Fix.
+ * Strictly imports CSS first to prevent "unstyled" flicker.
  */
 
 export const viewport: Viewport = {
