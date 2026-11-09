@@ -7,7 +7,6 @@ import type { CapacitorConfig } from '@capacitor/cli';
  */
 
 const getAppIdentity = () => {
-  // Use a more robust environment check
   const env = process.env;
   
   // Checking both raw and NEXT_PUBLIC prefixed env vars for build-time reliability
