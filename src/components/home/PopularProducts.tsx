@@ -12,6 +12,7 @@ import { ProductQuickView } from "@/components/product/ProductQuickView"
 import { useToast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
+import { useRouter } from "next/navigation"
 
 export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
   if (!vendor) return true;
@@ -38,16 +39,22 @@ export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
 }
 
 const ProductItem = memo(({ product, quantity, isOffline, onShare }: any) => {
+  const router = useRouter();
   const displayPrice = Number(product.price) || 0;
+
+  // STABLE NAVIGATION: Points to /product/view/?id=...
+  const handleProductClick = () => {
+    const id = product.slug || product.id;
+    router.push(`/product/view/?id=${id}`);
+  };
 
   return (
     <div className={cn(
       "relative bg-[#0B0B0B] rounded-[1.5rem] p-3 border border-white/5 flex flex-col shadow-xl transition-opacity duration-300", 
       isOffline && "opacity-75 grayscale-[0.5]"
     )} style={{ contain: 'layout paint' }}>
-      <ProductQuickView product={product} vendorScheduleOpen={!isOffline}>
-        <div className="flex flex-col h-full cursor-pointer">
-          <div className="relative aspect-square w-full mb-3">
+        <div className="flex flex-col h-full">
+          <div className="relative aspect-square w-full mb-3 cursor-pointer" onClick={handleProductClick}>
              <div className="relative w-full h-full overflow-hidden rounded-[1.25rem] border border-white/10">
                 <Image 
                   src={product.imageUrl} 
@@ -80,17 +87,19 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare }: any) => {
 
           <div className="flex-1 flex flex-col px-1">
             <p className="text-[9px] font-black text-primary uppercase tracking-[0.1em] italic truncate mb-1 opacity-90">{product.restaurantName || 'ShopyKart Select'}</p>
-            <h3 className="font-black text-[13px] text-white leading-[1.2] italic uppercase tracking-tighter line-clamp-2 mb-1 min-h-[2.2rem]">{product.name}</h3>
+            <h3 className="font-black text-[13px] text-white leading-[1.2] italic uppercase tracking-tighter line-clamp-2 mb-1 min-h-[2.2rem] cursor-pointer" onClick={handleProductClick}>{product.name}</h3>
             <div className="mt-auto flex items-center justify-between pt-2">
               <span className="text-lg font-black text-white italic tracking-tighter leading-none">₹{displayPrice}</span>
               <div className="flex-1 flex justify-end">
                 {!isOffline && (
-                  <div className={cn(
-                    "flex items-center justify-center rounded-full h-9 transition-all duration-300 font-black text-[10px] uppercase shadow-xl bg-primary text-white",
-                    quantity === 0 ? "px-6" : "px-4 border border-white/20"
-                  )}>
-                    {quantity === 0 ? 'ADD' : `${quantity} IN BAG`}
-                  </div>
+                  <ProductQuickView product={product} vendorScheduleOpen={!isOffline}>
+                    <div className={cn(
+                      "flex items-center justify-center rounded-full h-9 transition-all duration-300 font-black text-[10px] uppercase shadow-xl bg-primary text-white cursor-pointer",
+                      quantity === 0 ? "px-6" : "px-4 border border-white/20"
+                    )}>
+                      {quantity === 0 ? 'ADD' : `${quantity} IN BAG`}
+                    </div>
+                  </ProductQuickView>
                 )}
                 {isOffline && (
                   <div className="bg-white/5 text-gray-500 h-9 px-4 rounded-full font-black text-[8px] uppercase flex items-center border border-white/10">OFFLINE</div>
@@ -99,14 +108,12 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare }: any) => {
             </div>
           </div>
         </div>
-      </ProductQuickView>
     </div>
   );
 });
 ProductItem.displayName = "ProductItem";
 
 export function PopularProducts({ searchQuery = '', category = 'all', activeMode = 'Food', initialData = [], initialStores = [] }: { searchQuery?: string, category?: string, activeMode?: string, initialData?: any[], initialStores?: any[] }) {
-  const { cart } = useCart();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
@@ -173,7 +180,8 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
 
   const handleShare = useCallback((e: React.MouseEvent, product: any) => {
     e.stopPropagation();
-    const url = `${window.location.origin}/product/${product.slug || slugify(product.name)}`;
+    const id = product.slug || product.id;
+    const url = `${window.location.origin}/product/view/?id=${id}`;
     if (navigator.share) { navigator.share({ title: product.name, url }).catch(() => {}); }
     else { try { navigator.clipboard.writeText(url); toast({ title: "Link Copied! 🔗" }); } catch (err) { toast({ title: "Share link: " + url }); } }
   }, [toast]);

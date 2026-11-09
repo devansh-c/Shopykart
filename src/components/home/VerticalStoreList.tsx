@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo, useState, useEffect, memo } from 'react';
@@ -123,7 +124,7 @@ export const VerticalStoreList = memo(({
     const currentMode = activeMode.toLowerCase();
 
     return list.filter(v => {
-      // MODIFIED: If no zone selected, show all stores (Graceful fallback)
+      // Show stores if zone matches, OR if no zone is selected yet (for better landing UX)
       if (activeZoneId) {
         const zoneMatch = v.zoneId === activeZoneId || v.zoneId === 'global';
         const townMatch = activeTown && v.town?.toLowerCase().trim() === activeTown.toLowerCase().trim();
@@ -180,9 +181,15 @@ export const VerticalStoreList = memo(({
             const productPool = (dbAllProducts !== null && dbAllProducts.length > 0) ? dbAllProducts : initialProducts;
             const storeProducts = productPool.filter((p: any) => String(p.vendorId) === String(store.id) && p.isDeleted !== true).slice(0, 8);
 
+            // STABLE NAVIGATION: Points to /store/view/?id=... to prevent 404 in static APK
+            const navigateToStore = () => {
+              const id = store.slug || store.id;
+              router.push(`/store/view/?id=${id}`);
+            };
+
             return (
               <div key={store.id} className={cn("flex flex-col space-y-4", isOffline && "opacity-75 grayscale-[0.3]")}>
-                <div onClick={() => router.push(`/store/${store.slug || slugify(store.storeName)}/`)} className="w-full text-left bg-white transition-opacity active:opacity-70 group relative cursor-pointer">
+                <div onClick={navigateToStore} className="w-full text-left bg-white transition-opacity active:opacity-70 group relative cursor-pointer">
                   <div className="relative w-full aspect-[18/9] rounded-[1.5rem] overflow-hidden border border-gray-100 bg-gray-50 shadow-sm">
                     <Image src={displayImage} alt={store.storeName} fill className="object-cover" unoptimized />
                     {isOffline && (

@@ -1,3 +1,4 @@
+
 import './globals.css';
 import OfflineScreen from "@/components/shared/OfflineScreen";
 import type { Metadata, Viewport } from 'next';
@@ -12,8 +13,8 @@ const inter = Inter({
 });
 
 /**
- * @fileOverview Root Layout - UI Hydration Fix.
- * Strictly imports globals.css FIRST to prevent unstyled layout shifts.
+ * @fileOverview Root Layout v1.4.0 - UI Hydration Fix.
+ * CRITICAL: Strictly imports globals.css FIRST to prevent unstyled layout shifts.
  */
 
 export const viewport: Viewport = {

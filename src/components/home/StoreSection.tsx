@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -79,10 +80,7 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
     });
   }, [dbVendors, initialData, activeMode, activeZoneId, activeTown, currentTimeMins]);
 
-  // Only show skeletons if we have absolutely nothing to show yet
-  const showLoading = vendorsLoading && (!filteredVendors || filteredVendors.length === 0);
-
-  if (showLoading) {
+  if (vendorsLoading && (!filteredVendors || filteredVendors.length === 0)) {
     return (
       <div className="py-4 px-6 space-y-4">
         <Skeleton className="h-6 w-32 rounded-full" />
@@ -107,40 +105,47 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
 
       <Carousel className="w-full" opts={{ loop: true, align: 'center' }}>
         <CarouselContent className="-ml-3">
-          {filteredVendors.map((store: any) => (
-            <CarouselItem key={store.id} className="pl-3 basis-[65%] sm:basis-[50%]">
-              <button 
-                onClick={() => {
-                  const storeSlug = store.slug || slugify(store.storeName) || store.id;
-                  router.push(`/store/${storeSlug}/`);
-                }}
-                className="block text-left w-full rounded-[1.5rem] overflow-hidden shadow-xl group border border-white/10 relative transform-gpu active:scale-95 transition-all"
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-[#8C7A63] via-[#B8A38B] to-[#D9C4A9]" />
-                <div className="relative h-28 w-full overflow-hidden z-10">
-                  <Image 
-                    src={store.imageUrl || "https://picsum.photos/seed/store/400/300"} 
-                    alt={store.storeName || "ShopyKart Store"} 
-                    fill 
-                    className="object-cover transition-transform duration-500 group-hover:scale-105" 
-                    unoptimized 
-                  />
-                </div>
-                <div className="p-4 relative z-20 text-white">
-                  <h3 className="text-sm font-black italic uppercase leading-tight mb-2 truncate">{store.storeName}</h3>
-                  <div className="flex items-center justify-between">
-                    <div className="bg-white/20 backdrop-blur-md px-2 py-0.5 rounded-lg flex items-center gap-1 border border-white/20 shadow-lg">
-                       <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
-                       <span className="text-[10px] font-black">{store.rating || '4.8'}</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-[9px] font-black text-white/90 uppercase tracking-widest italic">
-                       <Clock className="h-3 w-3" /> {store.deliveryTime || '25 min'}
+          {filteredVendors.map((store: any) => {
+            const displayImage = store.bannerUrl || store.imageUrl || "https://picsum.photos/seed/store/400/300";
+            
+            // STABLE NAVIGATION: Points to /store/view/?id=...
+            const navigateToStore = () => {
+              const id = store.slug || store.id;
+              router.push(`/store/view/?id=${id}`);
+            };
+
+            return (
+              <CarouselItem key={store.id} className="pl-3 basis-[65%] sm:basis-[50%]">
+                <button 
+                  onClick={navigateToStore}
+                  className="block text-left w-full rounded-[1.5rem] overflow-hidden shadow-xl group border border-white/10 relative transform-gpu active:scale-95 transition-all"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-[#8C7A63] via-[#B8A38B] to-[#D9C4A9]" />
+                  <div className="relative h-28 w-full overflow-hidden z-10">
+                    <Image 
+                      src={displayImage} 
+                      alt={store.storeName || "ShopyKart Store"} 
+                      fill 
+                      className="object-cover transition-transform duration-500 group-hover:scale-105" 
+                      unoptimized 
+                    />
+                  </div>
+                  <div className="p-4 relative z-20 text-white">
+                    <h3 className="text-sm font-black italic uppercase leading-tight mb-2 truncate">{store.storeName}</h3>
+                    <div className="flex items-center justify-between">
+                      <div className="bg-white/20 backdrop-blur-md px-2 py-0.5 rounded-lg flex items-center gap-1 border border-white/20 shadow-lg">
+                         <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
+                         <span className="text-[10px] font-black">{store.rating || '4.8'}</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-[9px] font-black text-white/90 uppercase tracking-widest italic">
+                         <Clock className="h-3 w-3" /> {store.deliveryTime || '25 min'}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </button>
-            </CarouselItem>
-          ))}
+                </button>
+              </CarouselItem>
+            );
+          })}
         </CarouselContent>
       </Carousel>
     </div>
