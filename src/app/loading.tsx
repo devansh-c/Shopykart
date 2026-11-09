@@ -1,7 +1,7 @@
 /**
  * @fileOverview Atomic Startup Loader with Strictly Inline Styles.
- * FIX: Centered strictly using CSS to prevent "Top-Left" frozen spinner bug.
- * This loader does not wait for JS hydration to be visible.
+ * FIXED: Uses fixed positioning to prevent Top-Left frozen spinner bug.
+ * Centered strictly using CSS to avoid hydration delays.
  */
 export default function Loading() {
   return (
@@ -9,6 +9,8 @@ export default function Loading() {
       position: 'fixed',
       top: 0,
       left: 0,
+      right: 0,
+      bottom: 0,
       width: '100vw',
       height: '100vh',
       display: 'flex',
@@ -16,7 +18,7 @@ export default function Loading() {
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: '#ffffff',
-      zIndex: 9999999,
+      zIndex: 2147483647,
       pointerEvents: 'none'
     }}>
       <style dangerouslySetInnerHTML={{ __html: `
