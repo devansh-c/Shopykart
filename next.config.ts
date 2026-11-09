@@ -1,9 +1,7 @@
 import type { NextConfig } from "next";
 
-const isCapacitorBuild = process.env.NEXT_PUBLIC_STATIC_EXPORT === "true";
-
 const nextConfig: NextConfig = {
-  output: isCapacitorBuild ? "export" : undefined,
+  output: "export",
   trailingSlash: true,
   images: {
     unoptimized: true,
