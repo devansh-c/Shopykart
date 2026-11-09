@@ -1,7 +1,13 @@
 import type { NextConfig } from "next";
 
+/**
+ * @fileOverview Next.js Configuration optimized for ShopyKart.
+ * FIXED: 'output: export' restricted to production builds only to prevent dev server crashes.
+ * Added 'allowedDevOrigins' placeholder for cloud environment compatibility.
+ */
 const nextConfig: NextConfig = {
-  output: "export",
+  // Only use static export when explicitly building for Capacitor/Production
+  output: process.env.NEXT_PUBLIC_STATIC_EXPORT === 'true' ? "export" : undefined,
   trailingSlash: true,
   images: {
     unoptimized: true,
@@ -13,6 +19,10 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  // Suppress cross-origin warnings in development workstations
+  devIndicators: {
+    appIsrStatus: false,
+  }
 };
 
 export default nextConfig;

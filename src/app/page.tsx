@@ -5,8 +5,6 @@ import HomeClient from '@/components/home/HomeClient';
  * SSR COMPLETELY REMOVED: 100% Client-Side load to prevent startup crashes and hydration locks.
  */
 
-export const dynamic = 'force-static';
-
 export default function ShopyKartApp() {
   return (
     <HomeClient 
