@@ -1,5 +1,5 @@
 /**
- * @fileOverview Atomic Startup Loader - Centered strictly using Inline CSS to avoid hydration blocks.
+ * @fileOverview Atomic Startup Loader - Center synchronization fix.
  */
 export default function Loading() {
   return (
