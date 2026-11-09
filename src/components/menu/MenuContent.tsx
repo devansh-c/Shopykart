@@ -75,93 +75,75 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
   }, []);
 
   useEffect(() => {
-    if (initialVendor) {
-      setVendorProfile(initialVendor);
-      setVendorLoading(false);
-      return;
-    }
-    
     let isMounted = true;
-    let retryCount = 0;
+    let attempts = 0;
 
     async function resolveVendor() {
       if (!firestore || !rawSlug) {
+        if (isMounted) setVendorLoading(false);
         return;
       }
-
-      if (retryCount === 0) setVendorLoading(true);
 
       try {
         const cleanSlug = String(rawSlug).trim();
 
-        // 1. DIRECT ID FETCH (Fastest)
+        // 1. Try Direct ID Fetch
         const idRef = doc(firestore, 'vendors', cleanSlug);
         const idSnap = await getDoc(idRef);
-        if (idSnap.exists() && isMounted) {
-          setVendorProfile({ id: idSnap.id, ...idSnap.data() });
-          setVendorLoading(false);
+        if (idSnap.exists()) {
+          if (isMounted) {
+            setVendorProfile({ id: idSnap.id, ...idSnap.data() });
+            setVendorLoading(false);
+          }
           return;
         }
 
-        // 2. SEO SLUG MATCH
+        // 2. Try SEO Slug Query
         const slugQ = query(collection(firestore, 'vendors'), where('slug', '==', cleanSlug.toLowerCase()), limit(1));
         const slugSnap = await getDocs(slugQ);
-        if (!slugSnap.empty && isMounted) {
-          setVendorProfile({ id: slugSnap.docs[0].id, ...slugSnap.docs[0].data() });
-          setVendorLoading(false);
+        if (!slugSnap.empty) {
+          if (isMounted) {
+            setVendorProfile({ id: slugSnap.docs[0].id, ...slugSnap.docs[0].data() });
+            setVendorLoading(false);
+          }
           return;
         }
 
-        // 3. STORE ID MATCH
+        // 3. Try Store ID Query
         const storeIdQ = query(collection(firestore, 'vendors'), where('storeId', '==', cleanSlug.toLowerCase()), limit(1));
         const storeIdSnap = await getDocs(storeIdQ);
-        if (!storeIdSnap.empty && isMounted) {
-          setVendorProfile({ id: storeIdSnap.docs[0].id, ...storeIdSnap.docs[0].data() });
-          setVendorLoading(false);
+        if (!storeIdSnap.empty) {
+          if (isMounted) {
+            setVendorProfile({ id: storeIdSnap.docs[0].id, ...storeIdSnap.docs[0].data() });
+            setVendorLoading(false);
+          }
           return;
         }
 
-        // 4. DEEP SCAN FALLBACK
-        const allVendorsSnap = await getDocs(collection(firestore, 'vendors'));
-        const foundVendor = allVendorsSnap.docs.find(d => {
-          const data = d.data();
-          const target = cleanSlug.toLowerCase();
-          return data.slug === target || 
-                 data.storeId?.toLowerCase() === target || 
-                 slugify(data.storeName || '') === target;
-        });
-
-        if (foundVendor && isMounted) {
-          setVendorProfile({ id: foundVendor.id, ...foundVendor.data() });
-          setVendorLoading(false);
-          return;
-        }
-
-        // 5. PATIENCE RETRY (Wait for Firestore sync in slow networks)
-        if (retryCount < 2) {
-          retryCount++;
-          setTimeout(resolveVendor, 800);
+        // 4. Retry Logic for Mobile Networks
+        if (attempts < 3) {
+          attempts++;
+          setTimeout(resolveVendor, 1000);
           return;
         }
 
         if (isMounted) setVendorLoading(false);
-        
       } catch (err) {
-        console.error("Vendor resolution error:", err);
+        console.error("Vendor resolution failed:", err);
         if (isMounted) setVendorLoading(false);
       }
     }
 
     resolveVendor();
     return () => { isMounted = false; };
-  }, [firestore, rawSlug, initialVendor]);
+  }, [firestore, rawSlug]);
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore || !vendorProfile) return null;
     return query(collection(firestore, 'products'), where('vendorId', '==', String(vendorProfile.id)));
   }, [firestore, vendorProfile]);
   
-  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, `menu_v6_${vendorProfile?.id}`, initialProducts);
+  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, `menu_v7_${vendorProfile?.id}`, initialProducts);
 
   const categoriesWithProducts = useMemo(() => {
     const list = (dbProducts && dbProducts.length > 0) ? dbProducts : initialProducts;
@@ -192,25 +174,23 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
   if (vendorLoading && !vendorProfile) {
     return (
       <div className="h-screen bg-white flex flex-col items-center justify-center gap-4">
-        <div className="relative">
-           <div className="h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20 animate-pulse">
-              <Store className="h-8 w-8 text-primary" />
-           </div>
+        <div className="h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20 animate-pulse">
+           <Store className="h-8 w-8 text-primary" />
         </div>
-        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic animate-pulse">Establishing Hub Link...</p>
+        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Syncing with Hub...</p>
       </div>
     );
   }
 
   if (!vendorProfile && !vendorLoading) {
     return (
-      <div className="h-screen bg-white flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-500">
+      <div className="h-screen bg-white flex flex-col items-center justify-center p-8 text-center">
         <div className="bg-muted/30 h-28 w-28 rounded-full flex items-center justify-center mb-10">
            <Store className="h-14 w-14 text-muted-foreground/30" />
         </div>
-        <h2 className="text-4xl font-black italic uppercase text-gray-800 tracking-tighter leading-none mb-4">HUB NOT REACHABLE</h2>
-        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-10 max-w-[240px]">This store hub is currently offline or the link has expired.</p>
-        <Button onClick={() => router.push('/')} className="h-16 px-10 bg-black text-white rounded-[2rem] font-black uppercase italic shadow-2xl active:scale-95 transition-all">BACK TO EXPLORE</Button>
+        <h2 className="text-3xl font-black italic uppercase text-gray-800 tracking-tighter">HUB NOT REACHABLE</h2>
+        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-4 mb-10">Please check your internet or try again.</p>
+        <Button onClick={() => router.push('/')} className="h-16 px-10 bg-black text-white rounded-2xl font-black uppercase italic shadow-xl">BACK TO HOME</Button>
       </div>
     );
   }
