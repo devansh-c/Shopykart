@@ -261,6 +261,38 @@ export default function MedicalDashboard() {
     }
   };
 
+  const handleWithdrawRequest = async () => {
+    if (!firestore || !user || isProcessing) return;
+
+    if (!vendorProfile?.upiId) {
+      setIsUpiModalOpen(true);
+      return;
+    }
+
+    const amount = vendorProfile?.walletBalance || 0;
+    if (amount <= 0) {
+      toast({ variant: "destructive", title: "Low Balance", description: "You need at least ₹1 to withdraw." });
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      await addDoc(collection(firestore, 'payout_requests'), {
+        vendorId: user.uid,
+        storeName: vendorProfile.storeName,
+        amount: amount,
+        upiId: vendorProfile.upiId,
+        status: 'Pending',
+        createdAt: serverTimestamp()
+      });
+      toast({ title: "Request Sent! 💸", description: "Admin will process your payment soon." });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Request Failed" });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const generateReceipt = async (order: any) => {
     setIsDownloading(order.id);
     try {
@@ -624,16 +656,11 @@ export default function MedicalDashboard() {
                  <div className="relative z-10 space-y-1"><span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Payout Due</span><div className="text-5xl font-black italic">₹ {vendorProfile?.walletBalance?.toFixed(2) || '0.00'}</div></div>
                  <div className="relative z-10 flex justify-end mt-4">
                     <Button 
-                      onClick={() => { 
-                        if(!vendorProfile.upiId) setIsUpiModalOpen(true); 
-                        else if((vendorProfile.walletBalance||0)>0) {
-                          toast({ title: "Settlement Requested", description: "Admin will process your payment." });
-                        }
-                      }} 
+                      onClick={handleWithdrawRequest}
                       disabled={isProcessing || (vendorProfile?.walletBalance || 0) <= 0} 
                       className="bg-white text-teal-600 rounded-xl h-10 px-6 font-black uppercase text-[10px] italic disabled:opacity-50"
                     >
-                      Withdraw Now
+                      {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : "Withdraw Now"}
                     </Button>
                  </div>
                  <Wallet2 className="absolute bottom-4 right-4 h-24 w-24 text-white opacity-10" />
@@ -663,7 +690,7 @@ export default function MedicalDashboard() {
                         <button onClick={() => setIsTimingModalOpen(true)} className="text-[10px] font-black text-teal-600 uppercase">EDIT</button>
                      </div>
                      <div className="flex items-center gap-4"><div className="bg-blue-50 p-2 rounded-xl text-blue-600"><Globe className="h-5 w-5" /></div><div><span className="text-[10px] font-black text-gray-400 uppercase">Region</span><span className="text-sm font-black uppercase italic text-gray-800 block">{vendorProfile?.town}</span></div></div>
-                     <div className="flex items-center gap-4"><div className="bg-green-50 p-2 rounded-xl text-green-600"><Phone className="h-5 w-5" /></div><div><span className="text-[10px] font-black uppercase italic text-gray-800 block">{vendorProfile?.phone}</span></div></div>
+                     <div className="flex items-center gap-4"><div className="bg-green-50 p-2 rounded-xl text-green-600"><Phone className="h-5 w-5" /></div><div><span className="text-[10px] font-black uppercase text-gray-800 block">{vendorProfile?.phone}</span></div></div>
                   </div>
                   <button onClick={handleLogout} className="w-full h-18 bg-white border border-red-50 text-red-500 rounded-[2.2rem] flex items-center justify-center gap-3 font-black uppercase italic text-sm shadow-sm active:scale-95 transition-all"><LogOut className="h-5 w-5" /> DISCONNECT ACCOUNT</button>
                </div>

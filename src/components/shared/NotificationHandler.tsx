@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useEffect, useState, useRef } from 'react';
@@ -10,6 +11,7 @@ import { cn } from '@/lib/utils';
  * @fileOverview LOUD RINGING ALERT HANDLER (Advanced Zomato-Style).
  * Triggers continuous ringing for new orders until they are accepted.
  * Updated: Now uses local /sounds/order_alert.mp3 for easy replacement.
+ * STRICT: Only active for Vendors, Fleet, and Admin.
  */
 export default function NotificationHandler() {
   const { user } = useUser();

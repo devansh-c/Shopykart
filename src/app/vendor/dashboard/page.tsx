@@ -266,6 +266,38 @@ export default function VendorDashboard() {
     }
   };
 
+  const handleWithdrawRequest = async () => {
+    if (!firestore || !user || isProcessing) return;
+
+    if (!vendorProfile?.upiId) {
+      setIsUpiModalOpen(true);
+      return;
+    }
+
+    const amount = vendorProfile?.walletBalance || 0;
+    if (amount <= 0) {
+      toast({ variant: "destructive", title: "Low Balance", description: "You need at least ₹1 to withdraw." });
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      await addDoc(collection(firestore, 'payout_requests'), {
+        vendorId: user.uid,
+        storeName: vendorProfile.storeName,
+        amount: amount,
+        upiId: vendorProfile.upiId,
+        status: 'Pending',
+        createdAt: serverTimestamp()
+      });
+      toast({ title: "Request Sent! 💸", description: "Admin will settle your payout soon." });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Request Failed" });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const generateReceipt = async (order: any) => {
     setIsDownloading(order.id);
     try {
@@ -506,11 +538,11 @@ export default function VendorDashboard() {
               {filteredOrders.length > 0 ? filteredOrders.map(o => (
                 <div key={o.id} className="bg-white p-6 rounded-[2.5rem] border border-border shadow-sm mb-4 transform-gpu transition-all hover:shadow-lg">
                    <div className="flex justify-between items-start mb-6">
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-4 min-w-0">
                         <div className="h-14 w-14 rounded-2xl bg-primary/5 flex items-center justify-center text-primary border border-primary/10 shrink-0">
                            <ShoppingBag className="h-7 w-7" />
                         </div>
-                        <div>
+                        <div className="min-w-0">
                            <span className="text-2xl font-black italic text-gray-900 leading-none block">#{o.customerOrderNumber}</span>
                            <div className="flex items-center gap-1.5 mt-1">
                               <Badge className={cn("border-none font-black text-[8px] uppercase px-2", (o.status || '').toLowerCase() === 'cancelled' ? 'bg-red-50 text-red-500' : 'bg-primary/5 text-primary')}>{o.status}</Badge>
@@ -519,7 +551,7 @@ export default function VendorDashboard() {
                         </div>
                       </div>
                       <div className="flex gap-2">
-                         <button onClick={() => { setNoteOrderId(o.id); setNoteText(o.adminNote || ''); setIsNoteOpen(true); }} className="h-10 w-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center border border-amber-100 active:scale-90 transition-all"><StickyNote className="h-5 w-5" /></button>
+                         <button onClick={() => { setNoteOrderId(o.id); setNoteText(o.adminNote || ''); setIsNoteOpen(true); }} className="h-10 w-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center active:scale-90 transition-all border border-amber-100"><StickyNote className="h-5 w-5" /></button>
                          <button onClick={() => generateReceipt(o)} disabled={isDownloading === o.id} className="h-10 w-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center active:scale-90 transition-all border border-blue-100">
                            {isDownloading === o.id ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileText className="h-5 w-5" />}
                          </button>
@@ -640,16 +672,11 @@ export default function VendorDashboard() {
                  <div className="relative z-10 space-y-1"><span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Settlement Due</span><div className="text-5xl font-black italic">₹ {vendorProfile?.walletBalance?.toFixed(2) || '0.00'}</div></div>
                  <div className="relative z-10 flex justify-end mt-4">
                     <button 
-                      onClick={() => { 
-                        if(!vendorProfile.upiId) setIsUpiModalOpen(true); 
-                        else if((vendorProfile.walletBalance||0)>0) {
-                          toast({ title: "Withdrawal Requested!", description: "Admin will process it shortly." });
-                        } 
-                      }} 
+                      onClick={handleWithdrawRequest}
                       disabled={isProcessing || (vendorProfile?.walletBalance || 0) <= 0} 
                       className="bg-white text-primary rounded-xl h-10 px-6 font-black uppercase text-[10px] italic active:scale-95 transition-all disabled:opacity-50"
                     >
-                      Withdraw Now
+                      {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : "Withdraw Now"}
                     </button>
                  </div>
                  <Wallet2 className="absolute bottom-4 right-4 h-24 w-24 text-white opacity-10" />
