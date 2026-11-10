@@ -48,6 +48,7 @@ jobs:
       - name: Build Android (Customer)
         working-directory: android
         run: |
+          sed -i 's/applicationId ".*"/applicationId "co.in.shopykart.app"/' android/app/build.gradle
           chmod +x gradlew
           ./gradlew assembleRelease matrix.appId }}
           ./gradlew bundleRelease matrix.appId }}
@@ -73,6 +74,7 @@ jobs:
       - name: Build Android (Admin)
         working-directory: android
         run: |
+          sed -i 's/applicationId ".*"/applicationId "co.in.shopykart.admin"/' android/app/build.gradle
           chmod +x gradlew
           ./gradlew assembleRelease matrix.appId }}
           ./gradlew bundleRelease matrix.appId }}
@@ -98,6 +100,7 @@ jobs:
       - name: Build Android (Biz)
         working-directory: android
         run: |
+          sed -i 's/applicationId ".*"/applicationId "co.in.shopykart.biz"/' android/app/build.gradle
           chmod +x gradlew
           ./gradlew assembleRelease matrix.appId }}
           ./gradlew bundleRelease matrix.appId }}
@@ -123,6 +126,7 @@ jobs:
       - name: Build Android (Tow)
         working-directory: android
         run: |
+          sed -i 's/applicationId ".*"/applicationId "co.in.shopykart.tow"/' android/app/build.gradle
           chmod +x gradlew
           ./gradlew assembleRelease matrix.appId }}
           ./gradlew bundleRelease matrix.appId }}
