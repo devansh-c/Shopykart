@@ -5,7 +5,7 @@ import { collection, getDocs, query, limit, orderBy } from 'firebase/firestore';
 
 /**
  * @fileOverview SSR Enabled Home Page for ShopyKart.
- * Fetches initial data on the server to prevent blank screens and improve SEO.
+ * FIXED: Sanitizes Firestore data to prevent serialization errors between Server and Client.
  */
 export default async function ShopyKartApp() {
   const { firestore } = initializeFirebase();
@@ -14,6 +14,16 @@ export default async function ShopyKartApp() {
   let initialCategories: any[] = [];
   let initialStores: any[] = [];
   let initialProducts: any[] = [];
+
+  // Helper to convert Firestore Timestamps to serializable strings
+  const sanitize = (docs: any[]) => docs.map(doc => {
+    const data = { id: doc.id, ...doc.data() };
+    return JSON.parse(JSON.stringify(data, (key, value) => 
+      value && typeof value === 'object' && value.seconds !== undefined 
+        ? new Date(value.seconds * 1000).toISOString() 
+        : value
+    ));
+  });
 
   try {
     // Parallel fetching for performance
@@ -24,14 +34,13 @@ export default async function ShopyKartApp() {
       getDocs(query(collection(firestore, 'products'), limit(20)))
     ]);
 
-    initialBanners = bannersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    initialCategories = categoriesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    initialStores = vendorsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    initialProducts = productsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    initialBanners = sanitize(bannersSnap.docs);
+    initialCategories = sanitize(categoriesSnap.docs);
+    initialStores = sanitize(vendorsSnap.docs);
+    initialProducts = sanitize(productsSnap.docs);
 
   } catch (error) {
     console.error("SSR Fetching Error:", error);
-    // Fallback to empty if server fetch fails
   }
 
   return (

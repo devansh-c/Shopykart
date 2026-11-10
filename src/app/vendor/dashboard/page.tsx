@@ -177,7 +177,7 @@ export default function VendorDashboard() {
       if (o.createdAt?.seconds) {
         orderDate = new Date(o.createdAt.seconds * 1000);
       } else if (typeof o.createdAt === 'string') {
-        orderDate = parseISO(o.createdAt);
+        orderDate = new Date(o.createdAt);
       }
 
       if (status === 'DELIVERED') {
