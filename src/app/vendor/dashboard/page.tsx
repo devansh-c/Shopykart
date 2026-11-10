@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -737,7 +738,7 @@ export default function VendorDashboard() {
                   </div>
                   <div>
                     <h2 className="text-3xl font-black italic uppercase text-gray-900 leading-none">{vendorProfile?.storeName}</h2>
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mt-3">HUB ID • {vendorProfile?.storeId}</p>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-3">HUB ID • {vendorProfile?.storeId}</p>
                   </div>
                </div>
                <div className="space-y-4">

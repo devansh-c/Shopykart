@@ -551,11 +551,11 @@ export default function BeautyDashboard() {
               {filteredOrders.length > 0 ? filteredOrders.map(o => (
                 <div key={o.id} className="bg-white p-6 rounded-[2.5rem] border shadow-sm mb-4">
                    <div className="flex justify-between items-start mb-6">
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-4 min-w-0">
                         <div className="h-14 w-14 rounded-2xl bg-rose-50 flex items-center justify-center text-rose-600 border border-rose-100 shrink-0">
-                           <ShoppingBag className="h-7 w-7" />
+                           <Package className="h-7 w-7" />
                         </div>
-                        <div>
+                        <div className="min-w-0">
                            <span className="text-2xl font-black italic text-gray-900 leading-none block">#{o.customerOrderNumber}</span>
                            <div className="flex items-center gap-1.5 mt-1">
                               <Badge className={cn("border-none font-black text-[8px] uppercase px-2", (o.status || '').toLowerCase() === 'cancelled' ? 'bg-red-50 text-red-600' : 'bg-rose-50 text-rose-600')}>{o.status}</Badge>
