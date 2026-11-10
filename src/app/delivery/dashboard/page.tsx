@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -156,7 +155,7 @@ const TaskCard = memo(({ order, onUpdate, userData, onPass }: any) => {
                   <Store className="h-7 w-7" />
                 )}
              </div>
-             <div className="flex-1 min-w-0 text-left">
+             <div className="min-w-0 text-left flex-1">
                 <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest leading-none mb-1.5">Pick From (Hub)</p>
                 <h3 className="text-xl font-black uppercase italic tracking-tighter truncate text-gray-900 leading-none mb-1">{order.restaurantName}</h3>
                 <p className="text-[10px] font-bold text-gray-400 uppercase italic truncate">{order.vendorAddress || order.town || 'Local Hub'}</p>
@@ -168,7 +167,6 @@ const TaskCard = memo(({ order, onUpdate, userData, onPass }: any) => {
              )}
           </div>
 
-          {/* ITEMS TO PICKUP SECTION */}
           <div className="bg-muted/30 rounded-[2rem] p-6 border border-border/40">
              <div className="flex items-center gap-2 mb-4 border-b border-white pb-3">
                 <ListPlus className="h-4 w-4 text-primary" />
@@ -186,12 +184,11 @@ const TaskCard = memo(({ order, onUpdate, userData, onPass }: any) => {
              </div>
           </div>
 
-          {/* CUSTOMER SECTION */}
           <div className="flex items-start gap-4">
              <div className="h-14 w-14 rounded-2xl bg-primary/5 flex items-center justify-center text-primary shrink-0 border border-primary/10">
                 <User className="h-7 w-7" />
              </div>
-             <div className="flex-1 min-w-0 text-left">
+             <div className="min-w-0 text-left flex-1">
                 <p className="text-[9px] font-black text-primary uppercase tracking-widest leading-none mb-1.5">Deliver To</p>
                 <h3 className="text-xl font-black uppercase italic tracking-tighter truncate text-gray-900 leading-none mb-1">{order.customerName}</h3>
                 <p className="text-[10px] font-bold text-gray-500 leading-tight uppercase italic line-clamp-2">{order.address}</p>
@@ -203,7 +200,6 @@ const TaskCard = memo(({ order, onUpdate, userData, onPass }: any) => {
              )}
           </div>
 
-          {/* PAYMENT/TOTAL SECTION */}
           <div className="bg-[#0B0B0B] p-6 rounded-[2rem] flex items-center justify-between text-white shadow-2xl relative overflow-hidden">
              <div className="relative z-10">
                 <span className="text-[8px] font-black text-primary uppercase tracking-[0.2em] block mb-1">Collection Amount</span>
@@ -362,7 +358,7 @@ export default function DeliveryDashboard() {
         }
         updateData.deliveredAt = serverTimestamp();
 
-        // LOGIC: CREDIT VENDOR WALLETS ON DELIVERY
+        // LOGIC: CREDIT VENDOR WALLETS ON DELIVERY (Full credit, no auto-deduction)
         if (data && data.items) {
            const vendorsToUpdate = new Map<string, number>();
            data.items.forEach((item: any) => {
@@ -373,8 +369,8 @@ export default function DeliveryDashboard() {
            });
            for (const [vId, amount] of Array.from(vendorsToUpdate.entries())) {
              const vendorRef = doc(firestore, 'vendors', vId);
-             const finalCredit = Math.max(0, amount - 5);
-             await updateDoc(vendorRef, { walletBalance: increment(finalCredit), updatedAt: serverTimestamp() });
+             // Credit FULL amount. Commission (₹10) managed manually.
+             await updateDoc(vendorRef, { walletBalance: increment(amount), updatedAt: serverTimestamp() });
            }
         }
       }

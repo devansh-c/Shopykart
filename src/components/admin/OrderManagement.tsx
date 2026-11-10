@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -79,7 +78,7 @@ export default function OrderManagement() {
         updatedAt: serverTimestamp()
       });
 
-      // LOGIC: IF DELIVERED, CREDIT VENDOR WALLETS
+      // LOGIC: IF DELIVERED, CREDIT VENDOR WALLETS (No auto-deduction, as per request)
       if (nextStatus === 'Delivered') {
         const orderSnap = await getDoc(orderRef);
         const orderData = orderSnap.data();
@@ -96,10 +95,9 @@ export default function OrderManagement() {
 
           for (const [vId, amount] of Array.from(vendorsToUpdate.entries())) {
             const vendorRef = doc(firestore, 'vendors', vId);
-            // Deduct ₹5 commission per vendor share in the order
-            const finalCredit = Math.max(0, amount - 5);
+            // Credit FULL amount. Fee (₹10) will be managed manually by admin.
             await updateDoc(vendorRef, {
-              walletBalance: increment(finalCredit),
+              walletBalance: increment(amount),
               updatedAt: serverTimestamp()
             });
           }

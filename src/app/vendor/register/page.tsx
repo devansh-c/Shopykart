@@ -23,7 +23,8 @@ import {
   HeartPulse,
   User,
   Lock,
-  Sparkles
+  Sparkles,
+  AlertCircle
 } from 'lucide-react';
 import { useFirestore, useAuth, useCollection, useMemoFirebase } from '@/firebase';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
@@ -110,7 +111,6 @@ function RegistrationContent() {
     const cleanStoreId = formData.storeId.trim().toLowerCase();
 
     try {
-      // 1. Check if Store ID exists (Double check)
       const q = query(collection(firestore, 'vendors'), where('storeId', '==', cleanStoreId));
       const querySnapshot = await getDocs(q);
       
@@ -124,14 +124,10 @@ function RegistrationContent() {
         return;
       }
 
-      // 2. Generate Virtual Email for Firebase Auth
       const virtualEmail = `${cleanStoreId}@vendors.shopykart.com`;
-
-      // 3. Create Auth User
       const userCredential = await createUserWithEmailAndPassword(auth, virtualEmail, formData.password);
       const user = userCredential.user;
 
-      // 4. Update Profile Display Name
       await updateProfile(user, { displayName: formData.storeName });
 
       const selectedZone = zones?.find(z => z.id === formData.zoneId);
@@ -140,7 +136,7 @@ function RegistrationContent() {
         id: user.uid,
         storeId: cleanStoreId,
         storeName: formData.storeName,
-        slug: slugify(formData.storeName), // Generate slug from name
+        slug: slugify(formData.storeName),
         category: isMedicalFlow ? 'Medical' : isBeautyFlow ? 'Beauty' : 'Food', 
         town: selectedZone?.name || 'Local',
         city: selectedZone?.city || 'Ranipur',
@@ -160,7 +156,6 @@ function RegistrationContent() {
         updatedAt: serverTimestamp(),
       };
 
-      // 5. Save to Firestore
       await setDoc(doc(firestore, 'vendors', user.uid), storeData);
       
       localStorage.setItem('shopykart_session_active', 'true');
@@ -327,12 +322,16 @@ function RegistrationContent() {
                     </span>
                   </div>
                   <p className="text-base font-black leading-tight text-white uppercase italic tracking-tighter">
-                    ₹5 TRANSACTION FEE<br />PER SUCCESSFUL ORDER.
+                    ₹10 TRANSACTION FEE<br />PER SUCCESSFUL ORDER.
                   </p>
+                  <div className="bg-white/10 px-4 py-2 rounded-xl inline-flex items-center gap-2 mt-4 border border-white/10">
+                     <AlertCircle className="h-4 w-4 text-primary" />
+                     <span className="text-[10px] font-black uppercase tracking-widest">MINIMUM ORDER: ₹50</span>
+                  </div>
                   <div className="absolute top-0 right-0 h-full w-24 bg-white/5 -skew-x-12 translate-x-10" />
                 </div>
                 <p className="text-[9px] font-bold text-muted-foreground uppercase leading-relaxed px-6">
-                  Clicking "I AGREE" means you accept the platform fee of ₹5 on every order.
+                  Clicking "I AGREE" means you accept the platform fee of ₹10 on every order and a minimum order policy of ₹50.
                 </p>
               </div>
 
