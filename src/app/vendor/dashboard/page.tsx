@@ -43,7 +43,8 @@ import {
   PhoneCall,
   XCircle,
   StickyNote,
-  KeyRound
+  KeyRound,
+  MapPin
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -317,7 +318,7 @@ export default function VendorDashboard() {
         saveAs(blob, `Bill_${order.customerOrderNumber}.png`);
         toast({ title: "Bill Saved!" });
       }
-    } catch (err) { toast({ variant: "destructive", title: "Failed to generate receipt" }); }
+    } catch (err) { toast({ variant: "destructive", title: "Failed" }); }
     finally { setIsDownloading(null); }
   };
 
@@ -394,6 +395,20 @@ export default function VendorDashboard() {
       toast({ title: editingId ? "Item Updated! ✅" : "Item Added! ✅" });
     } catch (err) { toast({ variant: "destructive", title: "Operation Failed" }); }
     finally { setIsProcessing(false); }
+  };
+
+  const handleEditProduct = (p: any) => {
+    setEditingId(p.id);
+    setManualProduct({
+      name: p.name,
+      price: p.price.toString(),
+      category: p.category,
+      description: p.description || '',
+      imageUrl: p.imageUrl,
+      isVarietyRequired: p.isVarietyRequired || false,
+      options: p.options || []
+    });
+    setIsManualAddOpen(true);
   };
 
   const handleCreateCoupon = async () => {
@@ -498,17 +513,17 @@ export default function VendorDashboard() {
                         <div>
                            <span className="text-2xl font-black italic text-gray-900 leading-none block">#{o.customerOrderNumber}</span>
                            <div className="flex items-center gap-1.5 mt-1">
-                              <Badge className={cn("border-none font-black text-[8px] uppercase px-2", (o.status || '').toLowerCase() === 'cancelled' ? 'bg-red-50 text-red-600' : 'bg-primary/5 text-primary')}>{o.status}</Badge>
+                              <Badge className={cn("border-none font-black text-[8px] uppercase px-2", (o.status || '').toLowerCase() === 'cancelled' ? 'bg-red-50 text-red-500' : 'bg-primary/5 text-primary')}>{o.status}</Badge>
                               <div className="flex items-center gap-1 text-[9px] font-black text-muted-foreground uppercase italic"><Clock className="h-2.5 w-2.5" />{format(new Date(o.createdAt?.seconds * 1000 || o.createdAt || Date.now()), 'hh:mm a')}</div>
                            </div>
                         </div>
                       </div>
                       <div className="flex gap-2">
                          <button onClick={() => { setNoteOrderId(o.id); setNoteText(o.adminNote || ''); setIsNoteOpen(true); }} className="h-10 w-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center border border-amber-100 active:scale-90 transition-all"><StickyNote className="h-5 w-5" /></button>
-                         <button onClick={() => generateReceipt(o)} disabled={isDownloading === o.id} className="h-10 w-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center border border-blue-100 active:scale-90 transition-all">
+                         <button onClick={() => generateReceipt(o)} disabled={isDownloading === o.id} className="h-10 w-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center active:scale-90 transition-all border border-blue-100">
                            {isDownloading === o.id ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileText className="h-5 w-5" />}
                          </button>
-                         <button onClick={() => window.open(`tel:${o.customerPhone}`)} className="h-10 w-10 bg-green-500 text-white rounded-xl flex items-center justify-center shadow-lg active:scale-90 transition-all"><PhoneCall className="h-5 w-5" /></button>
+                         <button onClick={() => window.open(`tel:${o.customerPhone}`)} className="h-10 w-10 bg-green-500 text-white rounded-xl flex items-center justify-center shadow-lg active:scale-90 transition-all shadow-green-100"><PhoneCall className="h-5 w-5" /></button>
                          <button onClick={() => handleCancelOrder(o.id)} className="h-10 w-10 bg-red-50 text-red-500 rounded-xl flex items-center justify-center border border-red-100 active:scale-90 transition-all"><XCircle className="h-5 w-5" /></button>
                       </div>
                    </div>
@@ -525,7 +540,7 @@ export default function VendorDashboard() {
                    </div>
 
                    <div className="space-y-3 mb-6 bg-gray-50/50 p-5 rounded-3xl border border-dashed border-gray-200">
-                      <div className="flex items-center gap-2 mb-2"><ShoppingBag className="h-3.5 w-3.5 text-gray-400" /><span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Order Items</span></div>
+                      <div className="flex items-center gap-2 mb-2 px-1"><ShoppingBag className="h-4 w-4 text-gray-400" /><span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Order Items</span></div>
                       {o.items?.filter((it:any) => String(it.vendorId) === String(user?.uid)).map((item:any, i:number) => (
                         <div key={i} className="flex justify-between items-center text-[11px] font-black uppercase italic">
                            <span className="text-gray-800"><span className="text-primary">{item.quantity}x</span> {item.name} {item.selectedOption ? `(${item.selectedOption.name})` : ''}</span>

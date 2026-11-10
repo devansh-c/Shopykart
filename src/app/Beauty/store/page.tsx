@@ -43,7 +43,8 @@ import {
   PhoneCall,
   XCircle,
   StickyNote,
-  KeyRound
+  KeyRound,
+  MapPin
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -387,6 +388,20 @@ export default function BeautyDashboard() {
       toast({ title: editingId ? "Product Updated! ✅" : "Product Added! ✅" });
     } catch (err) { toast({ variant: "destructive", title: "Add Failed" }); }
     finally { setIsProcessing(false); }
+  };
+
+  const handleEditProduct = (p: any) => {
+    setEditingId(p.id);
+    setManualProduct({
+      name: p.name,
+      price: p.price.toString(),
+      category: p.category,
+      description: p.description || '',
+      imageUrl: p.imageUrl,
+      isVarietyRequired: p.isVarietyRequired || false,
+      options: p.options || []
+    });
+    setIsManualAddOpen(true);
   };
 
   const handleCreateCoupon = async () => {
