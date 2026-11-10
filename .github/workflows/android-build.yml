@@ -38,8 +38,8 @@ jobs:
       - name: Build & Sync Customer
         run: |
           npm run build:static
-          sed -i "s/appId: [\"'].*[\"']/appId: \"co.in.shopykart.app\"/" capacitor.config.ts
-          sed -i "s/appName: [\"'].*[\"']/appName: \"Shopykart\"/" capacitor.config.ts
+          sed -i "s/appId: '.*'/appId: 'co.in.shopykart.app'/" capacitor.config.ts
+          sed -i "s/appName: '.*'/appName: 'Shopykart'/" capacitor.config.ts
           sed -i "s/<string name=\"app_name\">.*<\/string>/<string name=\"app_name\">Shopykart<\/string>/" android/app/src/main/res/values/strings.xml
           npx cap sync android
 
@@ -57,11 +57,12 @@ jobs:
 
       # BUILD 2: ADMIN APP (co.in.shopykart.admin)
       - name: Build & Sync Admin
+        env:
+          NEXT_PUBLIC_ADMIN_APP: true
         run: |
-          export NEXT_PUBLIC_ADMIN_APP=true
           npm run build:admin
-          sed -i "s/appId: [\"'].*[\"']/appId: \"co.in.shopykart.admin\"/" capacitor.config.ts
-          sed -i "s/appName: [\"'].*[\"']/appName: \"Shopykart CEO\"/" capacitor.config.ts
+          sed -i "s/appId: '.*'/appId: 'co.in.shopykart.admin'/" capacitor.config.ts
+          sed -i "s/appName: '.*'/appName: 'Shopykart CEO'/" capacitor.config.ts
           sed -i "s/<string name=\"app_name\">.*<\/string>/<string name=\"app_name\">Shopykart CEO<\/string>/" android/app/src/main/res/values/strings.xml
           npx cap sync android
 
@@ -79,11 +80,12 @@ jobs:
 
       # BUILD 3: STORE/BIZ APP (co.in.shopykart.biz)
       - name: Build & Sync Biz
+        env:
+          NEXT_PUBLIC_BIZ_APP: true
         run: |
-          export NEXT_PUBLIC_BIZ_APP=true
           npm run build:biz
-          sed -i "s/appId: [\"'].*[\"']/appId: \"co.in.shopykart.biz\"/" capacitor.config.ts
-          sed -i "s/appName: [\"'].*[\"']/appName: \"Shopykart Business\"/" capacitor.config.ts
+          sed -i "s/appId: '.*'/appId: 'co.in.shopykart.biz'/" capacitor.config.ts
+          sed -i "s/appName: '.*'/appName: 'Shopykart Business'/" capacitor.config.ts
           sed -i "s/<string name=\"app_name\">.*<\/string>/<string name=\"app_name\">Shopykart Business<\/string>/" android/app/src/main/res/values/strings.xml
           npx cap sync android
 
@@ -101,11 +103,12 @@ jobs:
 
       # BUILD 4: DELIVERY/TOW APP (co.in.shopykart.tow)
       - name: Build & Sync Tow
+        env:
+          NEXT_PUBLIC_TOW_APP: true
         run: |
-          export NEXT_PUBLIC_TOW_APP=true
           npm run build:tow
-          sed -i "s/appId: [\"'].*[\"']/appId: \"co.in.shopykart.tow\"/" capacitor.config.ts
-          sed -i "s/appName: [\"'].*[\"']/appName: \"Shopykart Tow\"/" capacitor.config.ts
+          sed -i "s/appId: '.*'/appId: 'co.in.shopykart.tow'/" capacitor.config.ts
+          sed -i "s/appName: '.*'/appName: 'Shopykart Tow'/" capacitor.config.ts
           sed -i "s/<string name=\"app_name\">.*<\/string>/<string name=\"app_name\">Shopykart Tow<\/string>/" android/app/src/main/res/values/strings.xml
           npx cap sync android
 
@@ -125,7 +128,7 @@ jobs:
       - name: Upload Complete Bundle
         uses: actions/upload-artifact@v4
         with:
-          name: ShopyKart-v1.4-Release-Files
+          name: ShopyKart-v1.4.1-Release-Files
           path: |
             *.apk
             *.aab
