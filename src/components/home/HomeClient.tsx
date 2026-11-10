@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useCallback, useEffect, Suspense } from 'react';
@@ -33,19 +34,23 @@ function HomeContent({
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const [searchQuery, setSearchQuery] = useState('');
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   useEffect(() => {
-    // 4-APP REDIRECTION LOGIC
+    // 4-APP REDIRECTION LOGIC - INSTANT CHECK
     if (typeof window !== 'undefined') {
       const isAdmin = process.env.NEXT_PUBLIC_ADMIN_APP === 'true';
       const isBiz = process.env.NEXT_PUBLIC_BIZ_APP === 'true';
       const isFleet = process.env.NEXT_PUBLIC_TOW_APP === 'true';
 
       if (isAdmin) {
+        setIsRedirecting(true);
         router.replace('/admin/dashboard');
       } else if (isBiz) {
+        setIsRedirecting(true);
         router.replace('/vendor/dashboard');
       } else if (isFleet) {
+        setIsRedirecting(true);
         router.replace('/delivery/dashboard');
       }
     }
@@ -69,6 +74,15 @@ function HomeContent({
   const handleModeChange = (mode: string) => {
     updateUrlParam('mode', mode);
   };
+
+  if (isRedirecting) {
+    return (
+      <div className="h-screen bg-white flex flex-col items-center justify-center">
+         <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
+         <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 italic">Authenticating Hub Identity...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">

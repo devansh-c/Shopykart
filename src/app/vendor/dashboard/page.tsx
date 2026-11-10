@@ -37,7 +37,6 @@ import {
   Percent,
   IndianRupee,
   Edit2,
-  MessageSquare,
   BarChart3,
   FileText,
   PhoneCall,
@@ -185,7 +184,6 @@ export default function VendorDashboard() {
       
       let vendorSubtotal = vendorItems.reduce((acc: number, it: any) => acc + (Number(it.price) * Number(it.quantity)), 0);
       
-      // DEEP SYNC FALLBACK: If order belongs to this vendor but items don't have IDs
       if (vendorSubtotal === 0 && String(o.vendorId || '').trim() === vId) {
         vendorSubtotal = Number(o.total) || 0;
       }
