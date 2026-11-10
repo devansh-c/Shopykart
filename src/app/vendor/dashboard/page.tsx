@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -164,11 +163,12 @@ export default function VendorDashboard() {
   const categoriesQuery = useMemoFirebase(() => (firestore) ? query(collection(firestore, 'categories')) : null, [firestore]);
   const { data: categories } = useCollection<any>(categoriesQuery);
 
-  const pendingRequestsQuery = useMemoFirebase(() => (firestore && user) ? query(collection(firestore, 'payout_requests'), where('vendorId', '==', user.uid), where('status', '==', 'Pending')) : null, [firestore, user]);
-  const { data: pendingRequests } = useCollection<any>(pendingRequestsQuery);
+  // Fetch ALL payout requests for dynamic calculation
+  const allPayoutsQuery = useMemoFirebase(() => (firestore && user) ? query(collection(firestore, 'payout_requests'), where('vendorId', '==', user.uid)) : null, [firestore, user]);
+  const { data: allPayouts } = useCollection<any>(allPayoutsQuery);
 
   const earnings = useMemo(() => {
-    const fallback = { today: 0, thisWeek: 0, thisMonth: 0, totalDelivered: 0, totalCancelled: 0 };
+    const fallback = { today: 0, thisWeek: 0, thisMonth: 0, totalDelivered: 0, totalCancelled: 0, payoutTotal: 0 };
     if (!rawOrders || !user) return fallback;
 
     let today = 0, week = 0, month = 0, totalDelivered = 0, totalCancelled = 0;
@@ -202,8 +202,16 @@ export default function VendorDashboard() {
         totalCancelled += vendorSubtotal;
       }
     });
-    return { today, thisWeek: week, thisMonth: month, totalDelivered, totalCancelled };
-  }, [rawOrders, user]);
+
+    const payoutTotal = (allPayouts || []).filter(r => r.status === 'Completed').reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+
+    return { today, thisWeek: week, thisMonth: month, totalDelivered, totalCancelled, payoutTotal };
+  }, [rawOrders, user, allPayouts]);
+
+  // DYNAMIC WITHDRAWAL BALANCE: (Total Sales) - (Completed Payouts)
+  const effectiveWithdrawalBalance = useMemo(() => {
+    return Math.max(0, earnings.totalDelivered - earnings.payoutTotal);
+  }, [earnings]);
 
   const filteredOrders = useMemo(() => {
     if (!rawOrders || !user) return [];
@@ -275,7 +283,7 @@ export default function VendorDashboard() {
       return;
     }
 
-    const amount = vendorProfile?.walletBalance || 0;
+    const amount = effectiveWithdrawalBalance;
     if (amount <= 0) {
       toast({ variant: "destructive", title: "Low Balance", description: "You need at least ₹1 to withdraw." });
       return;
@@ -670,12 +678,12 @@ export default function VendorDashboard() {
               <div className="bg-[#EF4444] p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[180px]">
                  <div className="relative z-10 space-y-1">
                     <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Withdrawal Balance</span>
-                    <div className="text-5xl font-black italic">₹ {vendorProfile?.walletBalance?.toFixed(2) || '0.00'}</div>
+                    <div className="text-5xl font-black italic">₹ {effectiveWithdrawalBalance.toFixed(2)}</div>
                  </div>
                  <div className="relative z-10 flex justify-end mt-4">
                     <button 
                       onClick={handleWithdrawRequest}
-                      disabled={isProcessing || (vendorProfile?.walletBalance || 0) <= 0} 
+                      disabled={isProcessing || effectiveWithdrawalBalance <= 0} 
                       className="bg-white text-primary rounded-xl h-10 px-6 font-black uppercase text-[10px] italic active:scale-95 transition-all disabled:opacity-50"
                     >
                       {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : "Withdraw Now"}
@@ -691,7 +699,7 @@ export default function VendorDashboard() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                  <div className="bg-white p-5 rounded-[2rem] border border-blue-100 shadow-sm flex flex-col gap-2"><ArrowDownLeft className="h-4 w-4 text-blue-500" /><div><span className="text-[8px] font-black text-gray-400 uppercase block mb-0.5">Today's Sales</span><h4 className="text-lg font-black italic">₹ {earnings.today.toFixed(0)}</h4></div></div>
-                 <div className="bg-white p-5 rounded-[2rem] border border-amber-100 shadow-sm flex flex-col gap-2"><Timer className="h-4 w-4 text-amber-500" /><div><span className="text-[8px] font-black text-gray-400 uppercase block mb-0.5">Pending Settl.</span><h4 className="text-lg font-black italic">₹ {pendingRequests?.reduce((s:any,r:any)=>s+r.amount, 0).toFixed(0) || '0.00'}</h4></div></div>
+                 <div className="bg-white p-5 rounded-[2rem] border border-amber-100 shadow-sm flex flex-col gap-2"><Timer className="h-4 w-4 text-amber-500" /><div><span className="text-[8px] font-black text-gray-400 uppercase block mb-0.5">Total Paid Out</span><h4 className="text-lg font-black italic">₹ {earnings.payoutTotal.toFixed(0)}</h4></div></div>
               </div>
            </div>
          )}
