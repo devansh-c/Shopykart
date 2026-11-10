@@ -37,7 +37,8 @@ import {
   Percent,
   IndianRupee,
   Edit2,
-  MessageSquare
+  MessageSquare,
+  BarChart3
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -166,13 +167,11 @@ export default function VendorDashboard() {
       const vId = String(user.uid);
       const status = (o.status || '').toUpperCase();
       
-      // Calculate this specific store's contribution to this order
       const vendorItems = (o.items || []).filter((it: any) => String(it.vendorId) === vId);
       if (vendorItems.length === 0) return;
 
       const vendorSubtotal = vendorItems.reduce((acc: number, it: any) => acc + (Number(it.price) * Number(it.quantity)), 0);
       
-      // Fix date parsing for revenue comparison
       let orderDate = new Date();
       if (o.createdAt?.seconds) {
         orderDate = new Date(o.createdAt.seconds * 1000);
@@ -371,18 +370,34 @@ export default function VendorDashboard() {
       <main className="flex-1 overflow-y-auto no-scrollbar pb-32">
          {activeMainTab === 'orders' && (
            <div className="p-4 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                 <div className="bg-[#EF4444] p-6 rounded-[2rem] text-white shadow-xl relative overflow-hidden flex items-center justify-between">
-                    <div className="relative z-10"><span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-80">Today</span><div className="text-3xl font-black italic mt-1">₹ {earnings.today.toFixed(0)}</div></div>
-                    <Zap className="h-8 w-8 opacity-20" />
+              <div className="grid grid-cols-2 gap-4">
+                 <div className="bg-[#EF4444] p-5 rounded-[2rem] text-white shadow-xl relative overflow-hidden flex flex-col justify-between aspect-square">
+                    <div className="relative z-10">
+                      <span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-80">Today</span>
+                      <div className="text-2xl font-black italic mt-1">₹ {earnings.today.toFixed(0)}</div>
+                    </div>
+                    <Zap className="h-8 w-8 opacity-20 self-end" />
                  </div>
-                 <div className="bg-blue-600 p-6 rounded-[2rem] text-white shadow-xl relative overflow-hidden flex items-center justify-between">
-                    <div className="relative z-10"><span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-80">Week</span><div className="text-3xl font-black italic mt-1">₹ {earnings.thisWeek.toFixed(0)}</div></div>
-                    <TrendingUp className="h-8 w-8 opacity-20" />
+                 <div className="bg-blue-600 p-5 rounded-[2rem] text-white shadow-xl relative overflow-hidden flex flex-col justify-between aspect-square">
+                    <div className="relative z-10">
+                      <span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-80">Week</span>
+                      <div className="text-2xl font-black italic mt-1">₹ {earnings.thisWeek.toFixed(0)}</div>
+                    </div>
+                    <TrendingUp className="h-8 w-8 opacity-20 self-end" />
                  </div>
-                 <div className="bg-indigo-600 p-6 rounded-[2rem] text-white shadow-xl relative overflow-hidden flex items-center justify-between">
-                    <div className="relative z-10"><span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-80">Month</span><div className="text-3xl font-black italic mt-1">₹ {earnings.thisMonth.toFixed(0)}</div></div>
-                    <Calendar className="h-8 w-8 opacity-20" />
+                 <div className="bg-indigo-600 p-5 rounded-[2rem] text-white shadow-xl relative overflow-hidden flex flex-col justify-between aspect-square">
+                    <div className="relative z-10">
+                      <span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-80">Month</span>
+                      <div className="text-2xl font-black italic mt-1">₹ {earnings.thisMonth.toFixed(0)}</div>
+                    </div>
+                    <Calendar className="h-8 w-8 opacity-20 self-end" />
+                 </div>
+                 <div className="bg-emerald-600 p-5 rounded-[2rem] text-white shadow-xl relative overflow-hidden flex flex-col justify-between aspect-square">
+                    <div className="relative z-10">
+                      <span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-80">Total</span>
+                      <div className="text-2xl font-black italic mt-1">₹ {earnings.totalDelivered.toFixed(0)}</div>
+                    </div>
+                    <BarChart3 className="h-8 w-8 opacity-20 self-end" />
                  </div>
               </div>
 
@@ -391,13 +406,6 @@ export default function VendorDashboard() {
                   <button key={f} onClick={() => setOrderFilter(f as OrderFilter)} className={cn("flex-1 py-3 text-[9px] font-black rounded-xl transition-all", orderFilter === f ? "bg-[#EF4444] text-white" : "text-gray-400")}>{f}</button>
                 ))}
               </div>
-
-              {(orderFilter === 'DELIVERED' || orderFilter === 'CANCELLED') && (
-                <div className="grid grid-cols-2 gap-4">
-                   <div className="bg-white p-4 rounded-3xl border text-center"><span className="text-[7px] font-black text-gray-400 uppercase">Vendor Revenue</span><div className="text-xl font-black text-green-600">₹{orderFilter === 'DELIVERED' ? earnings.totalDelivered.toFixed(0) : earnings.totalCancelled.toFixed(0)}</div></div>
-                   <div className="bg-white p-4 rounded-3xl border text-center"><span className="text-[7px] font-black text-gray-400 uppercase">Volume</span><div className="text-xl font-black text-blue-600">{filteredOrders.length} Orders</div></div>
-                </div>
-              )}
 
               {filteredOrders.length > 0 ? filteredOrders.map(o => (
                 <div key={o.id} className="bg-white p-6 rounded-[2.5rem] border border-border shadow-sm mb-4">
