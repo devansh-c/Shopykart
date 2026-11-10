@@ -111,12 +111,9 @@ export default function MedicalDashboard() {
 
   useEffect(() => { setIsMounted(true); }, []);
 
-  // SESSION GUARD: Strictly patient logic to survive Firebase refresh cycles
   useEffect(() => {
     if (!isMounted || authLoading) return;
-    
     const sessionActive = localStorage.getItem('shopykart_session_active') === 'true';
-    
     if (!user && !sessionActive) {
       router.replace('/vendor/login?type=Medical');
     }
@@ -188,9 +185,11 @@ export default function MedicalDashboard() {
 
   const filteredOrders = useMemo(() => {
     if (!rawOrders || !user) return [];
-    const myOrders = rawOrders.filter((o: any) => String(o.vendorId) === String(user.uid));
+    const myOrders = rawOrders.filter((o: any) => String(o.vendorId) === String(user.uid) || (Array.isArray(o.vendorIds) && o.vendorIds.includes(user.uid)));
+    
     if (orderFilter === 'DELIVERED') return myOrders.filter((o: any) => o.status === 'Delivered');
     if (orderFilter === 'CANCELLED') return myOrders.filter((o: any) => o.status === 'Cancelled');
+    
     const activeStatuses = ['Placed', 'Accepted', 'Preparing', 'Ready for Pickup', 'Picked Up', 'Out for Delivery'];
     return myOrders.filter((o: any) => activeStatuses.includes(o.status));
   }, [rawOrders, user, orderFilter]);
@@ -245,7 +244,10 @@ export default function MedicalDashboard() {
     if (!firestore) return;
     try {
       const updateData: any = { status: newStatus, updatedAt: serverTimestamp() };
-      if (newStatus === 'Ready for Pickup') updateData.pickupOTP = Math.floor(1000 + Math.random() * 9000).toString();
+      if (newStatus === 'Ready for Pickup') {
+        updateData.pickupOTP = Math.floor(1000 + Math.random() * 9000).toString();
+        updateData.readyForPickupAt = serverTimestamp();
+      }
       await updateDoc(doc(firestore, 'orders', orderId), updateData);
       toast({ title: `Order ${newStatus}!` });
     } catch (e) { toast({ variant: "destructive", title: "Failed" }); }
@@ -373,8 +375,8 @@ export default function MedicalDashboard() {
 
               {(orderFilter === 'DELIVERED' || orderFilter === 'CANCELLED') && (
                 <div className="grid grid-cols-2 gap-4">
-                   <div className="bg-white p-4 rounded-3xl border text-center"><span className="text-[7px] font-black text-gray-400 uppercase">Sales</span><div className="text-xl font-black text-green-600">₹{earnings.totalDelivered.toFixed(0)}</div></div>
-                   <div className="bg-white p-4 rounded-3xl border text-center"><span className="text-[7px] font-black text-gray-400 uppercase">Loss</span><div className="text-xl font-black text-red-600">₹{earnings.totalCancelled.toFixed(0)}</div></div>
+                   <div className="bg-white p-4 rounded-3xl border text-center"><span className="text-[7px] font-black text-gray-400 uppercase">Total Sales</span><div className="text-xl font-black text-green-600">₹{earnings.totalDelivered.toFixed(0)}</div></div>
+                   <div className="bg-white p-4 rounded-3xl border text-center"><span className="text-[7px] font-black text-gray-400 uppercase">Lost Rev.</span><div className="text-xl font-black text-red-600">₹{earnings.totalCancelled.toFixed(0)}</div></div>
                 </div>
               )}
 
@@ -463,16 +465,27 @@ export default function MedicalDashboard() {
 
          {activeMainTab === 'payouts' && (
            <div className="p-4 space-y-6">
-              <h2 className="text-xl font-black italic uppercase ml-2">Wallet</h2>
+              <h2 className="text-xl font-black italic uppercase ml-2">Wallet Settlement</h2>
               <div className="bg-teal-600 p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[180px]">
                  <div className="relative z-10 space-y-1"><span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Payout Due</span><div className="text-5xl font-black italic">₹ {vendorProfile?.walletBalance?.toFixed(2) || '0.00'}</div></div>
                  <div className="relative z-10 flex justify-end mt-4">
-                    <Button onClick={() => { if(!vendorProfile.upiId) setIsUpiModalOpen(true); else if((vendorProfile.walletBalance||0)>0) setIsProcessing(true); }} disabled={isProcessing || (vendorProfile?.walletBalance || 0) <= 0} className="bg-white text-teal-600 rounded-xl h-10 px-6 font-black uppercase text-[10px] italic">Withdraw</Button>
+                    <Button 
+                      onClick={() => { 
+                        if(!vendorProfile.upiId) setIsUpiModalOpen(true); 
+                        else if((vendorProfile.walletBalance||0)>0) {
+                          toast({ title: "Settlement Requested", description: "Admin will process your payment." });
+                        }
+                      }} 
+                      disabled={isProcessing || (vendorProfile?.walletBalance || 0) <= 0} 
+                      className="bg-white text-teal-600 rounded-xl h-10 px-6 font-black uppercase text-[10px] italic disabled:opacity-50"
+                    >
+                      Withdraw Now
+                    </Button>
                  </div>
                  <Wallet2 className="absolute bottom-4 right-4 h-24 w-24 text-white opacity-10" />
               </div>
               <div className="grid grid-cols-2 gap-4">
-                 <div className="bg-white p-5 rounded-[2rem] border border-blue-100 shadow-sm flex flex-col gap-2"><ArrowDownLeft className="h-4 w-4 text-blue-500" /><div><span className="text-[8px] font-black text-gray-400 uppercase block mb-0.5">Cash in Hand</span><h4 className="text-lg font-black italic">₹ 0.00</h4></div></div>
+                 <div className="bg-white p-5 rounded-[2rem] border border-blue-100 shadow-sm flex flex-col gap-2"><ArrowDownLeft className="h-4 w-4 text-blue-500" /><div><span className="text-[8px] font-black text-gray-400 uppercase block mb-0.5">Today's Sales</span><h4 className="text-lg font-black italic">₹ {earnings.today.toFixed(0)}</h4></div></div>
                  <div className="bg-white p-5 rounded-[2rem] border border-amber-100 shadow-sm flex flex-col gap-2"><Timer className="h-4 w-4 text-amber-500" /><div><span className="text-[8px] font-black text-gray-400 uppercase block mb-0.5">Settling</span><h4 className="text-lg font-black italic">₹ {pendingRequests?.reduce((s:any,r:any)=>s+r.amount, 0).toFixed(0) || '0.00'}</h4></div></div>
               </div>
            </div>
