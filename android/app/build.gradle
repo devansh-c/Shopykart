@@ -7,7 +7,7 @@ android {
     namespace "co.in.shopykart.app"
     compileSdkVersion rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId project.hasProperty("appId") ? project.property("appId") : "co.in.shopykart.app"
+        applicationId "co.in.shopykart.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 4

@@ -49,8 +49,8 @@ jobs:
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleRelease -PappId=${{ matrix.appId }}
-          ./gradlew bundleRelease -PappId=${{ matrix.appId }}
+          ./gradlew assembleRelease matrix.appId }}
+          ./gradlew bundleRelease matrix.appId }}
 
       - name: Archive Customer Files
         run: |
@@ -74,8 +74,8 @@ jobs:
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleRelease -PappId=${{ matrix.appId }}
-          ./gradlew bundleRelease -PappId=${{ matrix.appId }}
+          ./gradlew assembleRelease matrix.appId }}
+          ./gradlew bundleRelease matrix.appId }}
 
       - name: Archive Admin Files
         run: |
@@ -99,8 +99,8 @@ jobs:
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleRelease -PappId=${{ matrix.appId }}
-          ./gradlew bundleRelease -PappId=${{ matrix.appId }}
+          ./gradlew assembleRelease matrix.appId }}
+          ./gradlew bundleRelease matrix.appId }}
 
       - name: Archive Biz Files
         run: |
@@ -124,8 +124,8 @@ jobs:
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleRelease -PappId=${{ matrix.appId }}
-          ./gradlew bundleRelease -PappId=${{ matrix.appId }}
+          ./gradlew assembleRelease matrix.appId }}
+          ./gradlew bundleRelease matrix.appId }}
 
       - name: Archive Tow Files
         run: |
