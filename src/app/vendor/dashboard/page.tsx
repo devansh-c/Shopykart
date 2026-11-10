@@ -50,7 +50,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { format, startOfDay, startOfWeek, startOfMonth, isAfter } from 'date-fns';
+import { format, startOfDay, startOfWeek, startOfMonth, isAfter, parseISO } from 'date-fns';
 import { compressImage } from '@/lib/image-utils';
 
 type MainTab = 'orders' | 'catalog' | 'coupons' | 'payouts' | 'account';
@@ -164,15 +164,21 @@ export default function VendorDashboard() {
 
     rawOrders.forEach((o: any) => {
       const vId = String(user.uid);
-      const isForMe = String(o.vendorId) === vId || (Array.isArray(o.vendorIds) && o.vendorIds.includes(vId));
-      if (!isForMe) return;
-
-      // Calculate ONLY this vendor's subtotal in the order
-      const vendorItems = (o.items || []).filter((it: any) => String(it.vendorId) === vId);
-      const vendorSubtotal = vendorItems.reduce((acc: number, it: any) => acc + (Number(it.price) * Number(it.quantity)), 0);
-
       const status = (o.status || '').toUpperCase();
-      const orderDate = o.createdAt?.seconds ? new Date(o.createdAt.seconds * 1000) : (o.createdAt ? new Date(o.createdAt) : new Date());
+      
+      // Calculate this specific store's contribution to this order
+      const vendorItems = (o.items || []).filter((it: any) => String(it.vendorId) === vId);
+      if (vendorItems.length === 0) return;
+
+      const vendorSubtotal = vendorItems.reduce((acc: number, it: any) => acc + (Number(it.price) * Number(it.quantity)), 0);
+      
+      // Fix date parsing for revenue comparison
+      let orderDate = new Date();
+      if (o.createdAt?.seconds) {
+        orderDate = new Date(o.createdAt.seconds * 1000);
+      } else if (typeof o.createdAt === 'string') {
+        orderDate = parseISO(o.createdAt);
+      }
 
       if (status === 'DELIVERED') {
         totalDelivered += vendorSubtotal;
