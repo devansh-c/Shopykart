@@ -1,7 +1,8 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
-import { collection, doc, updateDoc, query, where, orderBy, serverTimestamp, getDoc, increment } from 'firebase/firestore';
+import { collection, doc, updateDoc, query, where, orderBy, serverTimestamp, getDoc, increment, setDoc } from 'firebase/firestore';
 import { 
   Navigation, 
   Package, 
@@ -277,7 +278,7 @@ const TaskCard = memo(({ order, onUpdate, userData, onPass }: any) => {
                 <DialogDescription className="sr-only">UPI QR Code for collection</DialogDescription>
              </DialogHeader>
              <div className="bg-gray-50 p-8 rounded-[2.5rem] border-4 border-dashed border-gray-200">
-                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`upi://pay?pa=9450355709@axl&pn=ShopyKart&am=${order.total}&cu=INR`)}`} className="h-56 w-56 mx-auto" alt="QR" />
+                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`upi://pay?pa=9450355709@axl&pn=ShopyKart&am=${order.total}&cu=INR`)}`} className="h-56 w-56 mx-auto" alt="QR" />
                 <p className="mt-6 text-4xl font-black italic text-gray-900 tracking-tighter">₹{order.total?.toFixed(0)}</p>
              </div>
              <Button onClick={() => setShowQr(false)} className="w-full h-16 bg-black text-white rounded-2xl font-black uppercase italic">CLOSE QR</Button>
@@ -362,7 +363,7 @@ export default function DeliveryDashboard() {
         if (data && data.items) {
            const vendorsToUpdate = new Map<string, number>();
            data.items.forEach((item: any) => {
-             const vId = item.vendorId ? String(item.vendorId) : null;
+             const vId = item.vendorId ? String(item.vendorId).trim() : null;
              if (vId) {
                const itemTotal = (Number(item.price) || 0) * (Number(item.quantity) || 1);
                vendorsToUpdate.set(vId, (vendorsToUpdate.get(vId) || 0) + itemTotal);
@@ -370,10 +371,11 @@ export default function DeliveryDashboard() {
            });
            for (const [vId, amount] of Array.from(vendorsToUpdate.entries())) {
              const vRef = doc(firestore, 'vendors', vId);
-             await updateDoc(vRef, { 
+             // Use setDoc merge to ensure field exists
+             await setDoc(vRef, { 
                 walletBalance: increment(amount), 
                 updatedAt: serverTimestamp() 
-             });
+             }, { merge: true });
            }
         }
       }

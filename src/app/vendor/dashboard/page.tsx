@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -180,7 +181,7 @@ export default function VendorDashboard() {
       const vId = String(user.uid);
       const status = (o.status || '').toUpperCase();
       
-      const vendorItems = (o.items || []).filter((it: any) => String(it.vendorId) === vId);
+      const vendorItems = (o.items || []).filter((it: any) => String(it.vendorId).trim() === vId.trim());
       if (vendorItems.length === 0) return;
 
       const vendorSubtotal = vendorItems.reduce((acc: number, it: any) => acc + (Number(it.price) * Number(it.quantity)), 0);
@@ -206,12 +207,12 @@ export default function VendorDashboard() {
 
   const filteredOrders = useMemo(() => {
     if (!rawOrders || !user) return [];
-    const vId = String(user.uid);
+    const vId = String(user.uid).trim();
     
     const myOrders = rawOrders.filter((o: any) => {
-      const isDirect = String(o.vendorId) === vId;
-      const isInArray = Array.isArray(o.vendorIds) && o.vendorIds.includes(vId);
-      const hasItem = Array.isArray(o.items) && o.items.some((it: any) => String(it.vendorId) === vId);
+      const isDirect = String(o.vendorId).trim() === vId;
+      const isInArray = Array.isArray(o.vendorIds) && o.vendorIds.map(v => String(v).trim()).includes(vId);
+      const hasItem = Array.isArray(o.items) && o.items.some((it: any) => String(it.vendorId).trim() === vId);
       return isDirect || isInArray || hasItem;
     });
     
@@ -314,7 +315,7 @@ export default function VendorDashboard() {
       receipt.style.textTransform = 'uppercase';
       
       const vId = String(user?.uid);
-      const myItems = order.items?.filter((it: any) => String(it.vendorId) === vId);
+      const myItems = order.items?.filter((it: any) => String(it.vendorId).trim() === vId.trim());
       const myTotal = myItems.reduce((acc: number, it: any) => acc + (it.price * it.quantity), 0);
 
       const itemsHtml = myItems.map((item: any) => `
@@ -539,9 +540,7 @@ export default function VendorDashboard() {
                 <div key={o.id} className="bg-white p-6 rounded-[2.5rem] border border-border shadow-sm mb-4 transform-gpu transition-all hover:shadow-lg">
                    <div className="flex justify-between items-start mb-6">
                       <div className="flex items-center gap-4 min-w-0">
-                        <div className="h-14 w-14 rounded-2xl bg-primary/5 flex items-center justify-center text-primary border border-primary/10 shrink-0">
-                           <ShoppingBag className="h-7 w-7" />
-                        </div>
+                        <div className="h-14 w-14 rounded-2xl bg-primary/5 flex items-center justify-center text-primary border border-primary/10 shrink-0"><Package className="h-7 w-7" /></div>
                         <div className="min-w-0">
                            <span className="text-2xl font-black italic text-gray-900 leading-none block">#{o.customerOrderNumber}</span>
                            <div className="flex items-center gap-1.5 mt-1">
@@ -556,7 +555,7 @@ export default function VendorDashboard() {
                            {isDownloading === o.id ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileText className="h-5 w-5" />}
                          </button>
                          <button onClick={() => window.open(`tel:${o.customerPhone}`)} className="h-10 w-10 bg-green-500 text-white rounded-xl flex items-center justify-center shadow-lg active:scale-90 transition-all shadow-green-100"><PhoneCall className="h-5 w-5" /></button>
-                         <button onClick={() => handleCancelOrder(o.id)} className="h-10 w-10 bg-red-50 text-red-500 rounded-xl flex items-center justify-center border border-red-100 active:scale-90 transition-all"><XCircle className="h-5 w-5" /></button>
+                         <button onClick={() => handleCancelOrder(o.id)} className="h-10 w-10 bg-red-50 text-red-500 rounded-xl flex items-center justify-center active:scale-90 transition-all border border-red-100"><XCircle className="h-5 w-5" /></button>
                       </div>
                    </div>
 
@@ -573,7 +572,7 @@ export default function VendorDashboard() {
 
                    <div className="space-y-3 mb-6 bg-gray-50/50 p-5 rounded-3xl border border-dashed border-gray-200">
                       <div className="flex items-center gap-2 mb-2 px-1"><ShoppingBag className="h-4 w-4 text-gray-400" /><span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Order Items</span></div>
-                      {o.items?.filter((it:any) => String(it.vendorId) === String(user?.uid)).map((item:any, i:number) => (
+                      {o.items?.filter((it:any) => String(it.vendorId).trim() === String(user?.uid).trim()).map((item:any, i:number) => (
                         <div key={i} className="flex justify-between items-center text-[11px] font-black uppercase italic">
                            <span className="text-gray-800"><span className="text-primary">{item.quantity}x</span> {item.name} {item.selectedOption ? `(${item.selectedOption.name})` : ''}</span>
                            <span className="text-gray-900">₹{(item.price * item.quantity).toFixed(0)}</span>
@@ -722,113 +721,6 @@ export default function VendorDashboard() {
             </div>
          )}
 
-         {/* SHARED DIALOGS */}
-         <Dialog open={isManualAddOpen} onOpenChange={setIsManualAddOpen}>
-           <DialogContent className="rounded-[2.5rem] max-w-md p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none flex flex-col max-h-[90vh]">
-              <DialogHeader className="p-8 pb-4"><DialogTitle className="font-black italic uppercase text-center text-xl">{editingId ? 'Edit Product' : 'Add Product'}</DialogTitle></DialogHeader>
-              <div className="flex-1 overflow-y-auto no-scrollbar p-8 pt-0 space-y-6">
-                 <div onClick={() => manualImageInputRef.current?.click()} className="h-32 border-2 border-dashed rounded-2xl flex items-center justify-center bg-muted/20 cursor-pointer overflow-hidden">{manualProduct.imageUrl ? <img src={manualProduct.imageUrl} className="h-full w-full object-cover" /> : <ImageIcon className="opacity-20" />}</div>
-                 <input type="file" elementRef={manualImageInputRef} className="hidden" onChange={handleManualImageSelect} />
-                 
-                 <div className="space-y-4">
-                    <div className="space-y-1">
-                       <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Item Name</label>
-                       <Input placeholder="ITEM NAME" value={manualProduct.name} onChange={e => setManualProduct({...manualProduct, name: e.target.value.toUpperCase()})} className="h-12 rounded-xl border-none bg-muted/20 font-bold" />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                       <div className="space-y-1">
-                          <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Base Price ₹</label>
-                          <Input type="number" value={manualProduct.price} onChange={e => setManualProduct({...manualProduct, price: e.target.value})} placeholder="0.00" className="h-12 rounded-xl font-black text-lg bg-muted/20 border-none" />
-                       </div>
-                       <div className="space-y-1">
-                          <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Category</label>
-                          <Select value={manualProduct.category} onValueChange={v => setManualProduct({...manualProduct, category: v})}>
-                             <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold"><SelectValue placeholder="Select" /></SelectTrigger>
-                             <SelectContent className="rounded-2xl max-h-[300px]">
-                                {categories?.map(c => <SelectItem key={c.id} value={c.name.toLowerCase()} className="font-bold py-3 uppercase text-xs">{c.name}</SelectItem>)}
-                             </SelectContent>
-                          </Select>
-                       </div>
-                    </div>
-
-                    <div className="space-y-4 p-5 bg-gray-50 rounded-[1.5rem] border-2 border-dashed">
-                       <div className="flex items-center justify-between">
-                          <div className="flex flex-col">
-                             <span className="text-[10px] font-black uppercase text-gray-500">Varieties / Sizes</span>
-                             <div className="flex items-center gap-2 mt-1">
-                                <span className="text-[8px] font-bold text-muted-foreground">Is Selection Required?</span>
-                                <Switch checked={manualProduct.isVarietyRequired} onCheckedChange={(v) => setManualProduct({...manualProduct, isVarietyRequired: v})} className="scale-75 data-[state=checked]:bg-primary" />
-                             </div>
-                          </div>
-                          <button onClick={handleAddVariety} className="text-[10px] font-black text-primary uppercase bg-white px-3 py-1 rounded-lg border shadow-sm">+ ADD</button>
-                       </div>
-                       <div className="space-y-3">
-                          {manualProduct.options.map((opt, idx) => (
-                            <div key={idx} className="flex gap-2 items-center">
-                               <Input placeholder="NAME" value={opt.name} onChange={e => updateVariety(idx, 'name', e.target.value.toUpperCase())} className="h-10 rounded-lg bg-white border-none text-[10px] font-bold flex-1" />
-                               <Input type="number" placeholder="₹" value={opt.price} onChange={e => updateVariety(idx, 'price', e.target.value)} className="h-10 w-20 rounded-lg bg-white border-none text-[10px] font-black text-center" />
-                               <button onClick={() => setManualProduct(prev => ({...prev, options: prev.options.filter((_, i) => i !== idx)}))} className="text-red-500 p-1"><X className="h-4 w-4" /></button>
-                            </div>
-                          ))}
-                       </div>
-                    </div>
-
-                    <div className="space-y-1">
-                       <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Description</label>
-                       <Textarea placeholder="SHORT DETAILS" value={manualProduct.description} onChange={e => setManualProduct({...manualProduct, description: e.target.value.toUpperCase()})} className="rounded-xl h-20 bg-muted/20 border-none p-4" />
-                    </div>
-                 </div>
-              </div>
-              <div className="p-8 bg-muted/5 border-t">
-                 <Button onClick={handleManualAddProduct} disabled={isProcessing || !manualProduct.name} className="w-full h-16 bg-primary text-white rounded-2xl font-black uppercase italic shadow-xl">
-                   {isProcessing ? <Loader2 className="animate-spin" /> : editingId ? "UPDATE ITEM" : "PUBLISH ITEM"}
-                 </Button>
-              </div>
-           </DialogContent>
-         </Dialog>
-
-         <Dialog open={isCouponModalOpen} onOpenChange={setIsCouponModalOpen}>
-           <DialogContent className="rounded-[2.5rem] max-w-md p-8 border-none shadow-2xl bg-white focus:outline-none">
-              <DialogHeader><DialogTitle className="font-black italic uppercase text-center text-xl">Create Promo Code</DialogTitle></DialogHeader>
-              <div className="space-y-6 pt-6">
-                 <div className="space-y-1">
-                    <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Coupon Code</label>
-                    <Input placeholder="E.G. PIZZA20" value={couponForm.code} onChange={e => setCouponForm({...couponForm, code: e.target.value.toUpperCase().replace(/\s/g,'')})} className="h-14 rounded-2xl bg-gray-50 border-none font-black text-xl italic" />
-                 </div>
-                 
-                 <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                       <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Discount Mode</label>
-                       <Select value={couponForm.discountType} onValueChange={(v: any) => setCouponForm({...couponForm, discountType: v})}>
-                          <SelectTrigger className="h-14 rounded-2xl bg-gray-50 border-none font-bold"><SelectValue /></SelectTrigger>
-                          <SelectContent className="rounded-2xl">
-                             <SelectItem value="percentage" className="font-bold py-3 uppercase italic text-xs">Percent (%)</SelectItem>
-                             <SelectItem value="fixed" className="font-bold py-3 uppercase italic text-xs">Rupees (₹)</SelectItem>
-                          </SelectContent>
-                       </Select>
-                    </div>
-                    <div className="space-y-1">
-                       <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Value</label>
-                       <div className="relative">
-                          {couponForm.discountType === 'percentage' ? <Percent className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-green-600" /> : <IndianRupee className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-green-600" />}
-                          <Input type="number" placeholder="0" value={couponForm.discountValue} onChange={e => setCouponForm({...couponForm, discountValue: e.target.value})} className="h-14 pl-12 rounded-2xl bg-gray-50 border-none font-black text-xl text-green-600" />
-                       </div>
-                    </div>
-                 </div>
-
-                 <div className="space-y-1">
-                    <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Min. Order Value (₹)</label>
-                    <Input type="number" placeholder="299" value={couponForm.minOrderValue} onChange={e => setCouponForm({...couponForm, minOrderValue: e.target.value})} className="h-14 rounded-2xl bg-gray-50 border-none font-bold" />
-                 </div>
-
-                 <Button onClick={handleCreateCoupon} disabled={isProcessing || !couponForm.code || !couponForm.discountValue} className="w-full h-18 bg-green-600 text-white rounded-[1.5rem] font-black uppercase italic shadow-xl">
-                   {isProcessing ? <Loader2 className="animate-spin" /> : "ACTIVATE COUPON"}
-                 </Button>
-              </div>
-           </DialogContent>
-         </Dialog>
-
          {/* Note Dialog */}
          <Dialog open={isNoteOpen} onOpenChange={setIsNoteOpen}>
             <DialogContent className="rounded-[2.5rem] max-sm p-8 border-none shadow-2xl bg-white focus:outline-none">
@@ -899,7 +791,7 @@ export default function VendorDashboard() {
         {[{id:'orders',label:'Queue',icon:ShoppingBag},{id:'catalog',label:'Menu',icon:Layers},{id:'coupons',label:'Offers',icon:Ticket},{id:'payouts',label:'Wallet',icon:Wallet2},{id:'account',label:'Profile',icon:UserCircle2}].map(item => (
           <button key={item.id} onClick={() => setActiveMainTab(item.id as MainTab)} className="flex flex-col items-center gap-1.5 active:scale-90 outline-none">
             <item.icon className={cn("h-5 w-5", activeMainTab === item.id ? "text-primary" : "text-gray-50")} />
-            <span className={cn("text-[8px] font-black uppercase tracking-widest", activeMainTab === item.id ? "text-white" : "text-gray-500")}>{item.label}</span>
+            <span className={cn("text-[8px] font-black uppercase tracking-widest", activeMainTab === item.id ? "text-white" : "text-gray-50")}>{item.label}</span>
           </button>
         ))}
       </nav>

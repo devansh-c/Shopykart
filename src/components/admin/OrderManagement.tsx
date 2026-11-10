@@ -1,7 +1,8 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, updateDoc, query, orderBy, serverTimestamp, getDoc, increment } from 'firebase/firestore';
+import { collection, doc, updateDoc, query, orderBy, serverTimestamp, getDoc, increment, setDoc } from 'firebase/firestore';
 import { 
   Package, 
   User, 
@@ -86,7 +87,7 @@ export default function OrderManagement() {
           const vendorsToUpdate = new Map<string, number>();
           
           orderData.items.forEach((item: any) => {
-            const vId = item.vendorId ? String(item.vendorId) : null;
+            const vId = item.vendorId ? String(item.vendorId).trim() : null;
             if (vId) {
               const itemTotal = (Number(item.price) || 0) * (Number(item.quantity) || 1);
               vendorsToUpdate.set(vId, (vendorsToUpdate.get(vId) || 0) + itemTotal);
@@ -95,11 +96,11 @@ export default function OrderManagement() {
 
           for (const [vId, amount] of Array.from(vendorsToUpdate.entries())) {
             const vendorRef = doc(firestore, 'vendors', vId);
-            // Credit FULL amount. Fee (₹10) managed manually.
-            await updateDoc(vendorRef, {
+            // Use setDoc merge to ensure walletBalance field is created if missing
+            await setDoc(vendorRef, {
               walletBalance: increment(amount),
               updatedAt: serverTimestamp()
-            });
+            }, { merge: true });
           }
         }
       }
