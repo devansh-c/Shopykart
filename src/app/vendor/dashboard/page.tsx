@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -862,7 +861,7 @@ export default function VendorDashboard() {
                        </div>
                        <div className="space-y-3">
                           {manualProduct.options.map((opt, idx) => (
-                            <div key={idx} className="flex gap-2 items-center">
+                            <div key={idx} className="flex gap-3 items-center">
                                <Input placeholder="E.G. FULL" value={opt.name} onChange={e => updateVariety(idx, 'name', e.target.value.toUpperCase())} className="h-10 rounded-xl bg-white border-none font-bold text-xs uppercase flex-1" />
                                <Input type="number" placeholder="₹" value={opt.price} onChange={e => updateVariety(idx, 'price', e.target.value)} className="h-10 w-20 rounded-lg bg-white border-none text-[10px] font-black text-center" />
                                <button onClick={() => setManualProduct(prev => ({...prev, options: prev.options.filter((_, i) => i !== idx)}))} className="text-red-500 p-1"><X className="h-4 w-4" /></button>
@@ -873,7 +872,7 @@ export default function VendorDashboard() {
 
                     <div className="space-y-1">
                        <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Description</label>
-                       <Textarea placeholder="SHORT DETAILS" value={manualProduct.description} onChange={e => setManualProduct({...manualProduct, description: e.target.value.toUpperCase()})} className="rounded-xl h-20 bg-muted/20 border-none p-4" />
+                       <Textarea placeholder="SHORT DETAILS" value={manualProduct.description} onChange={e => setManualProduct({...manualProduct, description: e.target.value.toUpperCase()})} className="rounded-xl h-24 bg-muted/20 border-none p-4" />
                     </div>
                  </div>
               </div>
