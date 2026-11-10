@@ -167,17 +167,20 @@ export default function VendorDashboard() {
       const isForMe = String(o.vendorId) === vId || (Array.isArray(o.vendorIds) && o.vendorIds.includes(vId));
       if (!isForMe) return;
 
-      const amt = Number(o.total) || 0;
+      // Calculate ONLY this vendor's subtotal in the order
+      const vendorItems = (o.items || []).filter((it: any) => String(it.vendorId) === vId);
+      const vendorSubtotal = vendorItems.reduce((acc: number, it: any) => acc + (Number(it.price) * Number(it.quantity)), 0);
+
       const status = (o.status || '').toUpperCase();
-      const orderDate = o.createdAt?.seconds ? new Date(o.createdAt.seconds * 1000) : new Date(o.createdAt);
+      const orderDate = o.createdAt?.seconds ? new Date(o.createdAt.seconds * 1000) : (o.createdAt ? new Date(o.createdAt) : new Date());
 
       if (status === 'DELIVERED') {
-        totalDelivered += amt;
-        if (isAfter(orderDate, dayStart)) today += amt;
-        if (isAfter(orderDate, weekStart)) week += amt;
-        if (isAfter(orderDate, monthStart)) month += amt;
+        totalDelivered += vendorSubtotal;
+        if (isAfter(orderDate, dayStart)) today += vendorSubtotal;
+        if (isAfter(orderDate, weekStart)) week += vendorSubtotal;
+        if (isAfter(orderDate, monthStart)) month += vendorSubtotal;
       } else if (status === 'CANCELLED') {
-        totalCancelled += amt;
+        totalCancelled += vendorSubtotal;
       }
     });
     return { today, thisWeek: week, thisMonth: month, totalDelivered, totalCancelled };
@@ -185,13 +188,24 @@ export default function VendorDashboard() {
 
   const filteredOrders = useMemo(() => {
     if (!rawOrders || !user) return [];
-    const myOrders = rawOrders.filter((o: any) => String(o.vendorId) === String(user.uid) || (Array.isArray(o.vendorIds) && o.vendorIds.includes(user.uid)));
+    const vId = String(user.uid);
     
-    if (orderFilter === 'DELIVERED') return myOrders.filter((o: any) => o.status === 'Delivered');
-    if (orderFilter === 'CANCELLED') return myOrders.filter((o: any) => o.status === 'Cancelled');
+    const myOrders = rawOrders.filter((o: any) => {
+      const isDirect = String(o.vendorId) === vId;
+      const isInArray = Array.isArray(o.vendorIds) && o.vendorIds.includes(vId);
+      const hasItem = Array.isArray(o.items) && o.items.some((it: any) => String(it.vendorId) === vId);
+      return isDirect || isInArray || hasItem;
+    });
     
-    const activeStatuses = ['Placed', 'Accepted', 'Preparing', 'Ready for Pickup', 'Picked Up', 'Out for Delivery'];
-    return myOrders.filter((o: any) => activeStatuses.includes(o.status));
+    if (orderFilter === 'DELIVERED') {
+      return myOrders.filter((o: any) => (o.status || '').toLowerCase() === 'delivered');
+    }
+    if (orderFilter === 'CANCELLED') {
+      return myOrders.filter((o: any) => (o.status || '').toLowerCase() === 'cancelled');
+    }
+    
+    const activeStatuses = ['placed', 'accepted', 'preparing', 'ready for pickup', 'picked up', 'out for delivery', 'accepted task'];
+    return myOrders.filter((o: any) => activeStatuses.includes((o.status || '').toLowerCase()));
   }, [rawOrders, user, orderFilter]);
 
   const handleManualImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -374,16 +388,16 @@ export default function VendorDashboard() {
 
               {(orderFilter === 'DELIVERED' || orderFilter === 'CANCELLED') && (
                 <div className="grid grid-cols-2 gap-4">
-                   <div className="bg-white p-4 rounded-3xl border text-center"><span className="text-[7px] font-black text-gray-400 uppercase">Total Items Sales</span><div className="text-xl font-black text-green-600">₹{earnings.totalDelivered.toFixed(0)}</div></div>
-                   <div className="bg-white p-4 rounded-3xl border text-center"><span className="text-[7px] font-black text-gray-400 uppercase">Lost Revenue</span><div className="text-xl font-black text-red-600">₹{earnings.totalCancelled.toFixed(0)}</div></div>
+                   <div className="bg-white p-4 rounded-3xl border text-center"><span className="text-[7px] font-black text-gray-400 uppercase">Vendor Revenue</span><div className="text-xl font-black text-green-600">₹{orderFilter === 'DELIVERED' ? earnings.totalDelivered.toFixed(0) : earnings.totalCancelled.toFixed(0)}</div></div>
+                   <div className="bg-white p-4 rounded-3xl border text-center"><span className="text-[7px] font-black text-gray-400 uppercase">Volume</span><div className="text-xl font-black text-blue-600">{filteredOrders.length} Orders</div></div>
                 </div>
               )}
 
               {filteredOrders.length > 0 ? filteredOrders.map(o => (
                 <div key={o.id} className="bg-white p-6 rounded-[2.5rem] border border-border shadow-sm mb-4">
                    <div className="flex justify-between items-start mb-4">
-                      <div><span className="text-2xl font-black italic">#{o.customerOrderNumber}</span><p className="text-[8px] font-black text-gray-400 uppercase mt-1">{format(new Date(o.createdAt?.seconds * 1000 || Date.now()), 'hh:mm a')}</p></div>
-                      <Badge className={cn("border-none font-black text-[8px] uppercase", o.status === 'Cancelled' ? 'bg-red-50 text-red-600' : 'bg-primary/5 text-primary')}>{o.status}</Badge>
+                      <div><span className="text-2xl font-black italic">#{o.customerOrderNumber}</span><p className="text-[8px] font-black text-gray-400 uppercase mt-1">{format(new Date(o.createdAt?.seconds * 1000 || o.createdAt || Date.now()), 'hh:mm a')}</p></div>
+                      <Badge className={cn("border-none font-black text-[8px] uppercase", (o.status || '').toLowerCase() === 'cancelled' ? 'bg-red-50 text-red-600' : 'bg-primary/5 text-primary')}>{o.status}</Badge>
                    </div>
                    <div className="bg-muted/30 rounded-3xl p-5 mb-4 space-y-2">
                       <div className="flex items-center gap-2 border-b pb-2"><User className="h-3.5 w-3.5 text-primary" /><span className="text-xs font-black uppercase">{o.customerName}</span></div>
@@ -475,7 +489,6 @@ export default function VendorDashboard() {
                       onClick={() => { 
                         if(!vendorProfile.upiId) setIsUpiModalOpen(true); 
                         else if((vendorProfile.walletBalance||0)>0) {
-                          // Logic for creating payout request could go here
                           toast({ title: "Withdrawal Requested!", description: "Admin will process it shortly." });
                         } 
                       }} 
@@ -619,7 +632,7 @@ export default function VendorDashboard() {
                  </div>
 
                  <Button onClick={handleCreateCoupon} disabled={isProcessing || !couponForm.code || !couponForm.discountValue} className="w-full h-18 bg-green-600 text-white rounded-[1.5rem] font-black uppercase italic shadow-xl">
-                   {isProcessing ? <Loader2 className="h-6 w-6 animate-spin" /> : "ACTIVATE COUPON"}
+                   {isProcessing ? <Loader2 className="animate-spin" /> : "ACTIVATE COUPON"}
                  </Button>
               </div>
            </DialogContent>
