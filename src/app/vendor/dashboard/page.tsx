@@ -2,7 +2,7 @@
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
-import { collection, doc, query, where, setDoc, serverTimestamp, updateDoc, orderBy, limit, addDoc, getDoc, deleteDoc, writeBatch } from 'firebase/firestore';
+import { collection, doc, query, where, setDoc, serverTimestamp, updateDoc, orderBy, limit, addDoc, getDoc, deleteDoc, writeBatch, increment } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { 
   ShoppingBag, 
@@ -44,7 +44,9 @@ import {
   StickyNote,
   KeyRound,
   MapPin,
-  AlertCircle
+  AlertCircle,
+  Package,
+  MessageSquare
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -184,7 +186,7 @@ export default function VendorDashboard() {
       
       let vendorSubtotal = vendorItems.reduce((acc: number, it: any) => acc + (Number(it.price) * Number(it.quantity)), 0);
       
-      if (vendorSubtotal === 0 && String(o.vendorId || '').trim() === vId) {
+      if (vendorSubtotal === 0 && (String(o.vendorId || '').trim() === vId || (o.vendorIds && Array.isArray(o.vendorIds) && o.vendorIds.includes(vId)))) {
         vendorSubtotal = Number(o.total) || 0;
       }
 
@@ -254,7 +256,7 @@ export default function VendorDashboard() {
 
   const handleCancelOrder = async (id: string) => {
     if (!firestore) return;
-    if (confirm("Are you sure you want to CANCEL this order?")) {
+    if (confirm("🚨 WARNING: Are you sure you want to CANCEL this order?")) {
       await updateDoc(doc(firestore, 'orders', id), { status: 'Cancelled', updatedAt: serverTimestamp() });
       toast({ title: "Order Cancelled" });
     }
@@ -817,6 +819,112 @@ export default function VendorDashboard() {
               </div>
            </DialogContent>
          </Dialog>
+
+         <Dialog open={isManualAddOpen} onOpenChange={setIsManualAddOpen}>
+           <DialogContent className="rounded-[2.5rem] max-w-md p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none flex flex-col max-h-[90vh]">
+              <DialogHeader className="p-8 pb-4"><DialogTitle className="font-black italic uppercase text-center text-xl">{editingId ? 'Edit Product' : 'Add Product'}</DialogTitle></DialogHeader>
+              <div className="flex-1 overflow-y-auto no-scrollbar p-8 pt-0 space-y-6">
+                 <div onClick={() => manualImageInputRef.current?.click()} className="h-32 border-2 border-dashed rounded-2xl flex items-center justify-center bg-muted/20 cursor-pointer overflow-hidden">{manualProduct.imageUrl ? <img src={manualProduct.imageUrl} className="h-full w-full object-cover" /> : <ImageIcon className="opacity-20" />}</div>
+                 <input type="file" ref={manualImageInputRef} className="hidden" onChange={handleManualImageSelect} />
+                 
+                 <div className="space-y-4">
+                    <div className="space-y-1">
+                       <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Product Name</label>
+                       <Input placeholder="ITEM NAME" value={manualProduct.name} onChange={e => setManualProduct({...manualProduct, name: e.target.value.toUpperCase()})} className="h-12 rounded-xl border-none bg-muted/20 font-bold" />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                       <div className="space-y-1">
+                          <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Base Price ₹</label>
+                          <Input type="number" placeholder="0.00" value={manualProduct.price} onChange={e => setManualProduct({...manualProduct, price: e.target.value})} className="h-12 rounded-xl font-black" />
+                       </div>
+                       <div className="space-y-1">
+                          <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Category</label>
+                          <Select value={manualProduct.category} onValueChange={v => setManualProduct({...manualProduct, category: v})}>
+                             <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold"><SelectValue placeholder="Select" /></SelectTrigger>
+                             <SelectContent className="rounded-2xl max-h-[300px]">
+                                {categories?.filter(c => (c.serviceType||'Food') === 'Food').map(c => <SelectItem key={c.id} value={c.name.toLowerCase()} className="font-bold py-3 uppercase text-xs">{c.name}</SelectItem>)}
+                             </SelectContent>
+                          </Select>
+                       </div>
+                    </div>
+
+                    <div className="space-y-4 p-5 bg-primary/5 rounded-[1.5rem] border-2 border-dashed border-primary/10">
+                       <div className="flex items-center justify-between">
+                          <div className="flex flex-col">
+                             <span className="text-[10px] font-black uppercase text-primary">Varieties / Sizes</span>
+                             <div className="flex items-center gap-2 mt-1">
+                                <span className="text-[8px] font-bold text-muted-foreground">Selection Required?</span>
+                                <Switch checked={manualProduct.isVarietyRequired} onCheckedChange={(v) => setManualProduct({...manualProduct, isVarietyRequired: v})} className="scale-75 data-[state=checked]:bg-primary" />
+                             </div>
+                          </div>
+                          <button onClick={handleAddVariety} className="text-[10px] font-black text-primary uppercase bg-white px-3 py-1 rounded-lg border shadow-sm">+ ADD</button>
+                       </div>
+                       <div className="space-y-3">
+                          {manualProduct.options.map((opt, idx) => (
+                            <div key={idx} className="flex gap-2 items-center">
+                               <Input placeholder="E.G. FULL" value={opt.name} onChange={e => updateVariety(idx, 'name', e.target.value.toUpperCase())} className="h-10 rounded-lg bg-white border-none text-[10px] font-bold flex-1" />
+                               <Input type="number" placeholder="₹" value={opt.price} onChange={e => updateVariety(idx, 'price', e.target.value)} className="h-10 w-20 rounded-lg bg-white border-none text-[10px] font-black text-center" />
+                               <button onClick={() => setManualProduct(prev => ({...prev, options: prev.options.filter((_, i) => i !== idx)}))} className="text-red-500 p-1"><X className="h-4 w-4" /></button>
+                            </div>
+                          ))}
+                       </div>
+                    </div>
+
+                    <div className="space-y-1">
+                       <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Description</label>
+                       <Textarea placeholder="SHORT DETAILS" value={manualProduct.description} onChange={e => setManualProduct({...manualProduct, description: e.target.value.toUpperCase()})} className="rounded-xl h-20 bg-muted/20 border-none p-4" />
+                    </div>
+                 </div>
+              </div>
+              <div className="p-8 bg-muted/5 border-t">
+                 <Button onClick={handleManualAddProduct} disabled={isProcessing || !manualProduct.name} className="w-full h-16 bg-primary text-white rounded-2xl font-black uppercase italic shadow-xl">
+                   {isProcessing ? <Loader2 className="animate-spin" /> : editingId ? "UPDATE PRODUCT" : "PUBLISH PRODUCT"}
+                 </Button>
+              </div>
+           </DialogContent>
+         </Dialog>
+
+         <Dialog open={isCouponModalOpen} onOpenChange={setIsCouponModalOpen}>
+           <DialogContent className="rounded-[2.5rem] max-w-md p-8 border-none shadow-2xl bg-white focus:outline-none">
+              <DialogHeader><DialogTitle className="font-black italic uppercase text-center text-xl">Create Coupon</DialogTitle></DialogHeader>
+              <div className="space-y-6 pt-6">
+                 <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Coupon Code</label>
+                    <Input placeholder="E.G. SAVE10" value={couponForm.code} onChange={e => setCouponForm({...couponForm, code: e.target.value.toUpperCase().replace(/\s/g,'')})} className="h-14 rounded-2xl bg-gray-50 border-none font-black text-xl italic" />
+                 </div>
+                 
+                 <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                       <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Discount Mode</label>
+                       <Select value={couponForm.discountType} onValueChange={(v: any) => setCouponForm({...couponForm, discountType: v})}>
+                          <SelectTrigger className="h-14 rounded-2xl bg-gray-50 border-none font-bold"><SelectValue /></SelectTrigger>
+                          <SelectContent className="rounded-2xl">
+                             <SelectItem value="percentage" className="font-bold py-3 uppercase italic text-xs">Percent (%)</SelectItem>
+                             <SelectItem value="fixed" className="font-bold py-3 uppercase italic text-xs">Rupees (₹)</SelectItem>
+                          </SelectContent>
+                       </Select>
+                    </div>
+                    <div className="space-y-1">
+                       <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Value</label>
+                       <div className="relative">
+                          {couponForm.discountType === 'percentage' ? <Percent className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-primary" /> : <IndianRupee className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-primary" />}
+                          <Input type="number" placeholder="0" value={couponForm.discountValue} onChange={e => setCouponForm({...couponForm, discountValue: e.target.value})} className="h-14 pl-12 rounded-2xl bg-gray-50 border-none font-black text-xl text-primary" />
+                       </div>
+                    </div>
+                 </div>
+
+                 <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Min. Order Value (₹)</label>
+                    <Input type="number" placeholder="499" value={couponForm.minOrderValue} onChange={e => setCouponForm({...couponForm, minOrderValue: e.target.value})} className="h-14 rounded-2xl bg-gray-50 border-none font-bold" />
+                 </div>
+
+                 <Button onClick={handleCreateCoupon} disabled={isProcessing || !couponForm.code || !couponForm.discountValue} className="w-full h-18 bg-green-600 text-white rounded-[1.5rem] font-black uppercase italic shadow-xl">
+                   {isProcessing ? <Loader2 className="animate-spin" /> : "ACTIVATE COUPON"}
+                 </Button>
+              </div>
+           </DialogContent>
+         </Dialog>
       </main>
 
       <nav className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto w-full bg-[#0F172A] pt-4 pb-8 px-6 flex justify-around border-t border-white/5 z-50 rounded-t-[2.5rem]">
@@ -830,3 +938,4 @@ export default function VendorDashboard() {
     </div>
   );
 }
+
