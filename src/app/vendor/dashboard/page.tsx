@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -44,7 +43,8 @@ import {
   XCircle,
   StickyNote,
   KeyRound,
-  MapPin
+  MapPin,
+  AlertCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -684,6 +684,12 @@ export default function VendorDashboard() {
                  </div>
                  <Wallet2 className="absolute bottom-4 right-4 h-24 w-24 text-white opacity-10" />
               </div>
+              <div className="bg-red-50 p-4 rounded-2xl border border-red-100 flex items-start gap-3">
+                 <AlertCircle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+                 <p className="text-[10px] font-black text-red-700 uppercase leading-relaxed">
+                   NOTE: ₹10 PER ITEM COMMISSION WILL BE DEDUCTED FROM YOUR TOTAL SALES DURING BANK SETTLEMENT BY ADMIN.
+                 </p>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                  <div className="bg-white p-5 rounded-[2rem] border border-blue-100 shadow-sm flex flex-col gap-2"><ArrowDownLeft className="h-4 w-4 text-blue-500" /><div><span className="text-[8px] font-black text-gray-400 uppercase block mb-0.5">Today's Sales</span><h4 className="text-lg font-black italic">₹ {earnings.today.toFixed(0)}</h4></div></div>
                  <div className="bg-white p-5 rounded-[2rem] border border-amber-100 shadow-sm flex flex-col gap-2"><Timer className="h-4 w-4 text-amber-500" /><div><span className="text-[8px] font-black text-gray-400 uppercase block mb-0.5">Pending Settl.</span><h4 className="text-lg font-black italic">₹ {pendingRequests?.reduce((s:any,r:any)=>s+r.amount, 0).toFixed(0) || '0.00'}</h4></div></div>
@@ -722,7 +728,7 @@ export default function VendorDashboard() {
               <DialogHeader className="p-8 pb-4"><DialogTitle className="font-black italic uppercase text-center text-xl">{editingId ? 'Edit Product' : 'Add Product'}</DialogTitle></DialogHeader>
               <div className="flex-1 overflow-y-auto no-scrollbar p-8 pt-0 space-y-6">
                  <div onClick={() => manualImageInputRef.current?.click()} className="h-32 border-2 border-dashed rounded-2xl flex items-center justify-center bg-muted/20 cursor-pointer overflow-hidden">{manualProduct.imageUrl ? <img src={manualProduct.imageUrl} className="h-full w-full object-cover" /> : <ImageIcon className="opacity-20" />}</div>
-                 <input type="file" ref={manualImageInputRef} className="hidden" onChange={handleManualImageSelect} />
+                 <input type="file" elementRef={manualImageInputRef} className="hidden" onChange={handleManualImageSelect} />
                  
                  <div className="space-y-4">
                     <div className="space-y-1">

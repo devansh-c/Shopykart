@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -44,7 +43,8 @@ import {
   XCircle,
   StickyNote,
   KeyRound,
-  MapPin
+  MapPin,
+  AlertCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -667,6 +667,12 @@ export default function BeautyDashboard() {
                     </Button>
                  </div>
                  <Wallet2 className="absolute bottom-4 right-4 h-24 w-24 text-white opacity-10" />
+              </div>
+              <div className="bg-red-50 p-4 rounded-2xl border border-red-100 flex items-start gap-3">
+                 <AlertCircle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+                 <p className="text-[10px] font-black text-red-700 uppercase leading-relaxed">
+                   NOTE: ₹10 PER ITEM COMMISSION WILL BE DEDUCTED FROM YOUR TOTAL SALES DURING BANK SETTLEMENT BY ADMIN.
+                 </p>
               </div>
               <div className="grid grid-cols-2 gap-4">
                  <div className="bg-white p-5 rounded-[2rem] border shadow-sm flex flex-col gap-2"><ArrowDownLeft className="h-4 w-4 text-blue-500" /><div><span className="text-[8px] font-black text-gray-400 uppercase block mb-0.5">Sales Today</span><h4 className="text-lg font-black italic">₹ {earnings.today.toFixed(0)}</h4></div></div>

@@ -358,19 +358,22 @@ export default function DeliveryDashboard() {
         }
         updateData.deliveredAt = serverTimestamp();
 
-        // LOGIC: CREDIT VENDOR WALLETS ON DELIVERY (Full credit, no auto-deduction)
+        // ATOMIC WALLET CREDIT ON DELIVERY
         if (data && data.items) {
            const vendorsToUpdate = new Map<string, number>();
            data.items.forEach((item: any) => {
-             if (item.vendorId) {
+             const vId = item.vendorId ? String(item.vendorId) : null;
+             if (vId) {
                const itemTotal = (Number(item.price) || 0) * (Number(item.quantity) || 1);
-               vendorsToUpdate.set(item.vendorId, (vendorsToUpdate.get(item.vendorId) || 0) + itemTotal);
+               vendorsToUpdate.set(vId, (vendorsToUpdate.get(vId) || 0) + itemTotal);
              }
            });
            for (const [vId, amount] of Array.from(vendorsToUpdate.entries())) {
-             const vendorRef = doc(firestore, 'vendors', vId);
-             // Credit FULL amount. Commission (₹10) managed manually.
-             await updateDoc(vendorRef, { walletBalance: increment(amount), updatedAt: serverTimestamp() });
+             const vRef = doc(firestore, 'vendors', vId);
+             await updateDoc(vRef, { 
+                walletBalance: increment(amount), 
+                updatedAt: serverTimestamp() 
+             });
            }
         }
       }

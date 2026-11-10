@@ -78,7 +78,7 @@ export default function OrderManagement() {
         updatedAt: serverTimestamp()
       });
 
-      // LOGIC: IF DELIVERED, CREDIT VENDOR WALLETS (No auto-deduction, as per request)
+      // ATOMIC WALLET CREDIT ON DELIVERY
       if (nextStatus === 'Delivered') {
         const orderSnap = await getDoc(orderRef);
         const orderData = orderSnap.data();
@@ -86,7 +86,7 @@ export default function OrderManagement() {
           const vendorsToUpdate = new Map<string, number>();
           
           orderData.items.forEach((item: any) => {
-            const vId = item.vendorId;
+            const vId = item.vendorId ? String(item.vendorId) : null;
             if (vId) {
               const itemTotal = (Number(item.price) || 0) * (Number(item.quantity) || 1);
               vendorsToUpdate.set(vId, (vendorsToUpdate.get(vId) || 0) + itemTotal);
@@ -95,7 +95,7 @@ export default function OrderManagement() {
 
           for (const [vId, amount] of Array.from(vendorsToUpdate.entries())) {
             const vendorRef = doc(firestore, 'vendors', vId);
-            // Credit FULL amount. Fee (₹10) will be managed manually by admin.
+            // Credit FULL amount. Fee (₹10) managed manually.
             await updateDoc(vendorRef, {
               walletBalance: increment(amount),
               updatedAt: serverTimestamp()
