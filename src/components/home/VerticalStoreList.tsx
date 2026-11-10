@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo, useState, useEffect, memo } from 'react';
@@ -117,7 +116,7 @@ export const VerticalStoreList = memo(({
       return matchesSearch && (v.status === 'approved' || !v.status);
     }).sort((a, b) => {
       const isOpenA = a.isOnline !== false && isStoreScheduleOpen(a, currentTimeMins);
-      const isOpenB = b.isOnline !== false && isStoreScheduleOpen(b, currentTime) ? -1 : 1;
+      const isOpenB = b.isOnline !== false && isStoreScheduleOpen(b, currentTimeMins);
       if (isOpenA !== isOpenB) return isOpenA ? -1 : 1;
       return (Number(b.rating) || 0) - (Number(a.rating) || 0);
     });
