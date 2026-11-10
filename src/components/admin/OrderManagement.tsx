@@ -2,7 +2,7 @@
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, updateDoc, query, orderBy, serverTimestamp, getDoc } from 'firebase/firestore';
+import { collection, doc, updateDoc, query, orderBy, serverTimestamp, getDoc, increment } from 'firebase/firestore';
 import { 
   Package, 
   User, 
@@ -72,10 +72,40 @@ export default function OrderManagement() {
     const currentIndex = STATUS_FLOW.indexOf(currentStatus);
     if (currentIndex < STATUS_FLOW.length - 1) {
       const nextStatus = STATUS_FLOW[currentIndex + 1];
-      await updateDoc(doc(firestore, 'orders', id), { 
+      
+      const orderRef = doc(firestore, 'orders', id);
+      await updateDoc(orderRef, { 
         status: nextStatus,
         updatedAt: serverTimestamp()
       });
+
+      // LOGIC: IF DELIVERED, CREDIT VENDOR WALLETS
+      if (nextStatus === 'Delivered') {
+        const orderSnap = await getDoc(orderRef);
+        const orderData = orderSnap.data();
+        if (orderData && orderData.items) {
+          const vendorsToUpdate = new Map<string, number>();
+          
+          orderData.items.forEach((item: any) => {
+            const vId = item.vendorId;
+            if (vId) {
+              const itemTotal = (Number(item.price) || 0) * (Number(item.quantity) || 1);
+              vendorsToUpdate.set(vId, (vendorsToUpdate.get(vId) || 0) + itemTotal);
+            }
+          });
+
+          for (const [vId, amount] of Array.from(vendorsToUpdate.entries())) {
+            const vendorRef = doc(firestore, 'vendors', vId);
+            // Deduct ₹5 commission per vendor share in the order
+            const finalCredit = Math.max(0, amount - 5);
+            await updateDoc(vendorRef, {
+              walletBalance: increment(finalCredit),
+              updatedAt: serverTimestamp()
+            });
+          }
+        }
+      }
+
       toast({ title: `Order ${nextStatus}!` });
     }
   };

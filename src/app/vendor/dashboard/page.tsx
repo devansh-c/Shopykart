@@ -669,7 +669,10 @@ export default function VendorDashboard() {
            <div className="p-4 space-y-6">
               <h2 className="text-xl font-black italic uppercase ml-2">Wallet Control</h2>
               <div className="bg-[#EF4444] p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[180px]">
-                 <div className="relative z-10 space-y-1"><span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Settlement Due</span><div className="text-5xl font-black italic">₹ {vendorProfile?.walletBalance?.toFixed(2) || '0.00'}</div></div>
+                 <div className="relative z-10 space-y-1">
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Withdrawal Balance</span>
+                    <div className="text-5xl font-black italic">₹ {vendorProfile?.walletBalance?.toFixed(2) || '0.00'}</div>
+                 </div>
                  <div className="relative z-10 flex justify-end mt-4">
                     <button 
                       onClick={handleWithdrawRequest}

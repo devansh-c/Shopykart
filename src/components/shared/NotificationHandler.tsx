@@ -9,9 +9,8 @@ import { cn } from '@/lib/utils';
 
 /**
  * @fileOverview LOUD RINGING ALERT HANDLER (Advanced Zomato-Style).
- * Triggers continuous ringing for new orders until they are accepted.
- * Updated: Now uses local /sounds/order_alert.mp3 for easy replacement.
  * STRICT: Only active for Vendors, Fleet, and Admin.
+ * Customers are intentionally excluded to keep their experience standard.
  */
 export default function NotificationHandler() {
   const { user } = useUser();
@@ -21,14 +20,14 @@ export default function NotificationHandler() {
   const isInitialLoad = useRef(true);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const isAdminApp = process.env.NEXT_PUBLIC_ADMIN_APP === 'true';
-  const isStoreApp = process.env.NEXT_PUBLIC_BIZ_APP === 'true';
-  const isFleetApp = process.env.NEXT_PUBLIC_TOW_APP === 'true';
+  // APP IDENTITIES
+  const isAdminApp = typeof window !== 'undefined' && process.env.NEXT_PUBLIC_ADMIN_APP === 'true';
+  const isStoreApp = typeof window !== 'undefined' && process.env.NEXT_PUBLIC_BIZ_APP === 'true';
+  const isFleetApp = typeof window !== 'undefined' && process.env.NEXT_PUBLIC_TOW_APP === 'true';
 
   useEffect(() => {
     // 1. Initialize Audio Object with Local File
     if (typeof window !== 'undefined' && !audioRef.current) {
-      // Points to public/sounds/order_alert.mp3
       const audio = new Audio('/sounds/order_alert.mp3'); 
       audio.loop = true;
       audioRef.current = audio;
@@ -36,9 +35,10 @@ export default function NotificationHandler() {
   }, []);
 
   useEffect(() => {
+    // SECURITY GUARD: Strictly return null for customers
     if (!firestore || !user || (!isStoreApp && !isFleetApp && !isAdminApp)) return;
 
-    // 2. Setup Listener Query
+    // 2. Setup Listener Query based on User Role
     let q;
     if (isStoreApp || isAdminApp) {
       q = query(collection(firestore, 'orders'), where('status', '==', 'Placed'));
@@ -65,7 +65,7 @@ export default function NotificationHandler() {
         filteredActive = active;
       }
 
-      // 3. Initial Load Guard
+      // 3. Initial Load Guard (Don't ring for old orders)
       if (isInitialLoad.current) {
         filteredActive.forEach(o => lastProcessedOrderIds.current.add(o.id));
         isInitialLoad.current = false;
@@ -76,11 +76,10 @@ export default function NotificationHandler() {
       const newOrders = filteredActive.filter(o => !lastProcessedOrderIds.current.has(o.id));
       
       if (newOrders.length > 0) {
-        // Start Continuous Ringing
         try {
           if (audioRef.current) {
-            audioRef.current.play().catch(e => {
-              console.warn("Audio autoplay blocked. Interaction required.");
+            audioRef.current.play().catch(() => {
+              console.warn("Autoplay blocked. User must interact once.");
             });
           }
         } catch (e) {}

@@ -2,7 +2,7 @@
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
-import { collection, doc, updateDoc, query, where, orderBy, serverTimestamp, getDoc } from 'firebase/firestore';
+import { collection, doc, updateDoc, query, where, orderBy, serverTimestamp, getDoc, increment } from 'firebase/firestore';
 import { 
   Navigation, 
   Package, 
@@ -315,31 +315,12 @@ export default function DeliveryDashboard() {
 
   useEffect(() => {
     if (!isMounted || authLoading) return;
-
     const hasActiveSession = localStorage.getItem('shopykart_session_active') === 'true';
-
     if (!user) {
-      if (!hasActiveSession) {
-        router.replace('/delivery/login');
-      }
+      if (!hasActiveSession) router.replace('/delivery/login');
       return;
     }
-
-    // Patient profile loading check
-    if (!profileLoading && !partnerProfile && user) {
-      // Small buffer to ensure Firestore data is truly missing
-      const timer = setTimeout(() => {
-        if (!partnerProfile) {
-          toast({ variant: "destructive", title: "Access Denied", description: "Identity not recognized in Fleet." });
-          signOut(auth!).then(() => {
-            localStorage.removeItem('shopykart_session_active');
-            router.replace('/delivery/login');
-          });
-        }
-      }, 5000); // 5s buffer for slow mobile networks
-      return () => clearTimeout(timer);
-    }
-  }, [isMounted, user, authLoading, profileLoading, partnerProfile, router, auth, toast]);
+  }, [isMounted, user, authLoading, router]);
 
   const ordersQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'orders'), orderBy('createdAt', 'desc')) : null, [firestore]);
   const { data: allOrders } = useCollection<any>(ordersQuery);
@@ -380,6 +361,22 @@ export default function DeliveryDashboard() {
           updateData.totalDeliveryDuration = durationMins;
         }
         updateData.deliveredAt = serverTimestamp();
+
+        // LOGIC: CREDIT VENDOR WALLETS ON DELIVERY
+        if (data && data.items) {
+           const vendorsToUpdate = new Map<string, number>();
+           data.items.forEach((item: any) => {
+             if (item.vendorId) {
+               const itemTotal = (Number(item.price) || 0) * (Number(item.quantity) || 1);
+               vendorsToUpdate.set(item.vendorId, (vendorsToUpdate.get(item.vendorId) || 0) + itemTotal);
+             }
+           });
+           for (const [vId, amount] of Array.from(vendorsToUpdate.entries())) {
+             const vendorRef = doc(firestore, 'vendors', vId);
+             const finalCredit = Math.max(0, amount - 5);
+             await updateDoc(vendorRef, { walletBalance: increment(finalCredit), updatedAt: serverTimestamp() });
+           }
+        }
       }
 
       if (collectionMethod) updateData.paymentCollectionMethod = collectionMethod;

@@ -342,7 +342,7 @@ export default function MedicalDashboard() {
         saveAs(blob, `Rx_Bill_${order.customerOrderNumber}.png`);
         toast({ title: "Invoice Saved!" });
       }
-    } catch (err) { toast({ variant: "destructive", title: "Failed to generate receipt" }); }
+    } catch (err) { toast({ variant: "destructive", title: "Failed" }); }
     finally { setIsDownloading(null); }
   };
 
@@ -653,7 +653,10 @@ export default function MedicalDashboard() {
            <div className="p-4 space-y-6">
               <h2 className="text-xl font-black italic uppercase ml-2">Wallet Settlement</h2>
               <div className="bg-teal-600 p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[180px]">
-                 <div className="relative z-10 space-y-1"><span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Payout Due</span><div className="text-5xl font-black italic">₹ {vendorProfile?.walletBalance?.toFixed(2) || '0.00'}</div></div>
+                 <div className="relative z-10 space-y-1">
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Withdrawal Balance</span>
+                    <div className="text-5xl font-black italic">₹ {vendorProfile?.walletBalance?.toFixed(2) || '0.00'}</div>
+                 </div>
                  <div className="relative z-10 flex justify-end mt-4">
                     <Button 
                       onClick={handleWithdrawRequest}
