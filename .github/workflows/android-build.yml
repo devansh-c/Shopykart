@@ -42,13 +42,14 @@ jobs:
           sed -i "s/appName: '.*'/appName: 'Shopykart'/" capacitor.config.ts
           sed -i "s/<string name=\"app_name\">.*<\/string>/<string name=\"app_name\">Shopykart<\/string>/" android/app/src/main/res/values/strings.xml
           sed -i "s/<string name=\"package_name\">.*<\/string>/<string name=\"package_name\">co.in.shopykart.app<\/string>/" android/app/src/main/res/values/strings.xml
-          sed -i "s/applicationId \".*\"/applicationId \"co.in.shopykart.app\"/" android/app/build.gradle
+          
           npx cap sync android
 
       - name: Build Android (Customer)
         working-directory: android
         run: |
-          sed -i 's/applicationId ".*"/applicationId "co.in.shopykart.app"/' android/app/build.gradle
+          sed -i "s/applicationId \".*\"/applicationId \"co.in.shopykart.app\"/" app/build.gradle
+          
           chmod +x gradlew
           ./gradlew assembleRelease matrix.appId }}
           ./gradlew bundleRelease matrix.appId }}
@@ -68,13 +69,14 @@ jobs:
           sed -i "s/appName: '.*'/appName: 'Shopykart CEO'/" capacitor.config.ts
           sed -i "s/<string name=\"app_name\">.*<\/string>/<string name=\"app_name\">Shopykart CEO<\/string>/" android/app/src/main/res/values/strings.xml
           sed -i "s/<string name=\"package_name\">.*<\/string>/<string name=\"package_name\">co.in.shopykart.admin<\/string>/" android/app/src/main/res/values/strings.xml
-          sed -i "s/applicationId \".*\"/applicationId \"co.in.shopykart.admin\"/" android/app/build.gradle
+          
           npx cap sync android
 
       - name: Build Android (Admin)
         working-directory: android
         run: |
-          sed -i 's/applicationId ".*"/applicationId "co.in.shopykart.admin"/' android/app/build.gradle
+          sed -i "s/applicationId \".*\"/applicationId \"co.in.shopykart.admin\"/" app/build.gradle
+          
           chmod +x gradlew
           ./gradlew assembleRelease matrix.appId }}
           ./gradlew bundleRelease matrix.appId }}
@@ -94,13 +96,14 @@ jobs:
           sed -i "s/appName: '.*'/appName: 'Shopykart Business'/" capacitor.config.ts
           sed -i "s/<string name=\"app_name\">.*<\/string>/<string name=\"app_name\">Shopykart Business<\/string>/" android/app/src/main/res/values/strings.xml
           sed -i "s/<string name=\"package_name\">.*<\/string>/<string name=\"package_name\">co.in.shopykart.biz<\/string>/" android/app/src/main/res/values/strings.xml
-          sed -i "s/applicationId \".*\"/applicationId \"co.in.shopykart.biz\"/" android/app/build.gradle
+          
           npx cap sync android
 
       - name: Build Android (Biz)
         working-directory: android
         run: |
-          sed -i 's/applicationId ".*"/applicationId "co.in.shopykart.biz"/' android/app/build.gradle
+          sed -i "s/applicationId \".*\"/applicationId \"co.in.shopykart.biz\"/" app/build.gradle
+          
           chmod +x gradlew
           ./gradlew assembleRelease matrix.appId }}
           ./gradlew bundleRelease matrix.appId }}
@@ -120,13 +123,14 @@ jobs:
           sed -i "s/appName: '.*'/appName: 'Shopykart Tow'/" capacitor.config.ts
           sed -i "s/<string name=\"app_name\">.*<\/string>/<string name=\"app_name\">Shopykart Tow<\/string>/" android/app/src/main/res/values/strings.xml
           sed -i "s/<string name=\"package_name\">.*<\/string>/<string name=\"package_name\">co.in.shopykart.tow<\/string>/" android/app/src/main/res/values/strings.xml
-          sed -i "s/applicationId \".*\"/applicationId \"co.in.shopykart.tow\"/" android/app/build.gradle
+          
           npx cap sync android
 
       - name: Build Android (Tow)
         working-directory: android
         run: |
-          sed -i 's/applicationId ".*"/applicationId "co.in.shopykart.tow"/' android/app/build.gradle
+          sed -i "s/applicationId \".*\"/applicationId \"co.in.shopykart.tow\"/" app/build.gradle
+          
           chmod +x gradlew
           ./gradlew assembleRelease matrix.appId }}
           ./gradlew bundleRelease matrix.appId }}
