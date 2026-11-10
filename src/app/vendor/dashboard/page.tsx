@@ -27,7 +27,7 @@ import {
   ArrowUpRight,
   CheckCircle2,
   QrCode,
-  Sparkle,
+  Sparkles,
   Settings,
   Phone,
   ListTree,
@@ -836,7 +836,7 @@ export default function VendorDashboard() {
                     <div className="grid grid-cols-2 gap-4">
                        <div className="space-y-1">
                           <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Base Price ₹</label>
-                          <Input type="number" placeholder="0.00" value={manualProduct.price} onChange={e => setManualProduct({...manualProduct, price: e.target.value})} className="h-12 rounded-xl font-black" />
+                          <Input type="number" value={manualProduct.price} onChange={e => setManualProduct({...manualProduct, price: e.target.value})} placeholder="0.00" className="h-12 rounded-xl font-black text-lg bg-muted/20 border-none" />
                        </div>
                        <div className="space-y-1">
                           <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Category</label>
@@ -863,7 +863,7 @@ export default function VendorDashboard() {
                        <div className="space-y-3">
                           {manualProduct.options.map((opt, idx) => (
                             <div key={idx} className="flex gap-2 items-center">
-                               <Input placeholder="E.G. FULL" value={opt.name} onChange={e => updateVariety(idx, 'name', e.target.value.toUpperCase())} className="h-10 rounded-lg bg-white border-none text-[10px] font-bold flex-1" />
+                               <Input placeholder="E.G. FULL" value={opt.name} onChange={e => updateVariety(idx, 'name', e.target.value.toUpperCase())} className="h-10 rounded-xl bg-white border-none font-bold text-xs uppercase flex-1" />
                                <Input type="number" placeholder="₹" value={opt.price} onChange={e => updateVariety(idx, 'price', e.target.value)} className="h-10 w-20 rounded-lg bg-white border-none text-[10px] font-black text-center" />
                                <button onClick={() => setManualProduct(prev => ({...prev, options: prev.options.filter((_, i) => i !== idx)}))} className="text-red-500 p-1"><X className="h-4 w-4" /></button>
                             </div>
@@ -938,4 +938,3 @@ export default function VendorDashboard() {
     </div>
   );
 }
-

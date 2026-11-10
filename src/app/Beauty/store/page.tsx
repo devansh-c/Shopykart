@@ -27,10 +27,9 @@ import {
   ArrowUpRight,
   CheckCircle2,
   QrCode,
-  Sparkle,
+  Sparkles,
   Settings,
   Phone,
-  Sparkles,
   ListTree,
   X,
   Clock,
@@ -45,7 +44,9 @@ import {
   StickyNote,
   KeyRound,
   MapPin,
-  AlertCircle
+  AlertCircle,
+  Package,
+  MessageSquare
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -185,7 +186,7 @@ export default function BeautyDashboard() {
       
       let vendorSubtotal = vendorItems.reduce((acc: number, it: any) => acc + (Number(it.price) * Number(it.quantity)), 0);
       
-      if (vendorSubtotal === 0 && String(o.vendorId || '').trim() === vId) {
+      if (vendorSubtotal === 0 && (String(o.vendorId || '').trim() === vId || (o.vendorIds && Array.isArray(o.vendorIds) && o.vendorIds.includes(vId)))) {
         vendorSubtotal = Number(o.total) || 0;
       }
 
@@ -919,7 +920,7 @@ export default function BeautyDashboard() {
       <nav className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto w-full bg-[#0F172A] pt-4 pb-8 px-6 flex justify-around border-t border-white/5 z-50 rounded-t-[2.5rem]">
         {[{id:'orders',label:'Queue',icon:ShoppingBag},{id:'catalog',label:'Menu',icon:Layers},{id:'coupons',label:'Offers',icon:Ticket},{id:'payouts',label:'Wallet',icon:Wallet2},{id:'account',label:'Profile',icon:UserCircle2}].map(item => (
           <button key={item.id} onClick={() => setActiveMainTab(item.id as MainTab)} className="flex flex-col items-center gap-1.5 active:scale-90 outline-none">
-            <item.icon className={cn("h-5 w-5", activeMainTab === item.id ? "text-rose-600" : "text-gray-500")} />
+            <item.icon className={cn("h-5 w-5", activeMainTab === item.id ? "text-rose-600" : "text-gray-50")} />
             <span className={cn("text-[8px] font-black uppercase tracking-widest", activeMainTab === item.id ? "text-white" : "text-gray-50")}>{item.label}</span>
           </button>
         ))}
