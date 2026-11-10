@@ -5,7 +5,7 @@ import { collection, getDocs, query, limit, orderBy } from 'firebase/firestore';
 
 /**
  * @fileOverview SSR Enabled Home Page for ShopyKart.
- * FIXED: Sanitizes Firestore data to prevent serialization errors between Server and Client.
+ * FIXED: Increased limits for products to ensure stores show a full horizontal strip.
  */
 export default async function ShopyKartApp() {
   const { firestore } = initializeFirebase();
@@ -28,10 +28,10 @@ export default async function ShopyKartApp() {
   try {
     // Parallel fetching for performance
     const [bannersSnap, categoriesSnap, vendorsSnap, productsSnap] = await Promise.all([
-      getDocs(query(collection(firestore, 'banners'), limit(5))),
+      getDocs(query(collection(firestore, 'banners'), limit(10))),
       getDocs(collection(firestore, 'categories')),
-      getDocs(query(collection(firestore, 'vendors'), limit(20))),
-      getDocs(query(collection(firestore, 'products'), limit(20)))
+      getDocs(query(collection(firestore, 'vendors'), limit(50))),
+      getDocs(query(collection(firestore, 'products'), limit(200)))
     ]);
 
     initialBanners = sanitize(bannersSnap.docs);

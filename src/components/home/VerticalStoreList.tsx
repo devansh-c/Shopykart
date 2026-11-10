@@ -92,7 +92,7 @@ export const VerticalStoreList = memo(({
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'products'), limit(150));
+    return query(collection(firestore, 'products'), limit(500));
   }, [firestore]);
   const { data: dbAllProducts } = useCollection<any>(productsQuery, 'home_strip_products_v35', initialProducts);
 
@@ -117,7 +117,7 @@ export const VerticalStoreList = memo(({
       return matchesSearch && (v.status === 'approved' || !v.status);
     }).sort((a, b) => {
       const isOpenA = a.isOnline !== false && isStoreScheduleOpen(a, currentTimeMins);
-      const isOpenB = b.isOnline !== false && isStoreScheduleOpen(b, currentTimeMins);
+      const isOpenB = b.isOnline !== false && isStoreScheduleOpen(b, currentTime) ? -1 : 1;
       if (isOpenA !== isOpenB) return isOpenA ? -1 : 1;
       return (Number(b.rating) || 0) - (Number(a.rating) || 0);
     });
@@ -148,7 +148,6 @@ export const VerticalStoreList = memo(({
             const storeProducts = productPool.filter((p: any) => String(p.vendorId) === String(store.id) && p.isDeleted !== true).slice(0, 8);
 
             const navigateToStore = () => {
-              // BULLETPROOF NAVIGATION: Standard Query Param Shell is best for static APK
               const identifier = store.slug || store.id;
               router.push(`/store/view/?id=${identifier}`);
             };
