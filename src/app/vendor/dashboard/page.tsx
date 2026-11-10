@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -163,12 +164,11 @@ export default function VendorDashboard() {
   const categoriesQuery = useMemoFirebase(() => (firestore) ? query(collection(firestore, 'categories')) : null, [firestore]);
   const { data: categories } = useCollection<any>(categoriesQuery);
 
-  // Fetch ALL payout requests for dynamic calculation
   const allPayoutsQuery = useMemoFirebase(() => (firestore && user) ? query(collection(firestore, 'payout_requests'), where('vendorId', '==', user.uid)) : null, [firestore, user]);
   const { data: allPayouts } = useCollection<any>(allPayoutsQuery);
 
   const earnings = useMemo(() => {
-    const fallback = { today: 0, thisWeek: 0, thisMonth: 0, totalDelivered: 0, totalCancelled: 0, payoutTotal: 0 };
+    const fallback = { today: 0, thisWeek: 0, thisMonth: 0, totalDelivered: 0, totalCancelled: 0, payoutTotal: 0, pendingPayoutTotal: 0 };
     if (!rawOrders || !user) return fallback;
 
     let today = 0, week = 0, month = 0, totalDelivered = 0, totalCancelled = 0;
@@ -178,14 +178,20 @@ export default function VendorDashboard() {
     const monthStart = startOfMonth(now);
 
     rawOrders.forEach((o: any) => {
-      const vId = String(user.uid);
+      const vId = String(user.uid).trim();
       const status = (o.status || '').toUpperCase();
       
-      const vendorItems = (o.items || []).filter((it: any) => String(it.vendorId).trim() === vId.trim());
-      if (vendorItems.length === 0) return;
-
-      const vendorSubtotal = vendorItems.reduce((acc: number, it: any) => acc + (Number(it.price) * Number(it.quantity)), 0);
+      const vendorItems = (o.items || []).filter((it: any) => String(it.vendorId).trim() === vId);
       
+      let vendorSubtotal = vendorItems.reduce((acc: number, it: any) => acc + (Number(it.price) * Number(it.quantity)), 0);
+      
+      // DEEP SYNC FALLBACK: If order belongs to this vendor but items don't have IDs
+      if (vendorSubtotal === 0 && String(o.vendorId || '').trim() === vId) {
+        vendorSubtotal = Number(o.total) || 0;
+      }
+
+      if (vendorSubtotal === 0) return;
+
       let orderDate = new Date();
       if (o.createdAt?.seconds) {
         orderDate = new Date(o.createdAt.seconds * 1000);
@@ -204,13 +210,13 @@ export default function VendorDashboard() {
     });
 
     const payoutTotal = (allPayouts || []).filter(r => r.status === 'Completed').reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+    const pendingPayoutTotal = (allPayouts || []).filter(r => r.status === 'Pending').reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
 
-    return { today, thisWeek: week, thisMonth: month, totalDelivered, totalCancelled, payoutTotal };
+    return { today, thisWeek: week, thisMonth: month, totalDelivered, totalCancelled, payoutTotal, pendingPayoutTotal };
   }, [rawOrders, user, allPayouts]);
 
-  // DYNAMIC WITHDRAWAL BALANCE: (Total Sales) - (Completed Payouts)
   const effectiveWithdrawalBalance = useMemo(() => {
-    return Math.max(0, earnings.totalDelivered - earnings.payoutTotal);
+    return Math.max(0, earnings.totalDelivered - earnings.payoutTotal - earnings.pendingPayoutTotal);
   }, [earnings]);
 
   const filteredOrders = useMemo(() => {
@@ -218,8 +224,8 @@ export default function VendorDashboard() {
     const vId = String(user.uid).trim();
     
     const myOrders = rawOrders.filter((o: any) => {
-      const isDirect = String(o.vendorId).trim() === vId;
-      const isInArray = Array.isArray(o.vendorIds) && o.vendorIds.map(v => String(v).trim()).includes(vId);
+      const isDirect = String(o.vendorId || '').trim() === vId;
+      const isInArray = Array.isArray(o.vendorIds) && o.vendorIds.map((v:any) => String(v).trim()).includes(vId);
       const hasItem = Array.isArray(o.items) && o.items.some((it: any) => String(it.vendorId).trim() === vId);
       return isDirect || isInArray || hasItem;
     });
@@ -299,7 +305,7 @@ export default function VendorDashboard() {
         status: 'Pending',
         createdAt: serverTimestamp()
       });
-      toast({ title: "Request Sent! 💸", description: "Admin will settle your payout soon." });
+      toast({ title: "Request Sent! ⏳", description: "Processing will take 24-48 hours." });
     } catch (err) {
       toast({ variant: "destructive", title: "Request Failed" });
     } finally {
@@ -322,8 +328,8 @@ export default function VendorDashboard() {
       receipt.style.fontFamily = 'monospace';
       receipt.style.textTransform = 'uppercase';
       
-      const vId = String(user?.uid);
-      const myItems = order.items?.filter((it: any) => String(it.vendorId).trim() === vId.trim());
+      const vId = String(user?.uid).trim();
+      const myItems = order.items?.filter((it: any) => String(it.vendorId).trim() === vId);
       const myTotal = myItems.reduce((acc: number, it: any) => acc + (it.price * it.quantity), 0);
 
       const itemsHtml = myItems.map((item: any) => `
@@ -698,8 +704,28 @@ export default function VendorDashboard() {
                  </p>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                 <div className="bg-white p-5 rounded-[2rem] border border-blue-100 shadow-sm flex flex-col gap-2"><ArrowDownLeft className="h-4 w-4 text-blue-500" /><div><span className="text-[8px] font-black text-gray-400 uppercase block mb-0.5">Today's Sales</span><h4 className="text-lg font-black italic">₹ {earnings.today.toFixed(0)}</h4></div></div>
-                 <div className="bg-white p-5 rounded-[2rem] border border-amber-100 shadow-sm flex flex-col gap-2"><Timer className="h-4 w-4 text-amber-500" /><div><span className="text-[8px] font-black text-gray-400 uppercase block mb-0.5">Total Paid Out</span><h4 className="text-lg font-black italic">₹ {earnings.payoutTotal.toFixed(0)}</h4></div></div>
+                 <div className="bg-white p-5 rounded-[2rem] border border-blue-100 shadow-sm flex flex-col gap-2">
+                    <ArrowDownLeft className="h-4 w-4 text-blue-500" />
+                    <div>
+                      <span className="text-[8px] font-black text-gray-400 uppercase block mb-0.5">Today's Sales</span>
+                      <h4 className="text-lg font-black italic">₹ {earnings.today.toFixed(0)}</h4>
+                    </div>
+                 </div>
+                 <div className="bg-white p-5 rounded-[2rem] border border-amber-100 shadow-sm flex flex-col gap-2">
+                    <Timer className="h-4 w-4 text-amber-500" />
+                    <div>
+                      <span className="text-[8px] font-black text-gray-400 uppercase block mb-0.5">Pending Payout</span>
+                      <h4 className="text-lg font-black italic">₹ {earnings.pendingPayoutTotal.toFixed(0)}</h4>
+                      {earnings.pendingPayoutTotal > 0 && <p className="text-[7px] font-bold text-amber-600 uppercase animate-pulse">Settlement in 24-48hr</p>}
+                    </div>
+                 </div>
+              </div>
+              <div className="bg-white p-5 rounded-[2rem] border border-gray-200 shadow-sm flex items-center justify-between">
+                 <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 bg-green-50 rounded-xl flex items-center justify-center text-green-600"><CheckCircle2 className="h-5 w-5" /></div>
+                    <span className="text-[10px] font-black text-gray-400 uppercase">Paid Settlement</span>
+                 </div>
+                 <h4 className="text-lg font-black italic">₹ {earnings.payoutTotal.toFixed(0)}</h4>
               </div>
            </div>
          )}
@@ -722,7 +748,7 @@ export default function VendorDashboard() {
                         <button onClick={() => setIsTimingModalOpen(true)} className="text-[10px] font-black text-primary uppercase">EDIT</button>
                      </div>
                      <div className="flex items-center gap-4"><div className="bg-blue-50 p-2 rounded-xl text-blue-600"><Globe className="h-5 w-5" /></div><div><span className="text-[10px] font-black text-gray-400 uppercase">Region</span><span className="text-sm font-black uppercase italic text-gray-800 block">{vendorProfile?.town}</span></div></div>
-                     <div className="flex items-center gap-4"><div className="bg-green-50 p-2 rounded-xl text-green-600"><Phone className="h-5 w-5" /></div><div><span className="text-[10px] font-black uppercase text-gray-800 block">{vendorProfile?.phone}</span></div></div>
+                     <div className="flex items-center gap-4"><div className="bg-green-50 p-2 rounded-xl text-green-600"><Phone className="h-5 w-5" /></div><div><span className="text-[10px] font-black uppercase italic text-gray-800 block">{vendorProfile?.phone}</span></div></div>
                   </div>
                   <button onClick={handleLogout} className="w-full h-18 bg-white border border-red-50 text-red-500 rounded-[2.2rem] flex items-center justify-center gap-3 font-black uppercase italic text-sm shadow-sm active:scale-95 transition-all"><LogOut className="h-5 w-5" /> DISCONNECT ACCOUNT</button>
                </div>
