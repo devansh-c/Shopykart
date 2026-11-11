@@ -27,13 +27,7 @@ const services = [
     gradient: 'from-cyan-500 to-teal-700',
     shadow: 'shadow-cyan-200'
   },
-  {
-    id: 'beauty',
-    label: 'Beauty Care',
-    icon: Sparkles,
-    gradient: 'from-rose-500 to-pink-700',
-    shadow: 'shadow-rose-200'
-  }
+  
 ];
 
 export function ServicesSection() {
