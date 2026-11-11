@@ -230,6 +230,27 @@ export default function CartPage() {
 
       const docRef = await addDoc(collection(firestore, 'orders'), orderData);
       
+      // Trigger High Priority FCM Alert to Store App
+      try {
+        if (orderData.vendorId) {
+          const vDoc = await getDoc(doc(firestore, "users", orderData.vendorId));
+          const fcmToken = vDoc.data()?.fcmToken;
+          if (fcmToken) {
+            fetch("/api/send-order-alert", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                fcmToken,
+                orderId: docRef.id,
+                storeName: orderData.restaurantName
+              })
+            }).catch(e => console.error("Notification trigger error:", e));
+          }
+        }
+      } catch (err) {
+        console.error("Failed to dispatch push alert:", err);
+      }
+      
       // Update coins if redeemed
       if (isRedeemingCoins && coinDiscount > 0) {
         await updateDoc(doc(firestore, 'users', user.uid), { 

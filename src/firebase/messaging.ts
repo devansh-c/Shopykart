@@ -1,100 +1,74 @@
-
 'use client';
 
-import { getMessaging, Messaging, isSupported, getToken, onMessage } from 'firebase/messaging';
+import { Capacitor } from '@capacitor/core';
+import { PushNotifications } from '@capacitor/push-notifications';
+import { getMessaging, isSupported, getToken, onMessage } from 'firebase/messaging';
 import { initializeFirebase } from './index';
-import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
-let messagingInstance: Messaging | null = null;
+export async function registerPushNotifications(userId?: string) {
+  // 1. Android / iOS Native Flow
+  if (Capacitor.isNativePlatform()) {
+    try {
+      let permStatus = await PushNotifications.checkPermissions();
 
-/**
- * @fileOverview Firebase Cloud Messaging (FCM) Setup for ShopyKart.
- */
-export async function getFirebaseMessaging() {
+      if (permStatus.receive === 'prompt') {
+        permStatus = await PushNotifications.requestPermissions();
+      }
+
+      if (permStatus.receive !== 'granted') {
+        console.warn('Push notification permission not granted');
+        return null;
+      }
+
+      // Urgent Order Alerts Sound Channel (Max Priority)
+      await PushNotifications.createChannel({
+        id: 'order_alerts',
+        name: 'Order Ringing Alerts',
+        description: 'Loud sound alerts for new incoming orders',
+        importance: 5, // High priority heads-up notification
+        sound: 'order_alert', // android/app/src/main/res/raw/order_alert.mp3
+        visibility: 1,
+        vibration: true,
+      });
+
+      await PushNotifications.register();
+
+      return new Promise<string | null>((resolve) => {
+        PushNotifications.addListener('registration', async (token) => {
+          localStorage.setItem('shopykart_fcm_token', token.value);
+          if (userId) {
+            await syncTokenToFirestore(userId, token.value);
+          }
+          resolve(token.value);
+        });
+
+        PushNotifications.addListener('registrationError', (err) => {
+          console.error('Capacitor Push Registration Error: ', err);
+          resolve(null);
+        });
+      });
+    } catch (err) {
+      console.error('Error setting up native push notifications:', err);
+      return null;
+    }
+  }
+
+  // 2. Web Browser Fallback Flow
   if (typeof window === 'undefined') return null;
-  
+
   try {
     const supported = await isSupported();
     if (!supported) return null;
 
-    if (!messagingInstance) {
-      const { firebaseApp } = initializeFirebase();
-      if (firebaseApp) {
-        messagingInstance = getMessaging(firebaseApp);
-      }
-    }
-    return messagingInstance;
-  } catch (err) {
-    return null;
-  }
-}
+    const { firebaseApp } = initializeFirebase();
+    if (!firebaseApp) return null;
 
-/**
- * Syncs the FCM token to Firestore so the user can receive cloud pushes.
- * Handles Customers, Vendors, and Delivery Partners safely.
- */
-export async function syncTokenToFirestore(userId: string, token: string) {
-  try {
-    const { firestore } = initializeFirebase();
-    if (!firestore || !userId || !token) return;
-
-    // List of collections where user data might reside
-    const collections = ['users', 'vendors', 'delivery_partners'];
-    
-    for (const col of collections) {
-      const userRef = doc(firestore, col, userId);
-      const userSnap = await getDoc(userRef);
-      
-      if (userSnap.exists()) {
-        // Using setDoc with merge: true is safer than updateDoc 
-        // as it won't throw "No document to update" if there's a race condition
-        await setDoc(userRef, {
-          fcmToken: token,
-          notificationsEnabled: true,
-          lastTokenSync: serverTimestamp()
-        }, { merge: true });
-        
-        console.log(`FCM Token synced successfully for ${col}`);
-        return; // Success, no need to check other collections
-      }
-    }
-    
-    console.log("No matching user/partner/vendor document found for token sync.");
-  } catch (err) {
-    console.error("Token Sync Error:", err);
-  }
-}
-
-/**
- * Requests FCM token and handles initial setup.
- */
-export async function requestPushToken(userId?: string) {
-  if (typeof window === 'undefined') return null;
-
-  try {
-    const { firestore } = initializeFirebase();
-    if (!firestore) return null;
-
-    // 1. Check Permissions
-    if ('Notification' in window) {
-      const permission = await Notification.requestPermission();
-      if (permission !== 'granted') {
-        return null;
-      }
-    }
-
-    const messaging = await getFirebaseMessaging();
-    if (!messaging) return null;
-
-    // 2. Get VAPID Key
-    const vapidKey = 'BC5Gx8VDwyRgNuv-SzJPZnqkcCCDzrhZnJ4SsGfK65Z9_SkQRYjSSfZraLlUpxIwGenba0GpsQAnnatRwSQ-VKo';
-
-    // 3. Get Token
-    const token = await getToken(messaging, { 
-      vapidKey,
-      serviceWorkerRegistration: await navigator.serviceWorker.register('/firebase-messaging-sw.js')
+    const messaging = getMessaging(firebaseApp);
+    const token = await getToken(messaging, {
+      vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
     });
-    
+
     if (token) {
       localStorage.setItem('shopykart_fcm_token', token);
       if (userId) {
@@ -102,10 +76,29 @@ export async function requestPushToken(userId?: string) {
       }
       return token;
     }
-    
     return null;
   } catch (err) {
-    console.error("FCM Token Registration Error:", err);
+    console.error('Web FCM Token Error:', err);
     return null;
   }
 }
+
+export async function syncTokenToFirestore(userId: string, token: string) {
+  try {
+    const { firestore } = initializeFirebase();
+    if (!firestore || !userId) return;
+
+    await setDoc(
+      doc(firestore, 'users', userId),
+      {
+        fcmToken: token,
+        lastTokenUpdate: serverTimestamp(),
+      },
+      { merge: true }
+    );
+  } catch (err) {
+    console.error('Error syncing FCM token:', err);
+  }
+}
+
+export const requestPushToken = registerPushNotifications;
