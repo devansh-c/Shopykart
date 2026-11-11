@@ -189,7 +189,7 @@ export default function VendorDashboard() {
     let today = 0, week = 0, month = 0, totalDelivered = 0, totalCancelled = 0;
     const now = new Date();
     const dayStart = startOfDay(now);
-    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+    const weekStart = startOfWeek(now, { weekStartsOn: 1 }); // Start from Monday
     const monthStart = startOfMonth(now);
 
     rawOrders.forEach((o: any) => {

@@ -50,7 +50,7 @@ export default function BrandingManagement() {
     siteTitle: '',
     siteDescription: '',
     logoUrl: '',
-    bizLogoUrl: '', // New field for Store App Logo
+    bizLogoUrl: '', // Specific logo for Biz App
     faviconUrl: '',
     notificationLogoUrl: '',
     coinValue: '0.5',
@@ -165,9 +165,9 @@ export default function BrandingManagement() {
                 <input type="file" ref={logoInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'logoUrl')} />
               </div>
 
-              {/* Store App Logo (New) */}
+              {/* Store App Logo (Dedicated for Shopykart Biz) */}
               <div className="space-y-2 relative group">
-                <label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1 flex items-center gap-1"><Store className="h-2.5 w-2.5" /> Store App Logo</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1 flex items-center gap-1"><Store className="h-2.5 w-2.5" /> Biz App Logo</label>
                 <div 
                   onClick={() => !formData.bizLogoUrl && bizLogoInputRef.current?.click()} 
                   className={cn(

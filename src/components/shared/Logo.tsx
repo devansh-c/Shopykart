@@ -1,3 +1,4 @@
+
 "use client"
 
 import { cn } from "@/lib/utils";
@@ -32,6 +33,7 @@ export function Logo({ className }: { className?: string }) {
 
   const displayLogo = useMemo(() => {
     if (!branding) return null;
+    // Show specific Biz Logo for Shopykart Biz App
     if (currentAppType === 'biz' && branding.bizLogoUrl) return branding.bizLogoUrl;
     return branding.logoUrl || null;
   }, [branding, currentAppType]);
@@ -78,7 +80,7 @@ export function Logo({ className }: { className?: string }) {
         <div className="flex flex-col items-center">
            <span className="text-white font-black italic text-sm tracking-tighter leading-none">SHOPYKART</span>
            <span className="text-[6px] font-black text-primary uppercase tracking-[0.3em]">
-             {currentAppType === 'biz' ? 'STORE PARTNER' : currentAppType === 'admin' ? 'CEO CONTROL' : currentAppType === 'tow' ? 'FLEET PANEL' : 'Premium Delivery'}
+             {currentAppType === 'biz' ? 'BIZ PARTNER' : currentAppType === 'admin' ? 'CEO CONTROL' : currentAppType === 'tow' ? 'FLEET PANEL' : 'Premium Delivery'}
            </span>
         </div>
       )}
