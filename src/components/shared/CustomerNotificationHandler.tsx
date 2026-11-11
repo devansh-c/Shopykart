@@ -3,7 +3,7 @@
 
 import { useEffect, useRef } from 'react';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, query, where, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, addDoc, serverTimestamp, limit } from "firebase/firestore";
 import { useToast } from '@/hooks/use-toast';
 
 const statusMessages: Record<string, { title: string; body: string }> = {

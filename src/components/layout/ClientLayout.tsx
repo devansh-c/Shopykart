@@ -14,7 +14,7 @@ import { ZoneGuard } from '@/components/shared/ZoneGuard';
 import { useJsApiLoader } from '@react-google-maps/api';
 
 import BrandingLoader from '@/components/shared/BrandingLoader';
-import TelegramNotifier from '@/components/shared/TelegramNotifier';
+
 import NotificationHandler from '@/components/shared/NotificationHandler';
 import CustomerNotificationHandler from '@/components/shared/CustomerNotificationHandler';
 import WelcomeBonusOverlay from '@/components/auth/WelcomeBonusOverlay';
@@ -128,7 +128,7 @@ export function ClientLayout({ children }: { children: ReactNode }) {
             <>
               <PermissionManager />
               {isBusinessApp ? <NotificationHandler /> : <CustomerNotificationHandler />}
-              <TelegramNotifier />
+              
               <TawkChat />
             </>
           )}
