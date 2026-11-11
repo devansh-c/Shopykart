@@ -6,6 +6,7 @@ import { useUser } from '@/firebase';
 import { usePathname, useRouter } from 'next/navigation';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 import { EmailAuth } from '@/components/auth/EmailAuth';
+import { Toaster } from '@/components/ui/toaster';
 
 import { cn } from '@/lib/utils';
 import React, { ReactNode, useState, useEffect, useMemo, memo, Suspense } from 'react';
@@ -122,13 +123,13 @@ export function ClientLayout({ children }: { children: ReactNode }) {
           {/* CRITICAL SERVICES */}
           <BrandingLoader />
           <FirebaseErrorListener />
+          <Toaster />
           
           {/* DEFERRED BACKGROUND SERVICES (TO PREVENT STARTUP FREEZE) */}
           {loadBackgroundServices && (
             <>
               <PermissionManager />
               {isBusinessApp ? <NotificationHandler /> : <CustomerNotificationHandler />}
-              
               <TawkChat />
             </>
           )}
