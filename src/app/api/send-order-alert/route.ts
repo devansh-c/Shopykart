@@ -8,28 +8,29 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, message: 'No FCM token' }, { status: 400 });
     }
 
-    // High Priority Native FCM Notification Payload
-    // Firebase Cloud Messaging Legacy / HTTP v1 compatible payload
     const fcmServerKey = process.env.FIREBASE_SERVER_KEY;
-    
     if (!fcmServerKey) {
-      console.warn('FIREBASE_SERVER_KEY is not defined in .env');
+      console.warn('FIREBASE_SERVER_KEY is missing in env!');
     }
 
+    // High Priority Data Payload to Wake Up App & Trigger Truecaller-style Popup
     const payload = {
       to: fcmToken,
       priority: 'high',
+      content_available: true,
       notification: {
         title: '🚨 NEW ORDER ARRIVED!',
-        body: `New order #${orderId.slice(-4)} at ${storeName || 'your store'}. Accept now!`,
+        body: `New order #${orderId.slice(-4)} at ${storeName || 'Store'}. Open to accept!`,
         sound: 'order_alert',
         android_channel_id: 'order_alerts',
+        click_action: 'FLUTTER_NOTIFICATION_CLICK'
       },
       data: {
         orderId: orderId,
-        type: 'NEW_ORDER',
-        click_action: 'FLUTTER_NOTIFICATION_CLICK',
-      },
+        type: 'NEW_ORDER_ALERT',
+        fullScreenIntent: 'true',
+        sound: 'order_alert'
+      }
     };
 
     if (fcmServerKey) {
