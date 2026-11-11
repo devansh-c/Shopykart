@@ -51,8 +51,8 @@ jobs:
           sed -i "s/applicationId \".*\"/applicationId \"co.in.shopykart.app\"/" app/build.gradle
           
           chmod +x gradlew
-          ./gradlew assembleRelease matrix.appId }}
-          ./gradlew bundleRelease matrix.appId }}
+          ./gradlew assembleRelease
+          ./gradlew bundleRelease
 
       - name: Archive Customer Files
         run: |
@@ -78,8 +78,8 @@ jobs:
           sed -i "s/applicationId \".*\"/applicationId \"co.in.shopykart.admin\"/" app/build.gradle
           
           chmod +x gradlew
-          ./gradlew assembleRelease matrix.appId }}
-          ./gradlew bundleRelease matrix.appId }}
+          ./gradlew assembleRelease
+          ./gradlew bundleRelease
 
       - name: Archive Admin Files
         run: |
@@ -105,8 +105,8 @@ jobs:
           sed -i "s/applicationId \".*\"/applicationId \"co.in.shopykart.biz\"/" app/build.gradle
           
           chmod +x gradlew
-          ./gradlew assembleRelease matrix.appId }}
-          ./gradlew bundleRelease matrix.appId }}
+          ./gradlew assembleRelease
+          ./gradlew bundleRelease
 
       - name: Archive Biz Files
         run: |
@@ -132,8 +132,8 @@ jobs:
           sed -i "s/applicationId \".*\"/applicationId \"co.in.shopykart.tow\"/" app/build.gradle
           
           chmod +x gradlew
-          ./gradlew assembleRelease matrix.appId }}
-          ./gradlew bundleRelease matrix.appId }}
+          ./gradlew assembleRelease
+          ./gradlew bundleRelease
 
       - name: Archive Tow Files
         run: |
