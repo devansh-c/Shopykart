@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -34,7 +33,7 @@ import {
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useFirestore, useUser, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, addDoc, collection, serverTimestamp, query, updateDoc, increment, getDocs, where } from 'firebase/firestore';
+import { doc, addDoc, collection, serverTimestamp, query, updateDoc, increment, getDocs, where, getDoc } from 'firebase/firestore';
 import { useState, useEffect, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -187,7 +186,6 @@ export default function CartPage() {
       const allVendorIds = Array.from(new Set(cart.map(item => String(item.vendorId)).filter(Boolean)));
       const firstVendor = vendors?.find(v => String(v.id) === String(allVendorIds[0]));
       
-      // Get precise location from storage or defaults
       const lat = localStorage.getItem('user_lat') ? parseFloat(localStorage.getItem('user_lat')!) : 25.2443;
       const lng = localStorage.getItem('user_lng') ? parseFloat(localStorage.getItem('user_lng')!) : 79.0838;
 
@@ -230,11 +228,13 @@ export default function CartPage() {
 
       const docRef = await addDoc(collection(firestore, 'orders'), orderData);
       
-      // Trigger High Priority FCM Alert to Store App
+      // TRIGGER BACKGROUND PUSH ALERT TO VENDOR
       try {
         if (orderData.vendorId) {
-          const vDoc = await getDoc(doc(firestore, "users", orderData.vendorId));
+          // STRICT LOOKUP IN 'vendors' COLLECTION
+          const vDoc = await getDoc(doc(firestore, "vendors", orderData.vendorId));
           const fcmToken = vDoc.data()?.fcmToken;
+          
           if (fcmToken) {
             fetch("/api/send-order-alert", {
               method: "POST",
@@ -244,14 +244,15 @@ export default function CartPage() {
                 orderId: docRef.id,
                 storeName: orderData.restaurantName
               })
-            }).catch(e => console.error("Notification trigger error:", e));
+            }).catch(e => console.error("FCM Send error:", e));
+          } else {
+            console.warn("Vendor has no FCM token for background alert.");
           }
         }
       } catch (err) {
-        console.error("Failed to dispatch push alert:", err);
+        console.error("Failed to dispatch background alert:", err);
       }
       
-      // Update coins if redeemed
       if (isRedeemingCoins && coinDiscount > 0) {
         await updateDoc(doc(firestore, 'users', user.uid), { 
           coins: increment(-coinDiscount) 
@@ -280,7 +281,6 @@ export default function CartPage() {
     <div className="min-h-screen bg-[#FDFDFD] pb-40 max-w-lg mx-auto relative overflow-hidden no-scrollbar">
       <OrderSuccessOverlay isVisible={showSuccessOverlay} />
       
-      {/* MINIMAL HEADER */}
       <header className="bg-white/80 backdrop-blur-xl py-4 px-6 sticky top-0 z-[100] flex items-center gap-4 border-b border-gray-100">
         <button onClick={() => router.back()} className="h-10 w-10 flex items-center justify-center rounded-xl bg-gray-50 active:scale-90 transition-all">
           <ChevronLeft className="h-5 w-5 text-gray-800" />
@@ -296,7 +296,6 @@ export default function CartPage() {
       </header>
 
       <main className="px-5 pt-6 space-y-6">
-        {/* SECTION 1: DELIVERY HUB */}
         <section className="bg-white rounded-[2rem] border border-gray-100 p-6 flex items-center justify-between shadow-sm">
            <div className="flex items-center gap-4 min-w-0">
               <div className="h-12 w-12 bg-black rounded-2xl flex items-center justify-center text-primary shrink-0">
@@ -311,7 +310,6 @@ export default function CartPage() {
            <button onClick={() => setIsAddressModalOpen(true)} className="text-[10px] font-black uppercase text-primary tracking-widest ml-4">Edit</button>
         </section>
 
-        {/* SECTION 2: ITEMS LIST */}
         <section className="bg-white rounded-[2rem] border border-gray-100 p-6 space-y-6 shadow-sm">
            <div className="flex items-center gap-2 border-b border-gray-50 pb-4">
               <Store className="h-4 w-4 text-primary" />
@@ -339,7 +337,6 @@ export default function CartPage() {
            </div>
         </section>
 
-        {/* SECTION 3: SAVINGS CORNER (COUPONS + COINS) */}
         <section className="bg-white rounded-[2rem] border border-gray-100 overflow-hidden shadow-sm">
            <div className="p-6 space-y-5">
               <div className="flex items-center gap-2 mb-1">
@@ -347,7 +344,6 @@ export default function CartPage() {
                  <h2 className="text-xs font-black uppercase italic">Offers & Savings</h2>
               </div>
               
-              {/* Coupon Row */}
               <div className="flex gap-2">
                  {appliedCoupon ? (
                     <div className="flex-1 bg-green-50 border border-green-100 px-4 py-3 rounded-xl flex items-center justify-between">
@@ -367,7 +363,6 @@ export default function CartPage() {
                  )}
               </div>
 
-              {/* Coins Toggle */}
               <div className="flex items-center justify-between pt-2">
                  <div className="flex items-center gap-3">
                     <div className={cn("h-9 w-9 rounded-xl flex items-center justify-center transition-all", isRedeemingCoins ? "bg-amber-100 text-amber-600" : "bg-gray-50 text-gray-300")}>
@@ -383,7 +378,6 @@ export default function CartPage() {
            </div>
         </section>
 
-        {/* SECTION 4: DELIVERY TIP */}
         <section className="bg-white rounded-[2rem] border border-gray-100 p-6 space-y-4 shadow-sm">
            <div className="flex items-center gap-2 mb-1">
               <Heart className="h-4 w-4 text-primary fill-primary" />
@@ -415,7 +409,6 @@ export default function CartPage() {
            </div>
         </section>
 
-        {/* SECTION 5: DELIVERY PREFERENCES */}
         <section className="bg-white rounded-[2rem] border border-gray-100 p-6 space-y-6 shadow-sm">
            <div className="flex items-center gap-2 mb-1">
               <Zap className="h-4 w-4 text-primary" />
@@ -440,7 +433,6 @@ export default function CartPage() {
            </div>
         </section>
 
-        {/* SECTION 6: BILL & PAYMENT */}
         <section className="bg-white rounded-[2.5rem] border border-gray-100 p-8 space-y-8 shadow-sm">
            <div className="space-y-3">
               <h3 className="text-xs font-black uppercase italic tracking-tighter mb-4">Final Bill</h3>
@@ -476,7 +468,6 @@ export default function CartPage() {
            </div>
         </section>
 
-        {/* CTA BUTTON */}
         <div className="pt-4 pb-20">
           <Button 
             onClick={finalizeOrder} 
@@ -491,7 +482,6 @@ export default function CartPage() {
         </div>
       </main>
 
-      {/* UPI SCAN DIALOG */}
       <Dialog open={isUpiModalOpen} onOpenChange={setIsUpiModalOpen}>
         <DialogContent className="rounded-t-[3rem] p-10 bg-white border-none shadow-2xl focus:outline-none bottom-0 top-auto translate-y-0 h-[640px]">
            <div className="text-center space-y-8">
@@ -508,7 +498,6 @@ export default function CartPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ADDRESS INPUT DIALOG */}
       <Dialog open={isAddressModalOpen} onOpenChange={setIsAddressModalOpen}>
         <DialogContent className="rounded-t-[3rem] p-8 bg-white border-none shadow-2xl focus:outline-none bottom-0 top-auto translate-y-0 h-[580px]">
           <DialogTitle className="text-2xl font-black uppercase italic text-center mb-8">Drop Identity</DialogTitle>

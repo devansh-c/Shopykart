@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -61,6 +60,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { format, startOfDay, startOfWeek, startOfMonth, isAfter } from 'date-fns';
 import { compressImage } from '@/lib/image-utils';
+import { requestPushToken } from '@/firebase/messaging';
 
 type MainTab = 'orders' | 'catalog' | 'coupons' | 'payouts' | 'account';
 type OrderFilter = 'NEW ORDERS' | 'DELIVERED' | 'CANCELLED';
@@ -132,8 +132,21 @@ export default function VendorDashboard() {
     const sessionActive = localStorage.getItem('shopykart_session_active') === 'true';
     if (!user && !sessionActive) {
       router.replace('/vendor/login');
+      return;
     }
-  }, [user, authLoading, router, isMounted]);
+    
+    // Register Push Token for Background Alerts
+    if (user?.uid) {
+      requestPushToken(user.uid).then(token => {
+        if (token && firestore) {
+           updateDoc(doc(firestore, 'vendors', user.uid), {
+             fcmToken: token,
+             lastTokenUpdate: serverTimestamp()
+           }).catch(e => console.error("Token sync error:", e));
+        }
+      });
+    }
+  }, [user, authLoading, router, isMounted, firestore]);
 
   const vendorRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'vendors', user.uid) : null, [firestore, user]);
   const { data: vendorProfile, loading: profileLoading } = useDoc<any>(vendorRef);

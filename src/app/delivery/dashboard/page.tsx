@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -53,6 +52,7 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { scheduleTestNotification } from '@/components/shared/PermissionManager';
 import { Skeleton } from '@/components/ui/skeleton';
+import { requestPushToken } from '@/firebase/messaging';
 
 const TaskCard = memo(({ order, onUpdate, userData, onPass }: any) => {
   const [pickupCode, setPickupCode] = useState('');
@@ -317,7 +317,19 @@ export default function DeliveryDashboard() {
       if (!hasActiveSession) router.replace('/delivery/login');
       return;
     }
-  }, [isMounted, user, authLoading, router]);
+    
+    // SYNC RIDER FCM TOKEN
+    if (user?.uid) {
+      requestPushToken(user.uid).then(token => {
+        if (token && firestore) {
+           updateDoc(doc(firestore, 'delivery_partners', user.uid), {
+             fcmToken: token,
+             lastTokenUpdate: serverTimestamp()
+           }).catch(e => console.error("Token sync error:", e));
+        }
+      });
+    }
+  }, [isMounted, user, authLoading, router, firestore]);
 
   const ordersQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'orders'), orderBy('createdAt', 'desc')) : null, [firestore]);
   const { data: allOrders } = useCollection<any>(ordersQuery);
@@ -407,7 +419,7 @@ export default function DeliveryDashboard() {
   }
 
   return (
-    <div className="h-screen bg-[#F9FAFB] flex flex-col max-w-lg mx-auto relative overflow-hidden transform-gpu">
+    <div className="h-screen bg-[#F9FAFB] flex flex-col max-lg mx-auto relative overflow-hidden transform-gpu">
       <header className="bg-white px-6 py-6 border-b border-gray-50 shrink-0 z-[500] shadow-sm">
         <div className="flex items-center justify-between">
            <div className="flex items-center gap-4">
