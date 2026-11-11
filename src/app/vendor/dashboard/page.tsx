@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -135,14 +136,14 @@ export default function VendorDashboard() {
       return;
     }
     
-    // Register Push Token for Background Alerts
-    if (user?.uid) {
+    // STRICT STORE TOKEN SYNC
+    if (user?.uid && firestore) {
       requestPushToken(user.uid).then(token => {
-        if (token && firestore) {
+        if (token) {
            updateDoc(doc(firestore, 'vendors', user.uid), {
              fcmToken: token,
              lastTokenUpdate: serverTimestamp()
-           }).catch(e => console.error("Token sync error:", e));
+           }).catch(e => console.error("Store Token sync error:", e));
         }
       });
     }

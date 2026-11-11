@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -318,14 +319,14 @@ export default function DeliveryDashboard() {
       return;
     }
     
-    // SYNC RIDER FCM TOKEN
-    if (user?.uid) {
+    // SYNC RIDER FCM TOKEN STRICTLY TO PARTNERS COLLECTION
+    if (user?.uid && firestore) {
       requestPushToken(user.uid).then(token => {
-        if (token && firestore) {
+        if (token) {
            updateDoc(doc(firestore, 'delivery_partners', user.uid), {
              fcmToken: token,
              lastTokenUpdate: serverTimestamp()
-           }).catch(e => console.error("Token sync error:", e));
+           }).catch(e => console.error("Rider Token sync error:", e));
         }
       });
     }
@@ -383,7 +384,6 @@ export default function DeliveryDashboard() {
            });
            for (const [vId, amount] of Array.from(vendorsToUpdate.entries())) {
              const vRef = doc(firestore, 'vendors', vId);
-             // Use setDoc merge to ensure field exists
              await setDoc(vRef, { 
                 walletBalance: increment(amount), 
                 updatedAt: serverTimestamp() 
