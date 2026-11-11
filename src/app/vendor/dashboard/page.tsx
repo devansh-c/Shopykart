@@ -598,7 +598,6 @@ export default function VendorDashboard() {
         ))}
       </nav>
 
-      {/* Dialogs */}
       <Dialog open={isNoteOpen} onOpenChange={setIsNoteOpen}>
          <DialogContent className="rounded-[2.5rem] max-sm p-8 border-none shadow-2xl bg-white focus:outline-none">
             <div className="flex flex-col items-center text-center space-y-4">

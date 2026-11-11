@@ -41,6 +41,7 @@ jobs:
           sed -i "s/appId: '.*'/appId: 'co.in.shopykart.app'/" capacitor.config.ts
           sed -i "s/appName: '.*'/appName: 'Shopykart'/" capacitor.config.ts
           sed -i 's|<string name="app_name">.*</string>|<string name="app_name">Shopykart</string>|' android/app/src/main/res/values/strings.xml
+          sed -i 's|<string name="title_activity_main">.*</string>|<string name="title_activity_main">Shopykart</string>|' android/app/src/main/res/values/strings.xml
           sed -i 's|<string name="package_name">.*</string>|<string name="package_name">co.in.shopykart.app</string>|' android/app/src/main/res/values/strings.xml
           npx cap sync android
 
@@ -66,6 +67,7 @@ jobs:
           sed -i "s/appId: '.*'/appId: 'co.in.shopykart.admin'/" capacitor.config.ts
           sed -i "s/appName: '.*'/appName: 'Shopykart CEO'/" capacitor.config.ts
           sed -i 's|<string name="app_name">.*</string>|<string name="app_name">Shopykart CEO</string>|' android/app/src/main/res/values/strings.xml
+          sed -i 's|<string name="title_activity_main">.*</string>|<string name="title_activity_main">Shopykart CEO</string>|' android/app/src/main/res/values/strings.xml
           sed -i 's|<string name="package_name">.*</string>|<string name="package_name">co.in.shopykart.admin</string>|' android/app/src/main/res/values/strings.xml
           npx cap sync android
 
@@ -91,6 +93,7 @@ jobs:
           sed -i "s/appId: '.*'/appId: 'co.in.shopykart.biz'/" capacitor.config.ts
           sed -i "s/appName: '.*'/appName: 'Shopykart Biz'/" capacitor.config.ts
           sed -i 's|<string name="app_name">.*</string>|<string name="app_name">Shopykart Biz</string>|' android/app/src/main/res/values/strings.xml
+          sed -i 's|<string name="title_activity_main">.*</string>|<string name="title_activity_main">Shopykart Biz</string>|' android/app/src/main/res/values/strings.xml
           sed -i 's|<string name="package_name">.*</string>|<string name="package_name">co.in.shopykart.biz</string>|' android/app/src/main/res/values/strings.xml
           npx cap sync android
 
@@ -116,6 +119,7 @@ jobs:
           sed -i "s/appId: '.*'/appId: 'co.in.shopykart.tow'/" capacitor.config.ts
           sed -i "s/appName: '.*'/appName: 'Shopykart Tow'/" capacitor.config.ts
           sed -i 's|<string name="app_name">.*</string>|<string name="app_name">Shopykart Tow</string>|' android/app/src/main/res/values/strings.xml
+          sed -i 's|<string name="title_activity_main">.*</string>|<string name="title_activity_main">Shopykart Tow</string>|' android/app/src/main/res/values/strings.xml
           sed -i 's|<string name="package_name">.*</string>|<string name="package_name">co.in.shopykart.tow</string>|' android/app/src/main/res/values/strings.xml
           npx cap sync android
 
