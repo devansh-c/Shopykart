@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -9,12 +8,14 @@ import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import { ProductQuickView } from '@/components/product/ProductQuickView';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 /**
- * @fileOverview WishlistPage with Black Product Cards.
+ * @fileOverview WishlistPage with iPhone-style Toast on Cart Add.
  */
 export default function WishlistPage() {
   const { wishlist, toggleWishlist, addToCart } = useCart();
+  const { toast } = useToast();
   const router = useRouter();
 
   const firestore = useFirestore();
@@ -32,6 +33,11 @@ export default function WishlistPage() {
   const { data: vendors } = useCollection<any>(vendorsQuery);
 
   const favoriteProducts = dbProducts?.filter(p => wishlist.includes(p.id) && !p.isDeleted) || [];
+
+  const handleAddToCart = (product: any, imageUrl: string) => {
+    addToCart({ ...product, imageUrl });
+    toast({ title: "Added to Bag! 🛒", description: product.name });
+  };
 
   if (loading && !dbProducts) {
     return (
@@ -113,7 +119,7 @@ export default function WishlistPage() {
                   </div>
                 ) : (
                   <button 
-                    onClick={() => addToCart({ ...product, imageUrl })}
+                    onClick={() => handleAddToCart(product, imageUrl)}
                     className="mt-3 w-full bg-primary text-white text-[10px] font-black h-8 rounded-xl flex items-center justify-center gap-1 active:scale-95 transition-all shadow-lg"
                   >
                     <Plus className="h-3 w-3" />
