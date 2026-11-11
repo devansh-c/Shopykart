@@ -6,7 +6,7 @@ import { useUser } from '@/firebase';
 import { usePathname, useRouter } from 'next/navigation';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 import { EmailAuth } from '@/components/auth/EmailAuth';
-import { Toaster } from '@/components/ui/toaster';
+
 import { cn } from '@/lib/utils';
 import React, { ReactNode, useState, useEffect, useMemo, memo, Suspense } from 'react';
 import FirebaseClientProvider from '@/firebase/client-provider';
@@ -149,7 +149,7 @@ export function ClientLayout({ children }: { children: ReactNode }) {
               {mounted && !isExcludedPath && <BottomNav />}
             </div>
           </AuthGuard>
-          <Toaster />
+          
         </div>
       </CartProvider>
     </FirebaseClientProvider>
