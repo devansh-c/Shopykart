@@ -46,7 +46,7 @@ export default function Loading() {
         letterSpacing: '4px',
         opacity: 0.8
       }}>
-        ShopyKart 1.4.0
+        ShopyKart 1.2.1
       </div>
     </div>
   );

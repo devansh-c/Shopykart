@@ -2,7 +2,7 @@
 import type { NextConfig } from "next";
 
 /**
- * @fileOverview Next.js Configuration optimized for ShopyKart v1.4.0.
+ * @fileOverview Next.js Configuration optimized for ShopyKart v1.2.1.
  * FIXED: Removed deprecated devIndicators.
  * FIXED: 'output: export' handled correctly for Capacitor.
  */
