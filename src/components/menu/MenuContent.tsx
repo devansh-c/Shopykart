@@ -3,7 +3,7 @@
 
 import { useState, useMemo, useEffect, memo } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { Search, X, Clock, MapPin, Loader2, Store, Plus, Heart, ShoppingBag, ArrowLeft } from 'lucide-react';
+import { Search, X, Clock, MapPin, Loader2, Store, Plus, Heart, ShoppingBag, ArrowLeft, RefreshCw } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -58,7 +58,9 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
     const fromProps = forcedSlug;
     const fromSearch = searchParams.get('id');
     const fromParams = params?.slug ? String(params.slug) : null;
-    return (fromProps || fromSearch || fromParams || '').trim();
+    const final = (fromProps || fromSearch || fromParams || '').trim();
+    // BIZ FIX: 'view' is a keyword in our routing, ignore it as a valid slug
+    return final === 'view' ? (fromSearch || '') : final;
   }, [forcedSlug, params, searchParams]);
 
   const router = useRouter();
@@ -66,6 +68,7 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
   const [currentMinutes, setCurrentMinutes] = useState<number | null>(null);
   const [vendorProfile, setVendorProfile] = useState<any>(initialVendor);
   const [vendorLoading, setVendorLoading] = useState(true);
+  const [retryCount, setRetryCount] = useState(0);
   
   const firestore = useFirestore();
 
@@ -79,81 +82,73 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    let isMounted = true;
-    let retryCount = 0;
-    const maxRetries = 5;
+  const resolveVendor = async () => {
+    if (!firestore || !rawSlug) {
+      setVendorLoading(false);
+      return;
+    }
 
-    async function resolveVendor() {
-      if (!firestore || !rawSlug) {
-        if (isMounted) setVendorLoading(false);
+    setVendorLoading(true);
+    try {
+      const cleanSlug = String(rawSlug).toLowerCase().trim();
+
+      // 1. Try Direct ID match
+      const idRef = doc(firestore, 'vendors', rawSlug);
+      const idSnap = await getDoc(idRef);
+      if (idSnap.exists()) {
+        setVendorProfile({ id: idSnap.id, ...idSnap.data() });
+        setVendorLoading(false);
         return;
       }
 
-      try {
-        const cleanSlug = String(rawSlug).toLowerCase().trim();
+      // 2. Try Slug or StoreID Query
+      const vendorsRef = collection(firestore, 'vendors');
+      const [slugSnap, idQuerySnap] = await Promise.all([
+        getDocs(query(vendorsRef, where('slug', '==', cleanSlug), limit(1))),
+        getDocs(query(vendorsRef, where('storeId', '==', cleanSlug), limit(1)))
+      ]);
 
-        // 1. Try Direct ID match
-        const idRef = doc(firestore, 'vendors', rawSlug);
-        const idSnap = await getDoc(idRef);
-        if (idSnap.exists()) {
-          if (isMounted) {
-            setVendorProfile({ id: idSnap.id, ...idSnap.data() });
-            setVendorLoading(false);
-          }
-          return;
-        }
-
-        // 2. Try Slug or StoreID Query
-        const vendorsRef = collection(firestore, 'vendors');
-        const [slugSnap, idQuerySnap] = await Promise.all([
-          getDocs(query(vendorsRef, where('slug', '==', cleanSlug), limit(1))),
-          getDocs(query(vendorsRef, where('storeId', '==', cleanSlug), limit(1)))
-        ]);
-
-        if (!slugSnap.empty) {
-          if (isMounted) {
-            setVendorProfile({ id: slugSnap.docs[0].id, ...slugSnap.docs[0].data() });
-            setVendorLoading(false);
-          }
-          return;
-        }
-
-        if (!idQuerySnap.empty) {
-          if (isMounted) {
-            setVendorProfile({ id: idQuerySnap.docs[0].id, ...idQuerySnap.docs[0].data() });
-            setVendorLoading(false);
-          }
-          return;
-        }
-
-        // 3. Final Scan Fallback
-        if (retryCount >= maxRetries) {
-          const allVendors = await getDocs(vendorsRef);
-          const found = allVendors.docs.find(d => {
-            const data = d.data();
-            return d.id === rawSlug || 
-                   (data.slug && data.slug.toLowerCase() === cleanSlug) || 
-                   (data.storeId && data.storeId.toLowerCase() === cleanSlug);
-          });
-
-          if (found && isMounted) {
-            setVendorProfile({ id: found.id, ...found.data() });
-          }
-          if (isMounted) setVendorLoading(false);
-        } else {
-          retryCount++;
-          setTimeout(resolveVendor, 1000);
-        }
-      } catch (err) {
-        console.error("Resolution error:", err);
-        if (isMounted) setVendorLoading(false);
+      if (!slugSnap.empty) {
+        setVendorProfile({ id: slugSnap.docs[0].id, ...slugSnap.docs[0].data() });
+        setVendorLoading(false);
+        return;
       }
-    }
 
+      if (!idQuerySnap.empty) {
+        setVendorProfile({ id: idQuerySnap.docs[0].id, ...idQuerySnap.docs[0].data() });
+        setVendorLoading(false);
+        return;
+      }
+
+      // 3. FINAL AGGRESSIVE SCAN (For slug mismatches or partial IDs)
+      const allVendors = await getDocs(vendorsRef);
+      const found = allVendors.docs.find(d => {
+        const data = d.data();
+        return d.id === rawSlug || 
+               (data.slug && data.slug.toLowerCase() === cleanSlug) || 
+               (data.storeId && data.storeId.toLowerCase() === cleanSlug);
+      });
+
+      if (found) {
+        setVendorProfile({ id: found.id, ...found.data() });
+        setVendorLoading(false);
+      } else {
+        // One more retry after delay if first pass fails (Handles slow initial DB connection)
+        if (retryCount < 3) {
+          setTimeout(() => setRetryCount(prev => prev + 1), 1000);
+        } else {
+          setVendorLoading(false);
+        }
+      }
+    } catch (err) {
+      console.error("Resolution error:", err);
+      setVendorLoading(false);
+    }
+  };
+
+  useEffect(() => {
     resolveVendor();
-    return () => { isMounted = false; };
-  }, [firestore, rawSlug]);
+  }, [firestore, rawSlug, retryCount]);
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore || !vendorProfile) return null;
@@ -207,7 +202,12 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
         </div>
         <h2 className="text-3xl font-black italic uppercase text-gray-800 tracking-tighter leading-tight">HUB NOT REACHABLE</h2>
         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-4 mb-10">Please check your internet or try again.</p>
-        <Button onClick={() => router.push('/')} className="h-16 px-10 bg-black text-white rounded-2xl font-black uppercase italic shadow-xl active:scale-95 transition-all">BACK TO HOME</Button>
+        <div className="flex flex-col gap-3 w-full max-w-xs">
+          <Button onClick={() => resolveVendor()} className="h-16 bg-primary text-white rounded-2xl font-black uppercase italic shadow-xl">
+            <RefreshCw className="h-4 w-4 mr-2" /> RETRY CONNECTION
+          </Button>
+          <Button onClick={() => router.push('/')} variant="ghost" className="h-14 text-gray-400 font-black uppercase italic">BACK TO HOME</Button>
+        </div>
       </div>
     );
   }
