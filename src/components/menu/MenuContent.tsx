@@ -82,24 +82,19 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
   useEffect(() => {
     let isMounted = true;
     let retryCount = 0;
-    const maxRetries = 6; // Increased retries for slow mobile APK networks
+    const maxRetries = 5;
 
     async function resolveVendor() {
       if (!firestore || !rawSlug) {
-        if (retryCount >= maxRetries) {
-          if (isMounted) setVendorLoading(false);
-        } else {
-          retryCount++;
-          setTimeout(resolveVendor, 800);
-        }
+        if (isMounted) setVendorLoading(false);
         return;
       }
 
       try {
-        const cleanSlug = String(rawSlug).toLowerCase();
+        const cleanSlug = String(rawSlug).toLowerCase().trim();
 
-        // STAGE 1: Check UID
-        const idRef = doc(firestore, 'vendors', rawSlug); 
+        // 1. Try Direct ID match
+        const idRef = doc(firestore, 'vendors', rawSlug);
         const idSnap = await getDoc(idRef);
         if (idSnap.exists()) {
           if (isMounted) {
@@ -109,9 +104,9 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
           return;
         }
 
-        // STAGE 2: Query by slug or storeId
+        // 2. Try Slug or StoreID Query
         const vendorsRef = collection(firestore, 'vendors');
-        const [slugSnap, storeIdSnap] = await Promise.all([
+        const [slugSnap, idQuerySnap] = await Promise.all([
           getDocs(query(vendorsRef, where('slug', '==', cleanSlug), limit(1))),
           getDocs(query(vendorsRef, where('storeId', '==', cleanSlug), limit(1)))
         ]);
@@ -124,33 +119,34 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
           return;
         }
 
-        if (!storeIdSnap.empty) {
+        if (!idQuerySnap.empty) {
           if (isMounted) {
-            setVendorProfile({ id: storeIdSnap.docs[0].id, ...storeIdSnap.docs[0].data() });
+            setVendorProfile({ id: idQuerySnap.docs[0].id, ...idQuerySnap.docs[0].data() });
             setVendorLoading(false);
           }
           return;
         }
 
-        // STAGE 3: Final recursive fallback
-        if (retryCount < maxRetries) {
-          retryCount++;
-          setTimeout(resolveVendor, 1200);
-        } else {
-          // Deep scan all vendors if multiple specific queries failed
+        // 3. Final Scan Fallback
+        if (retryCount >= maxRetries) {
           const allVendors = await getDocs(vendorsRef);
           const found = allVendors.docs.find(d => {
             const data = d.data();
-            return d.id === rawSlug || data.slug === cleanSlug || data.storeId?.toLowerCase() === cleanSlug;
+            return d.id === rawSlug || 
+                   (data.slug && data.slug.toLowerCase() === cleanSlug) || 
+                   (data.storeId && data.storeId.toLowerCase() === cleanSlug);
           });
 
           if (found && isMounted) {
             setVendorProfile({ id: found.id, ...found.data() });
           }
           if (isMounted) setVendorLoading(false);
+        } else {
+          retryCount++;
+          setTimeout(resolveVendor, 1000);
         }
       } catch (err) {
-        console.error("Hub resolution error:", err);
+        console.error("Resolution error:", err);
         if (isMounted) setVendorLoading(false);
       }
     }

@@ -191,11 +191,8 @@ export default function VendorDashboard() {
   const categoriesQuery = useMemoFirebase(() => (firestore) ? query(collection(firestore, 'categories')) : null, [firestore]);
   const { data: categories } = useCollection<any>(categoriesQuery);
 
-  const allPayoutsQuery = useMemoFirebase(() => (firestore && user) ? query(collection(firestore, 'payout_requests'), where('vendorId', '==', user.uid)) : null, [firestore, user]);
-  const { data: allPayouts } = useCollection<any>(allPayoutsQuery);
-
   const earnings = useMemo(() => {
-    const fallback = { today: 0, thisWeek: 0, thisMonth: 0, totalDelivered: 0, totalCancelled: 0, payoutTotal: 0, pendingPayoutTotal: 0 };
+    const fallback = { today: 0, thisWeek: 0, thisMonth: 0, totalDelivered: 0, totalCancelled: 0 };
     if (!rawOrders || !user) return fallback;
 
     let today = 0, week = 0, month = 0, totalDelivered = 0, totalCancelled = 0;
@@ -209,7 +206,6 @@ export default function VendorDashboard() {
       const status = (o.status || '').toUpperCase();
       
       const vendorItems = (o.items || []).filter((it: any) => String(it.vendorId).trim() === vId);
-      
       let vendorSubtotal = vendorItems.reduce((acc: number, it: any) => acc + (Number(it.price) * Number(it.quantity)), 0);
       
       if (vendorSubtotal === 0 && (String(o.vendorId || '').trim() === vId || (o.vendorIds && Array.isArray(o.vendorIds) && o.vendorIds.includes(vId)))) {
@@ -235,15 +231,8 @@ export default function VendorDashboard() {
       }
     });
 
-    const payoutTotal = (allPayouts || []).filter(r => r.status === 'Completed').reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
-    const pendingPayoutTotal = (allPayouts || []).filter(r => r.status === 'Pending').reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
-
-    return { today, thisWeek: week, thisMonth: month, totalDelivered, totalCancelled, payoutTotal, pendingPayoutTotal };
-  }, [rawOrders, user, allPayouts]);
-
-  const effectiveWithdrawalBalance = useMemo(() => {
-    return Math.max(0, earnings.totalDelivered - earnings.payoutTotal - earnings.pendingPayoutTotal);
-  }, [earnings]);
+    return { today, thisWeek: week, thisMonth: month, totalDelivered, totalCancelled };
+  }, [rawOrders, user]);
 
   const filteredOrders = useMemo(() => {
     if (!rawOrders || !user) return [];
@@ -278,53 +267,6 @@ export default function VendorDashboard() {
       await updateDoc(doc(firestore, 'orders', orderId), updateData);
       toast({ title: `Order ${newStatus}!` });
     } catch (e) { toast({ variant: "destructive", title: "Failed" }); }
-  };
-
-  const handleCancelOrder = async (id: string) => {
-    if (!firestore) return;
-    if (confirm("🚨 WARNING: Are you sure you want to CANCEL this order?")) {
-      await updateDoc(doc(firestore, 'orders', id), { status: 'Cancelled', updatedAt: serverTimestamp() });
-      toast({ title: "Order Cancelled" });
-    }
-  };
-
-  const handleSaveNote = async () => {
-    if (!firestore || !noteOrderId || isSavingNote) return;
-    setIsSavingNote(true);
-    try {
-      await updateDoc(doc(firestore, 'orders', noteOrderId), {
-        adminNote: noteText.trim().toUpperCase(),
-        noteUpdatedAt: serverTimestamp()
-      });
-      setIsNoteOpen(false);
-      setNoteText('');
-      setNoteOrderId(null);
-      toast({ title: "Note Shared with Customer!" });
-    } catch (err) {
-      toast({ variant: "destructive", title: "Failed to save note" });
-    } finally {
-      setIsSavingNote(false);
-    }
-  };
-
-  const handleWithdrawRequest = async () => {
-    if (!firestore || !user || isProcessing) return;
-    if (!vendorProfile?.upiId) { setIsUpiModalOpen(true); return; }
-    const amount = effectiveWithdrawalBalance;
-    if (amount <= 0) { toast({ variant: "destructive", title: "Low Balance" }); return; }
-    setIsProcessing(true);
-    try {
-      await addDoc(collection(firestore, 'payout_requests'), {
-        vendorId: user.uid,
-        storeName: vendorProfile.storeName,
-        amount: amount,
-        upiId: vendorProfile.upiId,
-        status: 'Pending',
-        createdAt: serverTimestamp()
-      });
-      toast({ title: "Request Sent! ⏳", description: "Processing in 24-48 hours." });
-    } catch (err) { toast({ variant: "destructive", title: "Request Failed" }); }
-    finally { setIsProcessing(false); }
   };
 
   const generateReceipt = async (order: any) => {
@@ -372,19 +314,6 @@ export default function VendorDashboard() {
       }
     } catch (err) { toast({ variant: "destructive", title: "Failed" }); }
     finally { setIsDownloading(null); }
-  };
-
-  const handleManualImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      try {
-        const compressed = await compressImage(reader.result as string, 400, 400);
-        setManualProduct(prev => ({ ...prev, imageUrl: compressed }));
-      } catch (err) { toast({ variant: "destructive", title: "Image Error" }); }
-    };
-    reader.readAsDataURL(file);
   };
 
   const handleManualAddProduct = async () => {
@@ -487,7 +416,6 @@ export default function VendorDashboard() {
                         </div>
                       </div>
                       <div className="flex gap-2">
-                         <button onClick={() => { setNoteOrderId(o.id); setNoteText(o.adminNote || ''); setIsNoteOpen(true); }} className="h-10 w-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center border border-amber-100"><StickyNote className="h-5 w-5" /></button>
                          <button onClick={() => generateReceipt(o)} disabled={isDownloading === o.id} className="h-10 w-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center border border-blue-100">{isDownloading === o.id ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileText className="h-5 w-5" />}</button>
                          <button onClick={() => window.open(`tel:${o.customerPhone}`)} className="h-10 w-10 bg-green-500 text-white rounded-xl flex items-center justify-center shadow-lg"><PhoneCall className="h-5 w-5" /></button>
                       </div>
@@ -515,13 +443,6 @@ export default function VendorDashboard() {
                       {o.cookingInstructions && <div className="mt-3 pt-3 border-t border-gray-200"><p className="text-[10px] font-bold text-gray-800 italic uppercase">"{o.cookingInstructions}"</p></div>}
                    </div>
 
-                   {o.status === 'Ready for Pickup' && o.pickupOTP && (
-                     <div className="bg-[#0B0B0B] p-6 rounded-[2rem] mb-6 border-2 border-primary/30 shadow-2xl flex items-center justify-between text-white">
-                        <div><span className="text-[8px] font-black text-primary uppercase tracking-[0.2em] mb-1">PICKUP CODE</span><h4 className="text-4xl font-black italic tracking-[0.2em]">{o.pickupOTP}</h4></div>
-                        <div className="text-right"><p className="text-[7px] font-bold text-gray-400 uppercase">Tell this to rider</p></div>
-                     </div>
-                   )}
-
                    <div className="flex flex-col gap-2">
                       {o.status === 'Placed' && <Button onClick={() => handleUpdateStatus(o.id, 'Accepted')} className="h-16 bg-green-600 text-white rounded-2xl font-black uppercase italic">ACCEPT ORDER</Button>}
                       {o.status === 'Accepted' && <Button onClick={() => handleUpdateStatus(o.id, 'Preparing')} className="h-16 bg-primary text-white rounded-2xl font-black uppercase italic">START PREPARING</Button>}
@@ -546,27 +467,6 @@ export default function VendorDashboard() {
                       <button onClick={async () => { if(confirm("Remove?")) await updateDoc(doc(firestore!, 'products', p.id), {isDeleted: true}); }} className="absolute top-4 right-4 h-8 w-8 text-red-500 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100"><Trash2 className="h-4 w-4" /></button>
                    </div>
                  ))}
-              </div>
-           </div>
-         )}
-
-         {activeMainTab === 'payouts' && (
-           <div className="p-4 space-y-6">
-              <h2 className="text-xl font-black italic uppercase ml-2">Wallet</h2>
-              <div className="bg-[#EF4444] p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[180px]">
-                 <div className="relative z-10 space-y-1"><span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Withdrawal Balance</span><div className="text-5xl font-black italic">₹ {effectiveWithdrawalBalance.toFixed(2)}</div></div>
-                 <div className="relative z-10 flex justify-end mt-4"><button onClick={handleWithdrawRequest} disabled={isProcessing || effectiveWithdrawalBalance <= 0} className="bg-white text-primary rounded-xl h-10 px-6 font-black uppercase text-[10px] italic">{isProcessing ? 'Processing...' : "Withdraw Now"}</button></div>
-                 <Wallet2 className="absolute bottom-4 right-4 h-24 w-24 text-white opacity-10" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                 <div className="bg-white p-5 rounded-[2rem] border border-blue-100 shadow-sm flex flex-col gap-2">
-                    <ArrowDownLeft className="h-4 w-4 text-blue-500" />
-                    <div><span className="text-[8px] font-black text-gray-400 uppercase block">Today's Sales</span><h4 className="text-lg font-black italic">₹ {earnings.today.toFixed(0)}</h4></div>
-                 </div>
-                 <div className="bg-white p-5 rounded-[2rem] border border-amber-100 shadow-sm flex flex-col gap-2">
-                    <Timer className="h-4 w-4 text-amber-500" />
-                    <div><span className="text-[8px] font-black text-gray-400 uppercase block">Pending Payout</span><h4 className="text-lg font-black italic">₹ {earnings.pendingPayoutTotal.toFixed(0)}</h4>{earnings.pendingPayoutTotal > 0 && <p className="text-[7px] font-bold text-amber-600 uppercase animate-pulse">Settlement in 24-48hr</p>}</div>
-                 </div>
               </div>
            </div>
          )}
@@ -597,19 +497,6 @@ export default function VendorDashboard() {
           </button>
         ))}
       </nav>
-
-      <Dialog open={isNoteOpen} onOpenChange={setIsNoteOpen}>
-         <DialogContent className="rounded-[2.5rem] max-sm p-8 border-none shadow-2xl bg-white focus:outline-none">
-            <div className="flex flex-col items-center text-center space-y-4">
-               <div className="h-16 w-16 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-500 border border-amber-100"><StickyNote className="h-8 w-8" /></div>
-               <DialogTitle className="text-2xl font-black italic uppercase">Share Note</DialogTitle>
-            </div>
-            <div className="space-y-6 mt-6">
-               <Textarea placeholder="E.G. PACKING STARTED" value={noteText} onChange={e => setNoteText(e.target.value.toUpperCase())} className="min-h-[120px] rounded-[1.5rem] bg-gray-50 border-none font-black text-xs uppercase p-4" />
-               <Button onClick={handleSaveNote} disabled={isSavingNote || !noteText.trim()} className="w-full h-16 bg-black text-white rounded-[2rem] font-black uppercase italic shadow-xl">PUBLISH NOTE</Button>
-            </div>
-         </DialogContent>
-      </Dialog>
     </div>
   );
 }
