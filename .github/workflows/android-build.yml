@@ -51,7 +51,7 @@ jobs:
         working-directory: android
         run: |
           sed -i 's/applicationId ".*"/applicationId "co.in.shopykart.app"/' app/build.gradle
-          sed -i 's/versionCode [0-9]*/versionCode 5/' app/build.gradle
+          sed -i 's/versionCode [0-9]*/versionCode 6/' app/build.gradle
           sed -i 's/versionName ".*"/versionName "1.2.2"/' app/build.gradle
           chmod +x gradlew
           ./gradlew assembleRelease
@@ -79,7 +79,7 @@ jobs:
         working-directory: android
         run: |
           sed -i 's/applicationId ".*"/applicationId "co.in.shopykart.admin"/' app/build.gradle
-          sed -i 's/versionCode [0-9]*/versionCode 5/' app/build.gradle
+          sed -i 's/versionCode [0-9]*/versionCode 6/' app/build.gradle
           sed -i 's/versionName ".*"/versionName "1.2.2"/' app/build.gradle
           chmod +x gradlew
           ./gradlew assembleRelease
@@ -107,7 +107,7 @@ jobs:
         working-directory: android
         run: |
           sed -i 's/applicationId ".*"/applicationId "co.in.shopykart.biz"/' app/build.gradle
-          sed -i 's/versionCode [0-9]*/versionCode 5/' app/build.gradle
+          sed -i 's/versionCode [0-9]*/versionCode 6/' app/build.gradle
           sed -i 's/versionName ".*"/versionName "1.2.2"/' app/build.gradle
           chmod +x gradlew
           ./gradlew assembleRelease
@@ -135,7 +135,7 @@ jobs:
         working-directory: android
         run: |
           sed -i 's/applicationId ".*"/applicationId "co.in.shopykart.tow"/' app/build.gradle
-          sed -i 's/versionCode [0-9]*/versionCode 5/' app/build.gradle
+          sed -i 's/versionCode [0-9]*/versionCode 6/' app/build.gradle
           sed -i 's/versionName ".*"/versionName "1.2.2"/' app/build.gradle
           chmod +x gradlew
           ./gradlew assembleRelease
