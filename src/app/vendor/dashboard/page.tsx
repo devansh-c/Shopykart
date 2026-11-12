@@ -433,7 +433,7 @@ export default function VendorDashboard() {
                    </div>
 
                    <div className="space-y-3 mb-6 bg-gray-50/50 p-5 rounded-3xl border border-dashed border-gray-200">
-                      <div className="flex items-center gap-2 mb-2"><ShoppingBag className="h-4 w-4 text-gray-400" /><span className="text-[10px] font-black uppercase text-gray-500">Items</span></div>
+                      <div className="flex items-center gap-2"><ShoppingBag className="h-4 w-4 text-gray-400" /><span className="text-[10px] font-black uppercase text-gray-500">Items</span></div>
                       {o.items?.filter((it:any) => String(it.vendorId).trim() === String(user?.uid).trim()).map((item:any, i:number) => (
                         <div key={i} className="flex justify-between items-center text-[11px] font-black uppercase italic">
                            <span><span className="text-primary">{item.quantity}x</span> {item.name}</span>

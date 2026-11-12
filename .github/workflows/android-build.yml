@@ -49,6 +49,7 @@ jobs:
         working-directory: android
         run: |
           sed -i 's/applicationId ".*"/applicationId "co.in.shopykart.app"/' app/build.gradle
+          sed -i 's/versionName ".*"/versionName "1.2.1"/' app/build.gradle
           chmod +x gradlew
           ./gradlew assembleRelease
           ./gradlew bundleRelease
@@ -75,6 +76,7 @@ jobs:
         working-directory: android
         run: |
           sed -i 's/applicationId ".*"/applicationId "co.in.shopykart.admin"/' app/build.gradle
+          sed -i 's/versionName ".*"/versionName "1.2.1"/' app/build.gradle
           chmod +x gradlew
           ./gradlew assembleRelease
           ./gradlew bundleRelease
@@ -101,6 +103,7 @@ jobs:
         working-directory: android
         run: |
           sed -i 's/applicationId ".*"/applicationId "co.in.shopykart.biz"/' app/build.gradle
+          sed -i 's/versionName ".*"/versionName "1.2.1"/' app/build.gradle
           chmod +x gradlew
           ./gradlew assembleRelease
           ./gradlew bundleRelease
@@ -127,6 +130,7 @@ jobs:
         working-directory: android
         run: |
           sed -i 's/applicationId ".*"/applicationId "co.in.shopykart.tow"/' app/build.gradle
+          sed -i 's/versionName ".*"/versionName "1.2.1"/' app/build.gradle
           chmod +x gradlew
           ./gradlew assembleRelease
           ./gradlew bundleRelease
