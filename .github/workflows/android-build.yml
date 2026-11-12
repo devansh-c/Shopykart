@@ -32,6 +32,8 @@ jobs:
 
       - name: Create Dummy Keystore
         run: |
+          # WARNING: For Play Store upload, use your REAL keystore as a GitHub Secret.
+          # This dummy key will cause "Wrong Key" error if uploading to existing Play Store apps.
           test -f android/app/release.jks || keytool -genkey -noprompt -alias shopykart -dname "CN=ShopyKart, OU=IT, O=ShopyKart, L=Ranipur, S=UP, C=IN" -keystore android/app/release.jks -storepass shopykart123 -keypass shopykart123 -keyalg RSA -keysize 2048 -validity 10000
 
       # BUILD 1: CUSTOMER APP (co.in.shopykart.app)
@@ -49,7 +51,8 @@ jobs:
         working-directory: android
         run: |
           sed -i 's/applicationId ".*"/applicationId "co.in.shopykart.app"/' app/build.gradle
-          sed -i 's/versionName ".*"/versionName "1.2.1"/' app/build.gradle
+          sed -i 's/versionCode [0-9]*/versionCode 5/' app/build.gradle
+          sed -i 's/versionName ".*"/versionName "1.2.2"/' app/build.gradle
           chmod +x gradlew
           ./gradlew assembleRelease
           ./gradlew bundleRelease
@@ -76,7 +79,8 @@ jobs:
         working-directory: android
         run: |
           sed -i 's/applicationId ".*"/applicationId "co.in.shopykart.admin"/' app/build.gradle
-          sed -i 's/versionName ".*"/versionName "1.2.1"/' app/build.gradle
+          sed -i 's/versionCode [0-9]*/versionCode 5/' app/build.gradle
+          sed -i 's/versionName ".*"/versionName "1.2.2"/' app/build.gradle
           chmod +x gradlew
           ./gradlew assembleRelease
           ./gradlew bundleRelease
@@ -103,7 +107,8 @@ jobs:
         working-directory: android
         run: |
           sed -i 's/applicationId ".*"/applicationId "co.in.shopykart.biz"/' app/build.gradle
-          sed -i 's/versionName ".*"/versionName "1.2.1"/' app/build.gradle
+          sed -i 's/versionCode [0-9]*/versionCode 5/' app/build.gradle
+          sed -i 's/versionName ".*"/versionName "1.2.2"/' app/build.gradle
           chmod +x gradlew
           ./gradlew assembleRelease
           ./gradlew bundleRelease
@@ -130,7 +135,8 @@ jobs:
         working-directory: android
         run: |
           sed -i 's/applicationId ".*"/applicationId "co.in.shopykart.tow"/' app/build.gradle
-          sed -i 's/versionName ".*"/versionName "1.2.1"/' app/build.gradle
+          sed -i 's/versionCode [0-9]*/versionCode 5/' app/build.gradle
+          sed -i 's/versionName ".*"/versionName "1.2.2"/' app/build.gradle
           chmod +x gradlew
           ./gradlew assembleRelease
           ./gradlew bundleRelease
@@ -144,7 +150,7 @@ jobs:
       - name: Upload Complete Bundle
         uses: actions/upload-artifact@v4
         with:
-          name: ShopyKart-Quad-Apps-Release
+          name: ShopyKart-Quad-Apps-Release-v1.2.2
           path: |
             *.apk
             *.aab

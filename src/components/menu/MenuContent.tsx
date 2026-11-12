@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useMemo, useEffect, memo } from 'react';
@@ -58,7 +59,8 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
     const fromSearch = searchParams.get('id');
     const fromParams = params?.slug ? String(params.slug) : null;
     const final = (fromProps || fromSearch || fromParams || '').trim();
-    return final === 'view' ? (fromSearch || '') : final;
+    // Capacitor/Android often adds "view" slug when using search params
+    return (final === 'view' || final === 'details') ? (fromSearch || '') : final;
   }, [forcedSlug, params, searchParams]);
 
   const router = useRouter();
@@ -66,7 +68,6 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
   const [currentMinutes, setCurrentMinutes] = useState<number | null>(null);
   const [vendorProfile, setVendorProfile] = useState<any>(initialVendor);
   const [vendorLoading, setVendorLoading] = useState(true);
-  const [retryCount, setRetryCount] = useState(0);
   
   const firestore = useFirestore();
 
@@ -90,6 +91,7 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
     try {
       const cleanSlug = String(rawSlug).toLowerCase().trim();
 
+      // STAGE 1: Direct ID Match (Fastest)
       const idRef = doc(firestore, 'vendors', rawSlug);
       const idSnap = await getDoc(idRef);
       if (idSnap.exists()) {
@@ -98,6 +100,7 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
         return;
       }
 
+      // STAGE 2: Query Slug or storeId (Precise)
       const vendorsRef = collection(firestore, 'vendors');
       const [slugSnap, idQuerySnap] = await Promise.all([
         getDocs(query(vendorsRef, where('slug', '==', cleanSlug), limit(1))),
@@ -116,40 +119,42 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
         return;
       }
 
+      // STAGE 3: Aggressive Full Scan (Fallback for slow internet/desync)
       const allVendors = await getDocs(vendorsRef);
       const found = allVendors.docs.find(d => {
         const data = d.data();
-        return d.id === rawSlug || 
-               (data.slug && data.slug.toLowerCase() === cleanSlug) || 
-               (data.storeId && data.storeId.toLowerCase() === cleanSlug);
+        const vendorId = d.id.toLowerCase();
+        const vendorSlug = (data.slug || '').toLowerCase();
+        const vendorStoreId = (data.storeId || '').toLowerCase();
+        const vendorNameSlug = slugify(data.storeName || '').toLowerCase();
+
+        return vendorId === cleanSlug || 
+               vendorSlug === cleanSlug || 
+               vendorStoreId === cleanSlug ||
+               vendorNameSlug === cleanSlug;
       });
 
       if (found) {
         setVendorProfile({ id: found.id, ...found.data() });
-        setVendorLoading(false);
-      } else {
-        if (retryCount < 3) {
-          setTimeout(() => setRetryCount(prev => prev + 1), 1000);
-        } else {
-          setVendorLoading(false);
-        }
       }
+      
+      setVendorLoading(false);
     } catch (err) {
-      console.error("Resolution error:", err);
+      console.error("Critical Resolution Error:", err);
       setVendorLoading(false);
     }
   };
 
   useEffect(() => {
     resolveVendor();
-  }, [firestore, rawSlug, retryCount]);
+  }, [firestore, rawSlug]);
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore || !vendorProfile) return null;
     return query(collection(firestore, 'products'), where('vendorId', '==', String(vendorProfile.id)));
   }, [firestore, vendorProfile]);
   
-  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, `menu_v12_${vendorProfile?.id}`, initialProducts);
+  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, `menu_v13_${vendorProfile?.id}`, initialProducts);
 
   const categoriesWithProducts = useMemo(() => {
     const list = (dbProducts && dbProducts.length > 0) ? dbProducts : initialProducts;
@@ -183,7 +188,7 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
         <div className="h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20 animate-pulse">
            <Store className="h-8 w-8 text-primary" />
         </div>
-        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Syncing with Hub...</p>
+        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Syncing Hub...</p>
       </div>
     );
   }
@@ -194,11 +199,11 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
         <div className="bg-muted/30 h-28 w-28 rounded-full flex items-center justify-center mb-10">
            <Store className="h-14 w-14 text-muted-foreground/30" />
         </div>
-        <h2 className="text-3xl font-black italic uppercase text-gray-800 tracking-tighter leading-tight">HUB NOT REACHABLE</h2>
-        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-4 mb-10">Please check your internet or try again.</p>
+        <h2 className="text-3xl font-black italic uppercase text-gray-800 tracking-tighter leading-tight">HUB OFFLINE</h2>
+        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-4 mb-10">Network connection lost. Please try again.</p>
         <div className="flex flex-col gap-3 w-full max-w-xs">
           <Button onClick={() => resolveVendor()} className="h-16 bg-primary text-white rounded-2xl font-black uppercase italic shadow-xl">
-            <RefreshCw className="h-4 w-4 mr-2" /> RETRY CONNECTION
+            <RefreshCw className="h-4 w-4 mr-2" /> RECONNECT
           </Button>
           <Button onClick={() => router.push('/')} variant="ghost" className="h-14 text-gray-400 font-black uppercase italic">BACK TO HOME</Button>
         </div>

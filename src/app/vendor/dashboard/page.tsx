@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useEffect, useState, useRef, useMemo } from 'react';
@@ -184,12 +185,6 @@ export default function VendorDashboard() {
   const productsQuery = useMemoFirebase(() => (firestore && user) ? query(collection(firestore, 'products'), where('vendorId', '==', user.uid)) : null, [firestore, user]);
   const { data: products } = useCollection<any>(productsQuery);
 
-  const couponsQuery = useMemoFirebase(() => (firestore && user) ? query(collection(firestore, 'coupons'), where('vendorId', '==', user.uid)) : null, [firestore, user]);
-  const { data: coupons } = useCollection<any>(couponsQuery);
-
-  const categoriesQuery = useMemoFirebase(() => (firestore) ? query(collection(firestore, 'categories')) : null, [firestore]);
-  const { data: categories } = useCollection<any>(categoriesQuery);
-
   const earnings = useMemo(() => {
     const fallback = { today: 0, thisWeek: 0, thisMonth: 0, totalDelivered: 0, totalCancelled: 0 };
     if (!rawOrders || !user) return fallback;
@@ -222,7 +217,7 @@ export default function VendorDashboard() {
 
       if (status === 'DELIVERED') {
         totalDelivered += vendorSubtotal;
-        if (isAfter(orderDate, todayStart)) today += vendorSubtotal;
+        if (isAfter(orderDate, dayStart)) today += vendorSubtotal;
         if (isAfter(orderDate, weekStart)) week += vendorSubtotal;
         if (isAfter(orderDate, monthStart)) month += vendorSubtotal;
       } else if (status === 'CANCELLED') {

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo, useState, useEffect, memo } from 'react';
@@ -87,13 +88,13 @@ export const VerticalStoreList = memo(({
     if (!firestore) return null;
     return query(collection(firestore, 'vendors'), limit(50));
   }, [firestore]);
-  const { data: dbVendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery, 'home_vstores_v26', initialData);
+  const { data: dbVendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery, 'home_vstores_v27', initialData);
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'products'), limit(500));
   }, [firestore]);
-  const { data: dbAllProducts } = useCollection<any>(productsQuery, 'home_strip_products_v36', initialProducts);
+  const { data: dbAllProducts } = useCollection<any>(productsQuery, 'home_strip_products_v37', initialProducts);
 
   const filteredVendors = useMemo(() => {
     const list = (dbVendors !== null && dbVendors.length > 0) ? dbVendors : initialData;

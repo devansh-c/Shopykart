@@ -13,7 +13,7 @@ const inter = Inter({
 });
 
 /**
- * @fileOverview Root Layout v1.2.1 - UI Hydration Fix.
+ * @fileOverview Root Layout v1.2.2 - UI Hydration Fix.
  * CRITICAL: Strictly imports globals.css FIRST to prevent unstyled layout shifts.
  */
 
