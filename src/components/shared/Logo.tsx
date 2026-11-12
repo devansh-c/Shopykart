@@ -6,9 +6,11 @@ import { useState, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
+import Image from "next/image";
 
 /**
- * @fileOverview Logo component with Advanced Multi-App Switching for Preview mode.
+ * @fileOverview Logo component with Public Folder Support for Biz App.
+ * Instructions: Place 'biz-logo.png' in public folder to change Business app logo.
  */
 export function Logo({ className }: { className?: string }) {
   const [taps, setTaps] = useState(0);
@@ -31,12 +33,7 @@ export function Logo({ className }: { className?: string }) {
     return localStorage.getItem('shopykart_dev_app_type') || 'customer';
   }, []);
 
-  const displayLogo = useMemo(() => {
-    if (!branding) return null;
-    // Show specific Biz Logo for Shopykart Biz App
-    if (currentAppType === 'biz' && branding.bizLogoUrl) return branding.bizLogoUrl;
-    return branding.logoUrl || null;
-  }, [branding, currentAppType]);
+  const isBizApp = currentAppType === 'biz';
 
   const handleTap = () => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -44,12 +41,10 @@ export function Logo({ className }: { className?: string }) {
     
     if (nextTaps >= 5) {
       setTaps(0);
-      // For Dev Preview: Cycle through app types on 5 taps
       if (process.env.NODE_ENV === 'development') {
         const types = ['customer', 'admin', 'biz', 'tow'];
         const nextType = types[(types.indexOf(currentAppType) + 1) % types.length];
         localStorage.setItem('shopykart_dev_app_type', nextType);
-        alert(`Preview Mode Switched to: ${nextType.toUpperCase()}`);
         window.location.reload();
       } else {
         router.push('/admin/dashboard');
@@ -70,20 +65,33 @@ export function Logo({ className }: { className?: string }) {
         className
       )}
     >
-      {displayLogo ? (
+      {/* PRIORITIZE BIZ LOGO FROM PUBLIC FOLDER OR FIRESTORE */}
+      {isBizApp ? (
         <img 
-          src={displayLogo} 
+          src={branding?.bizLogoUrl || "/biz-logo.png"} 
+          alt="ShopyKart Biz" 
+          className="h-8 w-auto object-contain"
+          onError={(e) => {
+            // Fallback to text if image not found in public or firestore
+            (e.target as any).style.display = 'none';
+            (e.target as any).nextSibling.style.display = 'flex';
+          }}
+        />
+      ) : branding?.logoUrl ? (
+        <img 
+          src={branding.logoUrl} 
           alt="ShopyKart Logo" 
           className="h-8 w-auto object-contain" 
         />
-      ) : (
-        <div className="flex flex-col items-center">
-           <span className="text-white font-black italic text-sm tracking-tighter leading-none">SHOPYKART</span>
-           <span className="text-[6px] font-black text-primary uppercase tracking-[0.3em]">
-             {currentAppType === 'biz' ? 'BIZ PARTNER' : currentAppType === 'admin' ? 'CEO CONTROL' : currentAppType === 'tow' ? 'FLEET PANEL' : 'Premium Delivery'}
-           </span>
-        </div>
-      )}
+      ) : null}
+
+      {/* TEXT FALLBACK (HIDDEN IF IMAGE LOADS) */}
+      <div className={cn("flex flex-col items-center", (isBizApp || branding?.logoUrl) ? "hidden" : "flex")}>
+         <span className="text-white font-black italic text-sm tracking-tighter leading-none">SHOPYKART</span>
+         <span className="text-[6px] font-black text-primary uppercase tracking-[0.3em]">
+           {currentAppType === 'biz' ? 'BIZ PARTNER' : currentAppType === 'admin' ? 'CEO CONTROL' : currentAppType === 'tow' ? 'FLEET PANEL' : 'Premium Delivery'}
+         </span>
+      </div>
     </div>
   );
 }

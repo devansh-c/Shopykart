@@ -227,7 +227,7 @@ export default function VendorDashboard() {
 
       if (status === 'DELIVERED') {
         totalDelivered += vendorSubtotal;
-        if (isAfter(orderDate, dayStart)) today += vendorSubtotal;
+        if (isAfter(orderDate, todayStart)) today += vendorSubtotal;
         if (isAfter(orderDate, weekStart)) week += vendorSubtotal;
         if (isAfter(orderDate, monthStart)) month += vendorSubtotal;
       } else if (status === 'CANCELLED') {
