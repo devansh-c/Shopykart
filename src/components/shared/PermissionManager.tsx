@@ -5,7 +5,7 @@ import { useUser, useFirestore } from '@/firebase';
 import { requestPushToken, syncTokenToFirestore } from '@/firebase/messaging';
 
 /**
- * @fileOverview Permission Manager - Configures Max Priority Channels for Ringing.
+ * @fileOverview Permission Manager - Configures separate channels for Business vs Customer sounds.
  */
 export default function PermissionManager() {
   const { user } = useUser();
@@ -34,10 +34,10 @@ export default function PermissionManager() {
           const { PushNotifications } = await import('@capacitor/push-notifications');
           const { LocalNotifications } = await import('@capacitor/local-notifications');
 
-          // CREATE RINGING CHANNEL (IMPORTANCE_MAX = 5)
+          // 1. BUSINESS CHANNEL (Loud Ringing)
           const ringingChannel = {
             id: 'new_order_channel',
-            name: 'Order Ringing Alerts',
+            name: 'Order Ringing Alerts (Business)',
             description: 'Loud continuous ringing for new tasks',
             sound: 'order_alert', 
             importance: 5, 
@@ -45,8 +45,21 @@ export default function PermissionManager() {
             vibration: true,
           };
 
+          // 2. CUSTOMER CHANNEL (Short Notification)
+          const customerChannel = {
+            id: 'customer_updates',
+            name: 'Order Updates (Customer)',
+            description: 'Short notifications for status changes',
+            sound: 'customer_alert', 
+            importance: 4, 
+            visibility: 1,
+            vibration: true,
+          };
+
           await PushNotifications.createChannel(ringingChannel);
           await LocalNotifications.createChannel(ringingChannel);
+          await PushNotifications.createChannel(customerChannel);
+          await LocalNotifications.createChannel(customerChannel);
 
           PushNotifications.addListener('registration', async (token) => {
             localStorage.setItem('shopykart_fcm_token', token.value);
@@ -87,25 +100,17 @@ export default function PermissionManager() {
 export async function scheduleTestNotification() {
   try {
     const { LocalNotifications } = await import('@capacitor/local-notifications');
+    const isAdminApp = typeof window !== 'undefined' && (process.env.NEXT_PUBLIC_ADMIN_APP === 'true' || process.env.NEXT_PUBLIC_BIZ_APP === 'true');
     
-    await LocalNotifications.createChannel({
-      id: 'new_order_channel',
-      name: 'Order Ringing Alerts',
-      sound: 'order_alert',
-      importance: 5,
-      visibility: 1,
-      vibration: true,
-    });
-
     await LocalNotifications.schedule({
       notifications: [
         {
-          title: "🚨 RINGING TEST",
-          body: "Loud alert system check successful!",
+          title: isAdminApp ? "🚨 BUSINESS ALERT TEST" : "🎁 CUSTOMER NOTIFY TEST",
+          body: "Notification sound check successful!",
           id: 7777,
           schedule: { at: new Date(Date.now() + 5000) }, 
-          channelId: 'new_order_channel',
-          sound: 'order_alert'
+          channelId: isAdminApp ? 'new_order_channel' : 'customer_updates',
+          sound: isAdminApp ? 'order_alert' : 'customer_alert'
         }
       ]
     });

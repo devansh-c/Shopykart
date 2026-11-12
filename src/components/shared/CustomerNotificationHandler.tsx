@@ -1,9 +1,8 @@
-
 'use client';
 
 import { useEffect, useRef } from 'react';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, query, where, onSnapshot, addDoc, serverTimestamp, limit } from "firebase/firestore";
+import { collection, query, where, onSnapshot, addDoc, serverTimestamp } from "firebase/firestore";
 import { useToast } from '@/hooks/use-toast';
 
 const statusMessages: Record<string, { title: string; body: string }> = {
@@ -31,7 +30,7 @@ const statusMessages: Record<string, { title: string; body: string }> = {
 
 /**
  * @fileOverview STATUS UPDATE HANDLER (For Customers Only).
- * Triggers notifications when the Store updates an order.
+ * Uses 'customer_updates' channel with 'customer_alert' sound.
  */
 export default function CustomerNotificationHandler() {
   const { user } = useUser();
@@ -42,7 +41,6 @@ export default function CustomerNotificationHandler() {
   useEffect(() => {
     if (!firestore || !user) return;
 
-    // Listen only to orders WHERE THIS USER is the customer
     const q = query(
       collection(firestore, 'orders'),
       where('userId', '==', user.uid)
@@ -54,18 +52,14 @@ export default function CustomerNotificationHandler() {
           const order = change.doc.data();
           const orderId = change.doc.id;
           const currentStatus = order.status;
-
           const prevStatus = lastKnownStatuses.current[orderId];
           
-          // Only notify if status has actually changed
           if (prevStatus && prevStatus !== currentStatus) {
             const msg = statusMessages[currentStatus];
 
             if (msg) {
-              // 1. Show UI Toast for foreground visibility
               toast({ title: msg.title, description: msg.body });
 
-              // 2. Trigger System Notification (Standard priority)
               try {
                 const { LocalNotifications } = await import('@capacitor/local-notifications');
                 await LocalNotifications.schedule({
@@ -74,15 +68,16 @@ export default function CustomerNotificationHandler() {
                       title: msg.title,
                       body: msg.body,
                       id: Math.floor(Math.random() * 100000),
+                      channelId: 'customer_updates',
+                      sound: 'customer_alert', // android/app/src/main/res/raw/customer_alert.mp3
                       extra: { orderId: orderId }
                     }
                   ]
                 });
               } catch (e) {
-                console.debug("Standard notification skipped in browser");
+                console.debug("Native notification skipped");
               }
 
-              // 3. Add to In-App History
               try {
                 await addDoc(collection(firestore, 'users', user.uid, 'notifications'), {
                   title: msg.title,
@@ -95,10 +90,8 @@ export default function CustomerNotificationHandler() {
               } catch (err) {}
             }
           }
-
           lastKnownStatuses.current[orderId] = currentStatus;
         } else if (change.type === 'added') {
-          // Store initial status on load to prevent notifications for old orders
           lastKnownStatuses.current[change.doc.id] = change.doc.data().status;
         }
       });

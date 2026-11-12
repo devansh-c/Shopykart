@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useMemo, useEffect, memo } from 'react';
@@ -59,7 +58,6 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
     const fromSearch = searchParams.get('id');
     const fromParams = params?.slug ? String(params.slug) : null;
     const final = (fromProps || fromSearch || fromParams || '').trim();
-    // BIZ FIX: 'view' is a keyword in our routing, ignore it as a valid slug
     return final === 'view' ? (fromSearch || '') : final;
   }, [forcedSlug, params, searchParams]);
 
@@ -92,7 +90,6 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
     try {
       const cleanSlug = String(rawSlug).toLowerCase().trim();
 
-      // 1. Try Direct ID match
       const idRef = doc(firestore, 'vendors', rawSlug);
       const idSnap = await getDoc(idRef);
       if (idSnap.exists()) {
@@ -101,7 +98,6 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
         return;
       }
 
-      // 2. Try Slug or StoreID Query
       const vendorsRef = collection(firestore, 'vendors');
       const [slugSnap, idQuerySnap] = await Promise.all([
         getDocs(query(vendorsRef, where('slug', '==', cleanSlug), limit(1))),
@@ -120,7 +116,6 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
         return;
       }
 
-      // 3. FINAL AGGRESSIVE SCAN (For slug mismatches or partial IDs)
       const allVendors = await getDocs(vendorsRef);
       const found = allVendors.docs.find(d => {
         const data = d.data();
@@ -133,7 +128,6 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
         setVendorProfile({ id: found.id, ...found.data() });
         setVendorLoading(false);
       } else {
-        // One more retry after delay if first pass fails (Handles slow initial DB connection)
         if (retryCount < 3) {
           setTimeout(() => setRetryCount(prev => prev + 1), 1000);
         } else {
