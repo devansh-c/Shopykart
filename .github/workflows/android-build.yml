@@ -34,7 +34,7 @@ jobs:
         run: |
           # WARNING: For Play Store upload, use your REAL keystore as a GitHub Secret.
           # This dummy key will cause "Wrong Key" error if uploading to existing Play Store apps.
-          test -f android/app/release.jks || keytool -genkey -noprompt -alias shopykart -dname "CN=ShopyKart, OU=IT, O=ShopyKart, L=Ranipur, S=UP, C=IN" -keystore android/app/release.jks -storepass shopykart123 -keypass shopykart123 -keyalg RSA -keysize 2048 -validity 10000
+          test -f android/app/release.keystore || keytool -genkey -noprompt -alias releasekey -dname "CN=ShopyKart, OU=IT, O=ShopyKart, L=Ranipur, S=UP, C=IN" -keystore android/app/release.keystore -storepass shopykart123 -keypass shopykart123 -keyalg RSA -keysize 2048 -validity 10000
 
       # BUILD 1: CUSTOMER APP (co.in.shopykart.app)
       - name: Build & Sync Customer

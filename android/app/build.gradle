@@ -22,9 +22,9 @@ android {
 
     signingConfigs {
         release {
-            storeFile file('release.jks')
+            storeFile file('release.keystore')
             storePassword 'shopykart123'
-            keyAlias 'shopykart'
+            keyAlias 'releasekey'
             keyPassword 'shopykart123'
         }
     }
