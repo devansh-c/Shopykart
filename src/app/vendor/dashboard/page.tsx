@@ -69,7 +69,8 @@ import {
   CalendarRange,
   Wallet,
   Banknote,
-  Save
+  Save,
+  Camera
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -100,12 +101,25 @@ export default function VendorDashboard() {
   const { user, loading: authLoading } = useUser();
   const { toast } = useToast();
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const addProductFileRef = useRef<HTMLInputElement>(null);
   
   const [activeMainTab, setActiveMainTab] = useState<MainTab>('orders');
   const [orderFilter, setOrderFilter] = useState<OrderFilter>('NEW ORDERS');
   const [isMounted, setIsMounted] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   
+  // Product Add State
+  const [isAddProductOpen, setIsAddProductOpen] = useState(false);
+  const [productForm, setProductForm] = useState({
+    name: '',
+    price: '',
+    mrp: '',
+    description: '',
+    category: '',
+    image: null as string | null
+  });
+
   // Coupon State
   const [isAddCouponOpen, setIsAddCouponOpen] = useState(false);
   const [couponForm, setCouponData] = useState({ code: '', value: '', type: 'percentage', minOrder: '' });
@@ -172,6 +186,9 @@ export default function VendorDashboard() {
 
   const couponsQuery = useMemoFirebase(() => (firestore && user) ? query(collection(firestore, 'coupons'), where('vendorId', '==', user.uid)) : null, [firestore, user]);
   const { data: coupons } = useCollection<any>(couponsQuery);
+
+  const categoriesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'categories') : null, [firestore]);
+  const { data: allCategories } = useCollection<any>(categoriesQuery);
 
   const payoutHistoryQuery = useMemoFirebase(() => (firestore && user) ? query(collection(firestore, 'payout_requests'), where('vendorId', '==', user.uid), orderBy('createdAt', 'desc')) : null, [firestore, user]);
   const { data: payoutHistory } = useCollection<any>(payoutHistoryQuery);
@@ -270,6 +287,49 @@ export default function VendorDashboard() {
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const handleProductImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const compressed = await compressImage(reader.result as string, 400, 400);
+      setProductForm(prev => ({ ...prev, image: compressed }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleCreateProduct = async () => {
+    if (!firestore || !user || !productForm.name || !productForm.price) return;
+    setIsProcessing(true);
+    try {
+      const productData = {
+        name: productForm.name.toUpperCase().trim(),
+        slug: slugify(productForm.name),
+        price: parseFloat(productForm.price),
+        mrp: parseFloat(productForm.mrp) || parseFloat(productForm.price),
+        description: productForm.description.toUpperCase().trim(),
+        category: productForm.category || 'General',
+        vendorId: user.uid,
+        restaurantName: vendorProfile?.storeName || 'Store Hub',
+        zoneId: vendorProfile?.zoneId || 'global',
+        town: vendorProfile?.town || 'Local',
+        imageUrl: productForm.image || 'https://picsum.photos/seed/food/300/300',
+        isAvailable: true,
+        isDeleted: false,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      };
+      
+      const pRef = doc(collection(firestore, 'products'));
+      await setDoc(pRef, { ...productData, id: pRef.id });
+      
+      setIsAddProductOpen(false);
+      setProductForm({ name: '', price: '', mrp: '', description: '', category: '', image: null });
+      toast({ title: "Item Added to Menu! 🥘" });
+    } catch (e) { toast({ variant: "destructive", title: "Add Failed" }); }
+    finally { setIsProcessing(false); }
   };
 
   const handleCreateCoupon = async () => {
@@ -470,7 +530,37 @@ export default function VendorDashboard() {
            <div className="p-4 space-y-6">
               <div className="flex items-center justify-between px-2">
                  <h2 className="text-xl font-black italic uppercase">Menu Control</h2>
-                 <button onClick={() => router.push('/vendor/dashboard?action=add')} className="h-12 px-6 bg-primary text-white rounded-xl font-black uppercase italic text-xs shadow-lg">+ ADD ITEM</button>
+                 <Dialog open={isAddProductOpen} onOpenChange={setIsAddProductOpen}>
+                    <DialogTrigger asChild>
+                       <button className="h-12 px-6 bg-primary text-white rounded-xl font-black uppercase italic text-xs shadow-lg">+ ADD ITEM</button>
+                    </DialogTrigger>
+                    <DialogContent className="rounded-[2.5rem] max-w-md p-8 border-none shadow-2xl bg-white max-h-[90vh] overflow-y-auto no-scrollbar">
+                       <DialogHeader><DialogTitle className="font-black uppercase italic text-center text-xl">Add New Product</DialogTitle></DialogHeader>
+                       <div className="space-y-4 pt-4">
+                          <div onClick={() => addProductFileRef.current?.click()} className="h-40 border-2 border-dashed rounded-[2rem] flex flex-col items-center justify-center bg-muted/20 cursor-pointer overflow-hidden group hover:border-primary transition-all">
+                             {productForm.image ? <img src={productForm.image} className="h-full w-full object-cover" /> : <div className="flex flex-col items-center gap-2"><Camera className="h-8 w-8 text-muted-foreground/30" /><span className="text-[10px] font-black uppercase text-muted-foreground">Upload Photo</span></div>}
+                          </div>
+                          <input type="file" ref={addProductFileRef} className="hidden" accept="image/*" onChange={handleProductImageSelect} />
+
+                          <Input placeholder="ITEM NAME (E.G. CLASSIC BURGER)" value={productForm.name} onChange={e => setProductForm({...productForm, name: e.target.value})} className="h-12 rounded-xl font-bold" />
+                          <div className="grid grid-cols-2 gap-3">
+                             <Input placeholder="PRICE (₹)" type="number" value={productForm.price} onChange={e => setProductForm({...productForm, price: e.target.value})} className="h-12 rounded-xl font-bold" />
+                             <Input placeholder="MRP (₹)" type="number" value={productForm.mrp} onChange={e => setProductForm({...productForm, mrp: e.target.value})} className="h-12 rounded-xl font-bold" />
+                          </div>
+                          <Select value={productForm.category} onValueChange={v => setProductForm({...productForm, category: v})}>
+                             <SelectTrigger className="h-12 rounded-xl"><SelectValue placeholder="Select Category" /></SelectTrigger>
+                             <SelectContent className="rounded-2xl">
+                                {allCategories?.map((c: any) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+                             </SelectContent>
+                          </Select>
+                          <Textarea placeholder="SHORT DESCRIPTION..." value={productForm.description} onChange={e => setProductForm({...productForm, description: e.target.value})} className="rounded-xl min-h-[80px]" />
+                          
+                          <Button onClick={handleCreateProduct} disabled={isProcessing || !productForm.name || !productForm.price} className="w-full h-16 bg-black text-white rounded-[2rem] font-black uppercase italic shadow-xl">
+                             {isProcessing ? <Loader2 className="h-6 w-6 animate-spin" /> : "ADD TO MENU"}
+                          </Button>
+                       </div>
+                    </DialogContent>
+                 </Dialog>
               </div>
               <div className="grid grid-cols-1 gap-4">
                  {products?.filter(p => !p.isDeleted).map(p => (
@@ -706,3 +796,4 @@ export default function VendorDashboard() {
     </div>
   );
 }
+
