@@ -114,7 +114,14 @@ export default function VendorDashboard() {
   const [isSavingNote, setIsSavingNote] = useState(false);
   const [isDownloading, setIsDownloading] = useState<string | null>(null);
 
-  useEffect(() => { setIsMounted(true); }, []);
+  // Time for Store Schedule
+  const [currentTimeMins, setCurrentTimeMins] = useState<number | null>(null);
+
+  useEffect(() => { 
+    setIsMounted(true); 
+    const d = new Date();
+    setCurrentTimeMins(d.getHours() * 60 + d.getMinutes());
+  }, []);
 
   useEffect(() => {
     if (!isMounted || authLoading) return;
@@ -152,11 +159,10 @@ export default function VendorDashboard() {
   const { data: payoutHistory } = useCollection<any>(payoutHistoryQuery);
 
   const earnings = useMemo(() => {
-    const fallback = { today: 0, week: 0, month: 0, total: 0, cashInHand: 0, codOrders: [] };
+    const fallback = { today: 0, week: 0, month: 0, total: 0 };
     if (!rawOrders || !user) return fallback;
 
-    let today = 0, week = 0, month = 0, total = 0, cashInHand = 0;
-    const codOrders: any[] = [];
+    let today = 0, week = 0, month = 0, total = 0;
     const now = new Date();
     const dayStart = startOfDay(now);
     const weekStart = startOfWeek(now, { weekStartsOn: 1 });
@@ -179,32 +185,13 @@ export default function VendorDashboard() {
       let orderDate = o.createdAt?.seconds ? new Date(o.createdAt.seconds * 1000) : new Date(o.createdAt || Date.now());
       
       total += vendorSubtotal;
-      if (o.paymentMethod === 'COD' && o.paymentStatus !== 'Paid') {
-        cashInHand += vendorSubtotal;
-        codOrders.push({
-          id: o.id,
-          amount: vendorSubtotal,
-          date: orderDate,
-          customerName: o.customerName,
-          orderNum: o.customerOrderNumber
-        });
-      }
       if (isAfter(orderDate, dayStart)) today += vendorSubtotal;
       if (isAfter(orderDate, weekStart)) week += vendorSubtotal;
       if (isAfter(orderDate, monthStart)) month += vendorSubtotal;
     });
 
-    return { today, week, month, total, cashInHand, codOrders };
+    return { today, week, month, total };
   }, [rawOrders, user]);
-
-  const payoutStats = useMemo(() => {
-    if (!payoutHistory) return { pending: 0, completed: 0 };
-    return payoutHistory.reduce((acc, req) => {
-      if (req.status === 'Pending') acc.pending += Number(req.amount) || 0;
-      if (req.status === 'Completed') acc.completed += Number(req.amount) || 0;
-      return acc;
-    }, { pending: 0, completed: 0 });
-  }, [payoutHistory]);
 
   const filteredOrders = useMemo(() => {
     if (!rawOrders || !user) return [];
@@ -520,17 +507,15 @@ export default function VendorDashboard() {
 
          {activeMainTab === 'payouts' && (
            <div className="bg-gray-50 min-h-full">
-              {/* HEADER AREA */}
               <div className="bg-white px-6 pt-10 pb-6 rounded-b-[3rem] shadow-sm">
-                 <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900">Wallet Hub</h2>
+                 <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900">Settlements</h2>
               </div>
 
-              {/* MAIN RED WITHDRAWABLE CARD */}
               <div className="px-5 -mt-4">
                  <div className="bg-[#EF4444] rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-2xl shadow-rose-200">
                     <div className="flex justify-between items-start relative z-10">
                        <div className="space-y-1">
-                          <span className="text-[10px] font-black uppercase tracking-widest opacity-80 block">Withdrawable Balance</span>
+                          <span className="text-[10px] font-black uppercase tracking-widest opacity-80 block">Total Withdrawable Revenue</span>
                           <div className="text-4xl font-black italic tracking-tighter leading-none">₹ {vendorProfile?.walletBalance?.toFixed(2) || '0.00'}</div>
                        </div>
                        <button 
@@ -538,95 +523,49 @@ export default function VendorDashboard() {
                          disabled={!vendorProfile?.walletBalance || vendorProfile.walletBalance < 100}
                          className="bg-white text-[#EF4444] px-6 py-2 rounded-xl font-black uppercase italic text-[11px] shadow-lg active:scale-95 transition-all disabled:opacity-50"
                        >
-                         Withdraw
+                         Request
                        </button>
                     </div>
-                    <div className="mt-10 relative z-10">
-                       <Wallet className="h-14 w-14 text-white opacity-40 stroke-[1.5]" />
+                    <div className="mt-8 relative z-10 flex items-center gap-3">
+                       <div className="bg-white/20 p-2 rounded-xl border border-white/10"><Info className="h-4 w-4 text-white" /></div>
+                       <p className="text-[9px] font-black uppercase text-white/80 leading-tight">We will take ₹10 per order as platform fee during final settlement.</p>
                     </div>
                     <div className="absolute top-0 right-0 h-full w-40 bg-white/5 -skew-x-12 translate-x-12" />
                  </div>
               </div>
 
-              {/* VERTICAL SUMMARY (Replaces Grid) */}
-              <div className="px-5 py-8 space-y-4">
-                 <div className="bg-white p-5 rounded-[2rem] border border-gray-100 flex items-center justify-between shadow-sm">
-                    <div className="flex items-center gap-4">
-                       <div className="bg-amber-100 p-2.5 rounded-xl text-amber-600"><Banknote className="h-5 w-5" /></div>
-                       <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Cash in Hand</span>
-                    </div>
-                    <span className="text-lg font-black italic text-gray-900">₹ {earnings.cashInHand.toFixed(2)}</span>
-                 </div>
-                 
-                 <div className="bg-white p-5 rounded-[2rem] border border-gray-100 flex items-center justify-between shadow-sm">
-                    <div className="flex items-center gap-4">
-                       <div className="bg-blue-100 p-2.5 rounded-xl text-blue-600"><History className="h-5 w-5" /></div>
-                       <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Already Settled</span>
-                    </div>
-                    <span className="text-lg font-black italic text-green-600">₹ {payoutStats.completed.toFixed(2)}</span>
+              <div className="px-5 py-20 space-y-6">
+                 <div className="flex items-center justify-between px-2">
+                    <h3 className="text-sm font-black uppercase italic tracking-tighter">Settled By Admin</h3>
+                    <Badge variant="outline" className="rounded-full text-[7px] font-black uppercase tracking-widest border-gray-200">History</Badge>
                  </div>
 
-                 <div className="bg-[#0B0B0B] p-5 rounded-[2rem] flex items-center justify-between shadow-xl">
-                    <div className="flex items-center gap-4">
-                       <div className="bg-white/10 p-2.5 rounded-xl text-white"><IndianRupee className="h-5 w-5" /></div>
-                       <span className="text-[10px] font-black uppercase text-gray-500 tracking-widest">Total Lifecycle Earning</span>
-                    </div>
-                    <span className="text-lg font-black italic text-white">₹ {earnings.total.toFixed(2)}</span>
-                 </div>
-              </div>
-
-              {/* DETAILED HISTORY LIST */}
-              <div className="px-5 pb-32">
-                 <div className="flex items-center justify-between px-2 mb-6">
-                    <h3 className="text-sm font-black uppercase italic tracking-tighter">Account Activity</h3>
-                    <Badge variant="outline" className="rounded-full text-[7px] font-black uppercase tracking-widest">Full Records</Badge>
-                 </div>
-
-                 <div className="space-y-4">
-                    {/* 1. Show Settlements (Completed Payouts) */}
+                 <div className="space-y-4 pb-20">
                     {payoutHistory?.filter(r => r.status === 'Completed').map(req => (
                       <div key={req.id} className="bg-white p-5 rounded-[1.75rem] border border-green-100 flex items-center justify-between group">
                          <div className="flex items-center gap-4">
                             <div className="bg-green-50 p-2.5 rounded-xl text-green-600"><CheckCircle2 className="h-5 w-5" /></div>
                             <div>
-                               <h4 className="text-[11px] font-black uppercase italic text-gray-800">Settled to UPI</h4>
+                               <h4 className="text-[11px] font-black uppercase italic text-gray-800">Bank Settlement</h4>
                                <p className="text-[8px] font-bold text-gray-400 uppercase">{format(new Date(req.paidAt?.seconds * 1000 || Date.now()), 'dd MMM yyyy')}</p>
                             </div>
                          </div>
                          <div className="text-right">
                             <div className="text-sm font-black italic text-green-600">₹ {Number(req.amount).toFixed(0)}</div>
-                            <span className="text-[7px] font-black text-gray-300 uppercase tracking-widest">Withdrawal</span>
+                            <span className="text-[7px] font-black text-gray-300 uppercase tracking-widest">Paid Out</span>
                          </div>
                       </div>
                     ))}
 
-                    {/* 2. Show Cash in Hand (COD Orders) */}
-                    {earnings.codOrders.map((o: any) => (
-                      <div key={o.id} className="bg-white p-5 rounded-[1.75rem] border border-amber-100 flex items-center justify-between">
-                         <div className="flex items-center gap-4">
-                            <div className="bg-amber-50 p-2.5 rounded-xl text-amber-600"><ArrowDownLeft className="h-5 w-5" /></div>
-                            <div>
-                               <h4 className="text-[11px] font-black uppercase italic text-gray-800">COD: {o.customerName}</h4>
-                               <p className="text-[8px] font-bold text-gray-400 uppercase">Order #{o.orderNum} • {format(o.date, 'dd MMM')}</p>
-                            </div>
-                         </div>
-                         <div className="text-right">
-                            <div className="text-sm font-black italic text-amber-600">₹ {o.amount.toFixed(0)}</div>
-                            <span className="text-[7px] font-black text-gray-300 uppercase tracking-widest">In Hand</span>
-                         </div>
-                      </div>
-                    ))}
-
-                    {(!payoutHistory?.some(r => r.status === 'Completed') && earnings.codOrders.length === 0) && (
+                    {!payoutHistory?.some(r => r.status === 'Completed') && (
                       <div className="text-center py-20 opacity-20 flex flex-col items-center">
-                         <History className="h-10 w-10 mb-2" />
-                         <p className="font-black uppercase text-[10px]">No transaction history</p>
+                         <History className="h-10 w-10 mb-2 text-gray-400" />
+                         <p className="font-black uppercase text-[10px] text-gray-400">No previous settlements</p>
                       </div>
                     )}
                  </div>
               </div>
 
-              {/* Payout Dialog */}
               <Dialog open={isPayoutRequestOpen} onOpenChange={setIsPayoutRequestOpen}>
                  <DialogContent className="rounded-[2.5rem] max-w-sm p-8">
                     <DialogHeader><DialogTitle className="font-black italic text-center text-xl uppercase">Settlement Request</DialogTitle></DialogHeader>
