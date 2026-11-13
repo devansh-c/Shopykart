@@ -63,7 +63,8 @@ import {
   Package,
   MessageSquare,
   ChevronRight,
-  ShieldCheck
+  ShieldCheck,
+  Info
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -190,6 +191,25 @@ export default function VendorDashboard() {
     } catch (e) { toast({ variant: "destructive", title: "Failed" }); }
   };
 
+  const handleSaveNote = async () => {
+    if (!firestore || !noteOrderId || isSavingNote) return;
+    setIsSavingNote(true);
+    try {
+      await updateDoc(doc(firestore, 'orders', noteOrderId), {
+        adminNote: noteText.trim().toUpperCase(),
+        noteUpdatedAt: serverTimestamp()
+      });
+      setIsNoteOpen(false);
+      setNoteText('');
+      setNoteOrderId(null);
+      toast({ title: "Note Published!" });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Save Failed" });
+    } finally {
+      setIsSavingNote(false);
+    }
+  };
+
   const handleCreateCoupon = async () => {
     if (!firestore || !user || !couponForm.code) return;
     setIsProcessing(true);
@@ -232,6 +252,55 @@ export default function VendorDashboard() {
       toast({ title: "Request Sent! ⏳", description: "Admin will settle shortly." });
     } catch (e) { toast({ variant: "destructive", title: "Request Failed" }); }
     finally { setIsProcessing(false); }
+  };
+
+  const generateReceipt = async (order: any) => {
+    setIsDownloading(order.id);
+    try {
+      const { toBlob } = await import('html-to-image');
+      const FileSaver = await import('file-saver');
+      const saveAs = FileSaver.saveAs || (FileSaver as any).default;
+
+      const receipt = document.createElement('div');
+      receipt.style.padding = '40px 30px';
+      receipt.style.width = '420px';
+      receipt.style.backgroundColor = '#ffffff';
+      receipt.style.color = '#000000';
+      receipt.style.fontFamily = 'monospace';
+      receipt.style.textTransform = 'uppercase';
+      
+      const itemsHtml = order.items?.map((item: any) => `
+        <div style="margin-bottom: 12px; border-bottom: 1px dashed #eee; padding-bottom: 5px;">
+           <div style="font-size: 8px; font-weight: 900; color: #666; margin-bottom: 2px;">FROM: ${item.restaurantName || order.restaurantName || 'ShopyKart'}</div>
+          <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: 900;">
+            <span style="flex: 2;">${item.name} ${item.selectedOption ? `(${item.selectedOption.name})` : ''}</span>
+            <span style="flex: 0.5; text-align: center;">X${item.quantity}</span>
+            <span style="flex: 1; text-align: right;">${(item.price * item.quantity).toFixed(2)}</span>
+          </div>
+        </div>
+      `).join('');
+
+      receipt.innerHTML = `
+        <div style="text-align: center; margin-bottom: 25px;">
+          <h1 style="margin: 0; font-size: 38px; font-weight: 900; font-style: italic; letter-spacing: -2px;">SHOPYKART</h1>
+          <p style="margin: 2px 0; font-size: 10px; font-weight: 900; letter-spacing: 2px;">PREMIUM DELIVERY NETWORK</p>
+        </div>
+        <div>${itemsHtml}</div>
+        <div style="border-top: 2px solid #000; margin: 20px 0; padding-top: 10px; display: flex; justify-content: space-between; font-size: 26px; font-weight: 900;">
+          <span>TOTAL</span><span>₹${order.total?.toFixed(2)}</span>
+        </div>
+      `;
+      
+      document.body.appendChild(receipt);
+      const blob = await toBlob(receipt, { pixelRatio: 2 }); 
+      document.body.removeChild(receipt);
+      
+      if (blob && typeof saveAs === 'function') {
+        saveAs(blob, `Bill_${order.customerOrderNumber}.png`);
+        toast({ title: "Receipt Saved!" });
+      }
+    } catch (err) { toast({ variant: "destructive", title: "Failed" }); }
+    finally { setIsDownloading(null); }
   };
 
   const handleLogout = async () => {
@@ -299,6 +368,9 @@ export default function VendorDashboard() {
                       </div>
                       <div className="flex gap-2">
                          <button onClick={() => { setNoteOrderId(o.id); setNoteText(o.adminNote || ''); setIsNoteOpen(true); }} className="h-10 w-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center border border-amber-100"><StickyNote className="h-5 w-5" /></button>
+                         <button onClick={() => generateReceipt(o)} disabled={isDownloading === o.id} className="h-10 w-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center active:scale-90 transition-all border border-blue-100">
+                           {isDownloading === o.id ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileText className="h-5 w-5" />}
+                         </button>
                          <button onClick={() => window.open(`tel:${o.customerPhone}`)} className="h-10 w-10 bg-green-500 text-white rounded-xl flex items-center justify-center shadow-lg"><PhoneCall className="h-5 w-5" /></button>
                       </div>
                    </div>
@@ -509,3 +581,4 @@ export default function VendorDashboard() {
     </div>
   );
 }
+
