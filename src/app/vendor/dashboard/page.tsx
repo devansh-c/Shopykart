@@ -66,7 +66,8 @@ import {
   ShieldCheck,
   Info,
   CalendarDays,
-  CalendarRange
+  CalendarRange,
+  Wallet
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -150,10 +151,10 @@ export default function VendorDashboard() {
   const { data: payoutHistory } = useCollection<any>(payoutHistoryQuery);
 
   const earnings = useMemo(() => {
-    const fallback = { today: 0, week: 0, month: 0, total: 0 };
+    const fallback = { today: 0, week: 0, month: 0, total: 0, cashInHand: 0 };
     if (!rawOrders || !user) return fallback;
 
-    let today = 0, week = 0, month = 0, total = 0;
+    let today = 0, week = 0, month = 0, total = 0, cashInHand = 0;
     const now = new Date();
     const dayStart = startOfDay(now);
     const weekStart = startOfWeek(now, { weekStartsOn: 1 });
@@ -163,11 +164,9 @@ export default function VendorDashboard() {
       const vId = String(user.uid).trim();
       const status = (o.status || '').toUpperCase();
       
-      // Calculate this store's portion of the order
       const vendorItems = (o.items || []).filter((it: any) => String(it.vendorId).trim() === vId);
       let vendorSubtotal = vendorItems.reduce((acc: number, it: any) => acc + (Number(it.price) * Number(it.quantity)), 0);
       
-      // Fallback for single-vendor orders or legacy structure
       if (vendorSubtotal === 0 && (String(o.vendorId || '').trim() === vId)) {
         vendorSubtotal = Number(o.total) || 0;
       }
@@ -178,13 +177,25 @@ export default function VendorDashboard() {
       let orderDate = o.createdAt?.seconds ? new Date(o.createdAt.seconds * 1000) : new Date(o.createdAt || Date.now());
       
       total += vendorSubtotal;
+      if (o.paymentMethod === 'COD' && o.paymentStatus !== 'Paid') {
+        cashInHand += vendorSubtotal;
+      }
       if (isAfter(orderDate, dayStart)) today += vendorSubtotal;
       if (isAfter(orderDate, weekStart)) week += vendorSubtotal;
       if (isAfter(orderDate, monthStart)) month += vendorSubtotal;
     });
 
-    return { today, week, month, total };
+    return { today, week, month, total, cashInHand };
   }, [rawOrders, user]);
+
+  const payoutStats = useMemo(() => {
+    if (!payoutHistory) return { pending: 0, completed: 0 };
+    return payoutHistory.reduce((acc, req) => {
+      if (req.status === 'Pending') acc.pending += Number(req.amount) || 0;
+      if (req.status === 'Completed') acc.completed += Number(req.amount) || 0;
+      return acc;
+    }, { pending: 0, completed: 0 });
+  }, [payoutHistory]);
 
   const filteredOrders = useMemo(() => {
     if (!rawOrders || !user) return [];
@@ -499,62 +510,107 @@ export default function VendorDashboard() {
          )}
 
          {activeMainTab === 'payouts' && (
-           <div className="p-4 space-y-6">
-              <div className="bg-[#0B0B0B] p-8 rounded-[3rem] text-white shadow-2xl relative overflow-hidden">
-                 <div className="relative z-10">
-                    <span className="text-[10px] font-black uppercase text-primary tracking-[0.3em] block mb-2">Available Balance</span>
-                    <div className="text-5xl font-black italic tracking-tighter">₹ {vendorProfile?.walletBalance?.toFixed(0) || 0}</div>
-                    <div className="mt-8 flex gap-3">
-                       <Dialog open={isPayoutRequestOpen} onOpenChange={setIsPayoutRequestOpen}>
-                          <DialogTrigger asChild>
-                             <button disabled={!vendorProfile?.walletBalance || vendorProfile.walletBalance < 100} className="flex-1 h-14 bg-primary text-white rounded-2xl font-black uppercase italic text-xs shadow-xl active:scale-95 disabled:opacity-30">WITHDRAW NOW</button>
-                          </DialogTrigger>
-                          <DialogContent className="rounded-[2.5rem] max-w-sm p-8">
-                             <DialogHeader><DialogTitle className="font-black italic text-center text-xl uppercase">Settlement Request</DialogTitle></DialogHeader>
-                             <div className="space-y-5 pt-4 text-center">
-                                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                                   <span className="text-[8px] font-black text-gray-400 uppercase block mb-1">Current Limit</span>
-                                   <div className="text-3xl font-black italic">₹ {vendorProfile?.walletBalance?.toFixed(0)}</div>
-                                </div>
-                                <Input placeholder="Amount to withdraw" type="number" value={payoutForm.amount} onChange={e => setPayoutForm({...payoutForm, amount: e.target.value})} className="h-14 rounded-2xl font-black text-center text-2xl border-none bg-gray-100" />
-                                <Input placeholder="Enter UPI ID (e.g. 98xxx@ybl)" value={payoutForm.upiId} onChange={e => setPayoutForm({...payoutForm, upiId: e.target.value})} className="h-14 rounded-2xl font-black text-center border-none bg-gray-100" />
-                                <div className="bg-blue-50 p-4 rounded-xl flex gap-3 text-left">
-                                   <Info className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
-                                   <p className="text-[9px] font-bold text-blue-800 uppercase leading-relaxed">Request Admin ko jayegi aur 2-4 hours mein aapke UPI par paise mil jayenge.</p>
-                                </div>
-                                <Button onClick={handleRequestPayout} disabled={isProcessing || !payoutForm.amount || !payoutForm.upiId} className="w-full h-16 bg-black text-white rounded-[2rem] font-black uppercase italic shadow-xl">SUBMIT REQUEST</Button>
-                             </div>
-                          </DialogContent>
-                       </Dialog>
-                    </div>
-                 </div>
-                 <div className="absolute top-0 right-0 h-full w-40 bg-white/5 -skew-x-12 translate-x-12" />
+           <div className="bg-gray-50 min-h-full">
+              {/* HEADER AREA */}
+              <div className="bg-white px-6 pt-10 pb-6 rounded-b-[3rem] shadow-sm">
+                 <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900">Wallet</h2>
               </div>
 
-              <div className="space-y-4">
-                 <h3 className="text-xl font-black italic uppercase tracking-tighter px-2 flex items-center gap-2">
-                    <History className="h-5 w-5 text-gray-400" /> Settlement History
-                 </h3>
-                 <div className="bg-white rounded-[2.5rem] border border-border shadow-sm p-4 space-y-3">
-                    {payoutHistory?.map(req => (
-                      <div key={req.id} className="p-4 bg-gray-50 rounded-2xl flex items-center justify-between border border-white">
-                         <div className="flex items-center gap-3">
-                            <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center", req.status === 'Completed' ? "bg-green-100 text-green-600" : "bg-amber-100 text-amber-600")}>
-                               {req.status === 'Completed' ? <CheckCircle2 className="h-5 w-5" /> : <Timer className="h-5 w-5" />}
-                            </div>
-                            <div>
-                               <h4 className="text-[11px] font-black uppercase italic leading-none mb-1">₹{req.amount} Settlement</h4>
-                               <span className="text-[8px] font-bold text-gray-400 uppercase">{format(new Date(req.createdAt?.seconds * 1000 || Date.now()), 'dd MMM yyyy')}</span>
-                            </div>
-                         </div>
-                         <Badge className={cn("border-none text-[8px] font-black uppercase px-2", req.status === 'Completed' ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700")}>{req.status}</Badge>
-                      </div>
-                    ))}
-                    {(!payoutHistory || payoutHistory.length === 0) && (
-                      <div className="text-center py-20 opacity-20"><History className="h-10 w-10 mx-auto mb-2" /><p className="font-black uppercase text-[10px]">No payout records</p></div>
-                    )}
+              {/* MAIN RED WITHDRAWABLE CARD */}
+              <div className="px-5 -mt-4">
+                 <div className="bg-[#EF4444] rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-2xl shadow-rose-200">
+                    <div className="flex justify-between items-start relative z-10">
+                       <div className="space-y-1">
+                          <span className="text-[10px] font-black uppercase tracking-widest opacity-80 block">Withdrawable Balance</span>
+                          <div className="text-4xl font-black italic tracking-tighter leading-none">₹ {vendorProfile?.walletBalance?.toFixed(2) || '0.00'}</div>
+                       </div>
+                       <button 
+                         onClick={() => setIsPayoutRequestOpen(true)}
+                         disabled={!vendorProfile?.walletBalance || vendorProfile.walletBalance < 100}
+                         className="bg-white text-[#EF4444] px-6 py-2 rounded-xl font-black uppercase italic text-[11px] shadow-lg active:scale-95 transition-all disabled:opacity-50"
+                       >
+                         Withdraw
+                       </button>
+                    </div>
+                    <div className="mt-10 relative z-10">
+                       <Wallet className="h-14 w-14 text-white opacity-40 stroke-[1.5]" />
+                    </div>
+                    <div className="absolute top-0 right-0 h-full w-40 bg-white/5 -skew-x-12 translate-x-12" />
                  </div>
               </div>
+
+              {/* HORIZONTAL INFO STATS */}
+              <div className="px-5 py-6">
+                 <div className="flex overflow-x-auto space-x-3 no-scrollbar pb-2">
+                    <div className="min-w-[140px] bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+                       <div className="text-xs font-black italic text-gray-900 mb-1">₹ {vendorProfile?.walletBalance?.toFixed(2)}</div>
+                       <span className="text-[8px] font-bold text-gray-400 uppercase tracking-tight">Withdrawable Balance</span>
+                    </div>
+                    <div className="min-w-[140px] bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+                       <div className="text-xs font-black italic text-gray-900 mb-1">₹ {earnings.cashInHand.toFixed(2)}</div>
+                       <span className="text-[8px] font-bold text-gray-400 uppercase tracking-tight">Cash in Hand</span>
+                    </div>
+                    <div className="min-w-[140px] bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+                       <div className="text-xs font-black italic text-[#EF4444] mb-1">₹ {payoutStats.pending.toFixed(2)}</div>
+                       <span className="text-[8px] font-bold text-gray-400 uppercase tracking-tight">Pending Withdraw</span>
+                    </div>
+                    <div className="min-w-[140px] bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+                       <div className="text-xs font-black italic text-[#EF4444] mb-1">₹ {payoutStats.completed.toFixed(2)}</div>
+                       <span className="text-[8px] font-bold text-gray-400 uppercase tracking-tight">Already Withdrawn</span>
+                    </div>
+                    <div className="min-w-[140px] bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+                       <div className="text-xs font-black italic text-[#EF4444] mb-1">₹ {earnings.total.toFixed(2)}</div>
+                       <span className="text-[8px] font-bold text-gray-400 uppercase tracking-tight">Total Earning</span>
+                    </div>
+                 </div>
+              </div>
+
+              {/* TABS SECTION */}
+              <div className="px-5 pb-20">
+                 <div className="flex border-b border-gray-200 mb-6">
+                    <button className="px-4 py-3 text-[10px] font-black uppercase text-primary border-b-2 border-primary tracking-widest">Withdraw Request</button>
+                    <button className="px-4 py-3 text-[10px] font-black uppercase text-gray-400 tracking-widest">Payment History</button>
+                 </div>
+
+                 <div className="space-y-4">
+                    <div className="flex justify-between items-center px-1">
+                       <h3 className="text-sm font-black uppercase italic tracking-tighter">Transaction History</h3>
+                       <button className="text-[10px] font-black text-[#EF4444] uppercase tracking-widest">View All</button>
+                    </div>
+
+                    <div className="space-y-3">
+                       {payoutHistory?.map(req => (
+                         <div key={req.id} className="bg-white p-4 rounded-2xl flex justify-between items-center border border-gray-100 shadow-sm">
+                            <div>
+                               <div className="text-sm font-black italic text-gray-900 mb-1">₹ {Number(req.amount).toFixed(2)}</div>
+                               <span className="text-[8px] font-bold text-gray-400 uppercase">{format(new Date(req.createdAt?.seconds * 1000 || Date.now()), 'dd MMM yyyy hh:mm a')}</span>
+                            </div>
+                            <Badge className={cn("border-none text-[8px] font-black uppercase px-3", req.status === 'Completed' ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700")}>
+                               {req.status}
+                            </Badge>
+                         </div>
+                       ))}
+                       {(!payoutHistory || payoutHistory.length === 0) && (
+                         <div className="text-center py-20 opacity-20">
+                            <History className="h-10 w-10 mx-auto mb-2" />
+                            <p className="font-black uppercase text-[10px]">No records found</p>
+                         </div>
+                       )}
+                    </div>
+                 </div>
+              </div>
+
+              {/* Payout Dialog */}
+              <Dialog open={isPayoutRequestOpen} onOpenChange={setIsPayoutRequestOpen}>
+                 <DialogContent className="rounded-[2.5rem] max-w-sm p-8">
+                    <DialogHeader><DialogTitle className="font-black italic text-center text-xl uppercase">Settlement Request</DialogTitle></DialogHeader>
+                    <div className="space-y-5 pt-4 text-center">
+                       <Input placeholder="Amount to withdraw" type="number" value={payoutForm.amount} onChange={e => setPayoutForm({...payoutForm, amount: e.target.value})} className="h-14 rounded-2xl font-black text-center text-2xl border-none bg-gray-100" />
+                       <Input placeholder="Enter UPI ID (e.g. 98xxx@ybl)" value={payoutForm.upiId} onChange={e => setPayoutForm({...payoutForm, upiId: e.target.value})} className="h-14 rounded-2xl font-black text-center border-none bg-gray-100" />
+                       <Button onClick={handleRequestPayout} disabled={isProcessing || !payoutForm.amount || !payoutForm.upiId} className="w-full h-16 bg-black text-white rounded-[2rem] font-black uppercase italic shadow-xl">SUBMIT REQUEST</Button>
+                    </div>
+                 </DialogContent>
+              </Dialog>
            </div>
          )}
 
