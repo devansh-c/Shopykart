@@ -67,7 +67,8 @@ import {
   Info,
   CalendarDays,
   CalendarRange,
-  Wallet
+  Wallet,
+  Banknote
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -151,10 +152,11 @@ export default function VendorDashboard() {
   const { data: payoutHistory } = useCollection<any>(payoutHistoryQuery);
 
   const earnings = useMemo(() => {
-    const fallback = { today: 0, week: 0, month: 0, total: 0, cashInHand: 0 };
+    const fallback = { today: 0, week: 0, month: 0, total: 0, cashInHand: 0, codOrders: [] };
     if (!rawOrders || !user) return fallback;
 
     let today = 0, week = 0, month = 0, total = 0, cashInHand = 0;
+    const codOrders: any[] = [];
     const now = new Date();
     const dayStart = startOfDay(now);
     const weekStart = startOfWeek(now, { weekStartsOn: 1 });
@@ -179,13 +181,20 @@ export default function VendorDashboard() {
       total += vendorSubtotal;
       if (o.paymentMethod === 'COD' && o.paymentStatus !== 'Paid') {
         cashInHand += vendorSubtotal;
+        codOrders.push({
+          id: o.id,
+          amount: vendorSubtotal,
+          date: orderDate,
+          customerName: o.customerName,
+          orderNum: o.customerOrderNumber
+        });
       }
       if (isAfter(orderDate, dayStart)) today += vendorSubtotal;
       if (isAfter(orderDate, weekStart)) week += vendorSubtotal;
       if (isAfter(orderDate, monthStart)) month += vendorSubtotal;
     });
 
-    return { today, week, month, total, cashInHand };
+    return { today, week, month, total, cashInHand, codOrders };
   }, [rawOrders, user]);
 
   const payoutStats = useMemo(() => {
@@ -513,7 +522,7 @@ export default function VendorDashboard() {
            <div className="bg-gray-50 min-h-full">
               {/* HEADER AREA */}
               <div className="bg-white px-6 pt-10 pb-6 rounded-b-[3rem] shadow-sm">
-                 <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900">Wallet</h2>
+                 <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900">Wallet Hub</h2>
               </div>
 
               {/* MAIN RED WITHDRAWABLE CARD */}
@@ -539,64 +548,81 @@ export default function VendorDashboard() {
                  </div>
               </div>
 
-              {/* HORIZONTAL INFO STATS */}
-              <div className="px-5 py-6">
-                 <div className="flex overflow-x-auto space-x-3 no-scrollbar pb-2">
-                    <div className="min-w-[140px] bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-                       <div className="text-xs font-black italic text-gray-900 mb-1">₹ {vendorProfile?.walletBalance?.toFixed(2)}</div>
-                       <span className="text-[8px] font-bold text-gray-400 uppercase tracking-tight">Withdrawable Balance</span>
+              {/* VERTICAL SUMMARY (Replaces Grid) */}
+              <div className="px-5 py-8 space-y-4">
+                 <div className="bg-white p-5 rounded-[2rem] border border-gray-100 flex items-center justify-between shadow-sm">
+                    <div className="flex items-center gap-4">
+                       <div className="bg-amber-100 p-2.5 rounded-xl text-amber-600"><Banknote className="h-5 w-5" /></div>
+                       <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Cash in Hand</span>
                     </div>
-                    <div className="min-w-[140px] bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-                       <div className="text-xs font-black italic text-gray-900 mb-1">₹ {earnings.cashInHand.toFixed(2)}</div>
-                       <span className="text-[8px] font-bold text-gray-400 uppercase tracking-tight">Cash in Hand</span>
+                    <span className="text-lg font-black italic text-gray-900">₹ {earnings.cashInHand.toFixed(2)}</span>
+                 </div>
+                 
+                 <div className="bg-white p-5 rounded-[2rem] border border-gray-100 flex items-center justify-between shadow-sm">
+                    <div className="flex items-center gap-4">
+                       <div className="bg-blue-100 p-2.5 rounded-xl text-blue-600"><History className="h-5 w-5" /></div>
+                       <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Already Settled</span>
                     </div>
-                    <div className="min-w-[140px] bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-                       <div className="text-xs font-black italic text-[#EF4444] mb-1">₹ {payoutStats.pending.toFixed(2)}</div>
-                       <span className="text-[8px] font-bold text-gray-400 uppercase tracking-tight">Pending Withdraw</span>
+                    <span className="text-lg font-black italic text-green-600">₹ {payoutStats.completed.toFixed(2)}</span>
+                 </div>
+
+                 <div className="bg-[#0B0B0B] p-5 rounded-[2rem] flex items-center justify-between shadow-xl">
+                    <div className="flex items-center gap-4">
+                       <div className="bg-white/10 p-2.5 rounded-xl text-white"><IndianRupee className="h-5 w-5" /></div>
+                       <span className="text-[10px] font-black uppercase text-gray-500 tracking-widest">Total Lifecycle Earning</span>
                     </div>
-                    <div className="min-w-[140px] bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-                       <div className="text-xs font-black italic text-[#EF4444] mb-1">₹ {payoutStats.completed.toFixed(2)}</div>
-                       <span className="text-[8px] font-bold text-gray-400 uppercase tracking-tight">Already Withdrawn</span>
-                    </div>
-                    <div className="min-w-[140px] bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-                       <div className="text-xs font-black italic text-[#EF4444] mb-1">₹ {earnings.total.toFixed(2)}</div>
-                       <span className="text-[8px] font-bold text-gray-400 uppercase tracking-tight">Total Earning</span>
-                    </div>
+                    <span className="text-lg font-black italic text-white">₹ {earnings.total.toFixed(2)}</span>
                  </div>
               </div>
 
-              {/* TABS SECTION */}
-              <div className="px-5 pb-20">
-                 <div className="flex border-b border-gray-200 mb-6">
-                    <button className="px-4 py-3 text-[10px] font-black uppercase text-primary border-b-2 border-primary tracking-widest">Withdraw Request</button>
-                    <button className="px-4 py-3 text-[10px] font-black uppercase text-gray-400 tracking-widest">Payment History</button>
+              {/* DETAILED HISTORY LIST */}
+              <div className="px-5 pb-32">
+                 <div className="flex items-center justify-between px-2 mb-6">
+                    <h3 className="text-sm font-black uppercase italic tracking-tighter">Account Activity</h3>
+                    <Badge variant="outline" className="rounded-full text-[7px] font-black uppercase tracking-widest">Full Records</Badge>
                  </div>
 
                  <div className="space-y-4">
-                    <div className="flex justify-between items-center px-1">
-                       <h3 className="text-sm font-black uppercase italic tracking-tighter">Transaction History</h3>
-                       <button className="text-[10px] font-black text-[#EF4444] uppercase tracking-widest">View All</button>
-                    </div>
-
-                    <div className="space-y-3">
-                       {payoutHistory?.map(req => (
-                         <div key={req.id} className="bg-white p-4 rounded-2xl flex justify-between items-center border border-gray-100 shadow-sm">
+                    {/* 1. Show Settlements (Completed Payouts) */}
+                    {payoutHistory?.filter(r => r.status === 'Completed').map(req => (
+                      <div key={req.id} className="bg-white p-5 rounded-[1.75rem] border border-green-100 flex items-center justify-between group">
+                         <div className="flex items-center gap-4">
+                            <div className="bg-green-50 p-2.5 rounded-xl text-green-600"><CheckCircle2 className="h-5 w-5" /></div>
                             <div>
-                               <div className="text-sm font-black italic text-gray-900 mb-1">₹ {Number(req.amount).toFixed(2)}</div>
-                               <span className="text-[8px] font-bold text-gray-400 uppercase">{format(new Date(req.createdAt?.seconds * 1000 || Date.now()), 'dd MMM yyyy hh:mm a')}</span>
+                               <h4 className="text-[11px] font-black uppercase italic text-gray-800">Settled to UPI</h4>
+                               <p className="text-[8px] font-bold text-gray-400 uppercase">{format(new Date(req.paidAt?.seconds * 1000 || Date.now()), 'dd MMM yyyy')}</p>
                             </div>
-                            <Badge className={cn("border-none text-[8px] font-black uppercase px-3", req.status === 'Completed' ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700")}>
-                               {req.status}
-                            </Badge>
                          </div>
-                       ))}
-                       {(!payoutHistory || payoutHistory.length === 0) && (
-                         <div className="text-center py-20 opacity-20">
-                            <History className="h-10 w-10 mx-auto mb-2" />
-                            <p className="font-black uppercase text-[10px]">No records found</p>
+                         <div className="text-right">
+                            <div className="text-sm font-black italic text-green-600">₹ {Number(req.amount).toFixed(0)}</div>
+                            <span className="text-[7px] font-black text-gray-300 uppercase tracking-widest">Withdrawal</span>
                          </div>
-                       )}
-                    </div>
+                      </div>
+                    ))}
+
+                    {/* 2. Show Cash in Hand (COD Orders) */}
+                    {earnings.codOrders.map((o: any) => (
+                      <div key={o.id} className="bg-white p-5 rounded-[1.75rem] border border-amber-100 flex items-center justify-between">
+                         <div className="flex items-center gap-4">
+                            <div className="bg-amber-50 p-2.5 rounded-xl text-amber-600"><ArrowDownLeft className="h-5 w-5" /></div>
+                            <div>
+                               <h4 className="text-[11px] font-black uppercase italic text-gray-800">COD: {o.customerName}</h4>
+                               <p className="text-[8px] font-bold text-gray-400 uppercase">Order #{o.orderNum} • {format(o.date, 'dd MMM')}</p>
+                            </div>
+                         </div>
+                         <div className="text-right">
+                            <div className="text-sm font-black italic text-amber-600">₹ {o.amount.toFixed(0)}</div>
+                            <span className="text-[7px] font-black text-gray-300 uppercase tracking-widest">In Hand</span>
+                         </div>
+                      </div>
+                    ))}
+
+                    {(!payoutHistory?.some(r => r.status === 'Completed') && earnings.codOrders.length === 0) && (
+                      <div className="text-center py-20 opacity-20 flex flex-col items-center">
+                         <History className="h-10 w-10 mb-2" />
+                         <p className="font-black uppercase text-[10px]">No transaction history</p>
+                      </div>
+                    )}
                  </div>
               </div>
 
