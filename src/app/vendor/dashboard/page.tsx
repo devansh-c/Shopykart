@@ -541,13 +541,13 @@ export default function VendorDashboard() {
                  </div>
 
                  <div className="space-y-4 pb-20">
-                    {payoutHistory?.filter(r => r.status === 'Completed').map(req => (
+                    {payoutHistory?.filter((r: any) => r.status === 'Completed' || r.status === 'Paid').map((req: any) => (
                       <div key={req.id} className="bg-white p-5 rounded-[1.75rem] border border-green-100 flex items-center justify-between group">
                          <div className="flex items-center gap-4">
                             <div className="bg-green-50 p-2.5 rounded-xl text-green-600"><CheckCircle2 className="h-5 w-5" /></div>
                             <div>
                                <h4 className="text-[11px] font-black uppercase italic text-gray-800">Bank Settlement</h4>
-                               <p className="text-[8px] font-bold text-gray-400 uppercase">{format(new Date(req.paidAt?.seconds * 1000 || Date.now()), 'dd MMM yyyy')}</p>
+                               <p className="text-[8px] font-bold text-gray-400 uppercase">{format(new Date(req.paidAt?.seconds * 1000 || req.createdAt?.seconds * 1000 || Date.now()), 'dd MMM yyyy')}</p>
                             </div>
                          </div>
                          <div className="text-right">
@@ -557,7 +557,7 @@ export default function VendorDashboard() {
                       </div>
                     ))}
 
-                    {!payoutHistory?.some(r => r.status === 'Completed') && (
+                    {!payoutHistory?.some((r: any) => r.status === 'Completed' || r.status === 'Paid') && (
                       <div className="text-center py-20 opacity-20 flex flex-col items-center">
                          <History className="h-10 w-10 mb-2 text-gray-400" />
                          <p className="font-black uppercase text-[10px] text-gray-400">No previous settlements</p>
