@@ -64,7 +64,9 @@ import {
   MessageSquare,
   ChevronRight,
   ShieldCheck,
-  Info
+  Info,
+  CalendarDays,
+  CalendarRange
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -148,32 +150,50 @@ export default function VendorDashboard() {
   const { data: payoutHistory } = useCollection<any>(payoutHistoryQuery);
 
   const earnings = useMemo(() => {
-    const fallback = { today: 0, totalDelivered: 0 };
+    const fallback = { today: 0, week: 0, month: 0, total: 0 };
     if (!rawOrders || !user) return fallback;
-    let today = 0, totalDelivered = 0;
-    const dayStart = startOfDay(new Date());
+
+    let today = 0, week = 0, month = 0, total = 0;
+    const now = new Date();
+    const dayStart = startOfDay(now);
+    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+    const monthStart = startOfMonth(now);
+
     rawOrders.forEach((o: any) => {
       const vId = String(user.uid).trim();
       const status = (o.status || '').toUpperCase();
+      
+      // Calculate this store's portion of the order
       const vendorItems = (o.items || []).filter((it: any) => String(it.vendorId).trim() === vId);
       let vendorSubtotal = vendorItems.reduce((acc: number, it: any) => acc + (Number(it.price) * Number(it.quantity)), 0);
-      if (vendorSubtotal === 0 && (String(o.vendorId || '').trim() === vId)) vendorSubtotal = Number(o.total) || 0;
-      if (vendorSubtotal === 0) return;
-      let orderDate = o.createdAt?.seconds ? new Date(o.createdAt.seconds * 1000) : new Date(o.createdAt || Date.now());
-      if (status === 'DELIVERED') {
-        totalDelivered += vendorSubtotal;
-        if (isAfter(orderDate, dayStart)) today += vendorSubtotal;
+      
+      // Fallback for single-vendor orders or legacy structure
+      if (vendorSubtotal === 0 && (String(o.vendorId || '').trim() === vId)) {
+        vendorSubtotal = Number(o.total) || 0;
       }
+      
+      if (vendorSubtotal === 0) return;
+      if (status !== 'DELIVERED') return;
+
+      let orderDate = o.createdAt?.seconds ? new Date(o.createdAt.seconds * 1000) : new Date(o.createdAt || Date.now());
+      
+      total += vendorSubtotal;
+      if (isAfter(orderDate, dayStart)) today += vendorSubtotal;
+      if (isAfter(orderDate, weekStart)) week += vendorSubtotal;
+      if (isAfter(orderDate, monthStart)) month += vendorSubtotal;
     });
-    return { today, totalDelivered };
+
+    return { today, week, month, total };
   }, [rawOrders, user]);
 
   const filteredOrders = useMemo(() => {
     if (!rawOrders || !user) return [];
     const vId = String(user.uid).trim();
     const myOrders = rawOrders.filter((o: any) => String(o.vendorId || '').trim() === vId || (o.items && o.items.some((it:any) => String(it.vendorId).trim() === vId)));
+    
     if (orderFilter === 'DELIVERED') return myOrders.filter((o: any) => (o.status || '').toLowerCase() === 'delivered');
     if (orderFilter === 'CANCELLED') return myOrders.filter((o: any) => (o.status || '').toLowerCase() === 'cancelled');
+    
     const activeStatuses = ['placed', 'accepted', 'preparing', 'ready for pickup', 'picked up', 'out for delivery'];
     return myOrders.filter((o: any) => activeStatuses.includes((o.status || '').toLowerCase()));
   }, [rawOrders, user, orderFilter]);
@@ -336,14 +356,22 @@ export default function VendorDashboard() {
       <main className="flex-1 overflow-y-auto no-scrollbar pb-32">
          {activeMainTab === 'orders' && (
            <div className="p-4 space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                 <div className="bg-[#EF4444] p-5 rounded-[2rem] text-white shadow-xl relative overflow-hidden flex flex-col justify-between aspect-square">
-                    <div className="relative z-10"><span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-80">Today</span><div className="text-2xl font-black italic mt-1">₹ {earnings.today.toFixed(0)}</div></div>
-                    <Zap className="h-8 w-8 opacity-20 self-end" />
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                 <div className="bg-[#EF4444] p-4 rounded-[1.75rem] text-white shadow-xl relative overflow-hidden flex flex-col justify-between aspect-square">
+                    <div className="relative z-10"><span className="text-[8px] font-black uppercase tracking-[0.2em] opacity-80">Today</span><div className="text-xl font-black italic mt-1">₹{earnings.today.toFixed(0)}</div></div>
+                    <Zap className="h-6 w-6 opacity-20 self-end" />
                  </div>
-                 <div className="bg-blue-600 p-5 rounded-[2rem] text-white shadow-xl relative overflow-hidden flex flex-col justify-between aspect-square">
-                    <div className="relative z-10"><span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-80">Balance</span><div className="text-2xl font-black italic mt-1">₹ {vendorProfile?.walletBalance?.toFixed(0) || 0}</div></div>
-                    <Wallet2 className="h-8 w-8 opacity-20 self-end" />
+                 <div className="bg-blue-600 p-4 rounded-[1.75rem] text-white shadow-xl relative overflow-hidden flex flex-col justify-between aspect-square">
+                    <div className="relative z-10"><span className="text-[8px] font-black uppercase tracking-[0.2em] opacity-80">Week</span><div className="text-xl font-black italic mt-1">₹{earnings.week.toFixed(0)}</div></div>
+                    <CalendarDays className="h-6 w-6 opacity-20 self-end" />
+                 </div>
+                 <div className="bg-indigo-600 p-4 rounded-[1.75rem] text-white shadow-xl relative overflow-hidden flex flex-col justify-between aspect-square">
+                    <div className="relative z-10"><span className="text-[8px] font-black uppercase tracking-[0.2em] opacity-80">Month</span><div className="text-xl font-black italic mt-1">₹{earnings.month.toFixed(0)}</div></div>
+                    <CalendarRange className="h-6 w-6 opacity-20 self-end" />
+                 </div>
+                 <div className="bg-emerald-600 p-4 rounded-[1.75rem] text-white shadow-xl relative overflow-hidden flex flex-col justify-between aspect-square">
+                    <div className="relative z-10"><span className="text-[8px] font-black uppercase tracking-[0.2em] opacity-80">Total</span><div className="text-xl font-black italic mt-1">₹{earnings.total.toFixed(0)}</div></div>
+                    <IndianRupee className="h-6 w-6 opacity-20 self-end" />
                  </div>
               </div>
 
@@ -505,7 +533,7 @@ export default function VendorDashboard() {
 
               <div className="space-y-4">
                  <h3 className="text-xl font-black italic uppercase tracking-tighter px-2 flex items-center gap-2">
-                    <History className="h-5 w-5 text-gray-400" /> Payment History
+                    <History className="h-5 w-5 text-gray-400" /> Settlement History
                  </h3>
                  <div className="bg-white rounded-[2.5rem] border border-border shadow-sm p-4 space-y-3">
                     {payoutHistory?.map(req => (
@@ -581,4 +609,3 @@ export default function VendorDashboard() {
     </div>
   );
 }
-
