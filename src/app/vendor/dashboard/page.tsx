@@ -68,7 +68,8 @@ import {
   CalendarDays,
   CalendarRange,
   Wallet,
-  Banknote
+  Banknote,
+  Save
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -86,6 +87,12 @@ import { requestPushToken } from '@/firebase/messaging';
 
 type MainTab = 'orders' | 'catalog' | 'coupons' | 'payouts' | 'account';
 type OrderFilter = 'NEW ORDERS' | 'DELIVERED' | 'CANCELLED';
+
+const TIME_SLOTS = [
+  "06:00 AM", "07:00 AM", "08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM",
+  "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM", "05:00 PM", "06:00 PM", "07:00 PM",
+  "08:00 PM", "08:15 PM", "08:30 PM", "09:00 PM", "10:00 PM", "11:00 PM", "12:00 AM"
+];
 
 export default function VendorDashboard() {
   const firestore = useFirestore();
@@ -113,6 +120,10 @@ export default function VendorDashboard() {
   const [noteText, setNoteText] = useState('');
   const [isSavingNote, setIsSavingNote] = useState(false);
   const [isDownloading, setIsDownloading] = useState<string | null>(null);
+
+  // Profile Edit State
+  const [openingTime, setOpeningTime] = useState('');
+  const [closingTime, setClosingTime] = useState('');
 
   // Time for Store Schedule
   const [currentTimeMins, setCurrentTimeMins] = useState<number | null>(null);
@@ -145,6 +156,13 @@ export default function VendorDashboard() {
 
   const vendorRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'vendors', user.uid) : null, [firestore, user]);
   const { data: vendorProfile, loading: profileLoading } = useDoc<any>(vendorRef);
+
+  useEffect(() => {
+    if (vendorProfile) {
+      setOpeningTime(vendorProfile.openingTime || '09:00 AM');
+      setClosingTime(vendorProfile.closingTime || '10:00 PM');
+    }
+  }, [vendorProfile]);
 
   const ordersQuery = useMemoFirebase(() => (firestore && user) ? query(collection(firestore, 'orders'), orderBy('createdAt', 'desc')) : null, [firestore, user]);
   const { data: rawOrders } = useCollection<any>(ordersQuery);
@@ -234,6 +252,23 @@ export default function VendorDashboard() {
       toast({ variant: "destructive", title: "Save Failed" });
     } finally {
       setIsSavingNote(false);
+    }
+  };
+
+  const handleUpdateTimings = async () => {
+    if (!firestore || !user) return;
+    setIsProcessing(true);
+    try {
+      await updateDoc(doc(firestore, 'vendors', user.uid), {
+        openingTime,
+        closingTime,
+        updatedAt: serverTimestamp()
+      });
+      toast({ title: "Hub Hours Updated! ✅" });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Update Failed" });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -580,19 +615,60 @@ export default function VendorDashboard() {
          )}
 
          {activeMainTab === 'account' && (
-            <div className="p-8 space-y-10 animate-in fade-in duration-500">
+            <div className="p-8 space-y-10 animate-in fade-in duration-500 pb-40">
                <div className="text-center space-y-4">
                   <div className="h-32 w-32 rounded-[3rem] overflow-hidden border-[6px] border-white shadow-2xl mx-auto bg-gray-50 flex items-center justify-center">
                     {vendorProfile?.imageUrl ? <img src={vendorProfile.imageUrl} className="h-full w-full object-cover" /> : <Store className="h-10 w-10 text-gray-300" />}
                   </div>
-                  <div><h2 className="text-3xl font-black italic uppercase text-gray-900 leading-none">{vendorProfile?.storeName}</h2><p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-3">HUB ID • {vendorProfile?.storeId}</p></div>
-               </div>
-               <div className="space-y-4">
-                  <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-5">
-                     <div className="flex items-center gap-4"><div className="bg-primary/5 p-2 rounded-xl text-primary"><Clock className="h-5 w-5" /></div><div><span className="text-[10px] font-black text-gray-400 uppercase">Timings</span><span className="text-sm font-black uppercase italic text-gray-800 block">{vendorProfile?.openingTime} - {vendorProfile?.closingTime}</span></div></div>
+                  <div>
+                    <h2 className="text-3xl font-black italic uppercase text-gray-900 leading-none">{vendorProfile?.storeName}</h2>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-3">HUB ID • {vendorProfile?.storeId}</p>
                   </div>
-                  <button onClick={handleLogout} className="w-full h-18 bg-white border border-red-50 text-red-500 rounded-[2.2rem] flex items-center justify-center gap-3 font-black uppercase italic text-sm shadow-sm"><LogOut className="h-5 w-5" /> DISCONNECT ACCOUNT</button>
                </div>
+
+               <div className="space-y-6 bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="bg-primary/5 p-2 rounded-xl text-primary"><Clock className="h-5 w-5" /></div>
+                    <h3 className="text-sm font-black uppercase italic">Operating Hours</h3>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Opening Time</label>
+                      <Select value={openingTime} onValueChange={setOpeningTime}>
+                        <SelectTrigger className="h-12 rounded-xl bg-gray-50 border-none font-bold">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-2xl">
+                          {TIME_SLOTS.map(t => <SelectItem key={t} value={t} className="font-bold text-xs">{t}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Closing Time</label>
+                      <Select value={closingTime} onValueChange={setClosingTime}>
+                        <SelectTrigger className="h-12 rounded-xl bg-gray-50 border-none font-bold">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-2xl">
+                          {TIME_SLOTS.map(t => <SelectItem key={t} value={t} className="font-bold text-xs">{t}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <Button 
+                    onClick={handleUpdateTimings} 
+                    disabled={isProcessing}
+                    className="w-full h-14 bg-[#0B0B0B] hover:bg-primary text-white rounded-2xl font-black uppercase italic shadow-lg transition-all"
+                  >
+                    {isProcessing ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Save className="h-4 w-4 mr-2" /> UPDATE STORE HOURS</>}
+                  </Button>
+               </div>
+
+               <button onClick={handleLogout} className="w-full h-18 bg-white border border-red-50 text-red-500 rounded-[2.2rem] flex items-center justify-center gap-3 font-black uppercase italic text-sm shadow-sm active:scale-95 transition-all">
+                 <LogOut className="h-5 w-5" /> DISCONNECT ACCOUNT
+               </button>
             </div>
          )}
       </main>
