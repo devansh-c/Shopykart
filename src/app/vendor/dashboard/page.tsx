@@ -61,13 +61,15 @@ import {
   MapPin,
   AlertCircle,
   Package,
-  MessageSquare
+  MessageSquare,
+  ChevronRight,
+  ShieldCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { cn, slugify } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -80,42 +82,32 @@ import { requestPushToken } from '@/firebase/messaging';
 type MainTab = 'orders' | 'catalog' | 'coupons' | 'payouts' | 'account';
 type OrderFilter = 'NEW ORDERS' | 'DELIVERED' | 'CANCELLED';
 
-const TIME_SLOTS = [
-  "06:00 AM", "07:00 AM", "08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM",
-  "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM", "05:00 PM", "06:00 PM", "07:00 PM",
-  "08:00 PM", "08:15 PM", "08:30 PM", "09:00 PM", "10:00 PM", "11:00 PM", "12:00 AM"
-];
-
 export default function VendorDashboard() {
   const firestore = useFirestore();
   const auth = useAuth();
   const { user, loading: authLoading } = useUser();
   const { toast } = useToast();
   const router = useRouter();
-  const manualImageInputRef = useRef<HTMLInputElement>(null);
   
   const [activeMainTab, setActiveMainTab] = useState<MainTab>('orders');
   const [orderFilter, setOrderFilter] = useState<OrderFilter>('NEW ORDERS');
   const [isMounted, setIsMounted] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isManualAddOpen, setIsManualAddOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  
+  // Coupon State
+  const [isAddCouponOpen, setIsAddCouponOpen] = useState(false);
+  const [couponForm, setCouponData] = useState({ code: '', value: '', type: 'percentage', minOrder: '' });
 
+  // Payout State
+  const [isPayoutRequestOpen, setIsPayoutRequestOpen] = useState(false);
+  const [payoutForm, setPayoutForm] = useState({ amount: '', upiId: '' });
+
+  // Note State
   const [isNoteOpen, setIsNoteOpen] = useState(false);
   const [noteOrderId, setNoteOrderId] = useState<string | null>(null);
   const [noteText, setNoteText] = useState('');
   const [isSavingNote, setIsSavingNote] = useState(false);
   const [isDownloading, setIsDownloading] = useState<string | null>(null);
-
-  const [manualProduct, setManualProduct] = useState({
-    name: '',
-    price: '',
-    category: '',
-    description: '',
-    imageUrl: '',
-    isVarietyRequired: false,
-    options: [] as { name: string; price: number }[]
-  });
 
   useEffect(() => { setIsMounted(true); }, []);
 
@@ -148,68 +140,40 @@ export default function VendorDashboard() {
   const productsQuery = useMemoFirebase(() => (firestore && user) ? query(collection(firestore, 'products'), where('vendorId', '==', user.uid)) : null, [firestore, user]);
   const { data: products } = useCollection<any>(productsQuery);
 
+  const couponsQuery = useMemoFirebase(() => (firestore && user) ? query(collection(firestore, 'coupons'), where('vendorId', '==', user.uid)) : null, [firestore, user]);
+  const { data: coupons } = useCollection<any>(couponsQuery);
+
+  const payoutHistoryQuery = useMemoFirebase(() => (firestore && user) ? query(collection(firestore, 'payout_requests'), where('vendorId', '==', user.uid), orderBy('createdAt', 'desc')) : null, [firestore, user]);
+  const { data: payoutHistory } = useCollection<any>(payoutHistoryQuery);
+
   const earnings = useMemo(() => {
-    const fallback = { today: 0, thisWeek: 0, thisMonth: 0, totalDelivered: 0, totalCancelled: 0 };
+    const fallback = { today: 0, totalDelivered: 0 };
     if (!rawOrders || !user) return fallback;
-
-    let today = 0, week = 0, month = 0, totalDelivered = 0, totalCancelled = 0;
-    const now = new Date();
-    const dayStart = startOfDay(now);
-    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
-    const monthStart = startOfMonth(now);
-
+    let today = 0, totalDelivered = 0;
+    const dayStart = startOfDay(new Date());
     rawOrders.forEach((o: any) => {
       const vId = String(user.uid).trim();
       const status = (o.status || '').toUpperCase();
-      
       const vendorItems = (o.items || []).filter((it: any) => String(it.vendorId).trim() === vId);
       let vendorSubtotal = vendorItems.reduce((acc: number, it: any) => acc + (Number(it.price) * Number(it.quantity)), 0);
-      
-      if (vendorSubtotal === 0 && (String(o.vendorId || '').trim() === vId || (o.vendorIds && Array.isArray(o.vendorIds) && o.vendorIds.includes(vId)))) {
-        vendorSubtotal = Number(o.total) || 0;
-      }
-
+      if (vendorSubtotal === 0 && (String(o.vendorId || '').trim() === vId)) vendorSubtotal = Number(o.total) || 0;
       if (vendorSubtotal === 0) return;
-
-      let orderDate = new Date();
-      if (o.createdAt?.seconds) {
-        orderDate = new Date(o.createdAt.seconds * 1000);
-      } else if (typeof o.createdAt === 'string') {
-        orderDate = new Date(o.createdAt);
-      }
-
+      let orderDate = o.createdAt?.seconds ? new Date(o.createdAt.seconds * 1000) : new Date(o.createdAt || Date.now());
       if (status === 'DELIVERED') {
         totalDelivered += vendorSubtotal;
         if (isAfter(orderDate, dayStart)) today += vendorSubtotal;
-        if (isAfter(orderDate, weekStart)) week += vendorSubtotal;
-        if (isAfter(orderDate, monthStart)) month += vendorSubtotal;
-      } else if (status === 'CANCELLED') {
-        totalCancelled += vendorSubtotal;
       }
     });
-
-    return { today, thisWeek: week, thisMonth: month, totalDelivered, totalCancelled };
+    return { today, totalDelivered };
   }, [rawOrders, user]);
 
   const filteredOrders = useMemo(() => {
     if (!rawOrders || !user) return [];
     const vId = String(user.uid).trim();
-    
-    const myOrders = rawOrders.filter((o: any) => {
-      const isDirect = String(o.vendorId || '').trim() === vId;
-      const isInArray = Array.isArray(o.vendorIds) && o.vendorIds.map((v:any) => String(v).trim()).includes(vId);
-      const hasItem = Array.isArray(o.items) && o.items.some((it: any) => String(it.vendorId).trim() === vId);
-      return isDirect || isInArray || hasItem;
-    });
-    
-    if (orderFilter === 'DELIVERED') {
-      return myOrders.filter((o: any) => (o.status || '').toLowerCase() === 'delivered');
-    }
-    if (orderFilter === 'CANCELLED') {
-      return myOrders.filter((o: any) => (o.status || '').toLowerCase() === 'cancelled');
-    }
-    
-    const activeStatuses = ['placed', 'accepted', 'preparing', 'ready for pickup', 'picked up', 'out for delivery', 'accepted task'];
+    const myOrders = rawOrders.filter((o: any) => String(o.vendorId || '').trim() === vId || (o.items && o.items.some((it:any) => String(it.vendorId).trim() === vId)));
+    if (orderFilter === 'DELIVERED') return myOrders.filter((o: any) => (o.status || '').toLowerCase() === 'delivered');
+    if (orderFilter === 'CANCELLED') return myOrders.filter((o: any) => (o.status || '').toLowerCase() === 'cancelled');
+    const activeStatuses = ['placed', 'accepted', 'preparing', 'ready for pickup', 'picked up', 'out for delivery'];
     return myOrders.filter((o: any) => activeStatuses.includes((o.status || '').toLowerCase()));
   }, [rawOrders, user, orderFilter]);
 
@@ -226,88 +190,48 @@ export default function VendorDashboard() {
     } catch (e) { toast({ variant: "destructive", title: "Failed" }); }
   };
 
-  const handleCancelOrder = async (orderId: string) => {
-    if (!firestore || !confirm("Are you sure you want to CANCEL this order?")) return;
+  const handleCreateCoupon = async () => {
+    if (!firestore || !user || !couponForm.code) return;
+    setIsProcessing(true);
     try {
-      await updateDoc(doc(firestore, 'orders', orderId), {
-        status: 'Cancelled',
-        updatedAt: serverTimestamp()
+      await addDoc(collection(firestore, 'coupons'), {
+        code: couponForm.code.toUpperCase().trim(),
+        discountValue: parseFloat(couponForm.value),
+        discountType: couponForm.type,
+        minOrderValue: parseFloat(couponForm.minOrder) || 0,
+        vendorId: user.uid,
+        storeName: vendorProfile?.storeName,
+        createdAt: serverTimestamp()
       });
-      toast({ title: "Order Cancelled" });
-    } catch (e) { toast({ variant: "destructive", title: "Action Failed" }); }
-  };
-
-  const handleSaveNote = async () => {
-    if (!firestore || !noteOrderId || isSavingNote) return;
-    setIsSavingNote(true);
-    try {
-      await updateDoc(doc(firestore, 'orders', noteOrderId), {
-        adminNote: noteText.trim().toUpperCase(),
-        updatedAt: serverTimestamp()
-      });
-      setIsNoteOpen(false);
-      setNoteText('');
-      toast({ title: "Note Added!" });
+      setIsAddCouponOpen(false);
+      setCouponData({ code: '', value: '', type: 'percentage', minOrder: '' });
+      toast({ title: "Offer Created! 🎫" });
     } catch (e) { toast({ variant: "destructive", title: "Failed" }); }
-    finally { setIsSavingNote(false); }
+    finally { setIsProcessing(false); }
   };
 
-  const generateReceipt = async (order: any) => {
-    setIsDownloading(order.id);
+  const handleRequestPayout = async () => {
+    if (!firestore || !user || !payoutForm.amount) return;
+    const amt = parseFloat(payoutForm.amount);
+    if (amt > (vendorProfile?.walletBalance || 0)) {
+      toast({ variant: "destructive", title: "Insufficient Balance" });
+      return;
+    }
+    setIsProcessing(true);
     try {
-      const { toBlob } = await import('html-to-image');
-      const FileSaver = await import('file-saver');
-      const saveAs = FileSaver.saveAs || (FileSaver as any).default;
-      const receipt = document.createElement('div');
-      receipt.style.padding = '40px 30px';
-      receipt.style.width = '420px';
-      receipt.style.backgroundColor = '#ffffff';
-      receipt.style.color = '#000000';
-      receipt.style.fontFamily = 'monospace';
-      receipt.style.textTransform = 'uppercase';
-      const vId = String(user?.uid).trim();
-      const myItems = order.items?.filter((it: any) => String(it.vendorId).trim() === vId);
-      const myTotal = myItems.reduce((acc: number, it: any) => acc + (it.price * it.quantity), 0);
-      const itemsHtml = myItems.map((item: any) => `
-        <div style="margin-bottom: 12px; border-bottom: 1px dashed #eee; padding-bottom: 5px;">
-          <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: 900;">
-            <span style="flex: 2;">${item.name} ${item.selectedOption ? `(${item.selectedOption.name})` : ''}</span>
-            <span style="flex: 0.5; text-align: center;">X${item.quantity}</span>
-            <span style="flex: 1; text-align: right;">${(item.price * item.quantity).toFixed(2)}</span>
-          </div>
-        </div>
-      `).join('');
-      receipt.innerHTML = `
-        <div style="text-align: center; margin-bottom: 25px;">
-          <h1 style="margin: 0; font-size: 32px; font-weight: 900; font-style: italic;">${vendorProfile?.storeName}</h1>
-          <p style="margin: 2px 0; font-size: 9px; font-weight: 900;">POWERED BY SHOPYKART</p>
-          <p style="margin: 10px 0; font-size: 10px; font-weight: 900; border: 1px solid #000; padding: 5px;">ORDER #${order.customerOrderNumber}</p>
-        </div>
-        <div>${itemsHtml}</div>
-        <div style="border-top: 2px solid #000; margin: 20px 0; padding-top: 10px; display: flex; justify-content: space-between; font-size: 22px; font-weight: 900;">
-          <span>TOTAL</span><span>₹${myTotal.toFixed(2)}</span>
-        </div>
-      `;
-      document.body.appendChild(receipt);
-      const blob = await toBlob(receipt, { pixelRatio: 2 }); 
-      document.body.removeChild(receipt);
-      if (blob && typeof saveAs === 'function') {
-        saveAs(blob, `Bill_${order.customerOrderNumber}.png`);
-        toast({ title: "Bill Saved!" });
-      }
-    } catch (err) { toast({ variant: "destructive", title: "Failed" }); }
-    finally { setIsDownloading(null); }
-  };
-
-  const handleToggleProductAvailability = async (productId: string, current: boolean) => {
-    if (!firestore) return;
-    try {
-      await updateDoc(doc(firestore, 'products', productId), {
-        isAvailable: !current,
-        updatedAt: serverTimestamp()
+      await addDoc(collection(firestore, 'payout_requests'), {
+        vendorId: user.uid,
+        storeName: vendorProfile?.storeName,
+        amount: amt,
+        upiId: payoutForm.upiId,
+        status: 'Pending',
+        createdAt: serverTimestamp()
       });
-      toast({ title: !current ? "Item Activated" : "Item Deactivated" });
-    } catch (e) { toast({ variant: "destructive", title: "Error" }); }
+      setIsPayoutRequestOpen(false);
+      setPayoutForm({ amount: '', upiId: '' });
+      toast({ title: "Request Sent! ⏳", description: "Admin will settle shortly." });
+    } catch (e) { toast({ variant: "destructive", title: "Request Failed" }); }
+    finally { setIsProcessing(false); }
   };
 
   const handleLogout = async () => {
@@ -349,8 +273,8 @@ export default function VendorDashboard() {
                     <Zap className="h-8 w-8 opacity-20 self-end" />
                  </div>
                  <div className="bg-blue-600 p-5 rounded-[2rem] text-white shadow-xl relative overflow-hidden flex flex-col justify-between aspect-square">
-                    <div className="relative z-10"><span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-80">Total</span><div className="text-2xl font-black italic mt-1">₹ {earnings.totalDelivered.toFixed(0)}</div></div>
-                    <TrendingUp className="h-8 w-8 opacity-20 self-end" />
+                    <div className="relative z-10"><span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-80">Balance</span><div className="text-2xl font-black italic mt-1">₹ {vendorProfile?.walletBalance?.toFixed(0) || 0}</div></div>
+                    <Wallet2 className="h-8 w-8 opacity-20 self-end" />
                  </div>
               </div>
 
@@ -375,9 +299,7 @@ export default function VendorDashboard() {
                       </div>
                       <div className="flex gap-2">
                          <button onClick={() => { setNoteOrderId(o.id); setNoteText(o.adminNote || ''); setIsNoteOpen(true); }} className="h-10 w-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center border border-amber-100"><StickyNote className="h-5 w-5" /></button>
-                         <button onClick={() => generateReceipt(o)} disabled={isDownloading === o.id} className="h-10 w-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center border border-blue-100">{isDownloading === o.id ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileText className="h-5 w-5" />}</button>
                          <button onClick={() => window.open(`tel:${o.customerPhone}`)} className="h-10 w-10 bg-green-500 text-white rounded-xl flex items-center justify-center shadow-lg"><PhoneCall className="h-5 w-5" /></button>
-                         {o.status === 'Placed' && <button onClick={() => handleCancelOrder(o.id)} className="h-10 w-10 bg-red-50 text-red-500 rounded-xl flex items-center justify-center border border-red-100"><XCircle className="h-5 w-5" /></button>}
                       </div>
                    </div>
 
@@ -390,17 +312,6 @@ export default function VendorDashboard() {
                          <div className="h-10 w-10 rounded-xl bg-white flex items-center justify-center shadow-sm text-blue-500 shrink-0"><MapPin className="h-5 w-5" /></div>
                          <div className="min-w-0"><span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block">Address</span><p className="text-[11px] font-bold text-gray-700 leading-tight uppercase italic mt-0.5">{o.address}</p></div>
                       </div>
-                   </div>
-
-                   <div className="space-y-3 mb-6 bg-gray-50/50 p-5 rounded-3xl border border-dashed border-gray-200">
-                      <div className="flex items-center gap-2"><ShoppingBag className="h-4 w-4 text-gray-400" /><span className="text-[10px] font-black uppercase text-gray-500">Items</span></div>
-                      {o.items?.filter((it:any) => String(it.vendorId).trim() === String(user?.uid).trim()).map((item:any, i:number) => (
-                        <div key={i} className="flex justify-between items-center text-[11px] font-black uppercase italic">
-                           <span><span className="text-primary">{item.quantity}x</span> {item.name} {item.selectedOption ? `(${item.selectedOption.name})` : ''}</span>
-                           <span>₹{(item.price * item.quantity).toFixed(0)}</span>
-                        </div>
-                      ))}
-                      {o.cookingInstructions && <div className="mt-3 pt-3 border-t border-gray-200"><p className="text-[10px] font-bold text-gray-800 italic uppercase">"{o.cookingInstructions}"</p></div>}
                    </div>
 
                    <div className="flex flex-col gap-2">
@@ -417,7 +328,7 @@ export default function VendorDashboard() {
            <div className="p-4 space-y-6">
               <div className="flex items-center justify-between px-2">
                  <h2 className="text-xl font-black italic uppercase">Menu Control</h2>
-                 <button onClick={() => { setEditingId(null); setManualProduct({name:'',price:'',category:'',description:'',imageUrl:'',isVarietyRequired:false,options:[]}); setIsManualAddOpen(true); }} className="h-12 px-6 bg-primary text-white rounded-xl font-black uppercase italic text-xs shadow-lg">+ ADD ITEM</button>
+                 <button onClick={() => router.push('/vendor/dashboard?action=add')} className="h-12 px-6 bg-primary text-white rounded-xl font-black uppercase italic text-xs shadow-lg">+ ADD ITEM</button>
               </div>
               <div className="grid grid-cols-1 gap-4">
                  {products?.filter(p => !p.isDeleted).map(p => (
@@ -431,14 +342,118 @@ export default function VendorDashboard() {
                           <p className="text-lg font-black text-primary italic leading-none">₹{p.price}</p>
                           <div className="h-3 w-[1px] bg-gray-200" />
                           <div className="flex items-center gap-2">
-                            <span className={cn("text-[8px] font-black uppercase", p.isAvailable === false ? "text-red-500" : "text-green-600")}>{p.isAvailable === false ? 'UNAVAILABLE' : 'AVAILABLE'}</span>
-                            <Switch checked={p.isAvailable !== false} onCheckedChange={() => handleToggleProductAvailability(p.id, p.isAvailable !== false)} className="scale-75 data-[state=checked]:bg-green-500" />
+                            <span className={cn("text-[8px] font-black uppercase", p.isAvailable === false ? "text-red-500" : "text-green-600")}>{p.isAvailable === false ? 'OFF' : 'ON'}</span>
+                            <Switch checked={p.isAvailable !== false} onCheckedChange={async () => await updateDoc(doc(firestore!, 'products', p.id), {isAvailable: p.isAvailable === false})} className="scale-75 data-[state=checked]:bg-green-500" />
                           </div>
                         </div>
                       </div>
-                      <button onClick={async () => { if(confirm("Remove?")) await updateDoc(doc(firestore!, 'products', p.id), {isDeleted: true}); }} className="absolute top-4 right-4 h-8 w-8 text-red-500 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 className="h-4 w-4" /></button>
                    </div>
                  ))}
+              </div>
+           </div>
+         )}
+
+         {activeMainTab === 'coupons' && (
+           <div className="p-4 space-y-6">
+              <div className="flex items-center justify-between px-2">
+                 <h2 className="text-xl font-black italic uppercase">Store Offers</h2>
+                 <Dialog open={isAddCouponOpen} onOpenChange={setIsAddCouponOpen}>
+                    <DialogTrigger asChild>
+                       <button className="h-12 px-6 bg-amber-500 text-white rounded-xl font-black uppercase italic text-xs shadow-lg">+ NEW OFFER</button>
+                    </DialogTrigger>
+                    <DialogContent className="rounded-[2.5rem] max-w-sm p-8">
+                       <DialogHeader><DialogTitle className="font-black uppercase italic text-center">Create Coupon</DialogTitle></DialogHeader>
+                       <div className="space-y-4 pt-4">
+                          <Input placeholder="CODE (e.g. WELCOME50)" value={couponForm.code} onChange={e => setCouponData({...couponForm, code: e.target.value.toUpperCase()})} className="h-12 rounded-xl font-black" />
+                          <div className="grid grid-cols-2 gap-3">
+                             <Input placeholder="Value" type="number" value={couponForm.value} onChange={e => setCouponData({...couponForm, value: e.target.value})} className="h-12 rounded-xl font-black" />
+                             <Select value={couponForm.type} onValueChange={v => setCouponData({...couponForm, type: v})}>
+                                <SelectTrigger className="h-12 rounded-xl"><SelectValue /></SelectTrigger>
+                                <SelectContent><SelectItem value="percentage">% OFF</SelectItem><SelectItem value="fixed">₹ OFF</SelectItem></SelectContent>
+                             </Select>
+                          </div>
+                          <Input placeholder="Min Order Value (₹)" type="number" value={couponForm.minOrder} onChange={e => setCouponData({...couponForm, minOrder: e.target.value})} className="h-12 rounded-xl font-black" />
+                          <Button onClick={handleCreateCoupon} disabled={isProcessing} className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic">ACTIVATE OFFER</Button>
+                       </div>
+                    </DialogContent>
+                 </Dialog>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4">
+                 {coupons?.map(c => (
+                   <div key={c.id} className="bg-white p-6 rounded-[2.5rem] border border-amber-100 shadow-sm flex items-center justify-between relative overflow-hidden group">
+                      <div className="absolute top-0 right-0 p-3 opacity-5"><Ticket className="h-16 w-16 -rotate-12" /></div>
+                      <div className="relative z-10">
+                         <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest leading-none block mb-1">{c.code}</span>
+                         <h3 className="text-2xl font-black italic text-gray-900 tracking-tighter">{c.discountValue}{c.discountType === 'percentage' ? '%' : '₹'} OFF</h3>
+                         <p className="text-[8px] font-bold text-gray-400 uppercase mt-1">Min. Order ₹{c.minOrderValue}</p>
+                      </div>
+                      <button onClick={async () => { if(confirm("Remove?")) await deleteDoc(doc(firestore!, 'coupons', c.id)); }} className="bg-red-50 text-red-500 h-10 w-10 rounded-xl flex items-center justify-center active:scale-90 transition-all z-10"><Trash2 className="h-4 w-4" /></button>
+                   </div>
+                 ))}
+                 {(!coupons || coupons.length === 0) && (
+                   <div className="text-center py-20 opacity-20"><Ticket className="h-12 w-12 mx-auto mb-2" /><p className="font-black uppercase text-[10px]">No store offers active</p></div>
+                 )}
+              </div>
+           </div>
+         )}
+
+         {activeMainTab === 'payouts' && (
+           <div className="p-4 space-y-6">
+              <div className="bg-[#0B0B0B] p-8 rounded-[3rem] text-white shadow-2xl relative overflow-hidden">
+                 <div className="relative z-10">
+                    <span className="text-[10px] font-black uppercase text-primary tracking-[0.3em] block mb-2">Available Balance</span>
+                    <div className="text-5xl font-black italic tracking-tighter">₹ {vendorProfile?.walletBalance?.toFixed(0) || 0}</div>
+                    <div className="mt-8 flex gap-3">
+                       <Dialog open={isPayoutRequestOpen} onOpenChange={setIsPayoutRequestOpen}>
+                          <DialogTrigger asChild>
+                             <button disabled={!vendorProfile?.walletBalance || vendorProfile.walletBalance < 100} className="flex-1 h-14 bg-primary text-white rounded-2xl font-black uppercase italic text-xs shadow-xl active:scale-95 disabled:opacity-30">WITHDRAW NOW</button>
+                          </DialogTrigger>
+                          <DialogContent className="rounded-[2.5rem] max-w-sm p-8">
+                             <DialogHeader><DialogTitle className="font-black italic text-center text-xl uppercase">Settlement Request</DialogTitle></DialogHeader>
+                             <div className="space-y-5 pt-4 text-center">
+                                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                                   <span className="text-[8px] font-black text-gray-400 uppercase block mb-1">Current Limit</span>
+                                   <div className="text-3xl font-black italic">₹ {vendorProfile?.walletBalance?.toFixed(0)}</div>
+                                </div>
+                                <Input placeholder="Amount to withdraw" type="number" value={payoutForm.amount} onChange={e => setPayoutForm({...payoutForm, amount: e.target.value})} className="h-14 rounded-2xl font-black text-center text-2xl border-none bg-gray-100" />
+                                <Input placeholder="Enter UPI ID (e.g. 98xxx@ybl)" value={payoutForm.upiId} onChange={e => setPayoutForm({...payoutForm, upiId: e.target.value})} className="h-14 rounded-2xl font-black text-center border-none bg-gray-100" />
+                                <div className="bg-blue-50 p-4 rounded-xl flex gap-3 text-left">
+                                   <Info className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+                                   <p className="text-[9px] font-bold text-blue-800 uppercase leading-relaxed">Request Admin ko jayegi aur 2-4 hours mein aapke UPI par paise mil jayenge.</p>
+                                </div>
+                                <Button onClick={handleRequestPayout} disabled={isProcessing || !payoutForm.amount || !payoutForm.upiId} className="w-full h-16 bg-black text-white rounded-[2rem] font-black uppercase italic shadow-xl">SUBMIT REQUEST</Button>
+                             </div>
+                          </DialogContent>
+                       </Dialog>
+                    </div>
+                 </div>
+                 <div className="absolute top-0 right-0 h-full w-40 bg-white/5 -skew-x-12 translate-x-12" />
+              </div>
+
+              <div className="space-y-4">
+                 <h3 className="text-xl font-black italic uppercase tracking-tighter px-2 flex items-center gap-2">
+                    <History className="h-5 w-5 text-gray-400" /> Payment History
+                 </h3>
+                 <div className="bg-white rounded-[2.5rem] border border-border shadow-sm p-4 space-y-3">
+                    {payoutHistory?.map(req => (
+                      <div key={req.id} className="p-4 bg-gray-50 rounded-2xl flex items-center justify-between border border-white">
+                         <div className="flex items-center gap-3">
+                            <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center", req.status === 'Completed' ? "bg-green-100 text-green-600" : "bg-amber-100 text-amber-600")}>
+                               {req.status === 'Completed' ? <CheckCircle2 className="h-5 w-5" /> : <Timer className="h-5 w-5" />}
+                            </div>
+                            <div>
+                               <h4 className="text-[11px] font-black uppercase italic leading-none mb-1">₹{req.amount} Settlement</h4>
+                               <span className="text-[8px] font-bold text-gray-400 uppercase">{format(new Date(req.createdAt?.seconds * 1000 || Date.now()), 'dd MMM yyyy')}</span>
+                            </div>
+                         </div>
+                         <Badge className={cn("border-none text-[8px] font-black uppercase px-2", req.status === 'Completed' ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700")}>{req.status}</Badge>
+                      </div>
+                    ))}
+                    {(!payoutHistory || payoutHistory.length === 0) && (
+                      <div className="text-center py-20 opacity-20"><History className="h-10 w-10 mx-auto mb-2" /><p className="font-black uppercase text-[10px]">No payout records</p></div>
+                    )}
+                 </div>
               </div>
            </div>
          )}
@@ -462,7 +477,13 @@ export default function VendorDashboard() {
       </main>
 
       <nav className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto w-full bg-[#0F172A] pt-4 pb-8 px-6 flex justify-around border-t border-white/5 z-[100] rounded-t-[2.5rem]">
-        {[{id:'orders',label:'Queue',icon:ShoppingBag},{id:'catalog',label:'Menu',icon:Layers},{id:'coupons',label:'Offers',icon:Ticket},{id:'payouts',label:'Wallet',icon:Wallet2},{id:'account',label:'Profile',icon:UserCircle2}].map(item => (
+        {[
+          {id:'orders',label:'Queue',icon:ShoppingBag},
+          {id:'catalog',label:'Menu',icon:Layers},
+          {id:'coupons',label:'Offer',icon:Ticket},
+          {id:'payouts',label:'Wallet',icon:Wallet2},
+          {id:'account',label:'Profile',icon:UserCircle2}
+        ].map(item => (
           <button key={item.id} onClick={() => setActiveMainTab(item.id as MainTab)} className="flex flex-col items-center gap-1.5 active:scale-90 outline-none">
             <item.icon className={cn("h-5 w-5", activeMainTab === item.id ? "text-primary" : "text-gray-50")} />
             <span className={cn("text-[8px] font-black uppercase tracking-widest", activeMainTab === item.id ? "text-white" : "text-gray-50")}>{item.label}</span>
@@ -470,7 +491,6 @@ export default function VendorDashboard() {
         ))}
       </nav>
 
-      {/* ADMIN NOTE DIALOG */}
       <Dialog open={isNoteOpen} onOpenChange={setIsNoteOpen}>
          <DialogContent className="rounded-[2.5rem] max-w-sm p-8 border-none shadow-2xl bg-white focus:outline-none">
             <DialogHeader className="text-center mb-4">
