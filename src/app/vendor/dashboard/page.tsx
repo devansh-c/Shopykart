@@ -98,10 +98,7 @@ export default function VendorDashboard() {
   const [orderFilter, setOrderFilter] = useState<OrderFilter>('NEW ORDERS');
   const [isMounted, setIsMounted] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isUpiModalOpen, setIsUpiModalOpen] = useState(false);
-  const [isTimingModalOpen, setIsTimingModalOpen] = useState(false);
   const [isManualAddOpen, setIsManualAddOpen] = useState(false);
-  const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const [isNoteOpen, setIsNoteOpen] = useState(false);
@@ -118,25 +115,6 @@ export default function VendorDashboard() {
     imageUrl: '',
     isVarietyRequired: false,
     options: [] as { name: string; price: number }[]
-  });
-
-  const [couponForm, setCouponForm] = useState({
-    code: '',
-    discountValue: '',
-    discountType: 'percentage' as 'percentage' | 'fixed',
-    minOrderValue: ''
-  });
-
-  const [upiForm, setUpiForm] = useState({
-    upiId: '',
-    accountNumber: '',
-    ifscCode: '',
-    accountHolderName: ''
-  });
-
-  const [timings, setTimings] = useState({
-    openingTime: '10:00 AM',
-    closingTime: '08:15 PM'
   });
 
   useEffect(() => { setIsMounted(true); }, []);
@@ -163,21 +141,6 @@ export default function VendorDashboard() {
 
   const vendorRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'vendors', user.uid) : null, [firestore, user]);
   const { data: vendorProfile, loading: profileLoading } = useDoc<any>(vendorRef);
-
-  useEffect(() => {
-    if (vendorProfile) {
-      setTimings({
-        openingTime: vendorProfile.openingTime || '10:00 AM',
-        closingTime: vendorProfile.closingTime || '08:15 PM'
-      });
-      setUpiForm({
-        upiId: vendorProfile.upiId || '',
-        accountNumber: vendorProfile.accountNumber || '',
-        ifscCode: vendorProfile.ifscCode || '',
-        accountHolderName: vendorProfile.accountHolderName || ''
-      });
-    }
-  }, [vendorProfile]);
 
   const ordersQuery = useMemoFirebase(() => (firestore && user) ? query(collection(firestore, 'orders'), orderBy('createdAt', 'desc')) : null, [firestore, user]);
   const { data: rawOrders } = useCollection<any>(ordersQuery);
@@ -263,6 +226,32 @@ export default function VendorDashboard() {
     } catch (e) { toast({ variant: "destructive", title: "Failed" }); }
   };
 
+  const handleCancelOrder = async (orderId: string) => {
+    if (!firestore || !confirm("Are you sure you want to CANCEL this order?")) return;
+    try {
+      await updateDoc(doc(firestore, 'orders', orderId), {
+        status: 'Cancelled',
+        updatedAt: serverTimestamp()
+      });
+      toast({ title: "Order Cancelled" });
+    } catch (e) { toast({ variant: "destructive", title: "Action Failed" }); }
+  };
+
+  const handleSaveNote = async () => {
+    if (!firestore || !noteOrderId || isSavingNote) return;
+    setIsSavingNote(true);
+    try {
+      await updateDoc(doc(firestore, 'orders', noteOrderId), {
+        adminNote: noteText.trim().toUpperCase(),
+        updatedAt: serverTimestamp()
+      });
+      setIsNoteOpen(false);
+      setNoteText('');
+      toast({ title: "Note Added!" });
+    } catch (e) { toast({ variant: "destructive", title: "Failed" }); }
+    finally { setIsSavingNote(false); }
+  };
+
   const generateReceipt = async (order: any) => {
     setIsDownloading(order.id);
     try {
@@ -310,32 +299,15 @@ export default function VendorDashboard() {
     finally { setIsDownloading(null); }
   };
 
-  const handleManualAddProduct = async () => {
-    if (!firestore || !user || !manualProduct.name || !manualProduct.price) return;
-    setIsProcessing(true);
+  const handleToggleProductAvailability = async (productId: string, current: boolean) => {
+    if (!firestore) return;
     try {
-      const productRef = editingId ? doc(firestore, 'products', editingId) : doc(collection(firestore, 'products'));
-      const pData = {
-        ...manualProduct,
-        id: productRef.id,
-        price: parseFloat(manualProduct.price),
-        vendorId: user.uid,
-        restaurantName: vendorProfile?.storeName || 'Store',
-        zoneId: vendorProfile?.zoneId || 'global',
-        town: vendorProfile?.town || 'Local',
-        isAvailable: true, 
-        isVeg: true,
-        isDeleted: false,
-        slug: slugify(manualProduct.name),
+      await updateDoc(doc(firestore, 'products', productId), {
+        isAvailable: !current,
         updatedAt: serverTimestamp()
-      };
-      await setDoc(productRef, pData, { merge: true });
-      setIsManualAddOpen(false);
-      setEditingId(null);
-      setManualProduct({ name: '', price: '', category: '', description: '', imageUrl: '', isVarietyRequired: false, options: [] });
-      toast({ title: editingId ? "Item Updated!" : "Item Added!" });
-    } catch (err) { toast({ variant: "destructive", title: "Operation Failed" }); }
-    finally { setIsProcessing(false); }
+      });
+      toast({ title: !current ? "Item Activated" : "Item Deactivated" });
+    } catch (e) { toast({ variant: "destructive", title: "Error" }); }
   };
 
   const handleLogout = async () => {
@@ -377,16 +349,8 @@ export default function VendorDashboard() {
                     <Zap className="h-8 w-8 opacity-20 self-end" />
                  </div>
                  <div className="bg-blue-600 p-5 rounded-[2rem] text-white shadow-xl relative overflow-hidden flex flex-col justify-between aspect-square">
-                    <div className="relative z-10"><span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-80">Week</span><div className="text-2xl font-black italic mt-1">₹ {earnings.thisWeek.toFixed(0)}</div></div>
-                    <TrendingUp className="h-8 w-8 opacity-20 self-end" />
-                 </div>
-                 <div className="bg-indigo-600 p-5 rounded-[2rem] text-white shadow-xl relative overflow-hidden flex flex-col justify-between aspect-square">
-                    <div className="relative z-10"><span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-80">Month</span><div className="text-2xl font-black italic mt-1">₹ {earnings.thisMonth.toFixed(0)}</div></div>
-                    <Calendar className="h-8 w-8 opacity-20 self-end" />
-                 </div>
-                 <div className="bg-emerald-600 p-5 rounded-[2rem] text-white shadow-xl relative overflow-hidden flex flex-col justify-between aspect-square">
                     <div className="relative z-10"><span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-80">Total</span><div className="text-2xl font-black italic mt-1">₹ {earnings.totalDelivered.toFixed(0)}</div></div>
-                    <BarChart3 className="h-8 w-8 opacity-20 self-end" />
+                    <TrendingUp className="h-8 w-8 opacity-20 self-end" />
                  </div>
               </div>
 
@@ -397,7 +361,7 @@ export default function VendorDashboard() {
               </div>
 
               {filteredOrders.length > 0 ? filteredOrders.map(o => (
-                <div key={o.id} className="bg-white p-6 rounded-[2.5rem] border border-border shadow-sm mb-4">
+                <div key={o.id} className="bg-white p-6 rounded-[2.5rem] border border-border shadow-sm mb-4 animate-in fade-in slide-in-from-bottom-2">
                    <div className="flex justify-between items-start mb-6">
                       <div className="flex items-center gap-4 min-w-0">
                         <div className="h-14 w-14 rounded-2xl bg-primary/5 flex items-center justify-center text-primary border border-primary/10 shrink-0"><Package className="h-7 w-7" /></div>
@@ -410,8 +374,10 @@ export default function VendorDashboard() {
                         </div>
                       </div>
                       <div className="flex gap-2">
+                         <button onClick={() => { setNoteOrderId(o.id); setNoteText(o.adminNote || ''); setIsNoteOpen(true); }} className="h-10 w-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center border border-amber-100"><StickyNote className="h-5 w-5" /></button>
                          <button onClick={() => generateReceipt(o)} disabled={isDownloading === o.id} className="h-10 w-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center border border-blue-100">{isDownloading === o.id ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileText className="h-5 w-5" />}</button>
                          <button onClick={() => window.open(`tel:${o.customerPhone}`)} className="h-10 w-10 bg-green-500 text-white rounded-xl flex items-center justify-center shadow-lg"><PhoneCall className="h-5 w-5" /></button>
+                         {o.status === 'Placed' && <button onClick={() => handleCancelOrder(o.id)} className="h-10 w-10 bg-red-50 text-red-500 rounded-xl flex items-center justify-center border border-red-100"><XCircle className="h-5 w-5" /></button>}
                       </div>
                    </div>
 
@@ -430,7 +396,7 @@ export default function VendorDashboard() {
                       <div className="flex items-center gap-2"><ShoppingBag className="h-4 w-4 text-gray-400" /><span className="text-[10px] font-black uppercase text-gray-500">Items</span></div>
                       {o.items?.filter((it:any) => String(it.vendorId).trim() === String(user?.uid).trim()).map((item:any, i:number) => (
                         <div key={i} className="flex justify-between items-center text-[11px] font-black uppercase italic">
-                           <span><span className="text-primary">{item.quantity}x</span> {item.name}</span>
+                           <span><span className="text-primary">{item.quantity}x</span> {item.name} {item.selectedOption ? `(${item.selectedOption.name})` : ''}</span>
                            <span>₹{(item.price * item.quantity).toFixed(0)}</span>
                         </div>
                       ))}
@@ -450,15 +416,27 @@ export default function VendorDashboard() {
          {activeMainTab === 'catalog' && (
            <div className="p-4 space-y-6">
               <div className="flex items-center justify-between px-2">
-                 <h2 className="text-xl font-black italic uppercase">Menu</h2>
-                 <button onClick={() => { setEditingId(null); setManualProduct({name:'',price:'',category:'',description:'',imageUrl:'',isVarietyRequired:false,options:[]}); setIsManualAddOpen(true); }} className="h-12 px-6 bg-primary text-white rounded-xl font-black uppercase italic text-xs shadow-lg">+ ADD NEW ITEM</button>
+                 <h2 className="text-xl font-black italic uppercase">Menu Control</h2>
+                 <button onClick={() => { setEditingId(null); setManualProduct({name:'',price:'',category:'',description:'',imageUrl:'',isVarietyRequired:false,options:[]}); setIsManualAddOpen(true); }} className="h-12 px-6 bg-primary text-white rounded-xl font-black uppercase italic text-xs shadow-lg">+ ADD ITEM</button>
               </div>
               <div className="grid grid-cols-1 gap-4">
                  {products?.filter(p => !p.isDeleted).map(p => (
-                   <div key={p.id} className="bg-white p-4 rounded-[2rem] border border-border shadow-sm flex items-center gap-4 relative group">
-                      <img src={p.imageUrl} className="h-20 w-20 rounded-2xl object-cover shrink-0" />
-                      <div className="flex-1 min-w-0 pr-10"><h4 className="font-black text-sm uppercase italic truncate">{p.name}</h4><p className="text-[10px] font-black text-primary">₹{p.price}</p></div>
-                      <button onClick={async () => { if(confirm("Remove?")) await updateDoc(doc(firestore!, 'products', p.id), {isDeleted: true}); }} className="absolute top-4 right-4 h-8 w-8 text-red-500 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100"><Trash2 className="h-4 w-4" /></button>
+                   <div key={p.id} className="bg-white p-5 rounded-[2.5rem] border border-border shadow-sm flex items-center gap-4 relative group transition-all">
+                      <div className="h-20 w-20 rounded-2xl overflow-hidden bg-muted shrink-0">
+                        <img src={p.imageUrl} className="h-full w-full object-cover" />
+                      </div>
+                      <div className="flex-1 min-w-0 pr-10">
+                        <h4 className="font-black text-sm uppercase italic truncate leading-none mb-2">{p.name}</h4>
+                        <div className="flex items-center gap-3">
+                          <p className="text-lg font-black text-primary italic leading-none">₹{p.price}</p>
+                          <div className="h-3 w-[1px] bg-gray-200" />
+                          <div className="flex items-center gap-2">
+                            <span className={cn("text-[8px] font-black uppercase", p.isAvailable === false ? "text-red-500" : "text-green-600")}>{p.isAvailable === false ? 'UNAVAILABLE' : 'AVAILABLE'}</span>
+                            <Switch checked={p.isAvailable !== false} onCheckedChange={() => handleToggleProductAvailability(p.id, p.isAvailable !== false)} className="scale-75 data-[state=checked]:bg-green-500" />
+                          </div>
+                        </div>
+                      </div>
+                      <button onClick={async () => { if(confirm("Remove?")) await updateDoc(doc(firestore!, 'products', p.id), {isDeleted: true}); }} className="absolute top-4 right-4 h-8 w-8 text-red-500 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 className="h-4 w-4" /></button>
                    </div>
                  ))}
               </div>
@@ -483,7 +461,7 @@ export default function VendorDashboard() {
          )}
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto w-full bg-[#0F172A] pt-4 pb-8 px-6 flex justify-around border-t border-white/5 z-50 rounded-t-[2.5rem]">
+      <nav className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto w-full bg-[#0F172A] pt-4 pb-8 px-6 flex justify-around border-t border-white/5 z-[100] rounded-t-[2.5rem]">
         {[{id:'orders',label:'Queue',icon:ShoppingBag},{id:'catalog',label:'Menu',icon:Layers},{id:'coupons',label:'Offers',icon:Ticket},{id:'payouts',label:'Wallet',icon:Wallet2},{id:'account',label:'Profile',icon:UserCircle2}].map(item => (
           <button key={item.id} onClick={() => setActiveMainTab(item.id as MainTab)} className="flex flex-col items-center gap-1.5 active:scale-90 outline-none">
             <item.icon className={cn("h-5 w-5", activeMainTab === item.id ? "text-primary" : "text-gray-50")} />
@@ -491,6 +469,23 @@ export default function VendorDashboard() {
           </button>
         ))}
       </nav>
+
+      {/* ADMIN NOTE DIALOG */}
+      <Dialog open={isNoteOpen} onOpenChange={setIsNoteOpen}>
+         <DialogContent className="rounded-[2.5rem] max-w-sm p-8 border-none shadow-2xl bg-white focus:outline-none">
+            <DialogHeader className="text-center mb-4">
+              <div className="h-16 w-16 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-500 mx-auto border border-amber-100 mb-4"><StickyNote className="h-8 w-8" /></div>
+              <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter text-gray-900">Add Order Note</DialogTitle>
+              <DialogDescription className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Visible to customer instantly</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-6">
+               <Textarea value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="e.g. Preparing fresh ingredients, Rider assigned..." className="min-h-[120px] rounded-2xl border-none bg-gray-50 font-bold p-4 uppercase text-xs" />
+               <Button onClick={handleSaveNote} disabled={isSavingNote || !noteText.trim()} className="w-full h-16 bg-black hover:bg-amber-600 text-white rounded-[2rem] font-black uppercase italic shadow-xl">
+                 {isSavingNote ? <Loader2 className="h-6 w-6 animate-spin" /> : "PUBLISH NOTE"}
+               </Button>
+            </div>
+         </DialogContent>
+      </Dialog>
     </div>
   );
 }
