@@ -70,7 +70,8 @@ import {
   Wallet,
   Banknote,
   Save,
-  Camera
+  Camera,
+  ListPlus
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -110,14 +111,16 @@ export default function VendorDashboard() {
   const [isProcessing, setIsProcessing] = useState(false);
   
   // Product Add State
-  const [isAddProductOpen, setIsAddProductOpen] = useState(false);
+  const [isAddProductOpen, setIsAddOpen] = useState(false);
   const [productForm, setProductForm] = useState({
     name: '',
     price: '',
     mrp: '',
     description: '',
     category: '',
-    image: null as string | null
+    image: null as string | null,
+    isVarietyRequired: false,
+    options: [] as { name: string; price: number }[]
   });
 
   // Coupon State
@@ -300,6 +303,26 @@ export default function VendorDashboard() {
     reader.readAsDataURL(file);
   };
 
+  const handleAddProductOption = () => {
+    setProductForm(prev => ({
+      ...prev,
+      options: [...prev.options, { name: '', price: 0 }]
+    }));
+  };
+
+  const handleRemoveProductOption = (index: number) => {
+    setProductForm(prev => ({
+      ...prev,
+      options: prev.options.filter((_, i) => i !== index)
+    }));
+  };
+
+  const updateProductOption = (index: number, field: string, value: any) => {
+    const newOptions = [...productForm.options];
+    (newOptions[index] as any)[field] = field === 'price' ? parseFloat(value) || 0 : value;
+    setProductForm(prev => ({ ...prev, options: newOptions }));
+  };
+
   const handleCreateProduct = async () => {
     if (!firestore || !user || !productForm.name || !productForm.price) return;
     setIsProcessing(true);
@@ -318,6 +341,8 @@ export default function VendorDashboard() {
         imageUrl: productForm.image || 'https://picsum.photos/seed/food/300/300',
         isAvailable: true,
         isDeleted: false,
+        isVarietyRequired: productForm.isVarietyRequired,
+        options: productForm.options.filter(opt => opt.name.trim() !== ''),
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       };
@@ -325,8 +350,17 @@ export default function VendorDashboard() {
       const pRef = doc(collection(firestore, 'products'));
       await setDoc(pRef, { ...productData, id: pRef.id });
       
-      setIsAddProductOpen(false);
-      setProductForm({ name: '', price: '', mrp: '', description: '', category: '', image: null });
+      setIsAddOpen(false);
+      setProductForm({ 
+        name: '', 
+        price: '', 
+        mrp: '', 
+        description: '', 
+        category: '', 
+        image: null, 
+        isVarietyRequired: false, 
+        options: [] 
+      });
       toast({ title: "Item Added to Menu! 🥘" });
     } catch (e) { toast({ variant: "destructive", title: "Add Failed" }); }
     finally { setIsProcessing(false); }
@@ -530,33 +564,86 @@ export default function VendorDashboard() {
            <div className="p-4 space-y-6">
               <div className="flex items-center justify-between px-2">
                  <h2 className="text-xl font-black italic uppercase">Menu Control</h2>
-                 <Dialog open={isAddProductOpen} onOpenChange={setIsAddProductOpen}>
+                 <Dialog open={isAddProductOpen} onOpenChange={setIsAddOpen}>
                     <DialogTrigger asChild>
                        <button className="h-12 px-6 bg-primary text-white rounded-xl font-black uppercase italic text-xs shadow-lg">+ ADD ITEM</button>
                     </DialogTrigger>
-                    <DialogContent className="rounded-[2.5rem] max-w-md p-8 border-none shadow-2xl bg-white max-h-[90vh] overflow-y-auto no-scrollbar">
-                       <DialogHeader><DialogTitle className="font-black uppercase italic text-center text-xl">Add New Product</DialogTitle></DialogHeader>
-                       <div className="space-y-4 pt-4">
-                          <div onClick={() => addProductFileRef.current?.click()} className="h-40 border-2 border-dashed rounded-[2rem] flex flex-col items-center justify-center bg-muted/20 cursor-pointer overflow-hidden group hover:border-primary transition-all">
+                    <DialogContent className="rounded-[2.5rem] max-w-md p-0 overflow-hidden border-none shadow-2xl bg-white flex flex-col max-h-[90vh]">
+                       <DialogHeader className="p-8 pb-4 shrink-0">
+                         <DialogTitle className="font-black uppercase italic text-center text-xl tracking-tighter">Add New Product</DialogTitle>
+                       </DialogHeader>
+                       <div className="flex-1 overflow-y-auto no-scrollbar p-8 pt-0 space-y-6">
+                          <div onClick={() => addProductFileRef.current?.click()} className="h-40 border-2 border-dashed rounded-[2rem] flex flex-col items-center justify-center bg-muted/20 cursor-pointer overflow-hidden group hover:border-primary transition-all shrink-0">
                              {productForm.image ? <img src={productForm.image} className="h-full w-full object-cover" /> : <div className="flex flex-col items-center gap-2"><Camera className="h-8 w-8 text-muted-foreground/30" /><span className="text-[10px] font-black uppercase text-muted-foreground">Upload Photo</span></div>}
                           </div>
                           <input type="file" ref={addProductFileRef} className="hidden" accept="image/*" onChange={handleProductImageSelect} />
 
-                          <Input placeholder="ITEM NAME (E.G. CLASSIC BURGER)" value={productForm.name} onChange={e => setProductForm({...productForm, name: e.target.value})} className="h-12 rounded-xl font-bold" />
-                          <div className="grid grid-cols-2 gap-3">
-                             <Input placeholder="PRICE (₹)" type="number" value={productForm.price} onChange={e => setProductForm({...productForm, price: e.target.value})} className="h-12 rounded-xl font-bold" />
-                             <Input placeholder="MRP (₹)" type="number" value={productForm.mrp} onChange={e => setProductForm({...productForm, mrp: e.target.value})} className="h-12 rounded-xl font-bold" />
+                          <div className="space-y-4">
+                            <div className="space-y-1.5">
+                              <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Identity</label>
+                              <Input placeholder="ITEM NAME (E.G. CLASSIC BURGER)" value={productForm.name} onChange={e => setProductForm({...productForm, name: e.target.value})} className="h-12 rounded-xl font-bold bg-gray-50 border-none" />
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-3">
+                               <div className="space-y-1.5">
+                                  <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Sale Price ₹</label>
+                                  <Input placeholder="0.00" type="number" value={productForm.price} onChange={e => setProductForm({...productForm, price: e.target.value})} className="h-12 rounded-xl font-black bg-gray-50 border-none" />
+                               </div>
+                               <div className="space-y-1.5">
+                                  <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">MRP ₹</label>
+                                  <Input placeholder="0.00" type="number" value={productForm.mrp} onChange={e => setProductForm({...productForm, mrp: e.target.value})} className="h-12 rounded-xl font-black bg-gray-50 border-none opacity-60" />
+                               </div>
+                            </div>
+
+                            <div className="space-y-1.5">
+                               <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Category</label>
+                               <Select value={productForm.category} onValueChange={v => setProductForm({...productForm, category: v})}>
+                                  <SelectTrigger className="h-12 rounded-xl bg-gray-50 border-none font-bold"><SelectValue placeholder="Select Category" /></SelectTrigger>
+                                  <SelectContent className="rounded-2xl">
+                                     {allCategories?.map((c: any) => <SelectItem key={c.id} value={c.name} className="font-bold py-3 uppercase text-xs">{c.name}</SelectItem>)}
+                                  </SelectContent>
+                               </Select>
+                            </div>
+
+                            <div className="space-y-4 p-5 bg-gray-50 rounded-[2rem] border border-gray-100">
+                               <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                     <div className="bg-primary/10 p-2 rounded-xl text-primary"><ListTree className="h-4 w-4" /></div>
+                                     <div>
+                                        <h4 className="text-[11px] font-black uppercase tracking-tight">Varieties / Add-ons</h4>
+                                        <p className="text-[7px] font-bold text-muted-foreground uppercase">Add sizes or extras</p>
+                                     </div>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                     <span className="text-[8px] font-black uppercase text-gray-400">Required?</span>
+                                     <Switch checked={productForm.isVarietyRequired} onCheckedChange={(v) => setProductForm({...productForm, isVarietyRequired: v})} className="scale-75 data-[state=checked]:bg-primary" />
+                                  </div>
+                               </div>
+
+                               <div className="space-y-3">
+                                  {productForm.options.map((opt, idx) => (
+                                    <div key={idx} className="flex gap-2 animate-in slide-in-from-right-2">
+                                       <Input placeholder="Name (e.g. Full)" value={opt.name} onChange={e => updateProductOption(idx, 'name', e.target.value.toUpperCase())} className="h-10 rounded-xl bg-white border-none font-bold text-xs uppercase flex-[2]" />
+                                       <div className="relative flex-1">
+                                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-black text-primary">₹</span>
+                                          <Input type="number" placeholder="0" value={opt.price} onChange={e => updateProductOption(idx, 'price', e.target.value)} className="h-10 pl-5 rounded-xl bg-white border-none font-black text-xs text-primary" />
+                                       </div>
+                                       <button onClick={() => handleRemoveProductOption(idx)} className="h-10 w-10 bg-red-50 text-red-500 rounded-xl flex items-center justify-center active:scale-90"><Trash2 className="h-3.5 w-3.5" /></button>
+                                    </div>
+                                  ))}
+                                  <button onClick={handleAddProductOption} className="w-full h-10 border-2 border-dashed border-gray-200 text-gray-400 rounded-xl font-black uppercase text-[8px] tracking-[0.2em] flex items-center justify-center gap-2 hover:bg-gray-100 transition-all"><Plus className="h-3 w-3" /> ADD VARIETY OPTION</button>
+                               </div>
+                            </div>
+
+                            <div className="space-y-1.5">
+                               <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Menu Description</label>
+                               <Textarea placeholder="SHORT DESCRIPTION..." value={productForm.description} onChange={e => setProductForm({...productForm, description: e.target.value})} className="rounded-xl min-h-[80px] bg-gray-50 border-none font-bold" />
+                            </div>
                           </div>
-                          <Select value={productForm.category} onValueChange={v => setProductForm({...productForm, category: v})}>
-                             <SelectTrigger className="h-12 rounded-xl"><SelectValue placeholder="Select Category" /></SelectTrigger>
-                             <SelectContent className="rounded-2xl">
-                                {allCategories?.map((c: any) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
-                             </SelectContent>
-                          </Select>
-                          <Textarea placeholder="SHORT DESCRIPTION..." value={productForm.description} onChange={e => setProductForm({...productForm, description: e.target.value})} className="rounded-xl min-h-[80px]" />
-                          
-                          <Button onClick={handleCreateProduct} disabled={isProcessing || !productForm.name || !productForm.price} className="w-full h-16 bg-black text-white rounded-[2rem] font-black uppercase italic shadow-xl">
-                             {isProcessing ? <Loader2 className="h-6 w-6 animate-spin" /> : "ADD TO MENU"}
+                       </div>
+                       <div className="p-8 bg-gray-50 border-t shrink-0">
+                          <Button onClick={handleCreateProduct} disabled={isProcessing || !productForm.name || !productForm.price} className="w-full h-18 bg-[#0B0B0B] hover:bg-primary text-white rounded-[2rem] font-black uppercase italic shadow-2xl transition-all">
+                             {isProcessing ? <Loader2 className="h-6 w-6 animate-spin" /> : "PUBLISH ITEM"}
                           </Button>
                        </div>
                     </DialogContent>
@@ -648,12 +735,12 @@ export default function VendorDashboard() {
                          disabled={!vendorProfile?.walletBalance || vendorProfile.walletBalance < 100}
                          className="bg-white text-[#EF4444] px-6 py-2 rounded-xl font-black uppercase italic text-[11px] shadow-lg active:scale-95 transition-all disabled:opacity-50"
                        >
-                         Request
+                         Withdraw
                        </button>
                     </div>
                     <div className="mt-8 relative z-10 flex items-center gap-3">
                        <div className="bg-white/20 p-2 rounded-xl border border-white/10"><Info className="h-4 w-4 text-white" /></div>
-                       <p className="text-[9px] font-black uppercase text-white/80 leading-tight">We will take ₹10 per order as platform fee during final settlement.</p>
+                       <p className="text-[9px] font-black uppercase text-white/80 leading-tight">NOTICE: We will take ₹10 platform fee per successful order during settlement.</p>
                     </div>
                     <div className="absolute top-0 right-0 h-full w-40 bg-white/5 -skew-x-12 translate-x-12" />
                  </div>
@@ -661,7 +748,7 @@ export default function VendorDashboard() {
 
               <div className="px-5 py-20 space-y-6">
                  <div className="flex items-center justify-between px-2">
-                    <h3 className="text-sm font-black uppercase italic tracking-tighter">Settled By Admin</h3>
+                    <h3 className="text-sm font-black uppercase italic tracking-tighter">Settlement By Admin</h3>
                     <Badge variant="outline" className="rounded-full text-[7px] font-black uppercase tracking-widest border-gray-200">History</Badge>
                  </div>
 
@@ -796,4 +883,3 @@ export default function VendorDashboard() {
     </div>
   );
 }
-
