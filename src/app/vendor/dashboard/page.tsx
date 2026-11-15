@@ -110,8 +110,9 @@ export default function VendorDashboard() {
   const [isMounted, setIsMounted] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   
-  // Product Add State
+  // Product Add/Edit State
   const [isAddProductOpen, setIsAddOpen] = useState(false);
+  const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [productForm, setProductForm] = useState({
     name: '',
     price: '',
@@ -203,7 +204,7 @@ export default function VendorDashboard() {
     let today = 0, week = 0, month = 0, total = 0;
     const now = new Date();
     const dayStart = startOfDay(now);
-    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+    const weekStart = startOfWeek(now, { weekStartsOn: 1 }); 
     const monthStart = startOfMonth(now);
 
     rawOrders.forEach((o: any) => {
@@ -343,14 +344,18 @@ export default function VendorDashboard() {
         isDeleted: false,
         isVarietyRequired: productForm.isVarietyRequired,
         options: productForm.options.filter(opt => opt.name.trim() !== ''),
-        createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       };
       
-      const pRef = doc(collection(firestore, 'products'));
-      await setDoc(pRef, { ...productData, id: pRef.id });
+      if (editingProductId) {
+        await updateDoc(doc(firestore, 'products', editingProductId), productData);
+      } else {
+        const pRef = doc(collection(firestore, 'products'));
+        await setDoc(pRef, { ...productData, id: pRef.id, createdAt: serverTimestamp() });
+      }
       
       setIsAddOpen(false);
+      setEditingProductId(null);
       setProductForm({ 
         name: '', 
         price: '', 
@@ -361,9 +366,24 @@ export default function VendorDashboard() {
         isVarietyRequired: false, 
         options: [] 
       });
-      toast({ title: "Item Added to Menu! 🥘" });
-    } catch (e) { toast({ variant: "destructive", title: "Add Failed" }); }
+      toast({ title: editingProductId ? "Item Updated!" : "Item Added to Menu! 🥘" });
+    } catch (e) { toast({ variant: "destructive", title: "Operation Failed" }); }
     finally { setIsProcessing(false); }
+  };
+
+  const handleEditProduct = (p: any) => {
+    setEditingProductId(p.id);
+    setProductForm({
+      name: p.name,
+      price: p.price.toString(),
+      mrp: p.mrp?.toString() || '',
+      description: p.description || '',
+      category: p.category || '',
+      image: p.imageUrl,
+      isVarietyRequired: p.isVarietyRequired || false,
+      options: p.options || []
+    });
+    setIsAddOpen(true);
   };
 
   const handleCreateCoupon = async () => {
@@ -564,13 +584,13 @@ export default function VendorDashboard() {
            <div className="p-4 space-y-6">
               <div className="flex items-center justify-between px-2">
                  <h2 className="text-xl font-black italic uppercase">Menu Control</h2>
-                 <Dialog open={isAddProductOpen} onOpenChange={setIsAddOpen}>
+                 <Dialog open={isAddProductOpen} onOpenChange={(val) => { setIsAddOpen(val); if(!val) { setEditingProductId(null); setProductForm({ name: '', price: '', mrp: '', description: '', category: '', image: null, isVarietyRequired: false, options: [] }); } }}>
                     <DialogTrigger asChild>
                        <button className="h-12 px-6 bg-primary text-white rounded-xl font-black uppercase italic text-xs shadow-lg">+ ADD ITEM</button>
                     </DialogTrigger>
                     <DialogContent className="rounded-[2.5rem] max-w-md p-0 overflow-hidden border-none shadow-2xl bg-white flex flex-col max-h-[90vh]">
                        <DialogHeader className="p-8 pb-4 shrink-0">
-                         <DialogTitle className="font-black uppercase italic text-center text-xl tracking-tighter">Add New Product</DialogTitle>
+                         <DialogTitle className="font-black uppercase italic text-center text-xl tracking-tighter">{editingProductId ? 'Edit Product' : 'Add New Product'}</DialogTitle>
                        </DialogHeader>
                        <div className="flex-1 overflow-y-auto no-scrollbar p-8 pt-0 space-y-6">
                           <div onClick={() => addProductFileRef.current?.click()} className="h-40 border-2 border-dashed rounded-[2rem] flex flex-col items-center justify-center bg-muted/20 cursor-pointer overflow-hidden group hover:border-primary transition-all shrink-0">
@@ -643,7 +663,7 @@ export default function VendorDashboard() {
                        </div>
                        <div className="p-8 bg-gray-50 border-t shrink-0">
                           <Button onClick={handleCreateProduct} disabled={isProcessing || !productForm.name || !productForm.price} className="w-full h-18 bg-[#0B0B0B] hover:bg-primary text-white rounded-[2rem] font-black uppercase italic shadow-2xl transition-all">
-                             {isProcessing ? <Loader2 className="h-6 w-6 animate-spin" /> : "PUBLISH ITEM"}
+                             {isProcessing ? <Loader2 className="h-6 w-6 animate-spin" /> : editingProductId ? "SAVE CHANGES" : "PUBLISH ITEM"}
                           </Button>
                        </div>
                     </DialogContent>
@@ -666,6 +686,7 @@ export default function VendorDashboard() {
                           </div>
                         </div>
                       </div>
+                      <button onClick={() => handleEditProduct(p)} className="absolute top-4 right-4 h-8 w-8 bg-gray-50 text-gray-400 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><Edit2 className="h-4 w-4" /></button>
                    </div>
                  ))}
               </div>
@@ -779,7 +800,7 @@ export default function VendorDashboard() {
               </div>
 
               <Dialog open={isPayoutRequestOpen} onOpenChange={setIsPayoutRequestOpen}>
-                 <DialogContent className="rounded-[2.5rem] max-w-sm p-8">
+                 <DialogContent className="rounded-[2.5rem] max-sm p-8">
                     <DialogHeader><DialogTitle className="font-black italic text-center text-xl uppercase">Settlement Request</DialogTitle></DialogHeader>
                     <div className="space-y-5 pt-4 text-center">
                        <Input placeholder="Amount to withdraw" type="number" value={payoutForm.amount} onChange={e => setPayoutForm({...payoutForm, amount: e.target.value})} className="h-14 rounded-2xl font-black text-center text-2xl border-none bg-gray-100" />
@@ -866,7 +887,7 @@ export default function VendorDashboard() {
       </nav>
 
       <Dialog open={isNoteOpen} onOpenChange={setIsNoteOpen}>
-         <DialogContent className="rounded-[2.5rem] max-w-sm p-8 border-none shadow-2xl bg-white focus:outline-none">
+         <DialogContent className="rounded-[2.5rem] max-sm p-8 border-none shadow-2xl bg-white focus:outline-none">
             <DialogHeader className="text-center mb-4">
               <div className="h-16 w-16 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-500 mx-auto border border-amber-100 mb-4"><StickyNote className="h-8 w-8" /></div>
               <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter text-gray-900">Add Order Note</DialogTitle>
