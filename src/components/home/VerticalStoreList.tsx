@@ -127,7 +127,7 @@ export const VerticalStoreList = memo(({
     return (
       <div className="px-4 py-6 bg-white space-y-16">
         {[1, 2].map(i => (
-          <div key={i} className="space-y-6"><Skeleton className="w-full aspect-[18/9] rounded-[1.5rem]" /></div>
+          <div className="space-y-6" key={i}><Skeleton className="w-full aspect-[18/9] rounded-[1.5rem]" /></div>
         ))}
       </div>
     );
@@ -142,8 +142,7 @@ export const VerticalStoreList = memo(({
       <div className="space-y-16">
         {filteredVendors.map((store: any) => {
             const displayImage = store.bannerUrl || store.imageUrl || `https://picsum.photos/seed/${store.id}/800/400`;
-            const isOpen = isStoreScheduleOpen(store, currentTimeMins);
-            const isOffline = store.isOnline === false || !isOpen;
+            const vendorOffline = store.isOnline === false || !isStoreScheduleOpen(store, currentTimeMins);
             const productPool = (dbAllProducts !== null && dbAllProducts.length > 0) ? dbAllProducts : initialProducts;
             const storeProducts = productPool.filter((p: any) => String(p.vendorId) === String(store.id) && p.isDeleted !== true).slice(0, 8);
 
@@ -153,11 +152,11 @@ export const VerticalStoreList = memo(({
             };
 
             return (
-              <div key={store.id} className={cn("flex flex-col space-y-4", isOffline && "opacity-75 grayscale-[0.3]")}>
+              <div key={store.id} className={cn("flex flex-col space-y-4", vendorOffline && "opacity-75 grayscale-[0.3]")}>
                 <div onClick={navigateToStore} className="w-full text-left bg-white transition-opacity active:opacity-70 group relative cursor-pointer">
                   <div className="relative w-full aspect-[18/9] rounded-[1.5rem] overflow-hidden border border-gray-100 bg-gray-50 shadow-sm">
                     <Image src={displayImage} alt={store.storeName} fill className="object-cover" unoptimized />
-                    {isOffline && (
+                    {vendorOffline && (
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10">
                         <span className="text-white font-black text-xl uppercase italic border-2 border-white/30 px-6 py-2 rounded-2xl shadow-xl">Closed Now</span>
                       </div>
@@ -179,7 +178,10 @@ export const VerticalStoreList = memo(({
                 </div>
                 <div className="px-1 overflow-hidden">
                   <div className="flex overflow-x-auto space-x-4 no-scrollbar pb-4 pt-2">
-                    {storeProducts.map((p: any) => <ProductStripItem key={p.id} product={{...p, restaurantName: store.storeName}} isOffline={isOffline} />)}
+                    {storeProducts.map((p: any) => {
+                      const isOffline = vendorOffline || (p.isAvailable === false);
+                      return <ProductStripItem key={p.id} product={{...p, restaurantName: store.storeName}} isOffline={isOffline} />;
+                    })}
                     {storeProducts.length === 0 && (
                       <div className="h-24 flex items-center justify-center w-full bg-gray-50 rounded-2xl border border-dashed"><p className="text-[9px] font-black text-gray-300 uppercase">Opening Menu...</p></div>
                     )}
@@ -193,3 +195,4 @@ export const VerticalStoreList = memo(({
   );
 });
 VerticalStoreList.displayName = "VerticalStoreList";
+

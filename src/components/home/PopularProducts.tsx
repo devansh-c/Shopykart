@@ -42,7 +42,6 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare }: any) => {
   const router = useRouter();
   const displayPrice = Number(product.price) || 0;
 
-  // STABLE NAVIGATION: Always use the Shell pattern for products in APK
   const handleProductClick = () => {
     const id = product.slug || product.id;
     router.push(`/product/view/?id=${id}`);
@@ -68,7 +67,7 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare }: any) => {
                 {isOffline && (
                   <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center p-2 text-center z-10">
                     <Store className="h-6 w-6 text-white/80 mb-1" />
-                    <span className="text-white font-black text-[9px] uppercase italic border-2 border-white/30 px-3 py-1 rounded-xl shadow-2xl">Closed</span>
+                    <span className="text-white font-black text-[9px] uppercase italic border-2 border-white/30 px-3 py-1 rounded-xl shadow-2xl">Unavailable</span>
                   </div>
                 )}
                 {!isOffline && (
@@ -212,7 +211,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
           {productsToDisplay.map((product) => {
             const quantity = cart.find(c => String(c.id) === String(product.id) && !c.selectedOption)?.quantity || 0;
             const v = (vendors && vendors.length > 0 ? vendors : initialStores)?.find(s => String(s.id) === String(product.vendorId));
-            const isOffline = v ? (v.isOnline === false || !isStoreScheduleOpen(v, currentTimeMinutes)) : false;
+            const isOffline = (v?.isOnline === false) || !isStoreScheduleOpen(v, currentTimeMinutes) || (product.isAvailable === false);
             return <ProductItem key={product.id} product={{...product, restaurantName: v?.storeName}} quantity={quantity} isOffline={isOffline} onShare={handleShare} />;
           })}
         </div>
@@ -220,3 +219,4 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     </div>
   );
 }
+

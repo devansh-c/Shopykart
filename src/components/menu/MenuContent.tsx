@@ -59,7 +59,6 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
     const fromSearch = searchParams.get('id');
     const fromParams = params?.slug ? String(params.slug) : null;
     const final = (fromProps || fromSearch || fromParams || '').trim();
-    // Capacitor/Android often adds "view" slug when using search params
     return (final === 'view' || final === 'details') ? (fromSearch || '') : final;
   }, [forcedSlug, params, searchParams]);
 
@@ -91,7 +90,6 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
     try {
       const cleanSlug = String(rawSlug).toLowerCase().trim();
 
-      // STAGE 1: Direct ID Match (Fastest)
       const idRef = doc(firestore, 'vendors', rawSlug);
       const idSnap = await getDoc(idRef);
       if (idSnap.exists()) {
@@ -100,7 +98,6 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
         return;
       }
 
-      // STAGE 2: Query Slug or storeId (Precise)
       const vendorsRef = collection(firestore, 'vendors');
       const [slugSnap, idQuerySnap] = await Promise.all([
         getDocs(query(vendorsRef, where('slug', '==', cleanSlug), limit(1))),
@@ -119,7 +116,6 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
         return;
       }
 
-      // STAGE 3: Aggressive Full Scan (Fallback for slow internet/desync)
       const allVendors = await getDocs(vendorsRef);
       const found = allVendors.docs.find(d => {
         const data = d.data();
@@ -180,12 +176,12 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
   }, [searchQuery, dbProducts, initialProducts]);
 
   const scheduleOpen = useMemo(() => isStoreScheduleOpen(vendorProfile, currentMinutes), [vendorProfile, currentMinutes]);
-  const isOffline = vendorProfile?.isOnline === false || !scheduleOpen;
+  const vendorOffline = vendorProfile?.isOnline === false || !scheduleOpen;
 
   if (vendorLoading && !vendorProfile) {
     return (
       <div className="h-screen bg-white flex flex-col items-center justify-center gap-4">
-        <div className="h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20 animate-pulse">
+        <div className="h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary border border-primary/20 animate-pulse">
            <Store className="h-8 w-8 text-primary" />
         </div>
         <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Syncing Hub...</p>
@@ -263,9 +259,10 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
                </div>
                <div className="px-6 overflow-x-auto no-scrollbar">
                   <div className="flex space-x-5 pb-4">
-                     {category.items.map((product) => (
-                       <ProductHorizontalItem key={product.id} product={{...product, restaurantName: vendorProfile.storeName}} isOffline={isOffline} />
-                     ))}
+                     {category.items.map((product) => {
+                       const isOffline = vendorOffline || (product.isAvailable === false);
+                       return <ProductHorizontalItem key={product.id} product={{...product, restaurantName: vendorProfile.storeName}} isOffline={isOffline} />;
+                     })}
                   </div>
                </div>
             </div>
@@ -280,3 +277,4 @@ export default function MenuContent({ forcedSlug, initialVendor, initialProducts
     </div>
   );
 }
+

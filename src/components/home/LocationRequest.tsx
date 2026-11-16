@@ -23,7 +23,7 @@ export default function LocationRequest({ initialData = [] }: { initialData?: an
     if (!firestore) return null;
     return query(collection(firestore, 'zones'), where('isActive', '==', true));
   }, [firestore]);
-  const { data: activeZones } = useCollection<any>(zonesQuery, 'location_zones_v5', initialData);
+  const { data: activeZones, loading: zonesLoading } = useCollection<any>(zonesQuery, 'location_zones_v5', initialData);
 
   const userProfileRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -42,7 +42,7 @@ export default function LocationRequest({ initialData = [] }: { initialData?: an
       
       if ((hasLocationSet && activeZone) || isBot) return;
 
-      if (!userLoading && !profileLoading) {
+      if (!userLoading && !profileLoading && !zonesLoading) {
         if (profile?.lastSelectedZone && activeZones && activeZones.length > 0) {
           const matchedZone = activeZones.find((z: any) => z.name === profile.lastSelectedZone);
           if (matchedZone) {
@@ -55,7 +55,7 @@ export default function LocationRequest({ initialData = [] }: { initialData?: an
       }
     };
 
-    const timer = setTimeout(checkLocationStatus, 1000);
+    const timer = setTimeout(checkLocationStatus, 1500);
 
     const handleOpenManual = () => { setIsOpen(true); };
     window.addEventListener('open-location-picker', handleOpenManual);
@@ -64,7 +64,7 @@ export default function LocationRequest({ initialData = [] }: { initialData?: an
       clearTimeout(timer);
       window.removeEventListener('open-location-picker', handleOpenManual); 
     };
-  }, [userLoading, profileLoading, profile, activeZones]);
+  }, [userLoading, profileLoading, profile, activeZones, zonesLoading]);
 
   useEffect(() => {
     if (activeZones && activeZones.length > 0) {
@@ -139,3 +139,4 @@ export default function LocationRequest({ initialData = [] }: { initialData?: an
     </Dialog>
   );
 }
+

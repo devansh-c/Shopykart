@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -49,7 +50,7 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
   const { data: vendors } = useCollection<any>(vendorsQuery);
   const vendor = vendors?.find(v => String(v.id) === String(product.vendorId));
   const scheduleOpen = vendorScheduleOpen !== undefined ? vendorScheduleOpen : isStoreScheduleOpen(vendor);
-  const isOffline = (vendor?.isOnline === false) || !scheduleOpen;
+  const isOffline = (vendor?.isOnline === false) || !scheduleOpen || (product.isAvailable === false);
 
   const offerRef = useMemoFirebase(() => firestore ? doc(firestore, 'app_settings', 'global_offer') : null, [firestore]);
   const { data: globalOffer } = useDoc<any>(offerRef);
@@ -200,3 +201,4 @@ export function ProductQuickView({ product, children, isMedical, vendorScheduleO
     </div>
   );
 }
+
