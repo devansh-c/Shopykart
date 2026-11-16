@@ -43,16 +43,9 @@ export function EmailAuth({ onClose }: { onClose?: () => void }) {
     setMounted(true);
   }, []);
 
-  const triggerLocationIfMissing = () => {
-    const isLocationSet = localStorage.getItem('user_location_set') === 'true';
-    if (!isLocationSet) {
-      window.dispatchEvent(new CustomEvent('open-location-picker'));
-    }
-  };
-
   const handleSocialAuth = async (providerName: 'google' | 'apple') => {
     if (!auth || !firestore) {
-      toast({ variant: "destructive", title: "System Initializing", description: "Please wait a moment and try again." });
+      toast({ variant: "destructive", title: "System Initializing", description: "Please wait a moment." });
       return;
     }
     setSocialLoading(providerName);
@@ -66,7 +59,6 @@ export function EmailAuth({ onClose }: { onClose?: () => void }) {
         provider = new OAuthProvider('apple.com');
       }
 
-      // CRITICAL: signinWithPopup only works on Authorized Domains
       const result = await signInWithPopup(auth, provider);
       const firebaseUser = result.user;
 
@@ -100,25 +92,24 @@ export function EmailAuth({ onClose }: { onClose?: () => void }) {
       if (onClose) onClose();
       else window.location.reload();
     } catch (err: any) {
-      console.error("Auth Error Object:", err);
+      console.error("Auth Error:", err.code);
       
       if (err.code === 'auth/unauthorized-domain') {
-        const currentDomain = typeof window !== 'undefined' ? window.location.hostname : 'this domain';
         toast({ 
           variant: "destructive", 
           title: "Setup Required 🛠️", 
-          description: `Firebase Console mein "Authorized Domains" mein "${currentDomain}" add karein tabhi Google login chalega.`,
-          duration: 10000
+          description: "Firebase Console mein is domain ko authorize karein tabhi Google Login chalega.",
+          duration: 8000
         });
       } else if (err.code === 'auth/operation-not-supported-in-this-environment') {
         toast({ 
           variant: "destructive", 
-          title: "App Mode Notice", 
+          title: "Notice", 
           description: "Android App mein Google Login ke liye domain authorize hona chahiye. Tab tak Email/Password use karein.",
           duration: 8000
         });
       } else if (err.code !== 'auth/popup-closed-by-user') {
-        toast({ variant: "destructive", title: "Auth Failed", description: "Please use Email & Password to join ShopyKart." });
+        toast({ variant: "destructive", title: "Auth Failed", description: "Email & Password se try karein." });
       }
     } finally {
       setSocialLoading(null);
@@ -192,17 +183,17 @@ export function EmailAuth({ onClose }: { onClose?: () => void }) {
 
   const handleForgotPassword = async () => {
     if (!auth || !email.trim()) {
-      toast({ variant: "destructive", title: "Email Required", description: "Please enter your email address first." });
+      toast({ variant: "destructive", title: "Email Required" });
       return;
     }
 
     setLoading(true);
     try {
       await sendPasswordResetEmail(auth, email.trim().toLowerCase());
-      toast({ title: "Email Sent! 📩", description: "Check your inbox for password reset instructions." });
+      toast({ title: "Email Sent! 📩", description: "Check your inbox for reset instructions." });
       setView('login');
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Error", description: "User not found or connection failed." });
+      toast({ variant: "destructive", title: "Error", description: "User not found." });
     } finally {
       setLoading(false);
     }

@@ -661,7 +661,15 @@ export default function VendorDashboard() {
                           <div className="h-3 w-[1px] bg-gray-200" />
                           <div className="flex items-center gap-2">
                             <span className={cn("text-[8px] font-black uppercase", p.isAvailable === false ? "text-red-500" : "text-green-600")}>{p.isAvailable === false ? 'OFF' : 'ON'}</span>
-                            <Switch checked={p.isAvailable !== false} onCheckedChange={async () => await updateDoc(doc(firestore!, 'products', p.id), {isAvailable: p.isAvailable === false})} className="scale-75 data-[state=checked]:bg-green-500" />
+                            <Switch 
+                              checked={p.isAvailable !== false} 
+                              onCheckedChange={async (checked) => {
+                                if (!firestore) return;
+                                await updateDoc(doc(firestore, 'products', p.id), { isAvailable: checked });
+                                toast({ title: checked ? "Item Online" : "Item Offline" });
+                              }} 
+                              className="scale-75 data-[state=checked]:bg-green-500" 
+                            />
                           </div>
                         </div>
                       </div>
