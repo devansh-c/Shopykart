@@ -90,11 +90,13 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
     if (!firestore || !editingStore) return;
     setIsProcessing(true);
     try {
+      const cleanStoreId = editingStore.storeId.toLowerCase().replace(/\s/g, '');
       const finalSlug = slugify(editingStore.storeName);
+      
       await updateDoc(doc(firestore, 'vendors', editingStore.id), {
         storeName: editingStore.storeName,
-        storeId: editingStore.storeId.toLowerCase().replace(/\s/g, ''),
-        password: editingStore.password,
+        storeId: cleanStoreId,
+        password: editingStore.password, // This is the case-sensitive key Store uses to login
         slug: finalSlug,
         phone: editingStore.phone || '',
         rating: parseFloat(editingStore.rating) || 4.0,
@@ -104,7 +106,7 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
         updatedAt: serverTimestamp()
       });
       setIsEditOpen(false);
-      toast({ title: "Hub Master Record Updated ✅" });
+      toast({ title: "Hub Master Record Updated ✅", description: `ID: ${cleanStoreId} is now active.` });
     } catch (err) { toast({ variant: "destructive", title: "Update Failed" }); }
     finally { setIsProcessing(false); }
   };

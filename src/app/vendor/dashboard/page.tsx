@@ -159,18 +159,7 @@ export default function VendorDashboard() {
       router.replace('/vendor/login');
       return;
     }
-    
-    if (user?.uid && firestore) {
-      requestPushToken(user.uid).then(token => {
-        if (token) {
-           updateDoc(doc(firestore, 'vendors', user.uid), {
-             fcmToken: token,
-             lastTokenUpdate: serverTimestamp()
-           }).catch(e => console.error("Store Token sync error:", e));
-        }
-      });
-    }
-  }, [user, authLoading, router, isMounted, firestore]);
+  }, [user, authLoading, router, isMounted]);
 
   const vendorRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'vendors', user.uid) : null, [firestore, user]);
   const { data: vendorProfile, loading: profileLoading } = useDoc<any>(vendorRef);
@@ -763,7 +752,7 @@ export default function VendorDashboard() {
                        <div className="bg-white/20 p-2 rounded-xl border border-white/10"><Info className="h-4 w-4 text-white" /></div>
                        <p className="text-[9px] font-black uppercase text-white/80 leading-tight">NOTICE: We will take ₹10 platform fee per successful order during settlement.</p>
                     </div>
-                    <div className="absolute top-0 right-0 h-full w-40 bg-white/5 -skew-x-12 translate-x-12" />
+                    <div className="absolute top-0 right-0 h-full w-44 bg-white/5 -skew-x-12 translate-x-12" />
                  </div>
               </div>
 
