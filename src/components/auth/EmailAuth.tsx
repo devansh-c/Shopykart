@@ -96,8 +96,7 @@ export function EmailAuth({ onClose }: { onClose?: () => void }) {
       toast({ title: "Welcome!", description: `Hello, ${firebaseUser.displayName || 'User'}` });
       
       window.dispatchEvent(new CustomEvent('user-address-updated'));
-      triggerLocationIfMissing();
-
+      
       if (onClose) onClose();
       else window.location.reload();
     } catch (err: any) {
@@ -171,7 +170,6 @@ export function EmailAuth({ onClose }: { onClose?: () => void }) {
         localStorage.setItem('shopykart_session_active', 'true');
         toast({ title: "Welcome!", description: "Account created successfully." });
         window.dispatchEvent(new CustomEvent('user-address-updated'));
-        triggerLocationIfMissing();
 
         if (onClose) onClose();
         else window.location.reload();
@@ -180,7 +178,6 @@ export function EmailAuth({ onClose }: { onClose?: () => void }) {
         localStorage.setItem('shopykart_session_active', 'true');
         toast({ title: "Authenticated!" });
         window.dispatchEvent(new CustomEvent('user-address-updated'));
-        triggerLocationIfMissing();
 
         if (onClose) onClose();
         else window.location.reload();

@@ -108,13 +108,11 @@ export default function VendorDashboard() {
   const [isMounted, setIsMounted] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   
-  // SECURE IDENTITY LOOKUP
   const vendorId = useMemo(() => {
     if (typeof window === 'undefined') return '';
     return localStorage.getItem('vendor_id') || user?.uid || '';
   }, [user]);
 
-  // Product Add/Edit State
   const [isAddProductOpen, setIsAddOpen] = useState(false);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [productForm, setProductForm] = useState({
@@ -128,26 +126,20 @@ export default function VendorDashboard() {
     options: [] as { name: string; price: number }[]
   });
 
-  // Coupon State
   const [isAddCouponOpen, setIsAddCouponOpen] = useState(false);
   const [couponForm, setCouponData] = useState({ code: '', value: '', type: 'percentage', minOrder: '' });
 
-  // Payout State
   const [isPayoutRequestOpen, setIsPayoutRequestOpen] = useState(false);
   const [payoutForm, setPayoutForm] = useState({ amount: '', upiId: '' });
 
-  // Note State
   const [isNoteOpen, setIsNoteOpen] = useState(false);
   const [noteOrderId, setNoteOrderId] = useState<string | null>(null);
   const [noteText, setNoteText] = useState('');
   const [isSavingNote, setIsSavingNote] = useState(false);
   const [isDownloading, setIsDownloading] = useState<string | null>(null);
 
-  // Profile Edit State
   const [openingTime, setOpeningTime] = useState('');
   const [closingTime, setClosingTime] = useState('');
-
-  // Time for Store Schedule
   const [currentTimeMins, setCurrentTimeMins] = useState<number | null>(null);
 
   useEffect(() => { 
@@ -542,6 +534,7 @@ export default function VendorDashboard() {
                            {isDownloading === o.id ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileText className="h-5 w-5" />}
                          </button>
                          <button onClick={() => window.open(`tel:${o.customerPhone}`)} className="h-10 w-10 bg-green-500 text-white rounded-xl flex items-center justify-center shadow-lg"><PhoneCall className="h-5 w-5" /></button>
+                         <button onClick={() => { if(confirm("Cancel?")) handleUpdateStatus(o.id, 'Cancelled'); }} className="h-10 w-10 bg-red-50 text-red-500 rounded-xl flex items-center justify-center border border-red-100"><XCircle className="h-5 w-5" /></button>
                       </div>
                    </div>
 
@@ -634,7 +627,7 @@ export default function VendorDashboard() {
                                           <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-black text-primary">₹</span>
                                           <Input type="number" placeholder="0" value={opt.price} onChange={e => updateProductOption(idx, 'price', e.target.value)} className="h-10 pl-5 rounded-xl bg-white border-none font-black text-xs text-primary" />
                                        </div>
-                                       <button onClick={() => handleRemoveProductOption(index)} className="h-10 w-10 bg-red-50 text-red-500 rounded-xl flex items-center justify-center active:scale-90"><Trash2 className="h-3.5 w-3.5" /></button>
+                                       <button onClick={() => handleRemoveProductOption(idx)} className="h-10 w-10 bg-red-50 text-red-500 rounded-xl flex items-center justify-center active:scale-90"><Trash2 className="h-3.5 w-3.5" /></button>
                                     </div>
                                   ))}
                                   <button onClick={handleAddProductOption} className="w-full h-10 border-2 border-dashed border-gray-200 text-gray-400 rounded-xl font-black uppercase text-[8px] tracking-[0.2em] flex items-center justify-center gap-2 hover:bg-gray-100 transition-all"><Plus className="h-3 w-3" /> ADD VARIETY OPTION</button>
@@ -648,7 +641,7 @@ export default function VendorDashboard() {
                           </div>
                        </div>
                        <div className="p-8 bg-gray-50 border-t shrink-0">
-                          <Button onClick={handleCreateProduct} disabled={isProcessing || !productForm.name || !productForm.price} className="w-full h-18 bg-[#0B0B0B] hover:bg-primary text-white rounded-[2rem] font-black uppercase italic shadow-2xl transition-all">
+                          <Button onClick={handleCreateProduct} disabled={isProcessing || !productForm.name || !productForm.price} className="w-full h-18 bg-[#0B0B0B] hover:bg-primary text-white rounded-[2rem] font-black uppercase italic shadow-xl transition-all">
                              {isProcessing ? <Loader2 className="h-6 w-6 animate-spin" /> : editingProductId ? "SAVE CHANGES" : "PUBLISH ITEM"}
                           </Button>
                        </div>

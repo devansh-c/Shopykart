@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -75,11 +76,16 @@ export default function CartPage() {
   useEffect(() => {
     setIsMounted(true);
     if (typeof window !== 'undefined') {
+      const savedName = localStorage.getItem('user_name') || '';
+      const savedPhone = localStorage.getItem('user_phone') || '';
+      const savedAddress = localStorage.getItem('user_address_line') || '';
+      
       setRecipientForm({ 
-        name: localStorage.getItem('user_name') || '', 
-        phone: localStorage.getItem('user_phone') || '', 
-        address: localStorage.getItem('user_address_line') || '' 
+        name: savedName, 
+        phone: savedPhone, 
+        address: savedAddress 
       });
+      
       setActiveZoneId(localStorage.getItem('active_zone_id'));
     }
   }, []);
@@ -228,10 +234,8 @@ export default function CartPage() {
 
       const docRef = await addDoc(collection(firestore, 'orders'), orderData);
       
-      // TRIGGER BACKGROUND PUSH ALERT TO VENDOR
       try {
         if (orderData.vendorId) {
-          // STRICT LOOKUP IN 'vendors' COLLECTION
           const vDoc = await getDoc(doc(firestore, "vendors", orderData.vendorId));
           const fcmToken = vDoc.data()?.fcmToken;
           
@@ -245,13 +249,9 @@ export default function CartPage() {
                 storeName: orderData.restaurantName
               })
             }).catch(e => console.error("FCM Send error:", e));
-          } else {
-            console.warn("Vendor has no FCM token for background alert.");
           }
         }
-      } catch (err) {
-        console.error("Failed to dispatch background alert:", err);
-      }
+      } catch (err) {}
       
       if (isRedeemingCoins && coinDiscount > 0) {
         await updateDoc(doc(firestore, 'users', user.uid), { 
@@ -265,13 +265,8 @@ export default function CartPage() {
         router.replace('/orders'); 
       }, 2000);
     } catch (e: any) { 
-      console.error("Order placement failed:", e);
       setIsPlacing(false); 
-      toast({ 
-        variant: "destructive", 
-        title: "Order Failed", 
-        description: "Check your internet connection and try again." 
-      }); 
+      toast({ variant: "destructive", title: "Order Failed" }); 
     }
   };
 
@@ -500,7 +495,7 @@ export default function CartPage() {
 
       <Dialog open={isAddressModalOpen} onOpenChange={setIsAddressModalOpen}>
         <DialogContent className="rounded-t-[3rem] p-8 bg-white border-none shadow-2xl focus:outline-none bottom-0 top-auto translate-y-0 h-[580px]">
-          <DialogTitle className="text-2xl font-black uppercase italic text-center mb-8">Drop Identity</DialogTitle>
+          <DialogTitle className="text-2xl font-black italic uppercase text-center mb-8">Drop Identity</DialogTitle>
           <div className="space-y-5">
               <div className="space-y-1"><label className="text-[9px] font-black uppercase text-gray-400 ml-2">Name</label><Input value={recipientForm.name} onChange={e => setRecipientForm({...recipientForm, name: e.target.value.toUpperCase()})} className="h-14 rounded-2xl bg-gray-50 border-none font-bold" /></div>
               <div className="space-y-1"><label className="text-[9px] font-black uppercase text-gray-400 ml-2">Mobile</label><Input type="tel" value={recipientForm.phone} onChange={e => setRecipientForm({...recipientForm, phone: e.target.value.replace(/\D/g,'').slice(0,10)})} className="h-14 rounded-2xl bg-gray-50 border-none font-bold" /></div>

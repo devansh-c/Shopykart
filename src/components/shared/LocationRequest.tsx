@@ -9,7 +9,8 @@ import { collection, query, where, doc, setDoc, serverTimestamp } from 'firebase
 import { MapPin, ChevronRight, Store, Loader2, X } from 'lucide-react';
 
 /**
- * @fileOverview Instant Location Selection - Optimized with Pre-fetched SSR Zones.
+ * @fileOverview Instant Location Selection - Optimized to PREVENT repeated popups.
+ * Checks localStorage and User Profile strictly before showing.
  */
 export default function LocationRequest({ initialData = [] }: { initialData?: any[] }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -34,10 +35,12 @@ export default function LocationRequest({ initialData = [] }: { initialData?: an
     const checkLocationStatus = () => {
       if (typeof window === 'undefined') return;
       
+      // PERSISTENT CHECK: If already set in session, NEVER show popup
       const hasLocationSet = localStorage.getItem('user_location_set') === 'true';
+      const activeZone = localStorage.getItem('active_zone_id');
       const isBot = /bot|googlebot|crawler|spider|robot|lighthouse/i.test(navigator.userAgent);
       
-      if (hasLocationSet || isBot) return;
+      if ((hasLocationSet && activeZone) || isBot) return;
 
       if (!userLoading && !profileLoading) {
         if (profile?.lastSelectedZone && activeZones) {
@@ -47,11 +50,12 @@ export default function LocationRequest({ initialData = [] }: { initialData?: an
             return;
           }
         }
+        // Only open if absolutely no location data exists
         setIsOpen(true);
       }
     };
 
-    const timer = setTimeout(checkLocationStatus, 200);
+    const timer = setTimeout(checkLocationStatus, 500);
 
     const handleOpenManual = () => { setIsOpen(true); };
     window.addEventListener('open-location-picker', handleOpenManual);
