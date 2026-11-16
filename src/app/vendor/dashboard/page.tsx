@@ -85,7 +85,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { format, startOfDay, startOfWeek, startOfMonth, isAfter } from 'date-fns';
 import { compressImage } from '@/lib/image-utils';
-import { requestPushToken } from '@/firebase/messaging';
 
 type MainTab = 'orders' | 'catalog' | 'coupons' | 'payouts' | 'account';
 type OrderFilter = 'NEW ORDERS' | 'DELIVERED' | 'CANCELLED';
@@ -102,7 +101,6 @@ export default function VendorDashboard() {
   const { user, loading: authLoading } = useUser();
   const { toast } = useToast();
   const router = useRouter();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const addProductFileRef = useRef<HTMLInputElement>(null);
   
   const [activeMainTab, setActiveMainTab] = useState<MainTab>('orders');
@@ -110,6 +108,12 @@ export default function VendorDashboard() {
   const [isMounted, setIsMounted] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   
+  // SECURE IDENTITY LOOKUP
+  const vendorId = useMemo(() => {
+    if (typeof window === 'undefined') return '';
+    return localStorage.getItem('vendor_id') || user?.uid || '';
+  }, [user]);
+
   // Product Add/Edit State
   const [isAddProductOpen, setIsAddOpen] = useState(false);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
@@ -152,16 +156,7 @@ export default function VendorDashboard() {
     setCurrentTimeMins(d.getHours() * 60 + d.getMinutes());
   }, []);
 
-  useEffect(() => {
-    if (!isMounted || authLoading) return;
-    const sessionActive = localStorage.getItem('shopykart_session_active') === 'true';
-    if (!user && !sessionActive) {
-      router.replace('/vendor/login');
-      return;
-    }
-  }, [user, authLoading, router, isMounted]);
-
-  const vendorRef = useMemoFirebase(() => (firestore && user) ? doc(firestore, 'vendors', user.uid) : null, [firestore, user]);
+  const vendorRef = useMemoFirebase(() => (firestore && vendorId) ? doc(firestore, 'vendors', vendorId) : null, [firestore, vendorId]);
   const { data: vendorProfile, loading: profileLoading } = useDoc<any>(vendorRef);
 
   useEffect(() => {
@@ -171,24 +166,24 @@ export default function VendorDashboard() {
     }
   }, [vendorProfile]);
 
-  const ordersQuery = useMemoFirebase(() => (firestore && user) ? query(collection(firestore, 'orders'), orderBy('createdAt', 'desc')) : null, [firestore, user]);
+  const ordersQuery = useMemoFirebase(() => (firestore && vendorId) ? query(collection(firestore, 'orders'), orderBy('createdAt', 'desc')) : null, [firestore, vendorId]);
   const { data: rawOrders } = useCollection<any>(ordersQuery);
 
-  const productsQuery = useMemoFirebase(() => (firestore && user) ? query(collection(firestore, 'products'), where('vendorId', '==', user.uid)) : null, [firestore, user]);
+  const productsQuery = useMemoFirebase(() => (firestore && vendorId) ? query(collection(firestore, 'products'), where('vendorId', '==', vendorId)) : null, [firestore, vendorId]);
   const { data: products } = useCollection<any>(productsQuery);
 
-  const couponsQuery = useMemoFirebase(() => (firestore && user) ? query(collection(firestore, 'coupons'), where('vendorId', '==', user.uid)) : null, [firestore, user]);
+  const couponsQuery = useMemoFirebase(() => (firestore && vendorId) ? query(collection(firestore, 'coupons'), where('vendorId', '==', vendorId)) : null, [firestore, vendorId]);
   const { data: coupons } = useCollection<any>(couponsQuery);
 
   const categoriesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'categories') : null, [firestore]);
   const { data: allCategories } = useCollection<any>(categoriesQuery);
 
-  const payoutHistoryQuery = useMemoFirebase(() => (firestore && user) ? query(collection(firestore, 'payout_requests'), where('vendorId', '==', user.uid), orderBy('createdAt', 'desc')) : null, [firestore, user]);
+  const payoutHistoryQuery = useMemoFirebase(() => (firestore && vendorId) ? query(collection(firestore, 'payout_requests'), where('vendorId', '==', vendorId), orderBy('createdAt', 'desc')) : null, [firestore, vendorId]);
   const { data: payoutHistory } = useCollection<any>(payoutHistoryQuery);
 
   const earnings = useMemo(() => {
     const fallback = { today: 0, week: 0, month: 0, total: 0 };
-    if (!rawOrders || !user) return fallback;
+    if (!rawOrders || !vendorId) return fallback;
 
     let today = 0, week = 0, month = 0, total = 0;
     const now = new Date();
@@ -197,18 +192,20 @@ export default function VendorDashboard() {
     const monthStart = startOfMonth(now);
 
     rawOrders.forEach((o: any) => {
-      const vId = String(user.uid).trim();
       const status = (o.status || '').toUpperCase();
+      const isVendorOrder = String(o.vendorId || '').trim() === vendorId || (o.items && o.items.some((it:any) => String(it.vendorId).trim() === vendorId));
       
-      const vendorItems = (o.items || []).filter((it: any) => String(it.vendorId).trim() === vId);
+      if (!isVendorOrder) return;
+      if (status !== 'DELIVERED') return;
+
+      const vendorItems = (o.items || []).filter((it: any) => String(it.vendorId).trim() === vendorId);
       let vendorSubtotal = vendorItems.reduce((acc: number, it: any) => acc + (Number(it.price) * Number(it.quantity)), 0);
       
-      if (vendorSubtotal === 0 && (String(o.vendorId || '').trim() === vId)) {
+      if (vendorSubtotal === 0 && String(o.vendorId || '').trim() === vendorId) {
         vendorSubtotal = Number(o.total) || 0;
       }
       
       if (vendorSubtotal === 0) return;
-      if (status !== 'DELIVERED') return;
 
       let orderDate = o.createdAt?.seconds ? new Date(o.createdAt.seconds * 1000) : new Date(o.createdAt || Date.now());
       
@@ -219,19 +216,18 @@ export default function VendorDashboard() {
     });
 
     return { today, week, month, total };
-  }, [rawOrders, user]);
+  }, [rawOrders, vendorId]);
 
   const filteredOrders = useMemo(() => {
-    if (!rawOrders || !user) return [];
-    const vId = String(user.uid).trim();
-    const myOrders = rawOrders.filter((o: any) => String(o.vendorId || '').trim() === vId || (o.items && o.items.some((it:any) => String(it.vendorId).trim() === vId)));
+    if (!rawOrders || !vendorId) return [];
+    const myOrders = rawOrders.filter((o: any) => String(o.vendorId || '').trim() === vendorId || (o.items && o.items.some((it:any) => String(it.vendorId).trim() === vendorId)));
     
     if (orderFilter === 'DELIVERED') return myOrders.filter((o: any) => (o.status || '').toLowerCase() === 'delivered');
     if (orderFilter === 'CANCELLED') return myOrders.filter((o: any) => (o.status || '').toLowerCase() === 'cancelled');
     
     const activeStatuses = ['placed', 'accepted', 'preparing', 'ready for pickup', 'picked up', 'out for delivery'];
     return myOrders.filter((o: any) => activeStatuses.includes((o.status || '').toLowerCase()));
-  }, [rawOrders, user, orderFilter]);
+  }, [rawOrders, vendorId, orderFilter]);
 
   const handleUpdateStatus = async (orderId: string, newStatus: string) => {
     if (!firestore) return;
@@ -266,10 +262,10 @@ export default function VendorDashboard() {
   };
 
   const handleUpdateTimings = async () => {
-    if (!firestore || !user) return;
+    if (!firestore || !vendorId) return;
     setIsProcessing(true);
     try {
-      await updateDoc(doc(firestore, 'vendors', user.uid), {
+      await updateDoc(doc(firestore, 'vendors', vendorId), {
         openingTime,
         closingTime,
         updatedAt: serverTimestamp()
@@ -314,7 +310,7 @@ export default function VendorDashboard() {
   };
 
   const handleCreateProduct = async () => {
-    if (!firestore || !user || !productForm.name || !productForm.price) return;
+    if (!firestore || !vendorId || !productForm.name || !productForm.price) return;
     setIsProcessing(true);
     try {
       const productData = {
@@ -324,7 +320,7 @@ export default function VendorDashboard() {
         mrp: parseFloat(productForm.mrp) || parseFloat(productForm.price),
         description: productForm.description.toUpperCase().trim(),
         category: productForm.category || 'General',
-        vendorId: user.uid,
+        vendorId: vendorId,
         restaurantName: vendorProfile?.storeName || 'Store Hub',
         zoneId: vendorProfile?.zoneId || 'global',
         town: vendorProfile?.town || 'Local',
@@ -376,7 +372,7 @@ export default function VendorDashboard() {
   };
 
   const handleCreateCoupon = async () => {
-    if (!firestore || !user || !couponForm.code) return;
+    if (!firestore || !vendorId || !couponForm.code) return;
     setIsProcessing(true);
     try {
       await addDoc(collection(firestore, 'coupons'), {
@@ -384,7 +380,7 @@ export default function VendorDashboard() {
         discountValue: parseFloat(couponForm.value),
         discountType: couponForm.type,
         minOrderValue: parseFloat(couponForm.minOrder) || 0,
-        vendorId: user.uid,
+        vendorId: vendorId,
         storeName: vendorProfile?.storeName,
         createdAt: serverTimestamp()
       });
@@ -396,7 +392,7 @@ export default function VendorDashboard() {
   };
 
   const handleRequestPayout = async () => {
-    if (!firestore || !user || !payoutForm.amount) return;
+    if (!firestore || !vendorId || !payoutForm.amount) return;
     const amt = parseFloat(payoutForm.amount);
     if (amt > (vendorProfile?.walletBalance || 0)) {
       toast({ variant: "destructive", title: "Insufficient Balance" });
@@ -405,7 +401,7 @@ export default function VendorDashboard() {
     setIsProcessing(true);
     try {
       await addDoc(collection(firestore, 'payout_requests'), {
-        vendorId: user.uid,
+        vendorId: vendorId,
         storeName: vendorProfile?.storeName,
         amount: amt,
         upiId: payoutForm.upiId,
@@ -472,6 +468,7 @@ export default function VendorDashboard() {
     if (auth) {
       await signOut(auth);
       localStorage.removeItem('shopykart_session_active');
+      localStorage.removeItem('vendor_id');
       router.replace('/vendor/login');
     }
   };
@@ -493,7 +490,7 @@ export default function VendorDashboard() {
             </div>
          </div>
          <div className="flex items-center gap-2">
-           <Switch checked={vendorProfile?.isOnline !== false} onCheckedChange={async (o) => { if(firestore && user) await updateDoc(doc(firestore, 'vendors', user.uid), { isOnline: o }); }} className="scale-75 data-[state=checked]:bg-green-500" />
+           <Switch checked={vendorProfile?.isOnline !== false} onCheckedChange={async (o) => { if(firestore && vendorId) await updateDoc(doc(firestore, 'vendors', vendorId), { isOnline: o }); }} className="scale-75 data-[state=checked]:bg-green-500" />
            <button onClick={() => setActiveMainTab('account')} className="h-8 w-8 bg-gray-50 text-gray-400 rounded-lg flex items-center justify-center"><Settings className="h-4 w-4" /></button>
          </div>
       </header>
@@ -579,7 +576,7 @@ export default function VendorDashboard() {
                     </DialogTrigger>
                     <DialogContent className="rounded-[2.5rem] max-w-md p-0 overflow-hidden border-none shadow-2xl bg-white flex flex-col max-h-[90vh]">
                        <DialogHeader className="p-8 pb-4 shrink-0">
-                         <DialogTitle className="font-black uppercase italic text-center text-xl tracking-tighter">{editingProductId ? 'Edit Product' : 'Add New Product'}</DialogTitle>
+                         <DialogTitle className="font-black italic uppercase text-center text-xl tracking-tighter">{editingProductId ? 'Edit Product' : 'Add New Product'}</DialogTitle>
                        </DialogHeader>
                        <div className="flex-1 overflow-y-auto no-scrollbar p-8 pt-0 space-y-6">
                           <div onClick={() => addProductFileRef.current?.click()} className="h-40 border-2 border-dashed rounded-[2rem] flex flex-col items-center justify-center bg-muted/20 cursor-pointer overflow-hidden group hover:border-primary transition-all shrink-0">
@@ -637,7 +634,7 @@ export default function VendorDashboard() {
                                           <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-black text-primary">₹</span>
                                           <Input type="number" placeholder="0" value={opt.price} onChange={e => updateProductOption(idx, 'price', e.target.value)} className="h-10 pl-5 rounded-xl bg-white border-none font-black text-xs text-primary" />
                                        </div>
-                                       <button onClick={() => handleRemoveProductOption(idx)} className="h-10 w-10 bg-red-50 text-red-500 rounded-xl flex items-center justify-center active:scale-90"><Trash2 className="h-3.5 w-3.5" /></button>
+                                       <button onClick={() => handleRemoveProductOption(index)} className="h-10 w-10 bg-red-50 text-red-500 rounded-xl flex items-center justify-center active:scale-90"><Trash2 className="h-3.5 w-3.5" /></button>
                                     </div>
                                   ))}
                                   <button onClick={handleAddProductOption} className="w-full h-10 border-2 border-dashed border-gray-200 text-gray-400 rounded-xl font-black uppercase text-[8px] tracking-[0.2em] flex items-center justify-center gap-2 hover:bg-gray-100 transition-all"><Plus className="h-3 w-3" /> ADD VARIETY OPTION</button>

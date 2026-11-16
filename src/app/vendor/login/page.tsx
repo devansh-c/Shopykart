@@ -38,14 +38,12 @@ function LoginPageContent() {
     if (!authLoading && user && firestore) {
       const checkAndRedirect = async () => {
         try {
-          const vendorRef = doc(firestore, 'vendors', user.uid);
+          const vId = localStorage.getItem('vendor_id') || user.uid;
+          const vendorRef = doc(firestore, 'vendors', vId);
           const vendorSnap = await getDoc(vendorRef);
           if (vendorSnap.exists()) {
-            const vendorData = vendorSnap.data();
             localStorage.setItem('shopykart_session_active', 'true');
-            if (vendorData.category === 'Medical') router.replace('/vendor/dashboard');
-            else if (vendorData.category === 'Beauty') router.replace('/vendor/dashboard');
-            else router.replace('/vendor/dashboard');
+            router.replace('/vendor/dashboard');
           }
         } catch (e) {
           console.error("Redirect check failed", e);
@@ -59,7 +57,6 @@ function LoginPageContent() {
     if (e) e.preventDefault();
     if (!auth || !firestore || loading) return;
 
-    // We lowercase the ID for lookup but keep password case-sensitive
     const inputId = identifier.trim().toLowerCase();
     const inputPass = password.trim();
 
@@ -71,12 +68,10 @@ function LoginPageContent() {
     setLoading(true);
 
     try {
-      // 1. SEARCH FIRESTORE (The Source of Truth for IDs and Passwords set by Admin)
       const vendorsRef = collection(firestore, 'vendors');
       let vendorData: any = null;
       let vendorDocId: string | null = null;
 
-      // Check by storeId (Admin set)
       const qId = query(vendorsRef, where('storeId', '==', inputId));
       const snapId = await getDocs(qId);
       
@@ -84,7 +79,6 @@ function LoginPageContent() {
         vendorData = snapId.docs[0].data();
         vendorDocId = snapId.docs[0].id;
       } else {
-        // Fallback: Check by email
         const qEmail = query(vendorsRef, where('email', '==', identifier.trim().toLowerCase()));
         const snapEmail = await getDocs(qEmail);
         if (!snapEmail.empty) {
@@ -93,31 +87,28 @@ function LoginPageContent() {
         }
       }
 
-      if (!vendorData) {
+      if (!vendorData || !vendorDocId) {
         toast({ variant: "destructive", title: "Identity Error", description: "This Store ID is not recognized." });
         setLoading(false);
         return;
       }
 
-      // 2. VERIFY PASSWORD (Strict Match)
-      // We compare the input password with the one Admin saved in Firestore
       if (vendorData.password !== inputPass) {
         toast({ variant: "destructive", title: "Incorrect Password", description: "Please enter the correct security key." });
         setLoading(false);
         return;
       }
       
-      // 3. AUTHENTICATE WITH FIREBASE AUTH
-      // We use the account email and the SAME password from Firestore
+      // CRITICAL: Save verified vendor ID to ensure correct dashboard loading
+      localStorage.setItem('vendor_id', vendorDocId);
+      
       try {
         await signInWithEmailAndPassword(auth, vendorData.email, vendorData.password);
         localStorage.setItem('shopykart_session_active', 'true');
         toast({ title: "Hub Authenticated! ✅" });
         router.push('/vendor/dashboard');
       } catch (authErr: any) {
-        // If Auth fails but Firestore matched, it means Auth is out of sync.
-        // For prototyping, we treat Firestore match as success and manual redirect if needed.
-        console.warn("Auth sync delay, but Firestore matched.");
+        console.warn("Auth sync delay, but Firestore matched. Proceeding with Local ID.");
         localStorage.setItem('shopykart_session_active', 'true');
         router.push('/vendor/dashboard');
       }
