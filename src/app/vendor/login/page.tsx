@@ -70,6 +70,7 @@ function LoginPageContent() {
 
     try {
       // 1. SEARCH FIRESTORE FIRST (Admin's Source of Truth)
+      // This ensures ID: BURGER99 and Password: BurgerMr78 work immediately
       const vendorsRef = collection(firestore, 'vendors');
       let vendorData: any = null;
 
@@ -91,14 +92,14 @@ function LoginPageContent() {
         return;
       }
 
-      // 2. VERIFY PASSWORD AGAINST FIRESTORE (Source of Truth for Admin changes)
+      // 2. VERIFY PASSWORD AGAINST FIRESTORE
       if (vendorData.password !== pass) {
         toast({ variant: "destructive", title: "Incorrect Password", description: "The password set by Admin does not match." });
         setLoading(false);
         return;
       }
       
-      // 3. AUTHENTICATE with Firebase Auth using verified credentials
+      // 3. AUTHENTICATE with Firebase Auth
       await signInWithEmailAndPassword(auth, vendorData.email, vendorData.password);
       localStorage.setItem('shopykart_session_active', 'true');
       toast({ title: "Welcome Back!" });
