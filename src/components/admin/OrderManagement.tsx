@@ -34,7 +34,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -79,7 +79,6 @@ export default function OrderManagement() {
         updatedAt: serverTimestamp()
       });
 
-      // ATOMIC WALLET CREDIT ON DELIVERY
       if (nextStatus === 'Delivered') {
         const orderSnap = await getDoc(orderRef);
         const orderData = orderSnap.data();
@@ -96,7 +95,6 @@ export default function OrderManagement() {
 
           for (const [vId, amount] of Array.from(vendorsToUpdate.entries())) {
             const vendorRef = doc(firestore, 'vendors', vId);
-            // Use setDoc merge to ensure walletBalance field is created if missing
             await setDoc(vendorRef, {
               walletBalance: increment(amount),
               updatedAt: serverTimestamp()
@@ -194,7 +192,7 @@ export default function OrderManagement() {
     <div className="space-y-6 pb-32">
       <div className="grid grid-cols-1 gap-6">
         {orders?.map((order: any) => {
-          const orderDate = order.createdAt?.seconds ? new Date(order.createdAt.seconds * 1000) : new Date();
+          const orderDate = order.createdAt?.seconds ? new Date(order.createdAt.seconds * 1000) : (typeof order.createdAt === 'string' ? new Date(order.createdAt) : null);
           
           return (
             <div key={order.id} className="bg-white rounded-[2.5rem] p-6 border-2 border-border shadow-sm hover:shadow-xl transition-all relative overflow-hidden">
@@ -207,7 +205,7 @@ export default function OrderManagement() {
                         <Badge className="bg-primary text-white text-[8px] uppercase font-black px-2 py-0.5">{order.status}</Badge>
                         <div className="flex items-center gap-1 text-[9px] font-black text-muted-foreground uppercase">
                            <Clock className="h-3 w-3 text-primary" />
-                           {isMounted ? format(orderDate, 'hh:mm a') : '--:--'}
+                           {isMounted && orderDate ? format(orderDate, 'dd MMM, hh:mm a') : '--:--'}
                         </div>
                       </div>
                     </div>

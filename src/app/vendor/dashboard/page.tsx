@@ -199,7 +199,7 @@ export default function VendorDashboard() {
       
       if (vendorSubtotal === 0) return;
 
-      let orderDate = o.createdAt?.seconds ? new Date(o.createdAt.seconds * 1000) : new Date(o.createdAt || Date.now());
+      let orderDate = o.createdAt?.seconds ? new Date(o.createdAt.seconds * 1000) : (typeof o.createdAt === 'string' ? new Date(o.createdAt) : new Date());
       
       total += vendorSubtotal;
       if (isAfter(orderDate, dayStart)) today += vendorSubtotal;
@@ -524,7 +524,10 @@ export default function VendorDashboard() {
                            <span className="text-2xl font-black italic text-gray-900 leading-none block">#{o.customerOrderNumber}</span>
                            <div className="flex items-center gap-1.5 mt-1">
                               <Badge className="bg-primary/5 text-primary border-none font-black text-[8px] uppercase px-2">{o.status}</Badge>
-                              <div className="flex items-center gap-1 text-[9px] font-black text-muted-foreground italic"><Clock className="h-2.5 w-2.5" />{format(new Date(o.createdAt?.seconds * 1000 || Date.now()), 'hh:mm a')}</div>
+                              <div className="flex items-center gap-1 text-[9px] font-black text-muted-foreground uppercase italic">
+                                <Clock className="h-2.5 w-2.5" />
+                                {isMounted && o.createdAt ? format(new Date(o.createdAt?.seconds * 1000 || o.createdAt || Date.now()), 'dd MMM, hh:mm a') : '--:--'}
+                              </div>
                            </div>
                         </div>
                       </div>
@@ -627,7 +630,7 @@ export default function VendorDashboard() {
                                           <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-black text-primary">₹</span>
                                           <Input type="number" placeholder="0" value={opt.price} onChange={e => updateProductOption(idx, 'price', e.target.value)} className="h-10 pl-5 rounded-xl bg-white border-none font-black text-xs text-primary" />
                                        </div>
-                                       <button onClick={() => handleRemoveProductOption(index)} className="h-10 w-10 bg-red-50 text-red-500 rounded-xl flex items-center justify-center active:scale-90"><Trash2 className="h-3.5 w-3.5" /></button>
+                                       <button onClick={() => handleRemoveProductOption(idx)} className="h-10 w-10 bg-red-50 text-red-500 rounded-xl flex items-center justify-center active:scale-90"><Trash2 className="h-3.5 w-3.5" /></button>
                                     </div>
                                   ))}
                                   <button onClick={handleAddProductOption} className="w-full h-10 border-2 border-dashed border-gray-200 text-gray-400 rounded-xl font-black uppercase text-[8px] tracking-[0.2em] flex items-center justify-center gap-2 hover:bg-gray-100 transition-all"><Plus className="h-3 w-3" /> ADD VARIETY OPTION</button>
@@ -891,4 +894,3 @@ export default function VendorDashboard() {
     </div>
   );
 }
-
