@@ -1,3 +1,4 @@
+
 import { MetadataRoute } from 'next';
 
 export const dynamic = 'force-static';
@@ -20,6 +21,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '/wishlist',
     '/cart',
     '/services/coming-soon',
+    '/hotelwale',
   ].map((route) => ({
     url: `${baseUrl}${route}`,
     lastModified: new Date(),
