@@ -552,6 +552,31 @@ export default function VendorDashboard() {
                       </div>
                    </div>
 
+                   {/* ORDER ITEMS LIST SECTION */}
+                   <div className="bg-gray-50 rounded-[2rem] p-6 mb-6 space-y-4 border border-border/20">
+                      <div className="flex items-center gap-2 mb-2 px-1">
+                         <ShoppingBag className="h-4 w-4 text-primary" />
+                         <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Order Contents</span>
+                      </div>
+                      <div className="space-y-4">
+                         {o.items?.map((item: any, i: number) => (
+                           <div key={i} className="bg-white/60 p-4 rounded-2xl border border-white relative overflow-hidden group">
+                              <div className="flex justify-between items-center text-xs font-black italic">
+                                 <div className="flex flex-col gap-0.5">
+                                    <span className="text-gray-800"><span className="text-primary">{item.quantity}x</span> {item.name}</span>
+                                    {item.selectedOption && (
+                                       <Badge className="bg-primary/10 text-primary border-none text-[8px] font-black uppercase px-1.5 py-0 w-fit">
+                                          {item.selectedOption.name}
+                                       </Badge>
+                                    )}
+                                 </div>
+                                 <span className="text-gray-900">₹{(item.price * item.quantity).toFixed(0)}</span>
+                              </div>
+                           </div>
+                         ))}
+                      </div>
+                   </div>
+
                    <div className="flex flex-col gap-2">
                       {o.status === 'Placed' && <Button onClick={() => handleUpdateStatus(o.id, 'Accepted')} className="h-16 bg-green-600 text-white rounded-2xl font-black uppercase italic">ACCEPT ORDER</Button>}
                       {o.status === 'Accepted' && <Button onClick={() => handleUpdateStatus(o.id, 'Preparing')} className="h-16 bg-primary text-white rounded-2xl font-black uppercase italic">START PREPARING</Button>}
@@ -630,7 +655,7 @@ export default function VendorDashboard() {
                                           <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-black text-primary">₹</span>
                                           <Input type="number" placeholder="0" value={opt.price} onChange={e => updateProductOption(idx, 'price', e.target.value)} className="h-10 pl-5 rounded-xl bg-white border-none font-black text-xs text-primary" />
                                        </div>
-                                       <button onClick={() => handleRemoveProductOption(idx)} className="h-10 w-10 bg-red-50 text-red-500 rounded-xl flex items-center justify-center active:scale-90"><Trash2 className="h-3.5 w-3.5" /></button>
+                                       <button onClick={() => handleRemoveProductOption(index)} className="h-10 w-10 bg-red-50 text-red-500 rounded-xl flex items-center justify-center active:scale-90"><Trash2 className="h-3.5 w-3.5" /></button>
                                     </div>
                                   ))}
                                   <button onClick={handleAddProductOption} className="w-full h-10 border-2 border-dashed border-gray-200 text-gray-400 rounded-xl font-black uppercase text-[8px] tracking-[0.2em] flex items-center justify-center gap-2 hover:bg-gray-100 transition-all"><Plus className="h-3 w-3" /> ADD VARIETY OPTION</button>
