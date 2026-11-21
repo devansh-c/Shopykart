@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo, Suspense } from 'react';
@@ -26,12 +25,21 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useUser, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, setDoc, serverTimestamp, collection, addDoc } from 'firebase/firestore';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 function HotelDetailsInner() {
   const params = useParams();
@@ -158,7 +166,7 @@ function HotelDetailsInner() {
       </div>
 
       <Dialog open={isBookingOpen} onOpenChange={setIsBookingOpen}>
-         <DialogContent className="rounded-t-[3rem] p-0 overflow-hidden border-none shadow-2xl bg-white bottom-0 top-auto translate-y-0 focus:outline-none">
+         <DialogContent className="rounded-t-[3rem] p-0 overflow-hidden border-none shadow-2xl bg-white bottom-0 top-auto translate-y-0 h-[640px] focus:outline-none">
             <div className="bg-amber-400 h-[2px] w-full" />
             <div className="p-8 space-y-8">
                {showSuccess ? (
