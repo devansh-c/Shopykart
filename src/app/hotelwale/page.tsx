@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -97,9 +96,9 @@ export default function HotelWalePage() {
               className="bg-white rounded-[2.5rem] overflow-hidden border border-border shadow-sm active:scale-[0.98] transition-all group cursor-pointer"
             >
               <div className="relative h-56 w-full">
-                 <Image src={hotel.imageUrl || 'https://picsum.photos/seed/hotel/800/600'} alt={hotel.name} fill className="object-cover group-hover:scale-105 transition-transform duration-700" unoptimized />
+                 <Image src={hotel.imageUrl || 'https://picsum.photos/seed/hotel/800/600'} alt={hotel.name || 'Hotel image'} fill className="object-cover group-hover:scale-105 transition-transform duration-700" unoptimized />
                  <div className="absolute top-4 left-4">
-                    <Badge className="bg-white/95 text-primary border-none font-black text-[9px] px-3 py-1 rounded-full shadow-lg uppercase flex items-center gap-1">
+                    <Badge className="bg-white/95 text-primary border-none font-black text-[8px] px-3 py-1 rounded-full shadow-lg uppercase flex items-center gap-1">
                        <Zap className="h-3 w-3 fill-primary" /> Instant Booking
                     </Badge>
                  </div>

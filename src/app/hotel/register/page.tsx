@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef } from 'react';
@@ -119,7 +118,7 @@ export default function HotelRegisterPage() {
 
               <div className="flex flex-col items-center gap-3">
                  <div onClick={() => fileInputRef.current?.click()} className="h-28 w-44 rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 flex flex-col items-center justify-center cursor-pointer overflow-hidden group hover:border-primary transition-all">
-                    {photo ? <img src={photo} className="h-full w-full object-cover" /> : <div className="flex flex-col items-center gap-1"><Camera className="h-6 w-6 text-gray-300" /><span className="text-[8px] font-black uppercase text-gray-400">Upload Hotel Photo</span></div>}
+                    {photo ? <img src={photo} className="h-full w-full object-cover" alt="Selected hotel photo" /> : <div className="flex flex-col items-center gap-1"><Camera className="h-6 w-6 text-gray-300" /><span className="text-[8px] font-black uppercase text-gray-400">Upload Hotel Photo</span></div>}
                  </div>
                  <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageSelect} />
               </div>

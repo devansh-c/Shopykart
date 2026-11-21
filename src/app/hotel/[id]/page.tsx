@@ -104,7 +104,7 @@ function HotelDetailsInner() {
   return (
     <div className="min-h-screen bg-white pb-40">
       <div className="relative h-[45vh] w-full">
-         <Image src={hotel?.imageUrl || 'https://picsum.photos/seed/hotel/800/600'} alt={hotel?.name} fill className="object-cover" priority unoptimized />
+         <Image src={hotel?.imageUrl || 'https://picsum.photos/seed/hotel/800/600'} alt={hotel?.name || 'Hotel preview'} fill className="object-cover" priority unoptimized />
          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent flex flex-col justify-between p-6">
             <button onClick={() => router.back()} className="h-10 w-10 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20 active:scale-90 transition-transform"><ChevronLeft className="h-6 w-6" /></button>
             <div className="space-y-2">
@@ -180,7 +180,7 @@ function HotelDetailsInner() {
                ) : (
                  <>
                     <div className="flex flex-col items-center text-center space-y-2">
-                       <div className="h-16 w-16 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600 mb-2 border border-amber-100"><Zap className="h-8 w-8" /></div>
+                       <div className="h-16 w-16 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600 mb-2 border border-amber-100 shadow-inner"><Zap className="h-8 w-8" /></div>
                        <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter">Reserve Room</DialogTitle>
                        <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Confirm your dates to lock the price</p>
                     </div>

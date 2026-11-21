@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -82,7 +81,7 @@ export default function HotelDashboard() {
       <header className="bg-white px-6 py-6 border-b border-gray-50 flex items-center justify-between z-50 shadow-sm">
          <div className="flex items-center gap-4">
             <div className="h-12 w-12 rounded-2xl overflow-hidden border-2 border-amber-100 bg-amber-50 flex items-center justify-center text-amber-600 shrink-0">
-               {hotel?.imageUrl ? <img src={hotel.imageUrl} className="h-full w-full object-cover" /> : <Building2 className="h-6 w-6" />}
+               {hotel?.imageUrl ? <img src={hotel.imageUrl} className="h-full w-full object-cover" alt={hotel?.name || 'Hotel logo'} /> : <Building2 className="h-6 w-6" />}
             </div>
             <div className="min-w-0">
                <h1 className="text-lg font-black italic uppercase leading-none truncate max-w-[150px]">{hotel?.name}</h1>
@@ -161,7 +160,7 @@ export default function HotelDashboard() {
                <div className="text-center space-y-4">
                   <div className="relative inline-block">
                     <div className="h-32 w-32 rounded-[3rem] overflow-hidden border-[6px] border-white shadow-2xl mx-auto bg-amber-50 flex items-center justify-center relative">
-                      {hotel?.imageUrl ? <img src={hotel.imageUrl} className="h-full w-full object-cover" /> : <Building2 className="h-10 w-10 text-amber-200" />}
+                      {hotel?.imageUrl ? <img src={hotel.imageUrl} className="h-full w-full object-cover" alt={hotel?.name || 'Hotel profile'} /> : <Building2 className="h-10 w-10 text-amber-200" />}
                     </div>
                   </div>
                   <div>
