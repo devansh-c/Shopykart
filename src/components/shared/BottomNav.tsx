@@ -59,6 +59,9 @@ const BottomNav = memo(() => {
     return p.startsWith('/admin') || 
            p.startsWith('/vendor') || 
            p.startsWith('/delivery') || 
+           p.startsWith('/hotel/dashboard') || 
+           p.startsWith('/hotel/login') || 
+           p.startsWith('/hotel/register') || 
            p.startsWith('/medical/store') || 
            p.startsWith('/beauty/store');
   }, [pathname]);
