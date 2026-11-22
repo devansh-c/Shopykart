@@ -182,6 +182,18 @@ function LoginPageContent() {
             <Button onClick={() => view === 'forgot' ? handleResetPassword() : handleLogin()} className="w-full h-18 rounded-[2rem] font-black uppercase italic text-lg shadow-xl bg-black text-white hover:bg-gray-900" disabled={loading}>
               {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : (view === 'forgot' ? "SEND RESET LINK" : "ENTER DASHBOARD")}
             </Button>
+            
+            {view === 'login' && (
+              <Button 
+                type="button" 
+                variant="outline"
+                className="w-full h-14 rounded-2xl border-gray-100 font-black uppercase italic"
+                onClick={() => router.push(isMedical ? '/vendor/register?type=Medical' : isBeauty ? '/vendor/register?type=Beauty' : '/vendor/register')}
+              >
+                BECOME A PARTNER <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            )}
+
             {view === 'forgot' && (<button onClick={() => setView('login')} className="w-full flex items-center justify-center gap-2 text-[10px] font-black uppercase text-gray-400 hover:text-black"><ChevronLeft className="h-3 w-3" /> BACK TO LOGIN</button>)}
             <Button type="button" variant="ghost" className="w-full h-12 text-gray-400 font-bold uppercase text-[9px] tracking-widest" onClick={() => router.push('/')}>EXIT TO HOME</Button>
           </div>
