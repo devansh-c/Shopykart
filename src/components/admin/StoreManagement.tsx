@@ -96,7 +96,7 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
       await updateDoc(doc(firestore, 'vendors', editingStore.id), {
         storeName: editingStore.storeName,
         storeId: cleanStoreId,
-        password: editingStore.password, // This is the case-sensitive key Store uses to login
+        password: editingStore.password, 
         slug: finalSlug,
         phone: editingStore.phone || '',
         rating: parseFloat(editingStore.rating) || 4.0,
@@ -177,7 +177,7 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
                 <div className="flex items-start justify-between mb-6">
                   <div className="flex items-center gap-4">
                       <div className="h-16 w-16 rounded-2xl overflow-hidden border-2 border-primary/10 bg-muted shrink-0 shadow-inner">
-                        <img src={store.imageUrl} className="h-full w-full object-cover" alt="" />
+                        <img src={store.imageUrl} className="h-full w-full object-cover" alt="Store logo" />
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5 mb-1">

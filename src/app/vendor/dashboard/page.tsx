@@ -474,7 +474,7 @@ export default function VendorDashboard() {
       <header className="bg-white px-4 py-4 flex items-center justify-between border-b shrink-0 z-50">
          <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl overflow-hidden bg-rose-50 border border-rose-100 flex items-center justify-center text-primary">
-              {vendorProfile?.imageUrl ? <img src={vendorProfile.imageUrl} className="h-full w-full object-cover" /> : <Store className="h-5 w-5" />}
+              {vendorProfile?.imageUrl ? <img src={vendorProfile.imageUrl} className="h-full w-full object-cover" alt="Store logo" /> : <Store className="h-5 w-5" />}
             </div>
             <div>
               <h1 className="text-sm font-black italic uppercase leading-none">{vendorProfile?.storeName}</h1>
@@ -552,7 +552,6 @@ export default function VendorDashboard() {
                       </div>
                    </div>
 
-                   {/* ORDER ITEMS LIST SECTION */}
                    <div className="bg-gray-50 rounded-[2rem] p-6 mb-6 space-y-4 border border-border/20">
                       <div className="flex items-center gap-2 mb-2 px-1">
                          <ShoppingBag className="h-4 w-4 text-primary" />
@@ -601,7 +600,7 @@ export default function VendorDashboard() {
                        </DialogHeader>
                        <div className="flex-1 overflow-y-auto no-scrollbar p-8 pt-0 space-y-6">
                           <div onClick={() => addProductFileRef.current?.click()} className="h-40 border-2 border-dashed rounded-[2rem] flex flex-col items-center justify-center bg-muted/20 cursor-pointer overflow-hidden group hover:border-primary transition-all shrink-0">
-                             {productForm.image ? <img src={productForm.image} className="h-full w-full object-cover" /> : <div className="flex flex-col items-center gap-2"><Camera className="h-8 w-8 text-muted-foreground/30" /><span className="text-[10px] font-black uppercase text-muted-foreground">Upload Photo</span></div>}
+                             {productForm.image ? <img src={productForm.image} className="h-full w-full object-cover" alt="Product preview" /> : <div className="flex flex-col items-center gap-2"><Camera className="h-8 w-8 text-muted-foreground/30" /><span className="text-[10px] font-black uppercase text-muted-foreground">Upload Photo</span></div>}
                           </div>
                           <input type="file" ref={addProductFileRef} className="hidden" accept="image/*" onChange={handleProductImageSelect} />
 
@@ -655,7 +654,7 @@ export default function VendorDashboard() {
                                           <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-black text-primary">₹</span>
                                           <Input type="number" placeholder="0" value={opt.price} onChange={e => updateProductOption(idx, 'price', e.target.value)} className="h-10 pl-5 rounded-xl bg-white border-none font-black text-xs text-primary" />
                                        </div>
-                                       <button onClick={() => handleRemoveProductOption(index)} className="h-10 w-10 bg-red-50 text-red-500 rounded-xl flex items-center justify-center active:scale-90"><Trash2 className="h-3.5 w-3.5" /></button>
+                                       <button onClick={() => handleRemoveProductOption(idx)} className="h-10 w-10 bg-red-50 text-red-500 rounded-xl flex items-center justify-center active:scale-90"><Trash2 className="h-3.5 w-3.5" /></button>
                                     </div>
                                   ))}
                                   <button onClick={handleAddProductOption} className="w-full h-10 border-2 border-dashed border-gray-200 text-gray-400 rounded-xl font-black uppercase text-[8px] tracking-[0.2em] flex items-center justify-center gap-2 hover:bg-gray-100 transition-all"><Plus className="h-3 w-3" /> ADD VARIETY OPTION</button>
@@ -680,7 +679,7 @@ export default function VendorDashboard() {
                  {products?.filter(p => !p.isDeleted).map(p => (
                    <div key={p.id} className="bg-white p-5 rounded-[2.5rem] border border-border shadow-sm flex items-center gap-4 relative group transition-all">
                       <div className="h-20 w-20 rounded-2xl overflow-hidden bg-muted shrink-0">
-                        <img src={p.imageUrl} className="h-full w-full object-cover" />
+                        <img src={p.imageUrl} className="h-full w-full object-cover" alt={p.name} />
                       </div>
                       <div className="flex-1 min-w-0 pr-10">
                         <h4 className="font-black text-sm uppercase italic truncate leading-none mb-2">{p.name}</h4>
@@ -831,7 +830,7 @@ export default function VendorDashboard() {
             <div className="p-8 space-y-10 animate-in fade-in duration-500 pb-40">
                <div className="text-center space-y-4">
                   <div className="h-32 w-32 rounded-[3rem] overflow-hidden border-[6px] border-white shadow-2xl mx-auto bg-gray-50 flex items-center justify-center">
-                    {vendorProfile?.imageUrl ? <img src={vendorProfile.imageUrl} className="h-full w-full object-cover" /> : <Store className="h-10 w-10 text-gray-300" />}
+                    {vendorProfile?.imageUrl ? <img src={vendorProfile.imageUrl} className="h-full w-full object-cover" alt="Store Profile" /> : <Store className="h-10 w-10 text-gray-300" />}
                   </div>
                   <div>
                     <h2 className="text-3xl font-black italic uppercase text-gray-900 leading-none">{vendorProfile?.storeName}</h2>

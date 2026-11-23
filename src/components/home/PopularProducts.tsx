@@ -219,4 +219,3 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     </div>
   );
 }
-

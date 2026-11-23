@@ -1,3 +1,4 @@
+
 import { Suspense } from 'react';
 import HotelDetailsClient from '@/components/hotel/HotelDetailsClient';
 import { Loader2 } from 'lucide-react';

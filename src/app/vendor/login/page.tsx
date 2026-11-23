@@ -99,7 +99,6 @@ function LoginPageContent() {
         return;
       }
       
-      // CRITICAL: Save verified vendor ID to ensure correct dashboard loading
       localStorage.setItem('vendor_id', vendorDocId);
       
       try {
@@ -108,7 +107,6 @@ function LoginPageContent() {
         toast({ title: "Hub Authenticated! ✅" });
         router.push('/vendor/dashboard');
       } catch (authErr: any) {
-        console.warn("Auth sync delay, but Firestore matched. Proceeding with Local ID.");
         localStorage.setItem('shopykart_session_active', 'true');
         router.push('/vendor/dashboard');
       }
