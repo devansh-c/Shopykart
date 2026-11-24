@@ -9,117 +9,37 @@
     {
       "client_info": {
         "mobilesdk_app_id": "1:78698058459:android:aa65d66a394971f5ed32fe",
-        "android_client_info": {
-          "package_name": "co.in.shopykart.app"
-        }
-      },
-      "oauth_client": [
-        {
-          "client_id": "78698058459-5lsve802ugru4ou1rfftkkrv3hgdlsoq.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
-      "api_key": [
-        {
-          "current_key": "AIzaSyCD3AVRiMCvn8KUStHq4eDtdp0Po_kE7Ww"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "78698058459-5lsve802ugru4ou1rfftkkrv3hgdlsoq.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
-        }
+        "android_client_info": { "package_name": "co.in.shopykart.app" }
       }
     },
     {
       "client_info": {
         "mobilesdk_app_id": "1:78698058459:android:ad85d66a394971f5ed32ff",
-        "android_client_info": {
-          "package_name": "co.in.shopykart.admin"
-        }
-      },
-      "oauth_client": [
-        {
-          "client_id": "78698058459-5lsve802ugru4ou1rfftkkrv3hgdlsoq.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
-      "api_key": [
-        {
-          "current_key": "AIzaSyCD3AVRiMCvn8KUStHq4eDtdp0Po_kE7Ww"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "78698058459-5lsve802ugru4ou1rfftkkrv3hgdlsoq.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
-        }
+        "android_client_info": { "package_name": "co.in.shopykart.admin" }
       }
     },
     {
       "client_info": {
         "mobilesdk_app_id": "1:78698058459:android:biz85d66a394971f5ed32ff",
-        "android_client_info": {
-          "package_name": "co.in.shopykart.biz"
-        }
-      },
-      "oauth_client": [
-        {
-          "client_id": "78698058459-5lsve802ugru4ou1rfftkkrv3hgdlsoq.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
-      "api_key": [
-        {
-          "current_key": "AIzaSyCD3AVRiMCvn8KUStHq4eDtdp0Po_kE7Ww"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "78698058459-5lsve802ugru4ou1rfftkkrv3hgdlsoq.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
-        }
+        "android_client_info": { "package_name": "co.in.shopykart.biz" }
       }
     },
     {
       "client_info": {
         "mobilesdk_app_id": "1:78698058459:android:tow85d66a394971f5ed32ff",
-        "android_client_info": {
-          "package_name": "co.in.shopykart.tow"
-        }
-      },
-      "oauth_client": [
-        {
-          "client_id": "78698058459-5lsve802ugru4ou1rfftkkrv3hgdlsoq.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
-      "api_key": [
-        {
-          "current_key": "AIzaSyCD3AVRiMCvn8KUStHq4eDtdp0Po_kE7Ww"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "78698058459-5lsve802ugru4ou1rfftkkrv3hgdlsoq.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
-        }
+        "android_client_info": { "package_name": "co.in.shopykart.tow" }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:78698058459:android:hotel85d66a394971f5ed32ff",
+        "android_client_info": { "package_name": "co.in.shopykart.hotel" }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:78698058459:android:hotelbiz85d66a394971f5ed32ff",
+        "android_client_info": { "package_name": "co.in.shopykart.hotelbiz" }
       }
     }
   ],

@@ -6,11 +6,11 @@ import { useState, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
-import Image from "next/image";
+import { Building2, Hotel } from "lucide-react";
 
 /**
- * @fileOverview Logo component with Public Folder Support for Biz App.
- * Instructions: Place 'biz-logo.png' in public folder to change Business app logo.
+ * @fileOverview Logo component with Hexa-App Multi-Identity Support.
+ * Instructions: Place 'hotel-logo.png' or 'hotelbiz-logo.png' in public folder for custom images.
  */
 export function Logo({ className }: { className?: string }) {
   const [taps, setTaps] = useState(0);
@@ -30,10 +30,10 @@ export function Logo({ className }: { className?: string }) {
     if (process.env.NEXT_PUBLIC_ADMIN_APP === 'true') return 'admin';
     if (process.env.NEXT_PUBLIC_BIZ_APP === 'true') return 'biz';
     if (process.env.NEXT_PUBLIC_TOW_APP === 'true') return 'tow';
+    if (process.env.NEXT_PUBLIC_HOTEL_APP === 'true') return 'hotel';
+    if (process.env.NEXT_PUBLIC_HOTEL_BIZ_APP === 'true') return 'hotelbiz';
     return localStorage.getItem('shopykart_dev_app_type') || 'customer';
   }, []);
-
-  const isBizApp = currentAppType === 'biz';
 
   const handleTap = () => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -42,7 +42,7 @@ export function Logo({ className }: { className?: string }) {
     if (nextTaps >= 5) {
       setTaps(0);
       if (process.env.NODE_ENV === 'development') {
-        const types = ['customer', 'admin', 'biz', 'tow'];
+        const types = ['customer', 'admin', 'biz', 'tow', 'hotel', 'hotelbiz'];
         const nextType = types[(types.indexOf(currentAppType) + 1) % types.length];
         localStorage.setItem('shopykart_dev_app_type', nextType);
         window.location.reload();
@@ -57,6 +57,17 @@ export function Logo({ className }: { className?: string }) {
     }
   };
 
+  const getLabel = () => {
+    switch(currentAppType) {
+      case 'admin': return 'CEO CONTROL';
+      case 'biz': return 'BIZ PARTNER';
+      case 'tow': return 'FLEET PANEL';
+      case 'hotel': return 'HOTELवाले HUB';
+      case 'hotelbiz': return 'HOTEL PARTNER';
+      default: return 'Premium Delivery';
+    }
+  };
+
   return (
     <div 
       onClick={handleTap}
@@ -65,31 +76,12 @@ export function Logo({ className }: { className?: string }) {
         className
       )}
     >
-      {/* PRIORITIZE BIZ LOGO FROM PUBLIC FOLDER OR FIRESTORE */}
-      {isBizApp ? (
-        <img 
-          src={branding?.bizLogoUrl || "/biz-logo.png"} 
-          alt="ShopyKart Biz" 
-          className="h-8 w-auto object-contain"
-          onError={(e) => {
-            // Fallback to text if image not found in public or firestore
-            (e.target as any).style.display = 'none';
-            (e.target as any).nextSibling.style.display = 'flex';
-          }}
-        />
-      ) : branding?.logoUrl ? (
-        <img 
-          src={branding.logoUrl} 
-          alt="ShopyKart Logo" 
-          className="h-8 w-auto object-contain" 
-        />
-      ) : null}
-
-      {/* TEXT FALLBACK (HIDDEN IF IMAGE LOADS) */}
-      <div className={cn("flex flex-col items-center", (isBizApp || branding?.logoUrl) ? "hidden" : "flex")}>
-         <span className="text-white font-black italic text-sm tracking-tighter leading-none">SHOPYKART</span>
+      <div className="flex flex-col items-center">
+         <span className="text-white font-black italic text-sm tracking-tighter leading-none">
+           {currentAppType.includes('hotel') ? 'HOTELवाले' : 'SHOPYKART'}
+         </span>
          <span className="text-[6px] font-black text-primary uppercase tracking-[0.3em]">
-           {currentAppType === 'biz' ? 'BIZ PARTNER' : currentAppType === 'admin' ? 'CEO CONTROL' : currentAppType === 'tow' ? 'FLEET PANEL' : 'Premium Delivery'}
+           {getLabel()}
          </span>
       </div>
     </div>

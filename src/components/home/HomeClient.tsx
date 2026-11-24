@@ -15,7 +15,8 @@ import { Under49Products } from '@/components/home/Under49Products';
 import LocationRequest from '@/components/shared/LocationRequest';
 
 /**
- * @fileOverview HomeClient v1.4.0 - Bulletproof Identity Routing.
+ * @fileOverview HomeClient v1.5.0 - Hexa-App Multi-Identity Routing.
+ * Handles redirection for 6 distinct app variants.
  */
 function HomeContent({ 
   initialBanners = [], 
@@ -37,11 +38,13 @@ function HomeContent({
   const [isRedirecting, setIsRedirecting] = useState(false);
 
   useEffect(() => {
-    // 4-APP REDIRECTION LOGIC - INSTANT CHECK
+    // STANDALONE IDENTITY ROUTING
     if (typeof window !== 'undefined') {
       const isAdmin = process.env.NEXT_PUBLIC_ADMIN_APP === 'true';
       const isBiz = process.env.NEXT_PUBLIC_BIZ_APP === 'true';
       const isFleet = process.env.NEXT_PUBLIC_TOW_APP === 'true';
+      const isHotel = process.env.NEXT_PUBLIC_HOTEL_APP === 'true';
+      const isHotelBiz = process.env.NEXT_PUBLIC_HOTEL_BIZ_APP === 'true';
 
       if (isAdmin) {
         setIsRedirecting(true);
@@ -52,6 +55,12 @@ function HomeContent({
       } else if (isFleet) {
         setIsRedirecting(true);
         router.replace('/delivery/dashboard');
+      } else if (isHotel) {
+        setIsRedirecting(true);
+        router.replace('/hotelwale');
+      } else if (isHotelBiz) {
+        setIsRedirecting(true);
+        router.replace('/hotel/dashboard');
       }
     }
   }, [router]);

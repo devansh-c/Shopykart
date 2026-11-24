@@ -1,5 +1,5 @@
 
-name: Build ShopyKart Quad Apps (APK + AAB)
+name: Build ShopyKart Hexa Apps (APK + AAB)
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    name: Generate Quad Apps (APK & AAB)
+    name: Generate Hexa Apps (APK & AAB)
     runs-on: ubuntu-latest
 
     steps:
@@ -32,8 +32,6 @@ jobs:
 
       - name: Create Dummy Keystore
         run: |
-          # WARNING: For Play Store upload, use your REAL keystore as a GitHub Secret.
-          # This dummy key will cause "Wrong Key" error if uploading to existing Play Store apps.
           test -f android/app/release.keystore || keytool -genkey -noprompt -alias releasekey -dname "CN=ShopyKart, OU=IT, O=ShopyKart, L=Ranipur, S=UP, C=IN" -keystore android/app/release.keystore -storepass shopykart123 -keypass shopykart123 -keyalg RSA -keysize 2048 -validity 10000
 
       # BUILD 1: CUSTOMER APP (co.in.shopykart.app)
@@ -42,27 +40,16 @@ jobs:
           npm run build:static
           sed -i "s/appId: '.*'/appId: 'co.in.shopykart.app'/" capacitor.config.ts
           sed -i "s/appName: '.*'/appName: 'Shopykart'/" capacitor.config.ts
-          sed -i 's|<string name="app_name">.*</string>|<string name="app_name">Shopykart</string>|' android/app/src/main/res/values/strings.xml
-          sed -i 's|<string name="title_activity_main">.*</string>|<string name="title_activity_main">Shopykart</string>|' android/app/src/main/res/values/strings.xml
-          sed -i 's|<string name="package_name">.*</string>|<string name="package_name">co.in.shopykart.app</string>|' android/app/src/main/res/values/strings.xml
-          sed -i "s/minSdkVersion = 22/minSdkVersion = 23/g" android/variables.gradle && npx cap sync android
-
+          npx cap sync android
+        
       - name: Build Android (Customer)
         working-directory: android
         run: |
           sed -i 's/applicationId ".*"/applicationId "co.in.shopykart.app"/' app/build.gradle
-          sed -i 's/versionCode [0-9]*/versionCode 9/' app/build.gradle
-          sed -i 's/versionName ".*"/versionName "1.2.2"/' app/build.gradle
-          chmod +x gradlew
           ./gradlew assembleRelease
-          ./gradlew bundleRelease
+          cp app/build/outputs/apk/release/app-release.apk ../customer.apk
 
-      - name: Archive Customer Files
-        run: |
-          cp android/app/build/outputs/apk/release/app-release.apk customer.shopykart.apk
-          cp android/app/build/outputs/bundle/release/app-release.aab customer.shopykart.aab
-
-      # BUILD 2: ADMIN APP (co.in.shopykart.admin)
+      # BUILD 2: ADMIN APP
       - name: Build & Sync Admin
         env:
           NEXT_PUBLIC_ADMIN_APP: true
@@ -70,27 +57,16 @@ jobs:
           npm run build:admin
           sed -i "s/appId: '.*'/appId: 'co.in.shopykart.admin'/" capacitor.config.ts
           sed -i "s/appName: '.*'/appName: 'Shopykart CEO'/" capacitor.config.ts
-          sed -i 's|<string name="app_name">.*</string>|<string name="app_name">Shopykart CEO</string>|' android/app/src/main/res/values/strings.xml
-          sed -i 's|<string name="title_activity_main">.*</string>|<string name="title_activity_main">Shopykart CEO</string>|' android/app/src/main/res/values/strings.xml
-          sed -i 's|<string name="package_name">.*</string>|<string name="package_name">co.in.shopykart.admin</string>|' android/app/src/main/res/values/strings.xml
-          sed -i "s/minSdkVersion = 22/minSdkVersion = 23/g" android/variables.gradle && npx cap sync android
+          npx cap sync android
 
       - name: Build Android (Admin)
         working-directory: android
         run: |
           sed -i 's/applicationId ".*"/applicationId "co.in.shopykart.admin"/' app/build.gradle
-          sed -i 's/versionCode [0-9]*/versionCode 9/' app/build.gradle
-          sed -i 's/versionName ".*"/versionName "1.2.2"/' app/build.gradle
-          chmod +x gradlew
           ./gradlew assembleRelease
-          ./gradlew bundleRelease
+          cp app/build/outputs/apk/release/app-release.apk ../admin.apk
 
-      - name: Archive Admin Files
-        run: |
-          cp android/app/build/outputs/apk/release/app-release.apk admin.shopykart.apk
-          cp android/app/build/outputs/bundle/release/app-release.aab admin.shopykart.aab
-
-      # BUILD 3: STORE/BIZ APP (co.in.shopykart.biz)
+      # BUILD 3: STORE BIZ APP
       - name: Build & Sync Biz
         env:
           NEXT_PUBLIC_BIZ_APP: true
@@ -98,60 +74,71 @@ jobs:
           npm run build:biz
           sed -i "s/appId: '.*'/appId: 'co.in.shopykart.biz'/" capacitor.config.ts
           sed -i "s/appName: '.*'/appName: 'Shopykart Biz'/" capacitor.config.ts
-          sed -i 's|<string name="app_name">.*</string>|<string name="app_name">Shopykart Biz</string>|' android/app/src/main/res/values/strings.xml
-          sed -i 's|<string name="title_activity_main">.*</string>|<string name="title_activity_main">Shopykart Biz</string>|' android/app/src/main/res/values/strings.xml
-          sed -i 's|<string name="package_name">.*</string>|<string name="package_name">co.in.shopykart.biz</string>|' android/app/src/main/res/values/strings.xml
-          sed -i "s/minSdkVersion = 22/minSdkVersion = 23/g" android/variables.gradle && npx cap sync android
+          npx cap sync android
 
       - name: Build Android (Biz)
         working-directory: android
         run: |
           sed -i 's/applicationId ".*"/applicationId "co.in.shopykart.biz"/' app/build.gradle
-          sed -i 's/versionCode [0-9]*/versionCode 9/' app/build.gradle
-          sed -i 's/versionName ".*"/versionName "1.2.2"/' app/build.gradle
-          chmod +x gradlew
           ./gradlew assembleRelease
-          ./gradlew bundleRelease
+          cp app/build/outputs/apk/release/app-release.apk ../biz.apk
 
-      - name: Archive Biz Files
-        run: |
-          cp android/app/build/outputs/apk/release/app-release.apk biz.shopykart.apk
-          cp android/app/build/outputs/bundle/release/app-release.aab biz.shopykart.aab
-
-      # BUILD 4: DELIVERY/TOW APP (co.in.shopykart.tow)
+      # BUILD 4: DELIVERY FLEET APP
       - name: Build & Sync Tow
         env:
           NEXT_PUBLIC_TOW_APP: true
         run: |
           npm run build:tow
           sed -i "s/appId: '.*'/appId: 'co.in.shopykart.tow'/" capacitor.config.ts
-          sed -i "s/appName: '.*'/appName: 'Shopykart Tow'/" capacitor.config.ts
-          sed -i 's|<string name="app_name">.*</string>|<string name="app_name">Shopykart Tow</string>|' android/app/src/main/res/values/strings.xml
-          sed -i 's|<string name="title_activity_main">.*</string>|<string name="title_activity_main">Shopykart Tow</string>|' android/app/src/main/res/values/strings.xml
-          sed -i 's|<string name="package_name">.*</string>|<string name="package_name">co.in.shopykart.tow</string>|' android/app/src/main/res/values/strings.xml
-          sed -i "s/minSdkVersion = 22/minSdkVersion = 23/g" android/variables.gradle && npx cap sync android
+          sed -i "s/appName: '.*'/appName: 'Shopykart Fleet'/" capacitor.config.ts
+          npx cap sync android
 
-      - name: Build Android (Tow)
+      - name: Build Android (Fleet)
         working-directory: android
         run: |
           sed -i 's/applicationId ".*"/applicationId "co.in.shopykart.tow"/' app/build.gradle
-          sed -i 's/versionCode [0-9]*/versionCode 9/' app/build.gradle
-          sed -i 's/versionName ".*"/versionName "1.2.2"/' app/build.gradle
-          chmod +x gradlew
           ./gradlew assembleRelease
-          ./gradlew bundleRelease
+          cp app/build/outputs/apk/release/app-release.apk ../fleet.apk
 
-      - name: Archive Tow Files
+      # BUILD 5: HOTELWALE CUSTOMER APP (co.in.shopykart.hotel)
+      - name: Build & Sync Hotel
+        env:
+          NEXT_PUBLIC_HOTEL_APP: true
         run: |
-          cp android/app/build/outputs/apk/release/app-release.apk delivery.shopykart.apk
-          cp android/app/build/outputs/bundle/release/app-release.aab delivery.shopykart.aab
+          npm run build:hotel
+          sed -i "s/appId: '.*'/appId: 'co.in.shopykart.hotel'/" capacitor.config.ts
+          sed -i "s/appName: '.*'/appName: 'Hotelwale'/" capacitor.config.ts
+          npx cap sync android
 
-      # UPLOAD ALL ARTIFACTS (APK + AAB)
+      - name: Build Android (Hotel)
+        working-directory: android
+        run: |
+          sed -i 's/applicationId ".*"/applicationId "co.in.shopykart.hotel"/' app/build.gradle
+          ./gradlew assembleRelease
+          cp app/build/outputs/apk/release/app-release.apk ../hotelwale.apk
+
+      # BUILD 6: HOTELWALE BIZ PARTNER APP (co.in.shopykart.hotelbiz)
+      - name: Build & Sync HotelBiz
+        env:
+          NEXT_PUBLIC_HOTEL_BIZ_APP: true
+        run: |
+          npm run build:hotelbiz
+          sed -i "s/appId: '.*'/appId: 'co.in.shopykart.hotelbiz'/" capacitor.config.ts
+          sed -i "s/appName: '.*'/appName: 'Hotelwale Partner'/" capacitor.config.ts
+          npx cap sync android
+
+      - name: Build Android (HotelBiz)
+        working-directory: android
+        run: |
+          sed -i 's/applicationId ".*"/applicationId "co.in.shopykart.hotelbiz"/' app/build.gradle
+          ./gradlew assembleRelease
+          cp app/build/outputs/apk/release/app-release.apk ../hotelbiz.apk
+
+      # UPLOAD ALL ARTIFACTS
       - name: Upload Complete Bundle
         uses: actions/upload-artifact@v4
         with:
-          name: ShopyKart-Quad-Apps-Release-v1.2.2
+          name: ShopyKart-Hexa-Apps-Release
           path: |
             *.apk
-            *.aab
           if-no-files-found: error

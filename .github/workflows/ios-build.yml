@@ -1,14 +1,10 @@
-name: Build Shopykart iOS Apps
+
+name: Build Shopykart iOS Hexa Apps
 
 on:
   workflow_dispatch:
   push:
     branches: [ main ]
-    paths:
-      - 'ios/**'
-      - 'src/**'
-      - 'package.json'
-      - '.github/workflows/ios-build.yml'
 
 jobs:
   build-ios:
@@ -27,48 +23,66 @@ jobs:
       - name: Install Dependencies
         run: npm ci || npm install --legacy-peer-deps
 
-      - name: Build Static Web Assets
-        run: npm run build:static
-
-      # 1. CUSTOMER APP (co.in.shopykart.app)
-      - name: Build Customer iOS Archive
+      # 1. CUSTOMER
+      - name: Build Customer
         run: |
+          npm run build:static
           sed -i '' "s/appId: '.*'/appId: 'co.in.shopykart.app'/" capacitor.config.ts
-          sed -i '' "s/appName: '.*'/appName: 'Shopykart'/" capacitor.config.ts
-          plutil -replace CFBundleDisplayName -string "Shopykart" ios/App/App/Info.plist
           npx cap sync ios
-          cd ios/App && pod install
-          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -sdk iphoneos -archivePath build/Shopykart-Customer.xcarchive archive PRODUCT_BUNDLE_IDENTIFIER=co.in.shopykart.app CODE_SIGNING_ALLOWED=NO
+          cd ios/App && xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -sdk iphoneos -archivePath build/Shopykart-Customer.xcarchive archive PRODUCT_BUNDLE_IDENTIFIER=co.in.shopykart.app CODE_SIGNING_ALLOWED=NO
 
-      # 2. ADMIN APP (co.in.shopykart.admin)
-      - name: Build Admin iOS Archive
+      # 2. ADMIN
+      - name: Build Admin
+        env:
+          NEXT_PUBLIC_ADMIN_APP: true
         run: |
+          npm run build:admin
           sed -i '' "s/appId: '.*'/appId: 'co.in.shopykart.admin'/" capacitor.config.ts
-          sed -i '' "s/appName: '.*'/appName: 'Shopykart Admin'/" capacitor.config.ts
-          plutil -replace CFBundleDisplayName -string "Shopykart Admin" ios/App/App/Info.plist
           npx cap sync ios
           cd ios/App && xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -sdk iphoneos -archivePath build/Shopykart-Admin.xcarchive archive PRODUCT_BUNDLE_IDENTIFIER=co.in.shopykart.admin CODE_SIGNING_ALLOWED=NO
 
-      # 3. BIZ / STORE APP (co.in.shopykart.biz)
-      - name: Build Biz iOS Archive
+      # 3. BIZ
+      - name: Build Biz
+        env:
+          NEXT_PUBLIC_BIZ_APP: true
         run: |
+          npm run build:biz
           sed -i '' "s/appId: '.*'/appId: 'co.in.shopykart.biz'/" capacitor.config.ts
-          sed -i '' "s/appName: '.*'/appName: 'Shopykart Biz'/" capacitor.config.ts
-          plutil -replace CFBundleDisplayName -string "Shopykart Biz" ios/App/App/Info.plist
           npx cap sync ios
           cd ios/App && xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -sdk iphoneos -archivePath build/Shopykart-Biz.xcarchive archive PRODUCT_BUNDLE_IDENTIFIER=co.in.shopykart.biz CODE_SIGNING_ALLOWED=NO
 
-      # 4. FLEET / TOW APP (co.in.shopykart.tow)
-      - name: Build Tow iOS Archive
+      # 4. FLEET
+      - name: Build Fleet
+        env:
+          NEXT_PUBLIC_TOW_APP: true
         run: |
+          npm run build:tow
           sed -i '' "s/appId: '.*'/appId: 'co.in.shopykart.tow'/" capacitor.config.ts
-          sed -i '' "s/appName: '.*'/appName: 'Shopykart Tow'/" capacitor.config.ts
-          plutil -replace CFBundleDisplayName -string "Shopykart Tow" ios/App/App/Info.plist
           npx cap sync ios
-          cd ios/App && xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -sdk iphoneos -archivePath build/Shopykart-Tow.xcarchive archive PRODUCT_BUNDLE_IDENTIFIER=co.in.shopykart.tow CODE_SIGNING_ALLOWED=NO
+          cd ios/App && xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -sdk iphoneos -archivePath build/Shopykart-Fleet.xcarchive archive PRODUCT_BUNDLE_IDENTIFIER=co.in.shopykart.tow CODE_SIGNING_ALLOWED=NO
+
+      # 5. HOTEL
+      - name: Build Hotel
+        env:
+          NEXT_PUBLIC_HOTEL_APP: true
+        run: |
+          npm run build:hotel
+          sed -i '' "s/appId: '.*'/appId: 'co.in.shopykart.hotel'/" capacitor.config.ts
+          npx cap sync ios
+          cd ios/App && xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -sdk iphoneos -archivePath build/Shopykart-Hotel.xcarchive archive PRODUCT_BUNDLE_IDENTIFIER=co.in.shopykart.hotel CODE_SIGNING_ALLOWED=NO
+
+      # 6. HOTEL BIZ
+      - name: Build HotelBiz
+        env:
+          NEXT_PUBLIC_HOTEL_BIZ_APP: true
+        run: |
+          npm run build:hotelbiz
+          sed -i '' "s/appId: '.*'/appId: 'co.in.shopykart.hotelbiz'/" capacitor.config.ts
+          npx cap sync ios
+          cd ios/App && xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -sdk iphoneos -archivePath build/Shopykart-HotelBiz.xcarchive archive PRODUCT_BUNDLE_IDENTIFIER=co.in.shopykart.hotelbiz CODE_SIGNING_ALLOWED=NO
 
       - name: Upload iOS Archives
         uses: actions/upload-artifact@v4
         with:
-          name: shopykart-ios-archives
+          name: shopykart-hexa-archives
           path: ios/App/build/*.xcarchive
