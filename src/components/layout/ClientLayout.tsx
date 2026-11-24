@@ -1,4 +1,3 @@
-
 "use client";
 
 import { CartProvider } from '@/components/cart/CartProvider';
@@ -111,9 +110,9 @@ export function ClientLayout({ children }: { children: ReactNode }) {
     return p.startsWith('/admin') || p.startsWith('/vendor') || p.startsWith('/delivery');
   }, [pathname]);
 
-  const isAdminApp = process.env.NEXT_PUBLIC_ADMIN_APP === 'true';
-  const isStoreApp = process.env.NEXT_PUBLIC_BIZ_APP === 'true';
-  const isFleetApp = process.env.NEXT_PUBLIC_TOW_APP === 'true';
+  const isAdminApp = process.env.NEXT_PUBLIC_ADMIN_APP === 'true' || pathname?.startsWith('/admin');
+  const isStoreApp = process.env.NEXT_PUBLIC_BIZ_APP === 'true' || pathname?.startsWith('/vendor');
+  const isFleetApp = process.env.NEXT_PUBLIC_TOW_APP === 'true' || pathname?.startsWith('/delivery');
   const isBusinessApp = isAdminApp || isStoreApp || isFleetApp;
 
   return (

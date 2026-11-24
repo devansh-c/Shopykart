@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useEffect, useState, useRef } from 'react';
@@ -6,24 +5,29 @@ import { useUser, useFirestore } from '@/firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { Bell, ShoppingBag, Truck, Volume2, ShieldAlert, Store } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { usePathname } from 'next/navigation';
 
 /**
  * @fileOverview LOUD RINGING ALERT HANDLER (Advanced Zomato-Style).
- * STRICT: Active for Vendors, Fleet, and Admin.
- * Admin receives alerts for ANY order in the network.
+ * FIXED: Now works for Admin even if Firebase Auth 'user' is null (uses path & localStorage).
  */
 export default function NotificationHandler() {
   const { user } = useUser();
   const firestore = useFirestore();
+  const pathname = usePathname();
   const [ringingOrders, setRingingOrders] = useState<any[]>([]);
   const lastProcessedOrderIds = useRef<Set<string>>(new Set());
   const isInitialLoad = useRef(true);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // APP IDENTITIES
-  const isAdminApp = typeof window !== 'undefined' && process.env.NEXT_PUBLIC_ADMIN_APP === 'true';
-  const isStoreApp = typeof window !== 'undefined' && process.env.NEXT_PUBLIC_BIZ_APP === 'true';
-  const isFleetApp = typeof window !== 'undefined' && process.env.NEXT_PUBLIC_TOW_APP === 'true';
+  // APP & ROLE DETECTION
+  const isAdminPath = pathname?.startsWith('/admin');
+  const isStorePath = pathname?.startsWith('/vendor');
+  const isFleetPath = pathname?.startsWith('/delivery');
+  
+  const isAdminApp = typeof window !== 'undefined' && (process.env.NEXT_PUBLIC_ADMIN_APP === 'true' || isAdminPath);
+  const isStoreApp = typeof window !== 'undefined' && (process.env.NEXT_PUBLIC_BIZ_APP === 'true' || isStorePath);
+  const isFleetApp = typeof window !== 'undefined' && (process.env.NEXT_PUBLIC_TOW_APP === 'true' || isFleetPath);
 
   useEffect(() => {
     // 1. Initialize Audio Object with Local File
@@ -35,16 +39,20 @@ export default function NotificationHandler() {
   }, []);
 
   useEffect(() => {
-    // SECURITY GUARD: Strictly return null for customers
-    if (!firestore || !user || (!isStoreApp && !isFleetApp && !isAdminApp)) return;
+    // SECURITY GUARD: Strictly handle business users
+    // Admin dashboard uses custom auth, so we don't strictly require 'user' if on admin path
+    if (!firestore) return;
+    if (!isAdminApp && !isStoreApp && !isFleetApp) return;
+    if (!isAdminApp && !user) return; // Stores/Fleet still need Firebase User
 
     // 2. Setup Listener Query based on User Role
     let q;
-    if (isStoreApp || isAdminApp) {
-      // Store and Admin listen for 'Placed' orders
+    if (isAdminApp) {
+      // ADMIN SEES ALL PLACED ORDERS GLOBALLY
+      q = query(collection(firestore, 'orders'), where('status', '==', 'Placed'));
+    } else if (isStoreApp) {
       q = query(collection(firestore, 'orders'), where('status', '==', 'Placed'));
     } else if (isFleetApp) {
-      // Fleet listens for 'Ready for Pickup'
       q = query(collection(firestore, 'orders'), where('status', '==', 'Ready for Pickup'));
     } else {
       return;
@@ -55,22 +63,22 @@ export default function NotificationHandler() {
       
       let filteredActive: any[] = [];
       
-      if (isStoreApp) {
+      if (isAdminApp) {
+        // NO FILTER FOR ADMIN - RING FOR EVERYTHING
+        filteredActive = active;
+      } else if (isStoreApp && user) {
         // Vendor only sees their own orders
         filteredActive = active.filter(o => 
           String(o.vendorId) === String(user.uid) || 
           (Array.isArray(o.vendorIds) && o.vendorIds.includes(user.uid))
         );
-      } else if (isFleetApp) {
+      } else if (isFleetApp && user) {
         // Fleet sees unassigned pickups
         const dismissed = JSON.parse(localStorage.getItem('fleet_dismissed_tasks') || '[]');
         filteredActive = active.filter(o => !o.deliveryPartnerId && !dismissed.includes(o.id));
-      } else if (isAdminApp) {
-        // ADMIN SEES EVERYTHING - NO FILTER
-        filteredActive = active;
       }
 
-      // 3. Initial Load Guard (Don't ring for old orders)
+      // 3. Initial Load Guard (Don't ring for existing orders when opening dashboard)
       if (isInitialLoad.current) {
         filteredActive.forEach(o => lastProcessedOrderIds.current.add(o.id));
         isInitialLoad.current = false;
@@ -78,14 +86,12 @@ export default function NotificationHandler() {
       }
 
       // 4. Trigger Ringing for Truly New Items
-      const newOrders = filteredActive.filter(o => !lastProcessedOrderIds.current.has(o.id));
+      const trulyNew = filteredActive.filter(o => !lastProcessedOrderIds.current.has(o.id));
       
-      if (newOrders.length > 0) {
+      if (trulyNew.length > 0) {
         try {
           if (audioRef.current) {
-            audioRef.current.play().catch(() => {
-              console.warn("Autoplay blocked. User must interact once.");
-            });
+            audioRef.current.play().catch(e => console.warn("Audio play blocked by browser. Interactions required."));
           }
         } catch (e) {}
 
@@ -96,18 +102,18 @@ export default function NotificationHandler() {
             notifications: [
               {
                 title: isAdminApp ? "🚨 GLOBAL ORDER ALERT" : isStoreApp ? "🚨 NEW ORDER ARRIVED!" : "🛵 NEW PICKUP READY!",
-                body: `Order #${newOrders[0].customerOrderNumber} at ${newOrders[0].restaurantName || 'Hub'}.`,
+                body: `Order #${trulyNew[0].customerOrderNumber} at ${trulyNew[0].restaurantName || 'Hub'}.`,
                 id: 99999,
                 channelId: 'new_order_channel',
                 smallIcon: 'ic_stat_notification',
                 sound: 'order_alert', 
-                extra: { orderId: newOrders[0].id }
+                extra: { orderId: trulyNew[0].id }
               }
             ]
           });
         } catch (e) {}
       } else if (filteredActive.length === 0) {
-        // Stop Ringing when everything is processed
+        // Stop Ringing when everything is processed or accepted
         if (audioRef.current) {
           audioRef.current.pause();
           audioRef.current.currentTime = 0;
@@ -124,13 +130,15 @@ export default function NotificationHandler() {
         audioRef.current.currentTime = 0;
       }
     };
-  }, [firestore, user, isStoreApp, isFleetApp, isAdminApp]);
+  }, [firestore, user, isAdminApp, isStoreApp, isFleetApp]);
 
   const stopAlert = () => {
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
     }
+    // Mark all current ringing orders as seen for this session
+    ringingOrders.forEach(o => lastProcessedOrderIds.current.add(o.id));
     setRingingOrders([]);
   };
 
@@ -143,14 +151,20 @@ export default function NotificationHandler() {
       <div className="relative bg-white rounded-[4rem] p-12 w-full max-sm flex flex-col items-center text-center shadow-[0_0_100px_rgba(239,68,68,0.4)] animate-in zoom-in duration-700 border-4 border-primary/20">
         
         <div className="absolute -top-10 flex justify-center w-full">
-           <div className="bg-primary text-white px-6 py-2 rounded-full font-black uppercase text-[10px] tracking-widest shadow-2xl animate-bounce">
-              {isAdminApp ? 'Global Network Alert' : 'Emergency Alert'}
+           <div className={cn(
+             "px-6 py-2 rounded-full font-black uppercase text-[10px] tracking-widest shadow-2xl animate-bounce",
+             isAdminApp ? "bg-black text-white" : "bg-primary text-white"
+           )}>
+              {isAdminApp ? 'Global Network Alert' : 'Store Alert'}
            </div>
         </div>
 
         <div className="relative mb-8">
-           <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping" />
-           <div className="relative h-32 w-32 bg-primary rounded-[3rem] flex items-center justify-center text-white shadow-2xl border-8 border-white">
+           <div className={cn("absolute inset-0 rounded-full animate-ping opacity-20", isAdminApp ? "bg-black" : "bg-primary")} />
+           <div className={cn(
+             "relative h-32 w-32 rounded-[3rem] flex items-center justify-center text-white shadow-2xl border-8 border-white",
+             isAdminApp ? "bg-black" : "bg-primary"
+           )}>
               <Bell className="h-16 w-16 animate-ring" />
            </div>
         </div>
@@ -159,16 +173,14 @@ export default function NotificationHandler() {
           {isAdminApp ? 'ANY STORE ORDER' : isStoreApp ? 'NEW ORDER!' : 'PICKUP ALERT!'}
         </h2>
         
-        <div className="bg-gray-50 px-6 py-4 rounded-3xl border border-gray-100 mb-8 space-y-2">
+        <div className="bg-gray-50 px-6 py-4 rounded-3xl border border-gray-100 mb-8 space-y-2 w-full">
            <p className="text-[12px] font-black text-primary uppercase tracking-widest">
              ORDER ID: #{currentOrder.customerOrderNumber || 'PENDING'}
            </p>
-           {isAdminApp && (
-             <div className="flex items-center justify-center gap-2 text-gray-500">
-                <Store className="h-4 w-4" />
-                <span className="text-[10px] font-black uppercase italic">{currentOrder.restaurantName}</span>
-             </div>
-           )}
+           <div className="flex items-center justify-center gap-2 text-gray-500">
+              <Store className="h-4 w-4" />
+              <span className="text-[10px] font-black uppercase italic">{currentOrder.restaurantName || 'Local Hub'}</span>
+           </div>
         </div>
 
         <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-10 leading-relaxed italic">
@@ -190,7 +202,7 @@ export default function NotificationHandler() {
         </div>
 
         <div className="absolute bottom-0 left-0 w-full h-2 bg-gray-100 overflow-hidden rounded-b-[4rem]">
-           <div className="h-full bg-primary animate-running-line" style={{ width: '100%' }} />
+           <div className={cn("h-full animate-running-line", isAdminApp ? "bg-black" : "bg-primary")} style={{ width: '100%' }} />
         </div>
       </div>
     </div>
