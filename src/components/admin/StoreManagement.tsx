@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Store, 
   Edit, 
@@ -22,7 +22,9 @@ import {
   ChevronRight,
   User,
   Lock,
-  Type
+  Type,
+  Camera,
+  ImageIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -35,6 +37,7 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
+import { compressImage } from '@/lib/image-utils';
 import dynamic from 'next/dynamic';
 
 const GoogleMapPicker = dynamic(() => import('@/components/shared/GoogleMapPicker'), { 
@@ -51,6 +54,8 @@ const TIME_SLOTS = [
 export default function StoreManagement({ categoryFilter }: { categoryFilter?: string }) {
   const firestore = useFirestore();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [editingStore, setEditingStore] = useState<any>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -86,6 +91,17 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
     }).sort((a, b) => (Number(b.rating) || 0) - (Number(a.rating) || 0));
   }, [vendors, searchQuery, categoryFilter]);
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const compressed = await compressImage(reader.result as string, 600, 600);
+      setEditingStore((prev: any) => ({ ...prev, imageUrl: compressed }));
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleUpdateStore = async () => {
     if (!firestore || !editingStore) return;
     setIsProcessing(true);
@@ -103,10 +119,11 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
         openingTime: editingStore.openingTime || '10:00 AM',
         closingTime: editingStore.closingTime || '08:15 PM',
         isOnline: editingStore.isOnline !== false,
+        imageUrl: editingStore.imageUrl || 'https://picsum.photos/seed/store/400/400',
         updatedAt: serverTimestamp()
       });
       setIsEditOpen(false);
-      toast({ title: "Hub Master Record Updated ✅", description: `ID: ${cleanStoreId} is now active.` });
+      toast({ title: "Hub Master Record Updated ✅", description: `Record for ${editingStore.storeName} is now active.` });
     } catch (err) { toast({ variant: "destructive", title: "Update Failed" }); }
     finally { setIsProcessing(false); }
   };
@@ -177,7 +194,7 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
                 <div className="flex items-start justify-between mb-6">
                   <div className="flex items-center gap-4">
                       <div className="h-16 w-16 rounded-2xl overflow-hidden border-2 border-primary/10 bg-muted shrink-0 shadow-inner">
-                        <img src={store.imageUrl} className="h-full w-full object-cover" alt="Store logo" />
+                        <img src={store.imageUrl || 'https://picsum.photos/seed/store/400/400'} className="h-full w-full object-cover" alt="Store logo" />
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5 mb-1">
@@ -224,19 +241,44 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
                 <div className="flex gap-2">
                   <Dialog open={isEditOpen && editingStore?.id === store.id} onOpenChange={(val) => { setIsEditOpen(val); if(val) setEditingStore({...store}); }}>
                       <DialogTrigger asChild>
-                        <button className="flex-1 h-12 bg-black hover:bg-primary text-white rounded-2xl font-black uppercase italic text-[10px] tracking-widest shadow-xl transition-all flex items-center justify-center gap-2"><Edit className="h-3.5 w-3.5" /> MANAGE CREDENTIALS</button>
+                        <button className="flex-1 h-12 bg-black hover:bg-primary text-white rounded-2xl font-black uppercase italic text-[10px] tracking-widest shadow-xl transition-all flex items-center justify-center gap-2"><Edit className="h-3.5 w-3.5" /> MANAGE HUB</button>
                       </DialogTrigger>
                       <DialogContent className="rounded-[2.5rem] max-w-md p-0 overflow-hidden border-none shadow-2xl flex flex-col max-h-[90vh]">
                         <DialogHeader className="p-8 pb-4">
-                            <DialogTitle className="font-black italic uppercase text-center text-2xl tracking-tighter">Edit Hub Access</DialogTitle>
+                            <DialogTitle className="font-black italic uppercase text-center text-2xl tracking-tighter">Edit Hub Details</DialogTitle>
                         </DialogHeader>
                         <div className="flex-1 overflow-y-auto no-scrollbar p-8 pt-0 space-y-6">
+                            
+                            {/* NEW: IMAGE CHANGE OPTION IN ADMIN */}
+                            <div className="flex flex-col items-center gap-3">
+                               <div 
+                                 onClick={() => fileInputRef.current?.click()}
+                                 className="h-32 w-32 rounded-[2rem] border-2 border-dashed border-gray-200 bg-gray-50 flex flex-col items-center justify-center cursor-pointer overflow-hidden group relative hover:border-primary transition-all"
+                               >
+                                 {editingStore?.imageUrl ? (
+                                   <>
+                                     <img src={editingStore.imageUrl} className="h-full w-full object-cover" alt="Store logo" />
+                                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                        <Camera className="h-6 w-6 text-white" />
+                                     </div>
+                                   </>
+                                 ) : (
+                                   <>
+                                     <Camera className="h-8 w-8 text-gray-300 group-hover:text-primary transition-colors" />
+                                     <span className="text-[8px] font-black uppercase text-gray-400 mt-1">Change Logo</span>
+                                   </>
+                                 )}
+                               </div>
+                               <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageSelect} />
+                               <p className="text-[7px] font-bold text-muted-foreground uppercase tracking-widest">Tap to change store logo</p>
+                            </div>
+
                             <div className="space-y-5">
                               <div className="space-y-1.5">
                                  <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Store Name</label>
                                  <div className="relative">
                                     <Type className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
-                                    <Input value={editingStore?.storeName} onChange={e => setEditingStore({...editingStore, storeName: e.target.value})} className="h-14 pl-12 rounded-2xl bg-gray-50 border-none font-bold" />
+                                    <Input value={editingStore?.storeName} onChange={e => setEditingStore({...editingStore, storeName: e.target.value})} className="h-14 rounded-2xl bg-gray-50 border-none font-bold" />
                                  </div>
                               </div>
 
