@@ -1,92 +1,74 @@
+'use client';
 
-"use client"
+import React, { useState, useEffect } from 'react';
+import { cn } from '@/lib/utils';
 
-import { cn } from "@/lib/utils";
-import { useState, useRef, useMemo } from "react";
-import { useRouter } from "next/navigation";
-import { useFirestore, useDoc, useMemoFirebase } from "@/firebase";
-import { doc } from "firebase/firestore";
-import { Building2, Hotel } from "lucide-react";
+interface LogoProps {
+  className?: string;
+}
 
-/**
- * @fileOverview Logo component with Hexa-App Multi-Identity Support.
- * Instructions: Place 'hotel-logo.png' or 'hotelbiz-logo.png' in public folder for custom images.
- */
-export function Logo({ className }: { className?: string }) {
-  const [taps, setTaps] = useState(0);
-  const router = useRouter();
-  const firestore = useFirestore();
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+export function Logo({ className }: LogoProps) {
+  const [currentAppType, setCurrentAppType] = useState<'customer' | 'biz' | 'admin' | 'fleet' | 'hotel' | 'hotelbiz'>('customer');
 
-  const brandingRef = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return doc(firestore, 'app_settings', 'branding');
-  }, [firestore]);
+  useEffect(() => {
+    const checkAppType = () => {
+      if (typeof window === 'undefined') return;
+      const path = window.location.pathname;
+      const host = window.location.hostname;
+      
+      const isHotelEnv = process.env.NEXT_PUBLIC_HOTEL_APP === 'true' || host.includes('hotelwale') || path.startsWith('/hotel');
+      const isBizEnv = process.env.NEXT_PUBLIC_BIZ_APP === 'true' || path.startsWith('/vendor') || path.startsWith('/partner') || path.startsWith('/hotel-partner');
 
-  const { data: branding } = useDoc<any>(brandingRef);
+      if (path.startsWith('/admin')) setCurrentAppType('admin');
+      else if (path.startsWith('/delivery')) setCurrentAppType('fleet');
+      else if (isHotelEnv && isBizEnv) setCurrentAppType('hotelbiz');
+      else if (isHotelEnv) setCurrentAppType('hotel');
+      else if (isBizEnv) setCurrentAppType('biz');
+      else setCurrentAppType('customer');
+    };
 
-  const currentAppType = useMemo(() => {
-    if (typeof window === 'undefined') return 'customer';
-    if (process.env.NEXT_PUBLIC_ADMIN_APP === 'true') return 'admin';
-    if (process.env.NEXT_PUBLIC_BIZ_APP === 'true') return 'biz';
-    if (process.env.NEXT_PUBLIC_TOW_APP === 'true') return 'tow';
-    if (process.env.NEXT_PUBLIC_HOTEL_APP === 'true') return 'hotel';
-    if (process.env.NEXT_PUBLIC_HOTEL_BIZ_APP === 'true') return 'hotelbiz';
-    return localStorage.getItem('shopykart_dev_app_type') || 'customer';
+    checkAppType();
   }, []);
 
-  const handleTap = () => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    const nextTaps = taps + 1;
-    
-    if (nextTaps >= 5) {
-      setTaps(0);
-      if (process.env.NODE_ENV === 'development') {
-        const types = ['customer', 'admin', 'biz', 'tow', 'hotel', 'hotelbiz'];
-        const nextType = types[(types.indexOf(currentAppType) + 1) % types.length];
-        localStorage.setItem('shopykart_dev_app_type', nextType);
-        window.location.reload();
-      } else {
-        router.push('/admin/dashboard');
-      }
-    } else {
-      setTaps(nextTaps);
-      timerRef.current = setTimeout(() => {
-        setTaps(0);
-      }, 2000);
+  const getAppTag = () => {
+    switch (currentAppType) {
+      case 'admin': return 'SUPER ADMIN';
+      case 'fleet': return 'FLEET PARTNER';
+      case 'biz': return 'BIZ PARTNER';
+      case 'hotel': return 'HOTELWALE';
+      case 'hotelbiz': return 'HOTEL PARTNER';
+      default: return null;
     }
   };
 
-  const getLabel = () => {
-    switch(currentAppType) {
-      case 'admin': return 'CEO CONTROL';
-      case 'biz': return 'BIZ PARTNER';
-      case 'tow': return 'FLEET PANEL';
-      case 'hotel': return 'HOTELवाले HUB';
-      case 'hotelbiz': return 'HOTEL PARTNER';
-      default: return 'Premium Delivery';
-    }
-  };
+  const tag = getAppTag();
+  const isHotel = currentAppType === 'hotel' || currentAppType === 'hotelbiz';
 
   return (
-    <div 
-      onClick={handleTap}
-      className={cn(
-        "flex flex-col items-center cursor-pointer select-none active:scale-95 transition-all duration-300 px-4 py-1.5 rounded-full bg-black/60 backdrop-blur-md shadow-lg min-w-[140px] justify-center h-10 border border-white/5", 
-        className
-      )}
-    >
-      <div className="flex items-center gap-2">
-          {currentAppType.includes('hotel') && (
-            <img src="/hotel-logo.png" alt="Hotelwale" className="h-6 w-6 rounded-md object-contain" />
+    <div className={cn("inline-flex items-center select-none", className)}>
+      <div className={cn(
+        "px-3 py-1 rounded-xl border border-white/20 shadow-md flex items-center gap-2 transition-all duration-300",
+        isHotel
+          ? "bg-gradient-to-br from-[#F43F5E] via-[#E11D48] to-[#9F1239]"
+          : "bg-gradient-to-br from-[#166534] via-[#15803d] to-[#064e3b]"
+      )}>
+        {isHotel && (
+          <img src="/hotel-logo.png" alt="Hotelwale" className="h-6 w-6 rounded-md object-contain" />
+        )}
+        {currentAppType === 'biz' && (
+          <img src="/biz-logo.png" alt="Shopykart Biz" className="h-6 w-6 rounded-md object-contain" />
+        )}
+        <div className="flex flex-col items-center">
+          <span className="font-black text-base tracking-tighter text-white italic leading-none drop-shadow-sm">
+            {isHotel ? 'HOTEL' : 'SHOPY'}
+            <span className="text-[#FFD700]">{isHotel ? 'वाले' : 'KART'}</span>
+          </span>
+          {tag && (
+            <span className="text-[7px] font-black tracking-[0.2em] text-white/90 uppercase mt-0.5 leading-none bg-black/20 px-1.5 py-0.5 rounded-full">
+              {tag}
+            </span>
           )}
-          <div className="flex flex-col items-center">
-         <span className="text-white font-black italic text-sm tracking-tighter leading-none">
-           {currentAppType.includes('hotel') ? 'HOTELवाले' : 'SHOPYKART'}
-         </span>
-         <span className="text-[6px] font-black text-primary uppercase tracking-[0.3em]">
-           {getLabel()}
-         </span>
+        </div>
       </div>
     </div>
   );
