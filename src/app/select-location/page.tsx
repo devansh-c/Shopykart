@@ -160,23 +160,6 @@ export default function SelectLocationPage() {
             </div>
           )}
         </div>
-
-        <div className="bg-[#0B0B0B] p-8 rounded-[3rem] text-white relative overflow-hidden mt-10">
-           <div className="relative z-10 space-y-4">
-              <div className="flex items-center gap-3">
-                 <ShieldCheck className="h-6 w-6 text-primary" />
-                 <h3 className="text-xl font-black italic uppercase tracking-tighter">Identity Locked</h3>
-              </div>
-              <p className="text-[10px] font-bold text-gray-400 uppercase leading-relaxed tracking-wider">
-                Aapka selected zone hum aapke account ke saath sync karte hain. App update karne par bhi aapka area aur addresses safe rahenge.
-              </p>
-              <div className="flex items-center gap-2 pt-2">
-                 <Badge className="bg-primary/20 text-primary border-none text-[8px] font-black px-2 py-0.5">AUTO-SYNC ACTIVE</Badge>
-                 <Badge className="bg-white/10 text-white/60 border-none text-[8px] font-black px-2 py-0.5">v1.2.3 PROTECT</Badge>
-              </div>
-           </div>
-           <div className="absolute top-0 right-0 h-full w-32 bg-white/5 -skew-x-12 translate-x-10" />
-        </div>
       </main>
 
       <footer className="p-10 text-center opacity-30 mt-auto">
