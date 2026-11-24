@@ -76,7 +76,11 @@ export function Logo({ className }: { className?: string }) {
         className
       )}
     >
-      <div className="flex flex-col items-center">
+      <div className="flex items-center gap-2">
+          {currentAppType.includes('hotel') && (
+            <img src="/hotel-logo.png" alt="Hotelwale" className="h-6 w-6 rounded-md object-contain" />
+          )}
+          <div className="flex flex-col items-center">
          <span className="text-white font-black italic text-sm tracking-tighter leading-none">
            {currentAppType.includes('hotel') ? 'HOTELवाले' : 'SHOPYKART'}
          </span>

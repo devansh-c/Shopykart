@@ -106,6 +106,8 @@ jobs:
           NEXT_PUBLIC_HOTEL_APP: true
         run: |
           npm run build:hotel
+          cp assets/icon-hotel.png assets/icon.png
+          npx capacitor-assets generate --android || true
           sed -i "s/appId: '.*'/appId: 'co.in.shopykart.hotel'/" capacitor.config.ts
           sed -i "s/appName: '.*'/appName: 'Hotelwale'/" capacitor.config.ts
           npx cap sync android
