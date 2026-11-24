@@ -7,7 +7,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useMemo } from 'react';
 
 /**
- * @fileOverview OffersSection with Hydration-Safe Data handling.
+ * @fileOverview OffersSection updated to strictly show only DB coupons.
+ * Hides itself automatically if no coupons are found.
  */
 export default function OffersSection({ initialData = [] }: { initialData?: any[] }) {
   const { toast } = useToast();
@@ -18,18 +19,10 @@ export default function OffersSection({ initialData = [] }: { initialData?: any[
     return collection(firestore, 'coupons');
   }, [firestore]);
 
-  const { data: dbCoupons } = useCollection<any>(couponsQuery, 'home_coupons_v4_instant', initialData);
+  const { data: dbCoupons, loading } = useCollection<any>(couponsQuery, 'home_coupons_v5_strict', initialData);
 
-  // Fallback data if DB and Initial are both empty (Prototype mode)
   const displayCoupons = useMemo(() => {
-    const list = (dbCoupons && dbCoupons.length > 0) ? dbCoupons : initialData;
-    if (list && list.length > 0) return list;
-    
-    return [
-      { id: 'f1', code: 'WELCOME10', discountValue: 10, discountType: 'percentage' },
-      { id: 'f2', code: 'GOURMET50', discountValue: 50, discountType: 'fixed' },
-      { id: 'f3', code: 'OFFER100', discountValue: 100, discountType: 'fixed' }
-    ];
+    return (dbCoupons && dbCoupons.length > 0) ? dbCoupons : initialData;
   }, [dbCoupons, initialData]);
 
   const handleCopy = async (code: string) => {
@@ -42,6 +35,10 @@ export default function OffersSection({ initialData = [] }: { initialData?: any[
       }
     }
   };
+
+  // If loading or no coupons exist, don't show the section at all
+  if (loading && (!displayCoupons || displayCoupons.length === 0)) return null;
+  if (!displayCoupons || displayCoupons.length === 0) return null;
 
   return (
     <div className="py-4 animate-in fade-in duration-500">
