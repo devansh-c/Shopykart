@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useEffect, useState, memo, useTransition, useMemo } from 'react';
@@ -35,7 +36,8 @@ import {
   FileSpreadsheet,
   Zap,
   Crown,
-  Bell
+  Bell,
+  Building2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -70,6 +72,7 @@ const TeamManagement = dynamic(() => import('@/components/admin/TeamManagement')
 const ReceiptGenerator = dynamic(() => import('@/components/admin/ReceiptGenerator'), { ssr: false });
 const PremiumUserManagement = dynamic(() => import('@/components/admin/PremiumUserManagement'), { ssr: false });
 const NotificationManagement = dynamic(() => import('@/components/admin/NotificationManagement'), { ssr: false });
+const HotelManagement = dynamic(() => import('@/components/admin/HotelManagement'), { ssr: false });
 
 const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -77,6 +80,7 @@ const menuItems = [
   { id: 'announcement', label: 'Broadcast Alert', icon: Megaphone },
   { id: 'premium_users', label: 'Premium Users', icon: Crown },
   { id: 'global_offer', label: 'Flash Sale (Store-wide)', icon: Zap },
+  { id: 'hotels', label: 'Verified Hotels', icon: Building2 },
   { id: 'receipt_gen', label: 'Receipt Generator', icon: FileSpreadsheet },
   { id: 'zones', label: 'Serving Zones', icon: MapPin },
   { id: 'customers', label: 'Customers', icon: Users },
@@ -230,6 +234,7 @@ export default function AdminDashboard() {
       case 'announcement': return <AnnouncementManagement />;
       case 'premium_users': return <PremiumUserManagement />;
       case 'global_offer': return <GlobalOfferManagement />;
+      case 'hotels': return <HotelManagement />;
       case 'receipt_gen': return <ReceiptGenerator />;
       case 'zones': return <ZoneManagement />;
       case 'customers': return <CustomerManagement />;

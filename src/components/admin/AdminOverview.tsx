@@ -3,7 +3,7 @@
 
 import { useMemo, useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { IndianRupee, Users, ShoppingBag, Globe, Loader2, RefreshCw, Trash2, TrendingUp, BellRing, Smartphone, Zap, Calendar, CalendarDays, CalendarRange } from 'lucide-react';
+import { IndianRupee, Users, ShoppingBag, Globe, Loader2, RefreshCw, Trash2, TrendingUp, BellRing, Smartphone, Zap, Calendar, CalendarDays, CalendarRange, Building2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, serverTimestamp, getDocs, writeBatch } from 'firebase/firestore';
@@ -38,6 +38,12 @@ export default function AdminOverview() {
   }, [firestore]);
   const { data: orders } = useCollection<any>(ordersQuery);
 
+  const bookingsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'hotel_bookings');
+  }, [firestore]);
+  const { data: bookings } = useCollection<any>(bookingsQuery);
+
   const usersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'users');
@@ -59,22 +65,26 @@ export default function AdminOverview() {
 
     const now = new Date();
     const todayStart = startOfDay(now);
-    const weekStart = startOfWeek(now, { weekStartsOn: 1 }); // Start from Monday
+    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
     const monthStart = startOfMonth(now);
 
-    orders.forEach((o: any) => {
-      if (o.status === 'Cancelled') return;
-      
-      const amt = Number(o.total) || 0;
+    // Merge Orders + Hotel Bookings for revenue tracking
+    const allFinancials = [
+      ...(orders || []).filter(o => o.status !== 'Cancelled'),
+      ...(bookings || []).filter(b => b.status !== 'Cancelled')
+    ];
+
+    allFinancials.forEach((o: any) => {
+      const amt = Number(o.total || o.totalAmount) || 0;
       totalRev += amt;
 
-      const orderDate = o.createdAt?.seconds 
+      const txDate = o.createdAt?.seconds 
         ? new Date(o.createdAt.seconds * 1000) 
         : new Date(o.createdAt);
 
-      if (isAfter(orderDate, todayStart)) todayRev += amt;
-      if (isAfter(orderDate, weekStart)) weekRev += amt;
-      if (isAfter(orderDate, monthStart)) monthRev += amt;
+      if (isAfter(txDate, todayStart)) todayRev += amt;
+      if (isAfter(txDate, weekStart)) weekRev += amt;
+      if (isAfter(txDate, monthStart)) monthRev += amt;
     });
 
     return [
@@ -83,7 +93,7 @@ export default function AdminOverview() {
       { label: 'This Month', value: `₹${monthRev.toLocaleString()}`, icon: CalendarRange, color: 'text-indigo-600', bg: 'bg-indigo-100' },
       { label: 'Total Revenue', value: `₹${totalRev.toLocaleString()}`, icon: IndianRupee, color: 'text-green-600', bg: 'bg-green-100' },
     ];
-  }, [orders]);
+  }, [orders, bookings]);
 
   const handleTestAlert = async () => {
     setIsTesting(true);
@@ -150,22 +160,26 @@ export default function AdminOverview() {
       };
     });
 
-    orders.forEach(order => {
-      if (order.status === 'Cancelled') return;
-      let orderDate: string | null = null;
-      if (order.createdAt?.seconds) {
-        orderDate = new Date(order.createdAt.seconds * 1000).toDateString();
-      } else if (typeof order.createdAt === 'string') {
-        orderDate = new Date(order.createdAt).toDateString();
+    const allTx = [
+      ...(orders || []).filter(o => o.status !== 'Cancelled'),
+      ...(bookings || []).filter(b => b.status !== 'Cancelled')
+    ];
+
+    allTx.forEach(tx => {
+      let txDate: string | null = null;
+      if (tx.createdAt?.seconds) {
+        txDate = new Date(tx.createdAt.seconds * 1000).toDateString();
+      } else if (typeof tx.createdAt === 'string') {
+        txDate = new Date(tx.createdAt).toDateString();
       }
-      if (orderDate) {
-        const dayMatch = last7Days.find(d => d.fullDate === orderDate);
-        if (dayMatch) dayMatch.amount += (Number(order.total) || 0);
+      if (txDate) {
+        const dayMatch = last7Days.find(d => d.fullDate === txDate);
+        if (dayMatch) dayMatch.amount += (Number(tx.total || tx.totalAmount) || 0);
       }
     });
 
     return last7Days;
-  }, [orders, isMounted]);
+  }, [orders, bookings, isMounted]);
 
   const hasData = useMemo(() => chartData.some(d => d.amount > 0), [chartData]);
 
@@ -184,7 +198,7 @@ export default function AdminOverview() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-black italic tracking-tighter">{stat.value}</div>
-              <p className="text-[7px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Real-time synced</p>
+              <p className="text-[7px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Real-time combined revenue</p>
             </CardContent>
           </Card>
         ))}
@@ -221,7 +235,7 @@ export default function AdminOverview() {
                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                      <TrendingUp className="h-6 w-6 text-primary" />
-                     <h3 className="text-xl font-black italic uppercase tracking-tighter">Weekly Sales Trend</h3>
+                     <h3 className="text-xl font-black italic uppercase tracking-tighter">Unified Sales Trend</h3>
                   </div>
                   <Badge className="bg-primary text-white font-black text-[10px]">LIVE</Badge>
                </div>
@@ -294,8 +308,8 @@ export default function AdminOverview() {
             <div><p className="text-[9px] font-black text-gray-400 uppercase">Registered Customers</p><h4 className="text-2xl font-black italic">{users?.length || 0}</h4></div>
          </Card>
          <Card className="rounded-3xl border border-border shadow-sm p-6 flex items-center gap-5">
-            <div className="h-12 w-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center"><ShoppingBag className="h-6 w-6" /></div>
-            <div><p className="text-[9px] font-black text-gray-400 uppercase">Total Completed Tasks</p><h4 className="text-2xl font-black italic">{orders?.filter((o:any)=>o.status==='Delivered').length || 0}</h4></div>
+            <div className="h-12 w-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center"><Building2 className="h-6 w-6" /></div>
+            <div><p className="text-[9px] font-black text-gray-400 uppercase">Active Bookings</p><h4 className="text-2xl font-black italic">{bookings?.filter((b:any)=>b.status==='Confirmed').length || 0}</h4></div>
          </Card>
          <Card className="rounded-3xl border border-border shadow-sm p-6 flex items-center gap-5">
             <div className="h-12 w-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center"><Globe className="h-6 w-6" /></div>
