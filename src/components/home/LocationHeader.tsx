@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -12,14 +13,13 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect, useMemo } from 'react';
 import { useFirestore, useUser, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, collection, query, orderBy, limit, updateDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, collection, query, orderBy, limit } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { requestPushToken } from '@/firebase/messaging';
 import { cn } from '@/lib/utils';
 
 /**
- * @fileOverview LocationHeader - Top padding set to 2px as requested.
+ * @fileOverview LocationHeader - Links to the dedicated selection page.
  */
 export function LocationHeader({
   searchValue,
@@ -66,7 +66,7 @@ export function LocationHeader({
   }, [notifications]);
 
   const handleOpenPicker = () => {
-    window.dispatchEvent(new CustomEvent('open-location-picker'));
+    router.push('/select-location');
   };
 
   return (
