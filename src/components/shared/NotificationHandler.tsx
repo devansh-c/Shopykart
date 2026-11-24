@@ -4,13 +4,13 @@
 import { useEffect, useState, useRef } from 'react';
 import { useUser, useFirestore } from '@/firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { Bell, ShoppingBag, Truck, Volume2, ShieldAlert } from 'lucide-react';
+import { Bell, ShoppingBag, Truck, Volume2, ShieldAlert, Store } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 /**
  * @fileOverview LOUD RINGING ALERT HANDLER (Advanced Zomato-Style).
- * STRICT: Only active for Vendors, Fleet, and Admin.
- * Customers are intentionally excluded to keep their experience standard.
+ * STRICT: Active for Vendors, Fleet, and Admin.
+ * Admin receives alerts for ANY order in the network.
  */
 export default function NotificationHandler() {
   const { user } = useUser();
@@ -41,8 +41,10 @@ export default function NotificationHandler() {
     // 2. Setup Listener Query based on User Role
     let q;
     if (isStoreApp || isAdminApp) {
+      // Store and Admin listen for 'Placed' orders
       q = query(collection(firestore, 'orders'), where('status', '==', 'Placed'));
     } else if (isFleetApp) {
+      // Fleet listens for 'Ready for Pickup'
       q = query(collection(firestore, 'orders'), where('status', '==', 'Ready for Pickup'));
     } else {
       return;
@@ -54,14 +56,17 @@ export default function NotificationHandler() {
       let filteredActive: any[] = [];
       
       if (isStoreApp) {
+        // Vendor only sees their own orders
         filteredActive = active.filter(o => 
           String(o.vendorId) === String(user.uid) || 
           (Array.isArray(o.vendorIds) && o.vendorIds.includes(user.uid))
         );
       } else if (isFleetApp) {
+        // Fleet sees unassigned pickups
         const dismissed = JSON.parse(localStorage.getItem('fleet_dismissed_tasks') || '[]');
         filteredActive = active.filter(o => !o.deliveryPartnerId && !dismissed.includes(o.id));
       } else if (isAdminApp) {
+        // ADMIN SEES EVERYTHING - NO FILTER
         filteredActive = active;
       }
 
@@ -90,8 +95,8 @@ export default function NotificationHandler() {
           await LocalNotifications.schedule({
             notifications: [
               {
-                title: isStoreApp ? "🚨 NEW ORDER ARRIVED!" : "🛵 NEW PICKUP READY!",
-                body: `Check Order #${newOrders[0].customerOrderNumber} now.`,
+                title: isAdminApp ? "🚨 GLOBAL ORDER ALERT" : isStoreApp ? "🚨 NEW ORDER ARRIVED!" : "🛵 NEW PICKUP READY!",
+                body: `Order #${newOrders[0].customerOrderNumber} at ${newOrders[0].restaurantName || 'Hub'}.`,
                 id: 99999,
                 channelId: 'new_order_channel',
                 smallIcon: 'ic_stat_notification',
@@ -131,13 +136,15 @@ export default function NotificationHandler() {
 
   if (ringingOrders.length === 0) return null;
 
+  const currentOrder = ringingOrders[0];
+
   return (
     <div className="fixed inset-0 z-[2147483647] flex items-center justify-center p-6 bg-black/90 backdrop-blur-2xl animate-in fade-in duration-500">
       <div className="relative bg-white rounded-[4rem] p-12 w-full max-sm flex flex-col items-center text-center shadow-[0_0_100px_rgba(239,68,68,0.4)] animate-in zoom-in duration-700 border-4 border-primary/20">
         
         <div className="absolute -top-10 flex justify-center w-full">
            <div className="bg-primary text-white px-6 py-2 rounded-full font-black uppercase text-[10px] tracking-widest shadow-2xl animate-bounce">
-              Emergency Alert
+              {isAdminApp ? 'Global Network Alert' : 'Emergency Alert'}
            </div>
         </div>
 
@@ -149,17 +156,23 @@ export default function NotificationHandler() {
         </div>
         
         <h2 className="text-gray-900 font-black italic uppercase text-4xl tracking-tighter leading-none mb-3">
-          {isStoreApp ? 'NEW ORDER!' : 'PICKUP ALERT!'}
+          {isAdminApp ? 'ANY STORE ORDER' : isStoreApp ? 'NEW ORDER!' : 'PICKUP ALERT!'}
         </h2>
         
-        <div className="bg-gray-50 px-6 py-3 rounded-2xl border border-gray-100 mb-8">
+        <div className="bg-gray-50 px-6 py-4 rounded-3xl border border-gray-100 mb-8 space-y-2">
            <p className="text-[12px] font-black text-primary uppercase tracking-widest">
-             ORDER ID: #{ringingOrders[0].customerOrderNumber || 'PENDING'}
+             ORDER ID: #{currentOrder.customerOrderNumber || 'PENDING'}
            </p>
+           {isAdminApp && (
+             <div className="flex items-center justify-center gap-2 text-gray-500">
+                <Store className="h-4 w-4" />
+                <span className="text-[10px] font-black uppercase italic">{currentOrder.restaurantName}</span>
+             </div>
+           )}
         </div>
 
         <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-10 leading-relaxed italic">
-          PLEASE OPEN YOUR DASHBOARD IMMEDIATELY TO ACCEPT THE TASK.
+          {isAdminApp ? 'A NEW ORDER HAS BEEN PLACED IN THE NETWORK. MONITOR STATUS.' : 'PLEASE OPEN YOUR DASHBOARD IMMEDIATELY TO ACCEPT THE TASK.'}
         </p>
         
         <div className="w-full space-y-4">
